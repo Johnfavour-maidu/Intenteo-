@@ -2,7 +2,7 @@
 
 import React from "react"
 import Link from "next/link"
-import { Bell, Search, Moon, Sun, Menu } from "lucide-react"
+import { Bell, Search, Moon, Sun, Menu, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserAvatar } from "@/components/ui/user-avatar"
@@ -10,7 +10,6 @@ import { useTheme } from "next-themes"
 
 export function Header() {
   const { theme, setTheme } = useTheme()
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-4 md:px-6">
@@ -18,7 +17,6 @@ export function Header() {
         variant="ghost"
         size="icon"
         className="md:hidden"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
       >
         <Menu className="h-5 w-5" />
       </Button>
@@ -44,10 +42,18 @@ export function Header() {
           <span className="sr-only">Toggle theme</span>
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <Link href="/calendar">
+          <Button variant="ghost" size="icon">
+            <Calendar className="h-5 w-5" />
+          </Button>
+        </Link>
+
+        <Link href="/notifications">
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+          </Button>
+        </Link>
 
         <Link href="/profile">
           <UserAvatar size="sm" fallback="JD" />

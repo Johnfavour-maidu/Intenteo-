@@ -19,10 +19,9 @@ import {
   Brain,
   Clock,
   Trophy,
+  Bell,
   ChevronLeft,
   ChevronRight,
-  LogOut,
-  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -58,6 +57,7 @@ const analyticsNav: NavItem[] = [
 ]
 
 const bottomNav: NavItem[] = [
+  { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Settings", href: "/settings", icon: Settings },
   { title: "Profile", href: "/profile", icon: User },
 ]
@@ -76,12 +76,21 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center justify-between px-4">
-          {!collapsed && (
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-purple-600">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">Intenteo</span>
+          {!collapsed ? (
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo.svg"
+                alt="Intenteo"
+                className="h-10 w-auto"
+              />
+            </Link>
+          ) : (
+            <Link href="/" className="flex items-center justify-center">
+              <img
+                src="/favicon.svg"
+                alt="Intenteo"
+                className="h-8 w-8"
+              />
             </Link>
           )}
           <Button
