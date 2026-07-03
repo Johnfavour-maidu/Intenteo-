@@ -24,13 +24,17 @@ import {
   Target,
   CheckCircle2,
   Flame,
+  PenLine,
+  Save,
+  Maximize2,
+  Minimize2,
 } from "lucide-react"
 import { useToast, ToastContainer } from "./task-toast"
 
 const priorityConfig: Record<TaskPriority, { label: string; borderColor: string; bgColor: string; dotColor: string; cssColor: string }> = {
   priority: { label: "Priority", borderColor: "border-l-orange-500", bgColor: "bg-orange-500/10", dotColor: "bg-orange-500", cssColor: "#f97316" },
   progress: { label: "Progress", borderColor: "border-l-purple-500", bgColor: "bg-purple-500/10", dotColor: "bg-purple-500", cssColor: "#a855f7" },
-  maintenance: { label: "Maintenance", borderColor: "border-l-gray-400", bgColor: "bg-gray-400/10", dotColor: "bg-gray-400", cssColor: "#9ca3af" },
+  maintenance: { label: "Maintenance", borderColor: "border-l-slate-500", bgColor: "bg-slate-500/10", dotColor: "bg-slate-500", cssColor: "#64748B" },
 }
 
 function formatDuration(mins: number): string {
@@ -347,15 +351,15 @@ export function TasksPage() {
           <div className="flex items-center gap-3">
             {/* Summary Cards */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/50 text-xs font-medium">
-                <Target className="h-3.5 w-3.5 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 text-xs font-medium text-blue-600 dark:text-blue-400">
+                <Target className="h-3.5 w-3.5" />
                 <span>{completedToday + remainingToday}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-500/10 text-xs font-medium text-green-600 dark:text-green-400">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>{completedToday}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 text-xs font-medium text-orange-600 dark:text-orange-400">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 text-xs font-medium text-red-600 dark:text-red-400">
                 <Flame className="h-3.5 w-3.5" />
                 <span>{remainingToday}</span>
               </div>
@@ -393,9 +397,9 @@ export function TasksPage() {
 
         {/* Table View */}
         {activeView === "table" && (
-          <div className="rounded-2xl border bg-card overflow-hidden">
+          <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
             {/* Table Header */}
-            <div className="grid grid-cols-[1fr_140px_90px_100px_40px] gap-2 px-4 py-2.5 border-b bg-muted/20 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="sticky top-0 z-10 grid grid-cols-[1fr_140px_90px_100px_40px] gap-2 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               <div>Task</div>
               <div className="hidden sm:block">Time Range</div>
               <div className="hidden sm:block text-right">Duration</div>
@@ -430,11 +434,11 @@ export function TasksPage() {
                         onDragOver={(e) => handleDragOver(e, task.id)}
                         onDrop={() => handleDrop(task.id)}
                         onDragEnd={handleDragEnd}
-                        className={`grid grid-cols-[1fr_140px_90px_100px_40px] gap-2 px-4 py-3 items-center group transition-all duration-150 cursor-default border-b border-border/50 last:border-0 rounded-xl mx-1 my-0.5 ${
-                          task.completed ? "opacity-50" : ""
-                        } ${isDragging ? "opacity-40 scale-[0.98]" : ""} ${
+                        className={`grid grid-cols-[1fr_140px_90px_100px_40px] gap-2 px-5 py-3.5 items-center group transition-all duration-150 cursor-default border-b border-border/30 last:border-0 mx-1 my-0.5 rounded-xl ${
+                          isDragging ? "opacity-40 scale-[0.98]" : ""
+                        } ${
                           isDragOver ? "border-t-2 border-t-primary" : ""
-                        } hover:bg-muted/30`}
+                        } hover:bg-muted/40`}
                         style={{ borderLeftWidth: "3px", borderLeftColor: pConfig.cssColor }}
                       >
                         {/* Drag Handle */}
@@ -613,9 +617,7 @@ export function TasksPage() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.02, layout: { type: "spring", stiffness: 300, damping: 30 } }}
-                      className={`rounded-2xl border bg-card shadow-sm transition-all duration-200 hover:shadow-md ${
-                        task.completed ? "opacity-60" : ""
-                      }`}
+                      className={`rounded-2xl border bg-card shadow-sm transition-all duration-200 hover:shadow-md`}
                       style={{ borderLeftWidth: "4px", borderLeftColor: pConfig.cssColor }}
                     >
                       <div className="p-4">
@@ -751,6 +753,9 @@ export function TasksPage() {
             )}
           </div>
         )}
+
+        {/* Daily Reflection */}
+        <DailyReflection />
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
@@ -946,6 +951,69 @@ export function TasksPage() {
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+function DailyReflection() {
+  const [reflection, setReflection] = React.useState("")
+  const [savedAt, setSavedAt] = React.useState<string | null>(null)
+  const [expanded, setExpanded] = React.useState(false)
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  const charCount = reflection.length
+  const maxChars = 2000
+
+  const handleSave = () => {
+    setSavedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className={`mt-8 rounded-2xl border bg-card shadow-sm overflow-hidden ${expanded ? "fixed inset-4 z-50 flex flex-col" : ""}`}
+    >
+      <div className="flex items-center justify-between px-5 py-4 border-b">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <PenLine className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">Daily Reflection</h3>
+            <p className="text-[11px] text-muted-foreground">How did today go? What did you learn?</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {savedAt && (
+            <span className="text-[10px] text-muted-foreground">Last saved at {savedAt}</span>
+          )}
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpanded(!expanded)}>
+            {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
+      </div>
+
+      <div className={`p-5 flex-1 ${expanded ? "overflow-auto" : ""}`}>
+        <textarea
+          ref={textareaRef}
+          value={reflection}
+          onChange={(e) => setReflection(e.target.value.slice(0, maxChars))}
+          placeholder="What went well today? What could have been better? What are you grateful for?"
+          className={`w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none placeholder:text-muted-foreground/50 ${expanded ? "min-h-[400px]" : "min-h-[100px]"}`}
+        />
+      </div>
+
+      <div className="flex items-center justify-between px-5 py-3 border-t bg-muted/20">
+        <span className={`text-[10px] ${charCount > maxChars * 0.9 ? "text-orange-500" : "text-muted-foreground"}`}>
+          {charCount}/{maxChars}
+        </span>
+        <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleSave} disabled={!reflection.trim()}>
+          <Save className="h-3 w-3" />
+          Save
+        </Button>
+      </div>
+    </motion.div>
   )
 }
 
