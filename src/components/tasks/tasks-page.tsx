@@ -1,177 +1,97 @@
 "use client"
 
-import React, { useState, useMemo, useCallback } from "react"
-import { Task, TaskView } from "./types"
-import { sampleTasks, getTaskStats } from "./task-data"
-import { TaskCard } from "./task-card"
-import { TaskDetailsDrawer } from "./task-details-drawer"
-import { CreateTaskPanel } from "./create-task-panel"
-import { FocusMode } from "./focus-mode"
-import { AnalyticsPanel } from "./analytics-panel"
-import { ListView } from "./views/list-view"
-import { KanbanView } from "./views/kanban-view"
-import { TimelineView } from "./views/timeline-view"
-import { TableView } from "./views/table-view"
-import { MatrixView } from "./views/matrix-view"
-import { CalendarView } from "./views/calendar-view"
-import { CompactView } from "./views/compact-view"
-import { Card, CardContent } from "@/components/ui/card"
+import React, { useState, useMemo, useCallback, useRef } from "react"
+import { Task, TaskPriority, TaskView, Subtask } from "./types"
+import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ProgressRing } from "@/components/ui/progress-ring"
-import { IntentScoreBadge } from "@/components/ui/intent-score-badge"
-import { GlassCard } from "@/components/ui/glass-card"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Plus,
-  Search,
-  Filter,
   List,
-  LayoutGrid,
-  Clock,
-  Calendar,
-  Target,
   Table,
-  Minimize2,
   ChevronDown,
-  Sparkles,
-  Zap,
-  Brain,
-  Upload,
-  CheckCircle2,
-  Circle,
-  Flame,
-  TrendingUp,
-  BarChart3,
+  ChevronRight,
+  Trash2,
+  Copy,
+  Pencil,
+  Archive,
+  GripVertical,
   X,
-  ArrowUpRight,
+  Repeat,
+  Clock,
 } from "lucide-react"
 
-const viewOptions: { id: TaskView; label: string; icon: React.ReactNode }[] = [
-  { id: "list", label: "List", icon: <List className="h-4 w-4" /> },
-  { id: "kanban", label: "Kanban", icon: <LayoutGrid className="h-4 w-4" /> },
-  { id: "timeline", label: "Timeline", icon: <Clock className="h-4 w-4" /> },
-  { id: "calendar", label: "Calendar", icon: <Calendar className="h-4 w-4" /> },
-  { id: "matrix", label: "Matrix", icon: <Target className="h-4 w-4" /> },
-  { id: "table", label: "Table", icon: <Table className="h-4 w-4" /> },
-  { id: "compact", label: "Compact", icon: <Minimize2 className="h-4 w-4" /> },
-]
-
-const filterChips = [
-  { id: "today", label: "Today" },
-  { id: "upcoming", label: "Upcoming" },
-  { id: "overdue", label: "Overdue" },
-  { id: "completed", label: "Completed" },
-  { id: "high-priority", label: "High Priority" },
-  { id: "low-energy", label: "Low Energy" },
-  { id: "deep-work", label: "Deep Work" },
-  { id: "personal", label: "Personal" },
-  { id: "work", label: "Work" },
-  { id: "health", label: "Health" },
-  { id: "learning", label: "Learning" },
-]
+const priorityConfig: Record<TaskPriority, { icon: string; label: string; color: string }> = {
+  priority: { icon: "⭐", label: "Priority", color: "text-amber-500" },
+  progress: { icon: "📈", label: "Progress", color: "text-blue-500" },
+  maintenance: { icon: "🌱", label: "Maintenance", color: "text-emerald-500" },
+}
 
 export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(sampleTasks)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeView, setActiveView] = useState<TaskView>("list")
-  const [activeFilters, setActiveFilters] = useState<string[]>([])
+  const [activeView, setActiveView] = useState<TaskView>("table")
   const [createOpen, setCreateOpen] = useState(false)
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [focusTask, setFocusTask] = useState<Task | null>(null)
-  const [focusOpen, setFocusOpen] = useState(false)
-  const [analyticsOpen, setAnalyticsOpen] = useState(true)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [expandedTask, setExpandedTask] = useState<string | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ taskId: string; x: number; y: number } | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
-  const stats = useMemo(() => getTaskStats(tasks), [tasks])
+  // Create form state
+  const [formTitle, setFormTitle] = useState("")
+  const [formWhy, setFormWhy] = useState("")
+  const [formPriority, setFormPriority] = useState<TaskPriority>("progress")
+  const [formDuration, setFormDuration] = useState(30)
+  const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
+  const [formNotes, setFormNotes] = useState("")
 
-  // Filter tasks
-  const filteredTasks = useMemo(() => {
-    let result = [...tasks]
+  const sortedTasks = useMemo(() => {
+    const pending = tasks.filter((t) => !t.completed).sort((a, b) => a.order - b.order)
+    const completed = tasks.filter((t) => t.completed).sort((a, b) => a.order - b.order)
+    return [...pending, ...completed]
+  }, [tasks])
 
-    // Search
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.purpose.toLowerCase().includes(q) ||
-          t.category.toLowerCase().includes(q) ||
-          t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-          t.projectName.toLowerCase().includes(q) ||
-          t.connectedGoal.toLowerCase().includes(q) ||
-          t.notes.toLowerCase().includes(q)
-      )
-    }
+  const completedToday = useMemo(() => tasks.filter((t) => t.completed).length, [tasks])
+  const remainingToday = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks])
 
-    // Filters
-    if (activeFilters.includes("today")) {
-      const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
-      result = result.filter((t) => t.deadline === today)
-    }
-    if (activeFilters.includes("upcoming")) {
-      result = result.filter((t) => !t.completed && t.status !== "archived")
-    }
-    if (activeFilters.includes("overdue")) {
-      result = result.filter((t) => !t.completed && t.deadline < "Today")
-    }
-    if (activeFilters.includes("completed")) {
-      result = result.filter((t) => t.completed)
-    }
-    if (activeFilters.includes("high-priority")) {
-      result = result.filter((t) => t.priority === "high")
-    }
-    if (activeFilters.includes("low-energy")) {
-      result = result.filter((t) => t.energyRequired === "low")
-    }
-    if (activeFilters.includes("deep-work")) {
-      result = result.filter((t) => t.category === "Deep Work")
-    }
-    if (activeFilters.includes("personal")) {
-      result = result.filter((t) => t.category === "Personal")
-    }
-    if (activeFilters.includes("work")) {
-      result = result.filter((t) => ["Meeting", "Deep Work", "Work"].includes(t.category))
-    }
-    if (activeFilters.includes("health")) {
-      result = result.filter((t) => t.category === "Health")
-    }
-    if (activeFilters.includes("learning")) {
-      result = result.filter((t) => t.category === "Learning")
-    }
-
-    return result
-  }, [tasks, searchQuery, activeFilters])
+  const getSubtaskProgress = useCallback((subtasks: Subtask[]) => {
+    if (subtasks.length === 0) return 0
+    return Math.round((subtasks.filter((s) => s.completed).length / subtasks.length) * 100)
+  }, [])
 
   // Handlers
   const toggleTask = useCallback((id: string) => {
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? { ...t, completed: !t.completed, completionPercent: t.completed ? t.completionPercent : 100 }
-          : t
-      )
+      prev.map((t) => {
+        if (t.id === id) {
+          const newCompleted = !t.completed
+          return { ...t, completed: newCompleted }
+        }
+        return t
+      })
     )
   }, [])
 
-  const openDrawer = useCallback((task: Task) => {
-    setSelectedTask(task)
-    setDrawerOpen(true)
-  }, [])
-
-  const openEdit = useCallback((task: Task) => {
-    setEditingTask(task)
-    setCreateOpen(true)
-  }, [])
-
-  const completeTask = useCallback((id: string) => {
+  const toggleSubtask = useCallback((taskId: string, subtaskId: string) => {
     setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: true, completionPercent: 100, status: "completed" as const } : t))
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const newSubtasks = t.subtasks.map((s) =>
+            s.id === subtaskId ? { ...s, completed: !s.completed } : s
+          )
+          return { ...t, subtasks: newSubtasks }
+        }
+        return t
+      })
     )
+  }, [])
+
+  const deleteTask = useCallback((id: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== id))
+    setContextMenu(null)
   }, [])
 
   const duplicateTask = useCallback((task: Task) => {
@@ -180,449 +100,675 @@ export function TasksPage() {
       id: `dup-${Date.now()}`,
       title: `${task.title} (Copy)`,
       completed: false,
-      completionPercent: 0,
-      status: "pending",
+      order: 0,
+      subtasks: task.subtasks.map((s) => ({ ...s, id: `s-${Date.now()}-${s.id}`, completed: false })),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     }
     setTasks((prev) => [newTask, ...prev])
+    setContextMenu(null)
   }, [])
 
   const archiveTask = useCallback((id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: "archived" as const } : t))
-    )
-  }, [])
-
-  const deleteTask = useCallback((id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id))
+    setContextMenu(null)
   }, [])
 
-  const rescheduleTask = useCallback((task: Task) => {
-    // In a real app, this would open a date picker
-    alert(`Reschedule: ${task.title}`)
-  }, [])
-
-  const openFocus = useCallback((task: Task) => {
-    setFocusTask(task)
-    setFocusOpen(true)
-  }, [])
-
-  const handleCreateTask = useCallback((partial: Partial<Task>) => {
+  const handleCreateTask = useCallback(() => {
+    if (!formTitle.trim()) return
     const newTask: Task = {
       id: `new-${Date.now()}`,
-      title: partial.title || "Untitled",
-      purpose: partial.purpose || "",
-      whyItMatters: partial.whyItMatters || "",
-      futureSelfAlignment: partial.futureSelfAlignment || "",
-      futureSelfBadge: partial.futureSelfBadge || "",
-      connectedGoal: partial.connectedGoal || "",
-      projectName: partial.projectName || "",
-      category: "Personal",
-      priority: partial.priority || "medium",
-      intentScore: partial.intentScore || 50,
-      deadline: partial.deadline || "Today",
-      dueTime: partial.dueTime || "Anytime",
-      estimatedDuration: partial.estimatedDuration || 30,
-      energyRequired: partial.energyRequired || "medium",
-      tags: partial.tags || [],
-      subtasks: partial.subtasks || [],
-      attachments: partial.attachments || [],
-      comments: partial.comments || [],
-      activity: partial.activity || [{ id: "ac-new", action: "Created task", timestamp: new Date().toISOString() }],
-      dependencies: partial.dependencies || [],
-      status: partial.status || "pending",
-      completed: partial.completed || false,
-      completionPercent: partial.completionPercent || 0,
-      isRecurring: partial.isRecurring || false,
-      recurrence: partial.recurrence || "none",
-      location: partial.location,
-      notes: partial.notes || "",
-      voiceNotes: partial.voiceNotes || [],
-      calendarSync: partial.calendarSync || false,
-      reminder: partial.reminder,
+      title: formTitle,
+      whyItMatters: formWhy,
+      priority: formPriority,
+      deadline: "Today",
+      dueTime: "Anytime",
+      estimatedDuration: formDuration,
+      notes: formNotes,
+      subtasks: [],
+      recurrence: formRecurrence,
+      completed: false,
+      order: 0,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      xp: partial.xp || 10,
-      aiSuggestion: partial.aiSuggestion,
     }
     setTasks((prev) => [newTask, ...prev])
+    setFormTitle("")
+    setFormWhy("")
+    setFormPriority("progress")
+    setFormDuration(30)
+    setFormRecurrence("none")
+    setFormNotes("")
+    setCreateOpen(false)
+  }, [formTitle, formWhy, formPriority, formDuration, formRecurrence, formNotes])
+
+  const handleEditTask = useCallback(() => {
+    if (!editingTask || !formTitle.trim()) return
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === editingTask.id
+          ? { ...t, title: formTitle, whyItMatters: formWhy, priority: formPriority, estimatedDuration: formDuration, recurrence: formRecurrence, notes: formNotes }
+          : t
+      )
+    )
+    setEditingTask(null)
+    setFormTitle("")
+    setFormWhy("")
+    setFormPriority("progress")
+    setFormDuration(30)
+    setFormRecurrence("none")
+    setFormNotes("")
+  }, [editingTask, formTitle, formWhy, formPriority, formDuration, formRecurrence, formNotes])
+
+  const openEdit = useCallback((task: Task) => {
+    setEditingTask(task)
+    setFormTitle(task.title)
+    setFormWhy(task.whyItMatters)
+    setFormPriority(task.priority)
+    setFormDuration(task.estimatedDuration)
+    setFormRecurrence(task.recurrence)
+    setFormNotes(task.notes)
+    setContextMenu(null)
   }, [])
 
-  const toggleFilter = useCallback((id: string) => {
-    setActiveFilters((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-    )
+  // Drag and drop
+  const handleDragStart = useCallback((id: string) => {
+    setDraggedId(id)
   }, [])
 
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    )
+  const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault()
+    setDragOverId(id)
+  }, [])
+
+  const handleDrop = useCallback((targetId: string) => {
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null)
+      setDragOverId(null)
+      return
+    }
+    setTasks((prev) => {
+      const items = [...prev]
+      const dragIdx = items.findIndex((t) => t.id === draggedId)
+      const dropIdx = items.findIndex((t) => t.id === targetId)
+      if (dragIdx === -1 || dropIdx === -1) return prev
+      const [dragged] = items.splice(dragIdx, 1)
+      items.splice(dropIdx, 0, dragged)
+      return items.map((t, i) => ({ ...t, order: i }))
+    })
+    setDraggedId(null)
+    setDragOverId(null)
+  }, [draggedId])
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedId(null)
+    setDragOverId(null)
   }, [])
 
   return (
-    <div className="flex h-full">
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="space-y-6 p-4 md:p-6">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-          >
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Tasks
-              </h1>
-              <p className="text-muted-foreground text-sm mt-1">
-                Intentions before tasks. Live with intentionality.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Upload className="mr-1 h-4 w-4" />
-                Import
-              </Button>
-              <Button variant="outline" size="sm">
-                <Brain className="mr-1 h-4 w-4" />
-                AI Plan
-              </Button>
-              <Button className="glow" onClick={() => setCreateOpen(true)}>
-                <Plus className="mr-1 h-4 w-4" />
-                Quick Add
-              </Button>
-            </div>
-          </motion.div>
-
-          {/* Stats Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3"
-          >
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Remaining</p>
-                    <p className="text-2xl font-bold">{stats.remaining}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Target className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Completed</p>
-                    <p className="text-2xl font-bold text-emerald-500">{stats.completed}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Intent Score</p>
-                    <p className="text-2xl font-bold text-primary">{stats.avgIntentScore}%</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-purple-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">XP Earned</p>
-                    <p className="text-2xl font-bold text-amber-500">{stats.totalXP}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                    <Flame className="h-5 w-5 text-amber-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Today's Focus */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <GlassCard variant="primary" className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Zap className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">Today&apos;s Focus</span>
-                    <p className="text-sm text-muted-foreground">{stats.highEnergyTasks} deep work tasks remaining</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right hidden md:block">
-                    <span className="text-xs text-muted-foreground">Deep Work</span>
-                    <p className="text-sm font-medium">{stats.deepWorkMinutes}m planned</p>
-                  </div>
-                  <IntentScoreBadge score={stats.avgIntentScore} size="lg" />
-                </div>
-              </div>
-            </GlassCard>
-          </motion.div>
-
-          {/* Search */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="relative"
-          >
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search by task, project, goal, tag, category, notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-            {searchQuery && (
+    <div className="min-h-screen">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {completedToday} of {completedToday + remainingToday} completed today
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
               <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
-                onClick={() => setSearchQuery("")}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </motion.div>
-
-          {/* Filter Chips */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
-          >
-            {filterChips.map((chip) => (
-              <Button
-                key={chip.id}
-                variant={activeFilters.includes(chip.id) ? "default" : "outline"}
+                variant={activeView === "table" ? "default" : "ghost"}
                 size="sm"
-                className="whitespace-nowrap rounded-full text-xs"
-                onClick={() => toggleFilter(chip.id)}
+                className="h-8 px-3"
+                onClick={() => setActiveView("table")}
               >
-                {chip.label}
-                {activeFilters.includes(chip.id) && (
-                  <X className="ml-1 h-3 w-3" />
-                )}
+                <Table className="h-4 w-4" />
               </Button>
-            ))}
-          </motion.div>
-
-          {/* View Switcher + Bulk Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex items-center justify-between"
-          >
-            <div className="flex items-center gap-1 p-1 bg-muted rounded-xl">
-              {viewOptions.map((view) => (
-                <Button
-                  key={view.id}
-                  variant={activeView === view.id ? "default" : "ghost"}
-                  size="sm"
-                  className="h-8 px-3"
-                  onClick={() => setActiveView(view.id)}
-                >
-                  {view.icon}
-                  <span className="ml-1.5 hidden md:inline">{view.label}</span>
-                </Button>
-              ))}
+              <Button
+                variant={activeView === "list" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 px-3"
+                onClick={() => setActiveView("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
             </div>
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">{selectedIds.length} selected</Badge>
-                <Button variant="outline" size="sm">Move</Button>
-                <Button variant="outline" size="sm">Archive</Button>
-                <Button variant="outline" size="sm" className="text-destructive">Delete</Button>
-              </div>
-            )}
-          </motion.div>
+            <Button className="glow" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add Task
+            </Button>
+          </div>
+        </div>
 
-          {/* Task Views */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-          >
-            {activeView === "list" && (
-              <ListView
-                tasks={filteredTasks}
-                onToggle={toggleTask}
-                onExpand={openDrawer}
-                onEdit={openEdit}
-                onComplete={completeTask}
-                onDuplicate={duplicateTask}
-                onArchive={archiveTask}
-                onDelete={deleteTask}
-                onReschedule={rescheduleTask}
-                onFocus={openFocus}
-              />
-            )}
-            {activeView === "kanban" && (
-              <KanbanView
-                tasks={filteredTasks}
-                onToggle={toggleTask}
-                onExpand={openDrawer}
-                onEdit={openEdit}
-                onComplete={completeTask}
-                onDuplicate={duplicateTask}
-                onArchive={archiveTask}
-                onDelete={deleteTask}
-                onReschedule={rescheduleTask}
-                onFocus={openFocus}
-              />
-            )}
-            {activeView === "timeline" && (
-              <TimelineView
-                tasks={filteredTasks}
-                onToggle={toggleTask}
-                onExpand={openDrawer}
-                onEdit={openEdit}
-                onComplete={completeTask}
-                onDuplicate={duplicateTask}
-                onArchive={archiveTask}
-                onDelete={deleteTask}
-                onReschedule={rescheduleTask}
-                onFocus={openFocus}
-              />
-            )}
-            {activeView === "calendar" && (
-              <CalendarView
-                tasks={filteredTasks}
-                onToggle={toggleTask}
-                onExpand={openDrawer}
-                onEdit={openEdit}
-                onComplete={completeTask}
-                onDuplicate={duplicateTask}
-                onArchive={archiveTask}
-                onDelete={deleteTask}
-                onReschedule={rescheduleTask}
-                onFocus={openFocus}
-              />
-            )}
-            {activeView === "matrix" && (
-              <MatrixView
-                tasks={filteredTasks}
-                onToggle={toggleTask}
-                onExpand={openDrawer}
-                onEdit={openEdit}
-                onComplete={completeTask}
-                onDuplicate={duplicateTask}
-                onArchive={archiveTask}
-                onDelete={deleteTask}
-                onReschedule={rescheduleTask}
-                onFocus={openFocus}
-              />
-            )}
-            {activeView === "table" && (
-              <TableView
-                tasks={filteredTasks}
-                onToggle={toggleTask}
-                onExpand={openDrawer}
-              />
-            )}
-            {activeView === "compact" && (
-              <CompactView
-                tasks={filteredTasks}
-                onToggle={toggleTask}
-                onExpand={openDrawer}
-                onEdit={openEdit}
-                onComplete={completeTask}
-                onDuplicate={duplicateTask}
-                onArchive={archiveTask}
-                onDelete={deleteTask}
-                onReschedule={rescheduleTask}
-                onFocus={openFocus}
-              />
-            )}
-          </motion.div>
+        {/* Table View */}
+        {activeView === "table" && (
+          <div className="rounded-2xl border bg-card overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-[40px_1fr_100px_80px_80px_40px] gap-2 px-4 py-3 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
+              <div></div>
+              <div>Task</div>
+              <div className="hidden md:block">Subtasks</div>
+              <div>Time</div>
+              <div>Progress</div>
+              <div></div>
+            </div>
 
-          {/* Empty State */}
-          {filteredTasks.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16"
-            >
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
-                <CheckCircle2 className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-1">No tasks found</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {searchQuery ? "Try a different search term" : "You're all caught up. Enjoy the rest of your day."}
-              </p>
-              {!searchQuery && (
+            {/* Table Rows */}
+            {sortedTasks.length === 0 ? (
+              <div className="py-20 text-center">
+                <div className="text-4xl mb-3">📝</div>
+                <h3 className="text-lg font-semibold mb-1">No tasks yet.</h3>
+                <p className="text-sm text-muted-foreground mb-4">Create your first intentional task.</p>
                 <Button onClick={() => setCreateOpen(true)}>
                   <Plus className="mr-1 h-4 w-4" />
-                  Create Task
+                  Add Task
                 </Button>
-              )}
-            </motion.div>
-          )}
+              </div>
+            ) : (
+              sortedTasks.map((task, i) => {
+                const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
+                const isExpanded = expandedTask === task.id
+                const isDragging = draggedId === task.id
+                const isDragOver = dragOverId === task.id && dragOverId !== draggedId
+
+                return (
+                  <div key={task.id}>
+                    {/* Main Row */}
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.02 }}
+                      draggable
+                      onDragStart={() => handleDragStart(task.id)}
+                      onDragOver={(e) => handleDragOver(e, task.id)}
+                      onDrop={() => handleDrop(task.id)}
+                      onDragEnd={handleDragEnd}
+                      className={`grid grid-cols-[40px_1fr_100px_80px_80px_40px] gap-2 px-4 py-3 border-b last:border-0 items-center group transition-all duration-150 cursor-default ${
+                        task.completed ? "opacity-50" : ""
+                      } ${isDragging ? "opacity-40" : ""} ${
+                        isDragOver ? "border-t-2 border-t-primary" : ""
+                      } ${i % 2 === 0 ? "bg-background" : "bg-muted/10"} hover:bg-muted/30`}
+                    >
+                      {/* Drag Handle */}
+                      <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+
+                      {/* Task */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button onClick={() => toggleTask(task.id)} className="shrink-0">
+                          {task.completed ? (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            >
+                              <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              </div>
+                            </motion.div>
+                          ) : (
+                            <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}>
+                              {task.title}
+                            </span>
+                            <span className="text-xs shrink-0">{priorityConfig[task.priority].icon}</span>
+                            {task.recurrence !== "none" && (
+                              <Repeat className="h-3 w-3 text-muted-foreground shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                        {task.subtasks.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setExpandedTask(isExpanded ? null : task.id)}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Subtasks Count */}
+                      <div className="hidden md:block text-xs text-muted-foreground">
+                        {task.subtasks.length > 0 ? (
+                          <span>{task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length} subtasks</span>
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </div>
+
+                      {/* Time */}
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {task.dueTime}
+                      </div>
+
+                      {/* Progress */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <motion.div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"
+                            }`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="relative">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setContextMenu({ taskId: task.id, x: rect.right, y: rect.bottom })
+                          }}
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="5" r="1" />
+                            <circle cx="12" cy="12" r="1" />
+                            <circle cx="12" cy="19" r="1" />
+                          </svg>
+                        </Button>
+                      </div>
+                    </motion.div>
+
+                    {/* Expanded Subtasks */}
+                    <AnimatePresence>
+                      {isExpanded && task.subtasks.length > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden bg-muted/10"
+                        >
+                          <div className="pl-12 pr-4 py-2 space-y-1">
+                            {task.subtasks.map((sub) => (
+                              <div
+                                key={sub.id}
+                                className="flex items-center gap-2 py-1"
+                              >
+                                <button onClick={() => toggleSubtask(task.id, sub.id)}>
+                                  {sub.completed ? (
+                                    <div className="h-4 w-4 rounded bg-primary flex items-center justify-center">
+                                      <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                    </div>
+                                  ) : (
+                                    <div className="h-4 w-4 rounded border border-muted-foreground/30" />
+                                  )}
+                                </button>
+                                <span className={`text-xs ${sub.completed ? "line-through text-muted-foreground" : ""}`}>
+                                  {sub.title}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
+
+        {/* List View */}
+        {activeView === "list" && (
+          <div className="space-y-1">
+            {sortedTasks.length === 0 ? (
+              <div className="py-20 text-center">
+                <div className="text-4xl mb-3">📝</div>
+                <h3 className="text-lg font-semibold mb-1">No tasks yet.</h3>
+                <p className="text-sm text-muted-foreground mb-4">Create your first intentional task.</p>
+                <Button onClick={() => setCreateOpen(true)}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add Task
+                </Button>
+              </div>
+            ) : (
+              sortedTasks.map((task, i) => {
+                const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
+                const isExpanded = expandedTask === task.id
+
+                return (
+                  <motion.div
+                    key={task.id}
+                    layout
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    className={`rounded-xl transition-all duration-150 ${
+                      task.completed ? "opacity-50" : ""
+                    } hover:bg-muted/30`}
+                  >
+                    {/* Main Row */}
+                    <div className="flex items-center gap-3 px-3 py-2.5">
+                      <button onClick={() => toggleTask(task.id)} className="shrink-0">
+                        {task.completed ? (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          >
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
+                        )}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}>
+                            {task.title}
+                          </span>
+                          <span className="text-xs">{priorityConfig[task.priority].icon}</span>
+                          {task.recurrence !== "none" && (
+                            <Repeat className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </div>
+                        {task.whyItMatters && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.whyItMatters}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {task.dueTime}
+                        </span>
+                        {task.subtasks.length > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length}
+                          </span>
+                        )}
+                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden hidden sm:block">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"
+                            }`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        {task.subtasks.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setExpandedTask(isExpanded ? null : task.id)}
+                          >
+                            {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setContextMenu({ taskId: task.id, x: rect.right, y: rect.bottom })
+                          }}
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="5" r="1" />
+                            <circle cx="12" cy="12" r="1" />
+                            <circle cx="12" cy="19" r="1" />
+                          </svg>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expanded Subtasks */}
+                    <AnimatePresence>
+                      {isExpanded && task.subtasks.length > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pl-11 pr-3 pb-2 space-y-1">
+                            {task.subtasks.map((sub) => (
+                              <div key={sub.id} className="flex items-center gap-2 py-1">
+                                <button onClick={() => toggleSubtask(task.id, sub.id)}>
+                                  {sub.completed ? (
+                                    <div className="h-4 w-4 rounded bg-primary flex items-center justify-center">
+                                      <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                    </div>
+                                  ) : (
+                                    <div className="h-4 w-4 rounded border border-muted-foreground/30" />
+                                  )}
+                                </button>
+                                <span className={`text-xs ${sub.completed ? "line-through text-muted-foreground" : ""}`}>
+                                  {sub.title}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )
+              })
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
+          <span>{completedToday} completed today</span>
+          <span>{remainingToday} remaining</span>
         </div>
       </div>
 
-      {/* Analytics Panel (Right Side) */}
-      <div className="hidden lg:block border-l">
-        <AnalyticsPanel tasks={tasks} open={analyticsOpen} onToggle={() => setAnalyticsOpen(!analyticsOpen)} />
-      </div>
+      {/* Context Menu */}
+      <AnimatePresence>
+        {contextMenu && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed z-50 w-44 rounded-xl border bg-background shadow-lg p-1"
+              style={{ left: contextMenu.x - 180, top: contextMenu.y }}
+            >
+              <button
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors"
+                onClick={() => {
+                  const task = tasks.find((t) => t.id === contextMenu.taskId)
+                  if (task) openEdit(task)
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors"
+                onClick={() => {
+                  const task = tasks.find((t) => t.id === contextMenu.taskId)
+                  if (task) duplicateTask(task)
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Duplicate
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors"
+                onClick={() => archiveTask(contextMenu.taskId)}
+              >
+                <Archive className="h-3.5 w-3.5" />
+                Archive
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                onClick={() => deleteTask(contextMenu.taskId)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-      {/* Task Details Drawer */}
-      <TaskDetailsDrawer
-        task={selectedTask}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onToggle={toggleTask}
-        onEdit={openEdit}
-        onComplete={completeTask}
-        onDuplicate={duplicateTask}
-        onArchive={archiveTask}
-        onDelete={deleteTask}
-        onReschedule={rescheduleTask}
-        onFocus={openFocus}
-      />
+      {/* Create / Edit Modal */}
+      <AnimatePresence>
+        {(createOpen || editingTask) && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => { setCreateOpen(false); setEditingTask(null) }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-background rounded-2xl border shadow-2xl"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-lg font-semibold">{editingTask ? "Edit Task" : "New Task"}</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setCreateOpen(false); setEditingTask(null) }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
 
-      {/* Create Task Panel */}
-      <CreateTaskPanel
-        open={createOpen}
-        onClose={() => { setCreateOpen(false); setEditingTask(null) }}
-        onSave={handleCreateTask}
-      />
+                <div className="space-y-4">
+                  {/* Task Name */}
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Task Name</label>
+                    <Input
+                      placeholder="What needs to be done?"
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      className="mt-1"
+                      autoFocus
+                    />
+                  </div>
 
-      {/* Focus Mode */}
-      <FocusMode
-        task={focusTask}
-        open={focusOpen}
-        onClose={() => setFocusOpen(false)}
-        onComplete={(id) => { completeTask(id); setFocusOpen(false) }}
-      />
+                  {/* Why does this matter? */}
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Why does this matter?</label>
+                    <Textarea
+                      placeholder="How does this connect to your purpose?"
+                      value={formWhy}
+                      onChange={(e) => setFormWhy(e.target.value)}
+                      className="mt-1 min-h-[60px]"
+                    />
+                  </div>
+
+                  {/* Priority */}
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Priority</label>
+                    <div className="flex gap-2 mt-1">
+                      {(["priority", "progress", "maintenance"] as TaskPriority[]).map((p) => (
+                        <Button
+                          key={p}
+                          variant={formPriority === p ? "default" : "outline"}
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setFormPriority(p)}
+                        >
+                          {priorityConfig[p].icon} {priorityConfig[p].label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Duration & Recurrence */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Duration (min)</label>
+                      <Input
+                        type="number"
+                        value={formDuration}
+                        onChange={(e) => setFormDuration(Number(e.target.value))}
+                        className="mt-1"
+                        min={5}
+                        step={5}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Recurrence</label>
+                      <div className="flex gap-1 mt-1">
+                        {(["none", "daily", "weekly", "monthly"] as const).map((r) => (
+                          <Button
+                            key={r}
+                            variant={formRecurrence === r ? "default" : "outline"}
+                            size="sm"
+                            className="flex-1 text-[10px] px-1"
+                            onClick={() => setFormRecurrence(r)}
+                          >
+                            {r === "none" ? "—" : r.slice(0, 3)}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Notes</label>
+                    <Textarea
+                      placeholder="Additional details..."
+                      value={formNotes}
+                      onChange={(e) => setFormNotes(e.target.value)}
+                      className="mt-1 min-h-[50px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-6">
+                  <Button variant="outline" className="flex-1" onClick={() => { setCreateOpen(false); setEditingTask(null) }}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1 glow" onClick={editingTask ? handleEditTask : handleCreateTask} disabled={!formTitle.trim()}>
+                    {editingTask ? "Save Changes" : "Add Task"}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
