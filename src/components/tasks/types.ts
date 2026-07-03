@@ -15,6 +15,7 @@ export interface Task {
   priority: TaskPriority
   deadline: string
   dueTime: string
+  timeRange: string
   estimatedDuration: number
   notes: string
   subtasks: Subtask[]
