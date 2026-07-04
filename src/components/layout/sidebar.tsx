@@ -81,15 +81,15 @@ export function Sidebar() {
               <img
                 src="/logo.svg"
                 alt="Intenteo"
-                className="h-10 w-auto"
+                className="h-9 w-auto"
               />
             </Link>
           ) : (
             <Link href="/" className="flex items-center justify-center">
               <img
-                src="/favicon.svg"
+                src="/logo-icon.svg"
                 alt="Intenteo"
-                className="h-8 w-8"
+                className="h-9 w-9"
               />
             </Link>
           )}

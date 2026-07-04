@@ -35,7 +35,7 @@ export interface UserAvatarProps
 const UserAvatar = React.forwardRef<HTMLDivElement, UserAvatarProps>(
   ({ className, size, src, alt, fallback, status, ...props }, ref) => (
     <div ref={ref} className={cn("relative", className)} {...props}>
-      <div className={cn(avatarVariants({ size }), "bg-gradient-to-br from-primary to-purple-600 text-white font-medium")}>
+      <div className={cn(avatarVariants({ size }), "bg-[#1E0E6B] text-white font-medium shadow-lg")}>
         {src ? (
           <img src={src} alt={alt || ""} className="h-full w-full object-cover" />
         ) : (
