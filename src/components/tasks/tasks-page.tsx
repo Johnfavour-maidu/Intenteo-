@@ -6,7 +6,6 @@ import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion"
 import {
   Plus,
@@ -15,9 +14,7 @@ import {
   ChevronDown,
   ChevronRight,
   Trash2,
-  Copy,
   Pencil,
-  Archive,
   GripVertical,
   X,
   Clock,
@@ -64,14 +61,62 @@ function calcDurationFromRange(start: string, end: string): number {
   if (!s || !e) return 0
   const toMin = (t: { hour: number; minute: number; period: string }) =>
     (t.period === "PM" && t.hour !== 12 ? t.hour + 12 : t.period === "AM" && t.hour === 12 ? 0 : t.hour) * 60 + t.minute
-  let sMin = toMin(s)
+  const sMin = toMin(s)
   let eMin = toMin(e)
   if (eMin <= sMin) eMin += 24 * 60
   return eMin - sMin
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Time Range Picker                                     */
+/* Scroll Column (for time picker)                       */
+/* ────────────────────────────────────────────────────── */
+
+const ScrollCol = memo(function ScrollCol({
+  items, selected, onSelect, label,
+}: {
+  items: (number | string)[]
+  selected: number | string
+  onSelect: (v: number | string) => void
+  label: string
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const itemHeight = 32
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const idx = items.indexOf(selected)
+    if (idx === -1) return
+    const scrollTo = idx * itemHeight
+    container.scrollTo({ top: scrollTo, behavior: "smooth" })
+  }, [selected, items, itemHeight])
+
+  return (
+    <div className="flex flex-col items-center">
+      <span className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
+      <div ref={containerRef} className="h-20 overflow-y-auto scrollbar-hide relative w-12 snap-y snap-mandatory">
+        <div className="py-6">
+          {items.map((item) => (
+            <button
+              key={item}
+              onClick={() => onSelect(item)}
+              className={`w-full h-8 flex items-center justify-center text-xs rounded-md snap-center transition-all duration-150 ${
+                selected === item
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {typeof item === "number" && label !== "AM/PM" ? String(item).padStart(2, "0") : item}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+/* ────────────────────────────────────────────────────── */
+/* Time Range Picker — Side-by-side smooth scroll        */
 /* ────────────────────────────────────────────────────── */
 
 function TimeRangePicker({
@@ -100,52 +145,28 @@ function TimeRangePicker({
     onChange(sStr, eStr, dur > 0 ? dur : 0)
   }, [startHour, startMin, startPeriod, endHour, endMin, endPeriod, onChange])
 
-  const ScrollCol = ({
-    items, selected, onSelect, label,
-  }: {
-    items: (number | string)[]
-    selected: number | string
-    onSelect: (v: number | string) => void
-    label: string
-  }) => (
-    <div className="flex flex-col items-center">
-      <span className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
-      <div className="h-24 overflow-y-auto scrollbar-hide relative w-14">
-        <div className="py-8">
-          {items.map((item) => (
-            <button
-              key={item}
-              onClick={() => onSelect(item)}
-              className={`w-full h-8 flex items-center justify-center text-xs rounded-md transition-all duration-150 ${
-                selected === item
-                  ? "bg-primary text-primary-foreground font-semibold"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {typeof item === "number" && label !== "AM/PM" ? String(item).padStart(2, "0") : item}
-            </button>
-          ))}
+  return (
+    <div className="flex items-start gap-4">
+      {/* Start Time */}
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Start Time</p>
+        <div className="flex items-center justify-center gap-1 p-2 rounded-xl bg-muted/30 border">
+          <ScrollCol items={hours} selected={startHour} onSelect={(v) => setStartHour(v as number)} label="Hr" />
+          <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
+          <ScrollCol items={minutes} selected={startMin} onSelect={(v) => setStartMin(v as number)} label="Min" />
+          <ScrollCol items={["AM", "PM"]} selected={startPeriod} onSelect={(v) => setStartPeriod(v as "AM" | "PM")} label="AM/PM" />
         </div>
       </div>
-    </div>
-  )
 
-  return (
-    <div className="flex items-center gap-3">
-      <div className="text-[10px] text-muted-foreground font-medium">Start</div>
-      <div className="flex items-center gap-1 p-2 rounded-xl bg-muted/30 border">
-        <ScrollCol items={hours} selected={startHour} onSelect={(v) => setStartHour(v as number)} label="Hr" />
-        <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
-        <ScrollCol items={minutes} selected={startMin} onSelect={(v) => setStartMin(v as number)} label="Min" />
-        <ScrollCol items={["AM", "PM"]} selected={startPeriod} onSelect={(v) => setStartPeriod(v as "AM" | "PM")} label="AM/PM" />
-      </div>
-      <div className="text-muted-foreground/40 mt-3">\u2013</div>
-      <div className="text-[10px] text-muted-foreground font-medium">End</div>
-      <div className="flex items-center gap-1 p-2 rounded-xl bg-muted/30 border">
-        <ScrollCol items={hours} selected={endHour} onSelect={(v) => setEndHour(v as number)} label="Hr" />
-        <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
-        <ScrollCol items={minutes} selected={endMin} onSelect={(v) => setEndMin(v as number)} label="Min" />
-        <ScrollCol items={["AM", "PM"]} selected={endPeriod} onSelect={(v) => setEndPeriod(v as "AM" | "PM")} label="AM/PM" />
+      {/* End Time */}
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-muted-foreground font-medium mb-1.5">End Time</p>
+        <div className="flex items-center justify-center gap-1 p-2 rounded-xl bg-muted/30 border">
+          <ScrollCol items={hours} selected={endHour} onSelect={(v) => setEndHour(v as number)} label="Hr" />
+          <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
+          <ScrollCol items={minutes} selected={endMin} onSelect={(v) => setEndMin(v as number)} label="Min" />
+          <ScrollCol items={["AM", "PM"]} selected={endPeriod} onSelect={(v) => setEndPeriod(v as "AM" | "PM")} label="AM/PM" />
+        </div>
       </div>
     </div>
   )
@@ -313,6 +334,8 @@ export function TasksPage() {
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [dragType, setDragType] = useState<"task" | "subtask" | null>(null)
+  const [dragSourceTaskId, setDragSourceTaskId] = useState<string | null>(null)
   const [movePopoverTaskId, setMovePopoverTaskId] = useState<string | null>(null)
   const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
 
@@ -329,7 +352,6 @@ export function TasksPage() {
   const [formEndMin, setFormEndMin] = useState(30)
   const [formEndPeriod, setFormEndPeriod] = useState<"AM" | "PM">("AM")
   const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
-  const [formNotes, setFormNotes] = useState("")
 
   const completedToday = useMemo(() => tasks.filter((t) => t.completed).length, [tasks])
   const remainingToday = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks])
@@ -365,22 +387,6 @@ export function TasksPage() {
     setTasks((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const duplicateTask = useCallback((task: Task) => {
-    const newTask: Task = {
-      ...task, id: `dup-${Date.now()}`, title: `${task.title} (Copy)`, completed: false, order: task.order,
-      subtasks: task.subtasks.map((s) => ({ ...s, id: `s-${Date.now()}-${s.id}`, completed: false })),
-      createdAt: new Date().toISOString(),
-    }
-    setTasks((prev) => {
-      const items = [...prev]; const idx = items.findIndex((t) => t.id === task.id); items.splice(idx + 1, 0, newTask)
-      return items.map((t, i) => ({ ...t, order: i }))
-    })
-  }, [])
-
-  const archiveTask = useCallback((id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id))
-  }, [])
-
   const moveTask = useCallback((taskId: string, newDeadline: string) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, deadline: newDeadline } : t)))
   }, [])
@@ -405,15 +411,15 @@ export function TasksPage() {
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
       deadline: "Today", dueTime: startStr, timeRange: `${startStr} \u2013 ${endStr}`,
-      estimatedDuration: dur > 0 ? dur : 30, notes: formNotes, subtasks: [], recurrence: formRecurrence,
+      estimatedDuration: dur > 0 ? dur : 30, notes: "", subtasks: [], recurrence: formRecurrence,
       completed: false, order: tasks.length, createdAt: new Date().toISOString(),
     }
     setTasks((prev) => [...prev, newTask])
     setFormTitle(""); setFormWhy(""); setFormPriority("progress")
     setFormStartHour(9); setFormStartMin(0); setFormStartPeriod("AM")
     setFormEndHour(9); setFormEndMin(30); setFormEndPeriod("AM")
-    setFormRecurrence("none"); setFormNotes(""); setCreateOpen(false)
-  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formStartPeriod, formEndHour, formEndMin, formEndPeriod, formRecurrence, formNotes, tasks.length])
+    setFormRecurrence("none"); setCreateOpen(false)
+  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formStartPeriod, formEndHour, formEndMin, formEndPeriod, formRecurrence, tasks.length])
 
   const saveEditing = useCallback(() => {
     if (!editingField) return
@@ -439,18 +445,63 @@ export function TasksPage() {
     setExpandedTasks((prev) => new Set(prev).add(taskId))
   }, [])
 
-  const handleDragStart = useCallback((id: string) => setDraggedId(id), [])
-  const handleDragOver = useCallback((e: React.DragEvent, id: string) => { e.preventDefault(); setDragOverId(id) }, [])
-  const handleDrop = useCallback((targetId: string) => {
-    if (!draggedId || draggedId === targetId) { setDraggedId(null); setDragOverId(null); return }
+  /* ─── Task drag & drop ─── */
+  const handleTaskDragStart = useCallback((id: string) => {
+    setDraggedId(id)
+    setDragType("task")
+    setDragSourceTaskId(null)
+  }, [])
+
+  const handleTaskDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault()
+    if (dragType === "task") setDragOverId(id)
+  }, [dragType])
+
+  const handleTaskDrop = useCallback((targetId: string) => {
+    if (!draggedId || draggedId === targetId || dragType !== "task") { setDraggedId(null); setDragOverId(null); setDragType(null); return }
     setTasks((prev) => {
-      const items = [...prev]; const d = items.findIndex((t) => t.id === draggedId); const r = items.findIndex((t) => t.id === targetId)
-      if (d === -1 || r === -1) return prev; const [dragged] = items.splice(d, 1); items.splice(r, 0, dragged)
+      const items = [...prev]
+      const d = items.findIndex((t) => t.id === draggedId)
+      const r = items.findIndex((t) => t.id === targetId)
+      if (d === -1 || r === -1) return prev
+      const [dragged] = items.splice(d, 1)
+      items.splice(r, 0, dragged)
       return items.map((t, i) => ({ ...t, order: i }))
     })
-    setDraggedId(null); setDragOverId(null)
-  }, [draggedId])
-  const handleDragEnd = useCallback(() => { setDraggedId(null); setDragOverId(null) }, [])
+    setDraggedId(null); setDragOverId(null); setDragType(null)
+  }, [draggedId, dragType])
+
+  /* ─── Subtask drag & drop ─── */
+  const handleSubtaskDragStart = useCallback((e: React.DragEvent, taskId: string, subtaskId: string) => {
+    e.stopPropagation()
+    setDraggedId(subtaskId)
+    setDragType("subtask")
+    setDragSourceTaskId(taskId)
+  }, [])
+
+  const handleSubtaskDragOver = useCallback((e: React.DragEvent, taskId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (dragType === "subtask") setDragOverId(taskId)
+  }, [dragType])
+
+  const handleSubtaskDrop = useCallback((e: React.DragEvent, targetTaskId: string) => {
+    e.stopPropagation()
+    if (!draggedId || dragType !== "subtask" || !dragSourceTaskId) {
+      setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null)
+      return
+    }
+    if (dragSourceTaskId === targetTaskId) {
+      setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null)
+      return
+    }
+    moveSubtask(dragSourceTaskId, draggedId, targetTaskId)
+    setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null)
+  }, [draggedId, dragType, dragSourceTaskId, moveSubtask])
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null)
+  }, [])
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") { cancelEditing(); setCreateOpen(false); setMovePopoverTaskId(null); setMoveSubtaskInfo(null) } }
@@ -471,39 +522,56 @@ export function TasksPage() {
         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }} className="overflow-hidden">
           <div className="pl-10 pr-4 py-1.5 space-y-0.5">
-            {task.subtasks.map((sub) => (
-              <div key={sub.id} className="flex items-center gap-2.5 py-1 px-2 rounded-lg hover:bg-muted/30 transition-colors group/sub relative">
-                <button onClick={() => toggleSubtask(task.id, sub.id)} className="shrink-0">
-                  {sub.completed ? (
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
-                      <div className="h-3.5 w-3.5 rounded bg-primary flex items-center justify-center">
-                        <svg className="h-2 w-2 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <div className="h-3.5 w-3.5 rounded border border-muted-foreground/30 hover:border-primary transition-colors" />
-                  )}
-                </button>
-                <span className={`text-xs flex-1 ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
-                {/* Move subtask */}
-                <div className="relative">
-                  <button
-                    className="opacity-0 group-hover/sub:opacity-100 transition-opacity"
-                    onClick={(e) => { e.stopPropagation(); setMoveSubtaskInfo(moveSubtaskInfo?.subtaskId === sub.id ? null : { taskId: task.id, subtaskId: sub.id }) }}
-                  >
-                    <ArrowRightLeft className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
-                  </button>
-                  <AnimatePresence>
-                    {moveSubtaskInfo?.subtaskId === sub.id && (
-                      <MoveSubtaskPopover
-                        subtaskId={sub.id} currentTaskId={task.id} tasks={tasks}
-                        onMove={moveSubtask} onClose={() => setMoveSubtaskInfo(null)}
-                      />
+            {task.subtasks.map((sub) => {
+              const isSubDragging = draggedId === sub.id
+              const isSubDragOver = dragOverId === task.id && dragType === "subtask" && draggedId !== sub.id
+              return (
+                <div
+                  key={sub.id}
+                  draggable
+                  onDragStart={(e) => handleSubtaskDragStart(e, task.id, sub.id)}
+                  onDragOver={(e) => handleSubtaskDragOver(e, task.id)}
+                  onDrop={(e) => handleSubtaskDrop(e, task.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center gap-2.5 py-1 px-2 rounded-lg hover:bg-muted/30 transition-colors group/sub relative cursor-grab active:cursor-grabbing ${
+                    isSubDragging ? "opacity-40 scale-[0.98]" : ""
+                  } ${isSubDragOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
+                >
+                  <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover/sub:opacity-100">
+                    <GripVertical className="h-3 w-3" />
+                  </div>
+                  <button onClick={() => toggleSubtask(task.id, sub.id)} className="shrink-0">
+                    {sub.completed ? (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+                        <div className="h-3.5 w-3.5 rounded bg-primary flex items-center justify-center">
+                          <svg className="h-2 w-2 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <div className="h-3.5 w-3.5 rounded border border-muted-foreground/30 hover:border-primary transition-colors" />
                     )}
-                  </AnimatePresence>
+                  </button>
+                  <span className={`text-xs flex-1 ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
+                  {/* Move subtask */}
+                  <div className="relative">
+                    <button
+                      className="opacity-0 group-hover/sub:opacity-100 transition-opacity"
+                      onClick={(e) => { e.stopPropagation(); setMoveSubtaskInfo(moveSubtaskInfo?.subtaskId === sub.id ? null : { taskId: task.id, subtaskId: sub.id }) }}
+                    >
+                      <ArrowRightLeft className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
+                    </button>
+                    <AnimatePresence>
+                      {moveSubtaskInfo?.subtaskId === sub.id && (
+                        <MoveSubtaskPopover
+                          subtaskId={sub.id} currentTaskId={task.id} tasks={tasks}
+                          onMove={moveSubtask} onClose={() => setMoveSubtaskInfo(null)}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             <button onClick={() => addSubtaskInline(task.id)} className="flex items-center gap-1.5 py-1 px-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
               <Plus className="h-3 w-3" /> Add subtask
             </button>
@@ -511,7 +579,7 @@ export function TasksPage() {
         </motion.div>
       )}
     </AnimatePresence>
-  ), [toggleSubtask, addSubtaskInline, tasks, moveSubtask, moveSubtaskInfo])
+  ), [toggleSubtask, addSubtaskInline, tasks, moveSubtask, moveSubtaskInfo, draggedId, dragOverId, dragType, handleSubtaskDragStart, handleSubtaskDragOver, handleSubtaskDrop, handleDragEnd])
 
   /* ═══════════════════════════════════════════════════════ */
   /* LIST VIEW                                              */
@@ -520,7 +588,7 @@ export function TasksPage() {
     if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-        <div className="sticky top-0 z-10 grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(140px,170px)] gap-6 px-6 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="sticky top-0 z-10 grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,150px)] gap-4 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div>Task</div>
           <div className="hidden sm:block">Time Range</div>
           <div className="hidden sm:block">Duration</div>
@@ -532,18 +600,18 @@ export function TasksPage() {
           {tasks.map((task, i) => {
             const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
             const isExpanded = expandedTasks.has(task.id)
-            const isDragging = draggedId === task.id
-            const isDragOver = dragOverId === task.id && dragOverId !== draggedId
+            const isDragging = draggedId === task.id && dragType === "task"
+            const isDragOver = dragOverId === task.id && dragOverId !== draggedId && dragType === "task"
             const pConfig = priorityConfig[task.priority]
 
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.015, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
                 <div
-                  draggable onDragStart={() => handleDragStart(task.id)}
-                  onDragOver={(e) => handleDragOver(e, task.id)}
-                  onDrop={() => handleDrop(task.id)} onDragEnd={handleDragEnd}
-                  className={`grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(140px,170px)] gap-6 px-6 py-3.5 items-center group transition-all duration-150 cursor-default border-b border-border/30 last:border-0 mx-1 my-0.5 rounded-xl ${
+                  draggable onDragStart={() => handleTaskDragStart(task.id)}
+                  onDragOver={(e) => handleTaskDragOver(e, task.id)}
+                  onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
+                  className={`grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,150px)] gap-4 px-5 py-3.5 items-center group transition-all duration-150 cursor-default border-b border-border/30 last:border-0 mx-1 my-0.5 rounded-xl ${
                     isDragging ? "opacity-40 scale-[0.98]" : ""
                   } ${isDragOver ? "border-t-2 border-t-primary" : ""} hover:bg-muted/40`}
                   style={{ borderLeftWidth: "3px", borderLeftColor: pConfig.cssColor, backgroundColor: `${pConfig.pastelBg}40` }}
@@ -585,12 +653,6 @@ export function TasksPage() {
                           </span>
                         )}
                       </div>
-                      {task.whyItMatters && (
-                        <InlineEdit taskId={task.id} field="whyItMatters" value={task.whyItMatters}
-                          className="text-[11px] text-muted-foreground truncate block mt-0.5"
-                          editingField={editingField} editValue={editValue} setEditingField={setEditingField}
-                          setEditValue={setEditValue} saveEditing={saveEditing} editInputRef={editInputRef} />
-                      )}
                     </div>
                   </div>
 
@@ -620,15 +682,11 @@ export function TasksPage() {
                     <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                   </div>
 
-                  {/* Actions — always visible */}
-                  <div className="flex items-center gap-1.5">
+                  {/* Actions — always visible: Edit, Move, Delete */}
+                  <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                       onClick={(e) => { e.stopPropagation(); setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
                       <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                      onClick={(e) => { e.stopPropagation(); duplicateTask(task) }}>
-                      <Copy className="h-3.5 w-3.5" />
                     </Button>
                     <div className="relative">
                       <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
@@ -641,10 +699,6 @@ export function TasksPage() {
                         )}
                       </AnimatePresence>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                      onClick={(e) => { e.stopPropagation(); archiveTask(task.id) }}>
-                      <Archive className="h-3.5 w-3.5" />
-                    </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
                       onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
                       <Trash2 className="h-3.5 w-3.5" />
@@ -659,7 +713,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, draggedId, dragOverId, editingField, editValue, getSubtaskProgress, handleDragStart, handleDragOver, handleDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, saveEditing, duplicateTask, archiveTask, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo])
+  }, [tasks, expandedTasks, draggedId, dragOverId, dragType, editingField, editValue, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, saveEditing, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo])
 
   /* ═══════════════════════════════════════════════════════ */
   /* BOARD VIEW                                              */
@@ -701,7 +755,6 @@ export function TasksPage() {
                           <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">{completedSubs}/{task.subtasks.length}</span>
                         )}
                       </div>
-                      {task.whyItMatters && <p className="text-[11px] text-muted-foreground truncate mt-0.5">{task.whyItMatters}</p>}
                     </div>
                     <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: pConfig.pastelBorder + "20", color: pConfig.pastelBorder }}>{pConfig.label}</span>
@@ -747,9 +800,12 @@ export function TasksPage() {
                     <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                   </div>
 
-                  {/* Actions — always visible */}
-                  <div className="flex items-center gap-1.5">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" onClick={() => duplicateTask(task)}><Copy className="h-3 w-3" /></Button>
+                  {/* Actions — always visible: Edit, Move, Delete */}
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
+                      onClick={() => { setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
                     <div className="relative">
                       <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
                         onClick={() => setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id)}>
@@ -761,8 +817,9 @@ export function TasksPage() {
                         )}
                       </AnimatePresence>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" onClick={() => archiveTask(task.id)}><Archive className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}><Trash2 className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
               </motion.div>
@@ -771,7 +828,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, duplicateTask, archiveTask, deleteTask, moveTask, movePopoverTaskId])
+  }, [tasks, expandedTasks, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId])
 
   return (
     <div className="min-h-screen">
@@ -844,10 +901,6 @@ export function TasksPage() {
                     <Input placeholder="What needs to be done?" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} className="mt-1" autoFocus />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Why does this matter?</label>
-                    <Textarea placeholder="How does this connect to your purpose?" value={formWhy} onChange={(e) => setFormWhy(e.target.value)} className="mt-1 min-h-[60px]" />
-                  </div>
-                  <div>
                     <label className="text-xs font-medium text-muted-foreground">Priority</label>
                     <div className="flex gap-2 mt-1">
                       {(["priority", "progress", "maintenance"] as TaskPriority[]).map((p) => (
@@ -860,7 +913,7 @@ export function TasksPage() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Time Range</label>
-                    <div className="mt-2 overflow-x-auto">
+                    <div className="mt-2">
                       <TimeRangePicker
                         startTime={`${formStartHour}:${String(formStartMin).padStart(2, "0")} ${formStartPeriod}`}
                         endTime={`${formEndHour}:${String(formEndMin).padStart(2, "0")} ${formEndPeriod}`}
@@ -879,14 +932,10 @@ export function TasksPage() {
                     <div className="flex gap-1 mt-1">
                       {(["none", "daily", "weekly", "monthly"] as const).map((r) => (
                         <Button key={r} variant={formRecurrence === r ? "default" : "outline"} size="sm" className="flex-1 text-[10px] px-1" onClick={() => setFormRecurrence(r)}>
-                          {r === "none" ? "\u2014" : r.charAt(0).toUpperCase() + r.slice(1)}
+                          {r === "none" ? "None" : r.charAt(0).toUpperCase() + r.slice(1)}
                         </Button>
                       ))}
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Notes</label>
-                    <Textarea placeholder="Additional details..." value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="mt-1 min-h-[50px]" />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-6">
