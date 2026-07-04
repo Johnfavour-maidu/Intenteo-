@@ -124,7 +124,7 @@ const TaskRow = memo(function TaskRow({
   )
 })
 
-const hours = Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i))
+const hours24 = Array.from({ length: 24 }, (_, i) => i)
 const minutes = Array.from({ length: 12 }, (_, i) => i * 5)
 
 const deadlineOptions = ["Today", "Tomorrow", "Next Week", "Custom"]
@@ -136,24 +136,22 @@ function formatDuration(mins: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-function parseTime(timeStr: string): { hour: number; minute: number; period: "AM" | "PM" } | null {
-  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
+function parseTime(timeStr: string): { hour: number; minute: number } | null {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/)
   if (!match) return null
-  return { hour: parseInt(match[1]), minute: parseInt(match[2]), period: match[3].toUpperCase() as "AM" | "PM" }
+  return { hour: parseInt(match[1]), minute: parseInt(match[2]) }
 }
 
-function formatTimeSelection(hour: number, minute: number, period: string): string {
-  return `${hour}:${String(minute).padStart(2, "0")} ${period}`
+function formatTimeSelection(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
 }
 
 function calcDurationFromRange(start: string, end: string): number {
   const s = parseTime(start)
   const e = parseTime(end)
   if (!s || !e) return 0
-  const toMin = (t: { hour: number; minute: number; period: string }) =>
-    (t.period === "PM" && t.hour !== 12 ? t.hour + 12 : t.period === "AM" && t.hour === 12 ? 0 : t.hour) * 60 + t.minute
-  const sMin = toMin(s)
-  let eMin = toMin(e)
+  const sMin = s.hour * 60 + s.minute
+  let eMin = e.hour * 60 + e.minute
   if (eMin <= sMin) eMin += 24 * 60
   return eMin - sMin
 }
@@ -207,7 +205,7 @@ const ScrollCol = memo(function ScrollCol({
 })
 
 /* ────────────────────────────────────────────────────── */
-/* Time Range Picker — Side-by-side smooth scroll        */
+/* Time Range Picker — Side-by-side 24h scroll           */
 /* ────────────────────────────────────────────────────── */
 
 function TimeRangePicker({
@@ -219,22 +217,20 @@ function TimeRangePicker({
   endTime: string
   onChange: (start: string, end: string, durationMin: number) => void
 }) {
-  const s = parseTime(startTime) || { hour: 9, minute: 0, period: "AM" as const }
-  const e = parseTime(endTime) || { hour: 9, minute: 30, period: "AM" as const }
+  const s = parseTime(startTime) || { hour: 9, minute: 0 }
+  const e = parseTime(endTime) || { hour: 9, minute: 30 }
 
   const [startHour, setStartHour] = useState(s.hour)
   const [startMin, setStartMin] = useState(s.minute)
-  const [startPeriod, setStartPeriod] = useState<"AM" | "PM">(s.period)
   const [endHour, setEndHour] = useState(e.hour)
   const [endMin, setEndMin] = useState(e.minute)
-  const [endPeriod, setEndPeriod] = useState<"AM" | "PM">(e.period)
 
   useEffect(() => {
-    const sStr = formatTimeSelection(startHour, startMin, startPeriod)
-    const eStr = formatTimeSelection(endHour, endMin, endPeriod)
+    const sStr = formatTimeSelection(startHour, startMin)
+    const eStr = formatTimeSelection(endHour, endMin)
     const dur = calcDurationFromRange(sStr, eStr)
     onChange(sStr, eStr, dur > 0 ? dur : 0)
-  }, [startHour, startMin, startPeriod, endHour, endMin, endPeriod, onChange])
+  }, [startHour, startMin, endHour, endMin, onChange])
 
   return (
     <div className="flex items-start gap-4">
@@ -242,10 +238,9 @@ function TimeRangePicker({
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Start Time</p>
         <div className="flex items-center justify-center gap-1 p-2 rounded-xl bg-muted/30 border">
-          <ScrollCol items={hours} selected={startHour} onSelect={(v) => setStartHour(v as number)} label="Hr" />
+          <ScrollCol items={hours24} selected={startHour} onSelect={(v) => setStartHour(v as number)} label="Hr" />
           <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
           <ScrollCol items={minutes} selected={startMin} onSelect={(v) => setStartMin(v as number)} label="Min" />
-          <ScrollCol items={["AM", "PM"]} selected={startPeriod} onSelect={(v) => setStartPeriod(v as "AM" | "PM")} label="AM/PM" />
         </div>
       </div>
 
@@ -253,10 +248,9 @@ function TimeRangePicker({
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground font-medium mb-1.5">End Time</p>
         <div className="flex items-center justify-center gap-1 p-2 rounded-xl bg-muted/30 border">
-          <ScrollCol items={hours} selected={endHour} onSelect={(v) => setEndHour(v as number)} label="Hr" />
+          <ScrollCol items={hours24} selected={endHour} onSelect={(v) => setEndHour(v as number)} label="Hr" />
           <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
           <ScrollCol items={minutes} selected={endMin} onSelect={(v) => setEndMin(v as number)} label="Min" />
-          <ScrollCol items={["AM", "PM"]} selected={endPeriod} onSelect={(v) => setEndPeriod(v as "AM" | "PM")} label="AM/PM" />
         </div>
       </div>
     </div>
@@ -438,10 +432,8 @@ export function TasksPage() {
   const [formPriority, setFormPriority] = useState<TaskPriority>("progress")
   const [formStartHour, setFormStartHour] = useState(9)
   const [formStartMin, setFormStartMin] = useState(0)
-  const [formStartPeriod, setFormStartPeriod] = useState<"AM" | "PM">("AM")
   const [formEndHour, setFormEndHour] = useState(9)
   const [formEndMin, setFormEndMin] = useState(30)
-  const [formEndPeriod, setFormEndPeriod] = useState<"AM" | "PM">("AM")
   const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
 
   const completedToday = useMemo(() => tasks.filter((t) => t.completed).length, [tasks])
@@ -496,8 +488,8 @@ export function TasksPage() {
 
   const handleCreateTask = useCallback(() => {
     if (!formTitle.trim()) return
-    const startStr = formatTimeSelection(formStartHour, formStartMin, formStartPeriod)
-    const endStr = formatTimeSelection(formEndHour, formEndMin, formEndPeriod)
+    const startStr = formatTimeSelection(formStartHour, formStartMin)
+    const endStr = formatTimeSelection(formEndHour, formEndMin)
     const dur = calcDurationFromRange(startStr, endStr)
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
@@ -507,10 +499,10 @@ export function TasksPage() {
     }
     setTasks((prev) => [...prev, newTask])
     setFormTitle(""); setFormWhy(""); setFormPriority("progress")
-    setFormStartHour(9); setFormStartMin(0); setFormStartPeriod("AM")
-    setFormEndHour(9); setFormEndMin(30); setFormEndPeriod("AM")
+    setFormStartHour(9); setFormStartMin(0)
+    setFormEndHour(9); setFormEndMin(30)
     setFormRecurrence("none"); setCreateOpen(false)
-  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formStartPeriod, formEndHour, formEndMin, formEndPeriod, formRecurrence, tasks.length])
+  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, tasks.length])
 
   const saveEditing = useCallback(() => {
     if (!editingField) return
@@ -679,12 +671,12 @@ export function TasksPage() {
     if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-        <div className="sticky top-0 z-10 grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,150px)] gap-4 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="sticky top-0 z-10 grid grid-cols-[minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-4 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div>Task</div>
           <div className="hidden sm:block">Time Range</div>
           <div className="hidden sm:block">Duration</div>
           <div>Progress</div>
-          <div>Actions</div>
+          <div className="text-right">Actions</div>
         </div>
 
         <LayoutGroup>
@@ -708,7 +700,7 @@ export function TasksPage() {
                     draggable onDragStart={() => handleTaskDragStart(task.id)}
                     onDragOver={(e) => handleTaskDragOver(e, task.id)}
                     onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
-                    className="grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,150px)] gap-4 pl-10 pr-10 py-3.5 items-center group cursor-default"
+                    className="grid grid-cols-[minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-4 pl-10 pr-10 py-3.5 items-center group cursor-default"
                   >
                     {/* Task Name */}
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -777,7 +769,7 @@ export function TasksPage() {
                     </div>
 
                     {/* Actions — always visible: Edit, Move, Delete */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                         onClick={(e) => { e.stopPropagation(); setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
                         <Pencil className="h-3.5 w-3.5" />
@@ -938,10 +930,10 @@ export function TasksPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              <span style={{ color: "#3B82F6" }}>{totalToday}</span> Tasks{" \u00B7 "}
-              <span style={{ color: "#22C55E" }}>{completedToday}</span> Completed{" \u00B7 "}
-              <span style={{ color: "#EF4444" }}>{remainingToday}</span> To Go
+            <p className="text-sm font-bold text-foreground mt-0.5 tracking-tight">
+              <span style={{ color: "#3B82F6" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
+              <span style={{ color: "#22C55E" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
+              <span style={{ color: "#EF4444" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
             </p>
           </div>
           <div className="flex items-center gap-2.5">
@@ -1014,15 +1006,15 @@ export function TasksPage() {
                     <label className="text-xs font-medium text-muted-foreground">Time Range</label>
                     <div className="mt-2">
                       <TimeRangePicker
-                        startTime={`${formStartHour}:${String(formStartMin).padStart(2, "0")} ${formStartPeriod}`}
-                        endTime={`${formEndHour}:${String(formEndMin).padStart(2, "0")} ${formEndPeriod}`}
+                        startTime={formatTimeSelection(formStartHour, formStartMin)}
+                        endTime={formatTimeSelection(formEndHour, formEndMin)}
                         onChange={(start, end) => {
                           const s = parseTime(start); const e = parseTime(end)
-                          if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute); setFormStartPeriod(s.period) }
-                          if (e) { setFormEndHour(e.hour); setFormEndMin(e.minute); setFormEndPeriod(e.period) }
+                          if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute) }
+                          if (e) { setFormEndHour(e.hour); setFormEndMin(e.minute) }
                         }} />
                       <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-                        Duration: {formatDuration(calcDurationFromRange(formatTimeSelection(formStartHour, formStartMin, formStartPeriod), formatTimeSelection(formEndHour, formEndMin, formEndPeriod)))}
+                        Duration: {formatDuration(calcDurationFromRange(formatTimeSelection(formStartHour, formStartMin), formatTimeSelection(formEndHour, formEndMin)))}
                       </p>
                     </div>
                   </div>
