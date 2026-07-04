@@ -34,6 +34,28 @@ import {
   Printer,
   Check,
   Loader2,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  List,
+  ListOrdered,
+  CheckSquare,
+  Heading1,
+  Heading2,
+  Heading3,
+  Palette,
+  Highlighter,
+  Link,
+  Quote,
+  Minus,
+  Undo2,
+  Redo2,
+  ChevronDown,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -87,7 +109,20 @@ const writingPrompts = [
   "How did you show kindness today?",
 ]
 
-const moodEmojis = ["😔", "😐", "🙂", "😊", "🤩"]
+const moodOptions = [
+  { value: 1, emoji: "\uD83D\uDE00", label: "Great" },
+  { value: 2, emoji: "\uD83D\uDE0A", label: "Happy" },
+  { value: 3, emoji: "\uD83D\uDE42", label: "Good" },
+  { value: 4, emoji: "\uD83D\uDE10", label: "Neutral" },
+  { value: 5, emoji: "\uD83D\uDE14", label: "Sad" },
+  { value: 6, emoji: "\uD83D\uDE22", label: "Very Sad" },
+  { value: 7, emoji: "\uD83D\uDE21", label: "Angry" },
+  { value: 8, emoji: "\uD83D\uDCA4", label: "Tired" },
+  { value: 9, emoji: "\uD83D\uDE30", label: "Anxious" },
+  { value: 10, emoji: "\uD83E\uDD29", label: "Excited" },
+  { value: 11, emoji: "\uD83D\uDE0C", label: "Peaceful" },
+  { value: 12, emoji: "\uD83E\uDD73", label: "Celebrating" },
+]
 
 const teoEncouragements = [
   "Another intentional moment captured.",
@@ -551,7 +586,7 @@ function DayDrawer({
                             {entry.mood && (
                               <>
                                 <span>·</span>
-                                <span>{moodEmojis[entry.mood - 1]}</span>
+                                <span>{moodOptions.find((m) => m.value === entry.mood)?.emoji || "\uD83D\uDE10"}</span>
                               </>
                             )}
                             <span>·</span>
@@ -657,7 +692,9 @@ function WritingArea({
   const [tags, setTags] = useState((draft?.tags as string) || "")
   const [mood, setMood] = useState<number | undefined>(draft?.mood as number | undefined)
   const [isFocused, setIsFocused] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const [moodOpen, setMoodOpen] = useState(false)
+  const moodRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const prompt = useMemo(() => getTodayPrompt(), [])
 
@@ -674,9 +711,29 @@ function WritingArea({
     autosave.save({ title, content, type, tags, mood })
   }, [title, content, type, tags, mood, autosave])
 
+  // Handle autosave status display
+  useEffect(() => {
+    if (autosave.isSaving) {
+      setSaveStatus("saving")
+    } else if (autosave.lastSaved) {
+      setSaveStatus("saved")
+      const timer = setTimeout(() => setSaveStatus("idle"), 2500)
+      return () => clearTimeout(timer)
+    }
+  }, [autosave.isSaving, autosave.lastSaved])
+
+  // Close mood dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moodRef.current && !moodRef.current.contains(e.target as Node)) {
+        setMoodOpen(false)
+      }
+    }
+    if (moodOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
+  }, [moodOpen])
+
   const handleSave = useCallback(() => {
     if (!content.trim()) return
-    setIsSaving(true)
     const now = new Date()
     const entry: JournalEntry = {
       id: `entry-${Date.now()}`,
@@ -695,7 +752,6 @@ function WritingArea({
     onCreated(entry)
     setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily")
     autosave.clear()
-    setIsSaving(false)
     const encouragement = teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]
     onSaveSuccess(encouragement)
   }, [title, content, type, tags, mood, onCreated, autosave, onSaveSuccess])
@@ -712,19 +768,25 @@ function WritingArea({
 
   const wordCount = getWordCount(content)
   const readTime = estimateReadTime(content)
+  const selectedMood = moodOptions.find((m) => m.value === mood)
 
   return (
     <motion.div
       layout
-      className="rounded-2xl border bg-card overflow-hidden transition-shadow duration-300"
+      className="rounded-2xl bg-card overflow-hidden transition-all duration-300"
       style={{
+        borderWidth: "1.5px",
+        borderStyle: "solid",
+        borderColor: isFocused ? "#4F46E5" : "#D6D8FF",
         boxShadow: isFocused
           ? "0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)"
           : "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
       }}
+      onMouseEnter={(e) => { if (!isFocused) e.currentTarget.style.borderColor = "#A5B4FC" }}
+      onMouseLeave={(e) => { if (!isFocused) e.currentTarget.style.borderColor = "#D6D8FF" }}
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
-      <div className="p-6 md:p-8 space-y-4">
+      <div className="p-5 md:p-6 space-y-3">
         {/* Title */}
         <Input
           placeholder="Give your thoughts a title..."
@@ -744,105 +806,217 @@ function WritingArea({
           onFocus={() => setIsFocused(true)}
           onBlur={() => !title && setIsFocused(false)}
           placeholder={prompt}
-          rows={6}
-          className="w-full bg-transparent text-[15px] leading-[1.8] resize-none focus:outline-none placeholder:text-muted-foreground/40 min-h-[180px] transition-[height] duration-200 ease-out"
+          rows={4}
+          className="w-full bg-transparent text-[15px] leading-[1.8] resize-none focus:outline-none placeholder:text-muted-foreground/40 min-h-[140px] transition-[height] duration-200 ease-out"
           style={{ height: "auto" }}
         />
 
-        {/* Toolbar — always visible */}
-        <div className="space-y-3">
-          {/* Row 1: Type, Mood, Tags */}
-          <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-border/40">
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as JournalType)}
-              className="text-xs px-2.5 py-1.5 rounded-lg border bg-muted/30 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+        {/* Rich Text Formatting Toolbar */}
+        <div className="flex items-center gap-0.5 flex-wrap py-2 border-t border-border/40">
+          {/* Formatting */}
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Bold">
+            <Bold className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Italic">
+            <Italic className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Underline">
+            <Underline className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Strikethrough">
+            <Strikethrough className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+
+          <div className="w-px h-4 bg-border/40 mx-1" />
+
+          {/* Headings */}
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Heading 1">
+            <Heading1 className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Heading 2">
+            <Heading2 className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Heading 3">
+            <Heading3 className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+
+          <div className="w-px h-4 bg-border/40 mx-1" />
+
+          {/* Lists */}
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Bullet List">
+            <List className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Numbered List">
+            <ListOrdered className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Checklist">
+            <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+
+          <div className="w-px h-4 bg-border/40 mx-1" />
+
+          {/* Alignment */}
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Align Left">
+            <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Align Centre">
+            <AlignCenter className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Align Right">
+            <AlignRight className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Justify">
+            <AlignJustify className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+
+          <div className="w-px h-4 bg-border/40 mx-1" />
+
+          {/* Colours */}
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Text Colour">
+            <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Highlight">
+            <Highlighter className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+
+          <div className="w-px h-4 bg-border/40 mx-1" />
+
+          {/* Insert */}
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Link">
+            <Link className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Quote">
+            <Quote className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Horizontal Line">
+            <Minus className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+
+          <div className="w-px h-4 bg-border/40 mx-1" />
+
+          {/* History */}
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Undo">
+            <Undo2 className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Redo">
+            <Redo2 className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Row 1: Type, Mood, Tags */}
+        <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as JournalType)}
+            className="text-xs px-2.5 py-1.5 rounded-lg border bg-muted/30 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            {Object.entries(journalTypeConfig).map(([key, cfg]) => (
+              <option key={key} value={key}>{cfg.label}</option>
+            ))}
+          </select>
+
+          {/* Mood Dropdown */}
+          <div className="relative" ref={moodRef}>
+            <button
+              onClick={() => setMoodOpen(!moodOpen)}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border bg-muted/30 text-foreground hover:bg-muted/50 transition-colors"
             >
-              {Object.entries(journalTypeConfig).map(([key, cfg]) => (
-                <option key={key} value={key}>{cfg.label}</option>
-              ))}
-            </select>
-
-            <div className="flex items-center gap-1">
-              {moodEmojis.map((emoji, i) => (
-                <button
-                  key={i}
-                  onClick={() => setMood(mood === i + 1 ? undefined : i + 1)}
-                  className={`text-base transition-all duration-150 ${mood === i + 1 ? "scale-125" : "opacity-40 hover:opacity-70"}`}
+              {selectedMood ? (
+                <span>{selectedMood.emoji} {selectedMood.label}</span>
+              ) : (
+                <span className="text-muted-foreground">Mood</span>
+              )}
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </button>
+            <AnimatePresence>
+              {moodOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute left-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-1 z-30"
                 >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Tag className="h-3 w-3 text-muted-foreground" />
-              <input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="Tags (comma-separated)"
-                className="text-xs bg-transparent focus:outline-none placeholder:text-muted-foreground/50 w-40"
-              />
-            </div>
+                  {moodOptions.map((m) => (
+                    <button
+                      key={m.value}
+                      onClick={() => { setMood(mood === m.value ? undefined : m.value); setMoodOpen(false) }}
+                      className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg transition-colors text-left ${
+                        mood === m.value ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
+                      }`}
+                    >
+                      <span className="text-sm">{m.emoji}</span>
+                      <span>{m.label}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Row 2: Action buttons */}
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="AI Assist">
-              <Sparkles className="h-4 w-4 text-primary/70" />
+          <div className="flex items-center gap-1.5">
+            <Tag className="h-3 w-3 text-muted-foreground" />
+            <input
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="Tags (comma-separated)"
+              className="text-xs bg-transparent focus:outline-none placeholder:text-muted-foreground/50 w-40"
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Action buttons + Stats + Save */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/40">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="AI Assist">
+              <Sparkles className="h-3.5 w-3.5 text-primary/70" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="Add Photo">
-              <Camera className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Add Photo">
+              <Camera className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="Voice Recording">
-              <Mic className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Voice Recording">
+              <Mic className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="Add Location">
-              <MapPin className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Add Location">
+              <MapPin className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          {/* Row 3: Stats + Save/Cancel */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] text-muted-foreground tabular-nums">
-                {wordCount} {wordCount === 1 ? "word" : "words"}
-              </span>
-              <span className="text-[10px] text-muted-foreground/40">·</span>
-              <span className="text-[10px] text-muted-foreground tabular-nums">
-                {readTime} min read
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
+              <span className="tabular-nums">{wordCount} words</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="tabular-nums">{readTime} min read</span>
               <AnimatePresence>
-                {autosave.isSaving && (
+                {saveStatus === "saving" && (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="flex items-center gap-1 text-[10px] text-muted-foreground"
+                    className="text-muted-foreground"
                   >
-                    <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                    Saving...
                   </motion.span>
                 )}
-                {autosave.lastSaved && !autosave.isSaving && (
+                {saveStatus === "saved" && (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="text-[10px] text-emerald-500 font-medium"
+                    className="text-emerald-500 font-medium"
                   >
-                    Saved
+                    {"\u2713"} Saved
                   </motion.span>
                 )}
               </AnimatePresence>
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={handleCancel}>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancel}>
                 Cancel
               </Button>
-              <Button size="sm" className="h-8 text-xs gap-1.5 glow" onClick={handleSave} disabled={!content.trim() || isSaving}>
-                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                Save
+              <Button size="sm" className="h-7 text-xs gap-1.5 glow" onClick={handleSave} disabled={!content.trim()}>
+                <Save className="h-3 w-3" /> Save
               </Button>
             </div>
           </div>
@@ -948,7 +1122,7 @@ function EntryReader({
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground mb-6 pb-6 border-b border-border/50">
           <span>{entry.date} at {entry.time}</span>
-          {entry.mood && <span>{moodEmojis[entry.mood - 1]}</span>}
+          {entry.mood && <span>{moodOptions.find((m) => m.value === entry.mood)?.emoji || "\uD83D\uDE10"}</span>}
           <span>{estimateReadTime(entry.content)} min read</span>
           <span>{getWordCount(entry.content)} words</span>
         </div>
@@ -1085,14 +1259,12 @@ export function JournalPage() {
           <div className="flex items-center gap-3">
             {/* Calendar Icon */}
             <div className="relative" ref={calendarRef}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
+              <button
+                className="h-9 w-9 rounded-full bg-[#4F46E5] text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
                 onClick={() => setCalendarOpen(!calendarOpen)}
               >
                 <Calendar className="h-4 w-4" />
-              </Button>
+              </button>
               <AnimatePresence>
                 {calendarOpen && (
                   <PopoverCalendar
@@ -1108,12 +1280,12 @@ export function JournalPage() {
             {/* Streak */}
             <StreakCircle streak={streak} />
 
-            {/* Write Button */}
+            {/* New Entry Button */}
             <Button className="glow h-9" onClick={() => {
               const el = document.querySelector("[data-writing-area]")
               el?.scrollIntoView({ behavior: "smooth" })
             }}>
-              <Plus className="mr-1 h-4 w-4" /> Write
+              <Plus className="mr-1 h-4 w-4" /> New Entry
             </Button>
           </div>
         </div>
