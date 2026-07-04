@@ -26,12 +26,103 @@ import { useToast, ToastContainer } from "./task-toast"
 
 const priorityConfig: Record<
   TaskPriority,
-  { label: string; cssColor: string; pastelBg: string; pastelBorder: string }
+  {
+    label: string
+    cssColor: string
+    pastelBg: string
+    pastelBorder: string
+    railGradient: string
+    tint: string
+  }
 > = {
-  priority: { label: "Priority", cssColor: "#F97316", pastelBg: "#FFF7ED", pastelBorder: "#F97316" },
-  progress: { label: "Progress", cssColor: "#7C3AED", pastelBg: "#F5F3FF", pastelBorder: "#7C3AED" },
-  maintenance: { label: "Maintenance", cssColor: "#14B8A6", pastelBg: "#F0FDFA", pastelBorder: "#14B8A6" },
+  priority: {
+    label: "Priority",
+    cssColor: "#F97316",
+    pastelBg: "#FFF7ED",
+    pastelBorder: "#F97316",
+    railGradient: "linear-gradient(180deg, #FFB86B 0%, #EA580C 100%)",
+    tint: "#FFF7ED",
+  },
+  progress: {
+    label: "Progress",
+    cssColor: "#7C3AED",
+    pastelBg: "#F5F3FF",
+    pastelBorder: "#7C3AED",
+    railGradient: "linear-gradient(180deg, #A78BFA 0%, #6D28D9 100%)",
+    tint: "#F5F3FF",
+  },
+  maintenance: {
+    label: "Maintenance",
+    cssColor: "#14B8A6",
+    pastelBg: "#F0FDFA",
+    pastelBorder: "#14B8A6",
+    railGradient: "linear-gradient(180deg, #5EEAD4 0%, #0F766E 100%)",
+    tint: "#F0FDFA",
+  },
 }
+
+/* ────────────────────────────────────────────────────── */
+/* Premium Task Rails — Signature vertical page markers  */
+/* ────────────────────────────────────────────────────── */
+
+const TaskRails = memo(function TaskRails({
+  gradient,
+  height = "calc(100% - 16px)",
+}: {
+  gradient: string
+  height?: string
+}) {
+  return (
+    <>
+      {/* Left rail */}
+      <div
+        className="absolute left-0 top-2 bottom-2 w-[6px] rounded-full shrink-0"
+        style={{ background: gradient, height }}
+      />
+      {/* Right rail */}
+      <div
+        className="absolute right-0 top-2 bottom-2 w-[6px] rounded-full shrink-0"
+        style={{ background: gradient, height }}
+      />
+    </>
+  )
+})
+
+/* ────────────────────────────────────────────────────── */
+/* Premium Task Row Wrapper                              */
+/* ────────────────────────────────────────────────────── */
+
+const TaskRow = memo(function TaskRow({
+  children,
+  gradient,
+  tint,
+  isDragging,
+  isDragOver,
+  className = "",
+}: {
+  children: React.ReactNode
+  gradient: string
+  tint: string
+  isDragging?: boolean
+  isDragOver?: boolean
+  className?: string
+}) {
+  return (
+    <div className={`relative rounded-xl task-row ${className}`}
+      style={{
+        backgroundColor: tint + "40",
+        boxShadow: isDragOver
+          ? "0 4px 16px rgba(0,0,0,0.10), 0 0 0 2px var(--primary)"
+          : "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
+        transform: isDragging ? "scale(0.98)" : isDragOver ? "scale(1.005)" : "none",
+        opacity: isDragging ? 0.4 : 1,
+      }}
+    >
+      <TaskRails gradient={gradient} />
+      {children}
+    </div>
+  )
+})
 
 const hours = Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i))
 const minutes = Array.from({ length: 12 }, (_, i) => i * 5)
@@ -533,7 +624,7 @@ export function TasksPage() {
                   onDragOver={(e) => handleSubtaskDragOver(e, task.id)}
                   onDrop={(e) => handleSubtaskDrop(e, task.id)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-2.5 py-1 px-2 rounded-lg hover:bg-muted/30 transition-colors group/sub relative cursor-grab active:cursor-grabbing ${
+                  className={`flex items-center gap-2.5 py-1.5 pl-4 pr-2 rounded-lg hover:bg-muted/30 transition-colors group/sub relative cursor-grab active:cursor-grabbing ${
                     isSubDragging ? "opacity-40 scale-[0.98]" : ""
                   } ${isSubDragOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
                 >
@@ -607,106 +698,110 @@ export function TasksPage() {
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.015, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
-                <div
-                  draggable onDragStart={() => handleTaskDragStart(task.id)}
-                  onDragOver={(e) => handleTaskDragOver(e, task.id)}
-                  onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
-                  className={`grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,150px)] gap-4 px-5 py-3.5 items-center group transition-all duration-150 cursor-default border-b border-border/30 last:border-0 mx-1 my-0.5 rounded-xl ${
-                    isDragging ? "opacity-40 scale-[0.98]" : ""
-                  } ${isDragOver ? "border-t-2 border-t-primary" : ""} hover:bg-muted/40`}
-                  style={{ borderLeftWidth: "3px", borderLeftColor: pConfig.cssColor, backgroundColor: `${pConfig.pastelBg}40` }}
+                <TaskRow
+                  gradient={pConfig.railGradient}
+                  tint={pConfig.tint}
+                  isDragging={isDragging}
+                  isDragOver={isDragOver}
                 >
-                  {/* Task Name */}
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover:opacity-100">
-                      <GripVertical className="h-4 w-4" />
-                    </div>
-                    <button onClick={() => handleToggleTask(task.id)} className="shrink-0">
-                      {task.completed ? (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
-                          <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                            <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
-                      )}
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <InlineEdit taskId={task.id} field="title" value={task.title}
-                          className={`text-sm font-medium truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                          editingField={editingField} editValue={editValue} setEditingField={setEditingField}
-                          setEditValue={setEditValue} saveEditing={saveEditing} editInputRef={editInputRef} />
-                        {task.subtasks.length > 0 && (
-                          <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">
-                            {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length}
-                          </span>
+                  <div
+                    draggable onDragStart={() => handleTaskDragStart(task.id)}
+                    onDragOver={(e) => handleTaskDragOver(e, task.id)}
+                    onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
+                    className="grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,150px)] gap-4 pl-10 pr-10 py-3.5 items-center group cursor-default"
+                  >
+                    {/* Task Name */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover:opacity-100">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0">
+                        {task.completed ? (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
                         )}
-                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 transition-opacity"
-                          onClick={() => toggleExpanded(task.id)}>
-                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                        </Button>
-                        {task.subtasks.length > 0 && (
-                          <span className="text-[10px] text-muted-foreground hidden group-hover:inline">
-                            {isExpanded ? "Collapse" : `Show ${task.subtasks.length}`}
-                          </span>
-                        )}
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <InlineEdit taskId={task.id} field="title" value={task.title}
+                            className={`text-sm font-medium truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                            editingField={editingField} editValue={editValue} setEditingField={setEditingField}
+                            setEditValue={setEditValue} saveEditing={saveEditing} editInputRef={editInputRef} />
+                          {task.subtasks.length > 0 && (
+                            <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">
+                              {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length}
+                            </span>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 transition-opacity"
+                            onClick={() => toggleExpanded(task.id)}>
+                            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          </Button>
+                          {task.subtasks.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground hidden group-hover:inline">
+                              {isExpanded ? "Collapse" : `Show ${task.subtasks.length}`}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Time Range */}
-                  <div className="hidden sm:block">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3 shrink-0" />
-                      <InlineEdit taskId={task.id} field="timeRange" value={task.timeRange} className="text-xs"
-                        editingField={editingField} editValue={editValue} setEditingField={setEditingField}
-                        setEditValue={setEditValue} saveEditing={saveEditing} editInputRef={editInputRef} />
+                    {/* Time Range */}
+                    <div className="hidden sm:block">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <InlineEdit taskId={task.id} field="timeRange" value={task.timeRange} className="text-xs"
+                          editingField={editingField} editValue={editValue} setEditingField={setEditingField}
+                          setEditValue={setEditValue} saveEditing={saveEditing} editInputRef={editInputRef} />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Duration */}
-                  <div className="hidden sm:block">
-                    <span className="text-xs text-muted-foreground">{formatDuration(task.estimatedDuration)}</span>
-                  </div>
-
-                  {/* Progress */}
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
-                        initial={{ width: 0 }} animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }} />
+                    {/* Duration */}
+                    <div className="hidden sm:block">
+                      <span className="text-xs text-muted-foreground">{formatDuration(task.estimatedDuration)}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
-                  </div>
 
-                  {/* Actions — always visible: Edit, Move, Delete */}
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                      onClick={(e) => { e.stopPropagation(); setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <div className="relative">
+                    {/* Progress */}
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
+                          initial={{ width: 0 }} animate={{ width: `${progress}%` }}
+                          transition={{ duration: 0.5, ease: "easeOut" }} />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
+                    </div>
+
+                    {/* Actions — always visible: Edit, Move, Delete */}
+                    <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                        onClick={(e) => { e.stopPropagation(); setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id) }}>
-                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                        onClick={(e) => { e.stopPropagation(); setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <AnimatePresence>
-                        {movePopoverTaskId === task.id && (
-                          <MoveTaskPopover taskId={task.id} currentDeadline={task.deadline} onMove={moveTask} onClose={() => setMovePopoverTaskId(null)} />
-                        )}
-                      </AnimatePresence>
+                      <div className="relative">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
+                          onClick={(e) => { e.stopPropagation(); setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id) }}>
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <AnimatePresence>
+                          {movePopoverTaskId === task.id && (
+                            <MoveTaskPopover taskId={task.id} currentDeadline={task.deadline} onMove={moveTask} onClose={() => setMovePopoverTaskId(null)} />
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
+                        onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
-                      onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
                   </div>
-                </div>
 
-                {renderSubtasks(task, isExpanded)}
+                  {renderSubtasks(task, isExpanded)}
+                </TaskRow>
               </motion.div>
             )
           })}
@@ -732,96 +827,100 @@ export function TasksPage() {
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: i * 0.03, layout: { type: "spring", stiffness: 300, damping: 30 } }}
-                className="rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"
-                style={{ borderTopWidth: "3px", borderTopColor: pConfig.pastelBorder, backgroundColor: pConfig.pastelBg + "30" }}>
-                <div className="p-4">
-                  <div className="flex items-start gap-2.5 mb-3">
-                    <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
-                      {task.completed ? (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
-                          <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                            <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                transition={{ delay: i * 0.03, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
+                <TaskRow
+                  gradient={pConfig.railGradient}
+                  tint={pConfig.tint}
+                  className="group overflow-hidden"
+                >
+                  <div className="pl-10 pr-10 p-4">
+                    <div className="flex items-start gap-2.5 mb-3">
+                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
+                        {task.completed ? (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <h3 className={`text-sm font-semibold truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}>{task.title}</h3>
+                          {task.subtasks.length > 0 && (
+                            <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">{completedSubs}/{task.subtasks.length}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: pConfig.pastelBorder + "20", color: pConfig.pastelBorder }}>{pConfig.label}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{task.timeRange}</span>
+                      <span className="text-muted-foreground/40">|</span>
+                      <span>{formatDuration(task.estimatedDuration)}</span>
+                      <span className="text-muted-foreground/40">|</span>
+                      <span className="text-[10px]">{task.deadline}</span>
+                    </div>
+
+                    {task.subtasks.length > 0 && (
+                      <div className="mb-3 space-y-1">
+                        {task.subtasks.slice(0, isExpanded ? undefined : 3).map((sub) => (
+                          <div key={sub.id} className="flex items-center gap-2">
+                            <button onClick={() => toggleSubtask(task.id, sub.id)} className="shrink-0">
+                              {sub.completed ? (
+                                <div className="h-3 w-3 rounded bg-primary flex items-center justify-center">
+                                  <svg className="h-1.5 w-1.5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                </div>
+                              ) : (
+                                <div className="h-3 w-3 rounded border border-muted-foreground/30" />
+                              )}
+                            </button>
+                            <span className={`text-[11px] ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
                           </div>
-                        </motion.div>
-                      ) : (
-                        <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <h3 className={`text-sm font-semibold truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}>{task.title}</h3>
-                        {task.subtasks.length > 0 && (
-                          <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">{completedSubs}/{task.subtasks.length}</span>
+                        ))}
+                        {task.subtasks.length > 3 && !isExpanded && (
+                          <button onClick={() => toggleExpanded(task.id)} className="text-[11px] text-primary hover:underline pl-5">+{task.subtasks.length - 3} more</button>
                         )}
                       </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
+                          initial={{ width: 0 }} animate={{ width: `${progress}%` }}
+                          transition={{ duration: 0.5, ease: "easeOut" }} />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                     </div>
-                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: pConfig.pastelBorder + "20", color: pConfig.pastelBorder }}>{pConfig.label}</span>
-                  </div>
 
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{task.timeRange}</span>
-                    <span className="text-muted-foreground/40">|</span>
-                    <span>{formatDuration(task.estimatedDuration)}</span>
-                    <span className="text-muted-foreground/40">|</span>
-                    <span className="text-[10px]">{task.deadline}</span>
-                  </div>
-
-                  {task.subtasks.length > 0 && (
-                    <div className="mb-3 space-y-1">
-                      {task.subtasks.slice(0, isExpanded ? undefined : 3).map((sub) => (
-                        <div key={sub.id} className="flex items-center gap-2">
-                          <button onClick={() => toggleSubtask(task.id, sub.id)} className="shrink-0">
-                            {sub.completed ? (
-                              <div className="h-3 w-3 rounded bg-primary flex items-center justify-center">
-                                <svg className="h-1.5 w-1.5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                              </div>
-                            ) : (
-                              <div className="h-3 w-3 rounded border border-muted-foreground/30" />
-                            )}
-                          </button>
-                          <span className={`text-[11px] ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
-                        </div>
-                      ))}
-                      {task.subtasks.length > 3 && !isExpanded && (
-                        <button onClick={() => toggleExpanded(task.id)} className="text-[11px] text-primary hover:underline pl-5">+{task.subtasks.length - 3} more</button>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
-                        initial={{ width: 0 }} animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }} />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
-                  </div>
-
-                  {/* Actions — always visible: Edit, Move, Delete */}
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
-                      onClick={() => { setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <div className="relative">
+                    {/* Actions — always visible: Edit, Move, Delete */}
+                    <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
-                        onClick={() => setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id)}>
-                        <ArrowRightLeft className="h-3 w-3" />
+                        onClick={() => { setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
+                        <Pencil className="h-3 w-3" />
                       </Button>
-                      <AnimatePresence>
-                        {movePopoverTaskId === task.id && (
-                          <MoveTaskPopover taskId={task.id} currentDeadline={task.deadline} onMove={moveTask} onClose={() => setMovePopoverTaskId(null)} />
-                        )}
-                      </AnimatePresence>
+                      <div className="relative">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
+                          onClick={() => setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id)}>
+                          <ArrowRightLeft className="h-3 w-3" />
+                        </Button>
+                        <AnimatePresence>
+                          {movePopoverTaskId === task.id && (
+                            <MoveTaskPopover taskId={task.id} currentDeadline={task.deadline} onMove={moveTask} onClose={() => setMovePopoverTaskId(null)} />
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
                   </div>
-                </div>
+                </TaskRow>
               </motion.div>
             )
           })}

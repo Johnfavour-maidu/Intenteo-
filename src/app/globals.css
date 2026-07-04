@@ -161,4 +161,17 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Premium task hover elevation */
+  .task-row {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .task-row:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04) !important;
+    transform: translateY(-1px);
+  }
+  .task-row:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+  }
 }
