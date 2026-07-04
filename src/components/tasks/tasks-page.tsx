@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from "react"
+import Link from "next/link"
 import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
@@ -19,11 +20,10 @@ import {
   Archive,
   GripVertical,
   X,
-  Repeat,
   Clock,
-  PenLine,
-  Save,
   Zap,
+  ArrowRightLeft,
+  Calendar,
 } from "lucide-react"
 import { useToast, ToastContainer } from "./task-toast"
 
@@ -38,6 +38,8 @@ const priorityConfig: Record<
 
 const hours = Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i))
 const minutes = Array.from({ length: 12 }, (_, i) => i * 5)
+
+const deadlineOptions = ["Today", "Tomorrow", "Next Week", "Custom"]
 
 function formatDuration(mins: number): string {
   if (mins < 60) return `${mins}m`
@@ -99,10 +101,7 @@ function TimeRangePicker({
   }, [startHour, startMin, startPeriod, endHour, endMin, endPeriod, onChange])
 
   const ScrollCol = ({
-    items,
-    selected,
-    onSelect,
-    label,
+    items, selected, onSelect, label,
   }: {
     items: (number | string)[]
     selected: number | string
@@ -111,15 +110,15 @@ function TimeRangePicker({
   }) => (
     <div className="flex flex-col items-center">
       <span className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
-      <div className="h-20 overflow-y-auto scrollbar-hide relative w-14">
-        <div className="py-6">
+      <div className="h-24 overflow-y-auto scrollbar-hide relative w-14">
+        <div className="py-8">
           {items.map((item) => (
             <button
               key={item}
               onClick={() => onSelect(item)}
-              className={`w-full h-7 flex items-center justify-center text-xs rounded-md transition-all duration-150 ${
+              className={`w-full h-8 flex items-center justify-center text-xs rounded-md transition-all duration-150 ${
                 selected === item
-                  ? "bg-primary text-primary-foreground font-semibold scale-105"
+                  ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -153,14 +152,14 @@ function TimeRangePicker({
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Compact Productivity Bar                              */
+/* Compact Productivity Score                            */
 /* ────────────────────────────────────────────────────── */
 
-const ProductivityBar = memo(function ProductivityBar({ percentage }: { percentage: number }) {
+const ProductivityScore = memo(function ProductivityScore({ percentage }: { percentage: number }) {
   return (
     <div className="flex items-center gap-3 px-3.5 h-9 rounded-xl bg-card border">
       <Zap className="h-3.5 w-3.5 text-primary shrink-0" />
-      <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">Productivity</span>
+      <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">Productivity Score</span>
       <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
         <motion.div
           className="h-full rounded-full bg-primary"
@@ -175,110 +174,84 @@ const ProductivityBar = memo(function ProductivityBar({ percentage }: { percenta
 })
 
 /* ────────────────────────────────────────────────────── */
-/* Quick Write Panel                                     */
+/* Move Task Popover                                     */
 /* ────────────────────────────────────────────────────── */
 
-type QuickWriteType = "thought" | "reflection" | "journal" | "idea" | "voice"
-
-const quickWriteOptions: { type: QuickWriteType; label: string; icon: React.ReactNode; placeholder: string }[] = [
-  { type: "thought", label: "Quick Thought", icon: <Zap className="h-4 w-4" />, placeholder: "What's on your mind?" },
-  { type: "reflection", label: "Daily Reflection", icon: <PenLine className="h-4 w-4" />, placeholder: "How did today go?" },
-  { type: "journal", label: "Journal Entry", icon: <PenLine className="h-4 w-4" />, placeholder: "Write freely..." },
-  { type: "idea", label: "Idea", icon: <Zap className="h-4 w-4" />, placeholder: "Capture this idea before it fades..." },
-  { type: "voice", label: "Voice Note", icon: <Zap className="h-4 w-4" />, placeholder: "Tap to record your voice note..." },
-]
-
-function QuickWritePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [selectedType, setSelectedType] = useState<QuickWriteType>("thought")
-  const [content, setContent] = useState("")
-  const [savedAt, setSavedAt] = useState<string | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const maxChars = 5000
-
-  const activeOption = quickWriteOptions.find((o) => o.type === selectedType)!
-
-  useEffect(() => {
-    if (open) setTimeout(() => textareaRef.current?.focus(), 300)
-  }, [open, selectedType])
-
-  const handleSave = useCallback(() => {
-    setSavedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
-    setTimeout(() => { setContent(""); setSavedAt(null); onClose() }, 600)
-  }, [onClose])
-
+function MoveTaskPopover({
+  taskId,
+  currentDeadline,
+  onMove,
+  onClose,
+}: {
+  taskId: string
+  currentDeadline: string
+  onMove: (taskId: string, newDeadline: string) => void
+  onClose: () => void
+}) {
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l shadow-2xl flex flex-col"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Zap className="h-4 w-4 text-primary" />
-                </div>
-                <h2 className="text-base font-semibold">Quick Write</h2>
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+      transition={{ duration: 0.12 }}
+      className="absolute right-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-1 z-30"
+    >
+      <p className="px-2.5 py-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Move to</p>
+      {deadlineOptions.filter((d) => d !== currentDeadline).map((option) => (
+        <button
+          key={option}
+          className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left"
+          onClick={() => { onMove(taskId, option); onClose() }}
+        >
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          {option}
+        </button>
+      ))}
+    </motion.div>
+  )
+}
 
-            {/* Type Tabs */}
-            <div className="flex gap-1 px-5 py-3 border-b overflow-x-auto scrollbar-hide">
-              {quickWriteOptions.map((opt) => (
-                <button
-                  key={opt.type}
-                  onClick={() => { setSelectedType(opt.type); setContent(""); setSavedAt(null) }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                    selectedType === opt.type
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {opt.icon}
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+/* ────────────────────────────────────────────────────── */
+/* Move Subtask Popover                                  */
+/* ────────────────────────────────────────────────────── */
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-5">
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value.slice(0, maxChars))}
-                placeholder={activeOption.placeholder}
-                className="w-full h-full min-h-[300px] bg-transparent text-sm leading-relaxed resize-none focus:outline-none placeholder:text-muted-foreground/50"
-              />
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between px-5 py-3 border-t bg-muted/20">
-              <div className="flex items-center gap-3">
-                <span className={`text-[10px] ${content.length > maxChars * 0.9 ? "text-orange-500" : "text-muted-foreground"}`}>
-                  {content.length}/{maxChars}
-                </span>
-                {savedAt && <span className="text-[10px] text-green-600 dark:text-green-400">Saved at {savedAt}</span>}
-              </div>
-              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleSave} disabled={!content.trim()}>
-                <Save className="h-3.5 w-3.5" />
-                Save
-              </Button>
-            </div>
-          </motion.div>
-        </>
+function MoveSubtaskPopover({
+  subtaskId,
+  currentTaskId,
+  tasks,
+  onMove,
+  onClose,
+}: {
+  subtaskId: string
+  currentTaskId: string
+  tasks: Task[]
+  onMove: (fromTaskId: string, subtaskId: string, toTaskId: string) => void
+  onClose: () => void
+}) {
+  const otherTasks = tasks.filter((t) => t.id !== currentTaskId)
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+      transition={{ duration: 0.12 }}
+      className="absolute left-0 top-full mt-1 w-56 rounded-xl border bg-background shadow-xl p-1 z-30"
+    >
+      <p className="px-2.5 py-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Move to task</p>
+      {otherTasks.map((task) => (
+        <button
+          key={task.id}
+          className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left"
+          onClick={() => { onMove(currentTaskId, subtaskId, task.id); onClose() }}
+        >
+          <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span className="truncate">{task.title}</span>
+        </button>
+      ))}
+      {otherTasks.length === 0 && (
+        <p className="px-2.5 py-2 text-xs text-muted-foreground">No other tasks available</p>
       )}
-    </AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -334,14 +307,14 @@ export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(sampleTasks)
   const [activeView, setActiveView] = useState<TaskView>("list")
   const [createOpen, setCreateOpen] = useState(false)
-  const [quickWriteOpen, setQuickWriteOpen] = useState(false)
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(() => new Set(sampleTasks.map((t) => t.id)))
-  const [contextMenu, setContextMenu] = useState<{ taskId: string; x: number; y: number } | null>(null)
-  const [draggedId, setDraggedId] = useState<string | null>(null)
-  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
   const [editingField, setEditingField] = useState<{ taskId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState("")
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [movePopoverTaskId, setMovePopoverTaskId] = useState<string | null>(null)
+  const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
 
   const { toasts, addToast, removeToast } = useToast()
 
@@ -389,7 +362,7 @@ export function TasksPage() {
   }, [])
 
   const deleteTask = useCallback((id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id)); setContextMenu(null)
+    setTasks((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
   const duplicateTask = useCallback((task: Task) => {
@@ -402,11 +375,26 @@ export function TasksPage() {
       const items = [...prev]; const idx = items.findIndex((t) => t.id === task.id); items.splice(idx + 1, 0, newTask)
       return items.map((t, i) => ({ ...t, order: i }))
     })
-    setContextMenu(null)
   }, [])
 
   const archiveTask = useCallback((id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id)); setContextMenu(null)
+    setTasks((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  const moveTask = useCallback((taskId: string, newDeadline: string) => {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, deadline: newDeadline } : t)))
+  }, [])
+
+  const moveSubtask = useCallback((fromTaskId: string, subtaskId: string, toTaskId: string) => {
+    setTasks((prev) => {
+      const subtask = prev.find((t) => t.id === fromTaskId)?.subtasks.find((s) => s.id === subtaskId)
+      if (!subtask) return prev
+      return prev.map((t) => {
+        if (t.id === fromTaskId) return { ...t, subtasks: t.subtasks.filter((s) => s.id !== subtaskId) }
+        if (t.id === toTaskId) return { ...t, subtasks: [...t.subtasks, subtask] }
+        return t
+      })
+    })
   }, [])
 
   const handleCreateTask = useCallback(() => {
@@ -465,8 +453,9 @@ export function TasksPage() {
   const handleDragEnd = useCallback(() => { setDraggedId(null); setDragOverId(null) }, [])
 
   useEffect(() => {
-    if (contextMenu) { const h = () => setContextMenu(null); window.addEventListener("click", h); return () => window.removeEventListener("click", h) }
-  }, [contextMenu])
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") { cancelEditing(); setCreateOpen(false); setMovePopoverTaskId(null); setMoveSubtaskInfo(null) } }
+    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
+  }, [cancelEditing])
 
   useEffect(() => {
     if (editingField && editInputRef.current) {
@@ -475,12 +464,7 @@ export function TasksPage() {
     }
   }, [editingField])
 
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") { setContextMenu(null); cancelEditing(); setCreateOpen(false); setQuickWriteOpen(false) } }
-    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
-  }, [cancelEditing])
-
-  /* ─── Shared subtask renderer ─── */
+  /* ─── Subtask renderer ─── */
   const renderSubtasks = useCallback((task: Task, isExpanded: boolean) => (
     <AnimatePresence initial={false}>
       {isExpanded && task.subtasks.length > 0 && (
@@ -488,7 +472,7 @@ export function TasksPage() {
           transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }} className="overflow-hidden">
           <div className="pl-10 pr-4 py-1.5 space-y-0.5">
             {task.subtasks.map((sub) => (
-              <div key={sub.id} className="flex items-center gap-2.5 py-1 px-2 rounded-lg hover:bg-muted/30 transition-colors">
+              <div key={sub.id} className="flex items-center gap-2.5 py-1 px-2 rounded-lg hover:bg-muted/30 transition-colors group/sub relative">
                 <button onClick={() => toggleSubtask(task.id, sub.id)} className="shrink-0">
                   {sub.completed ? (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
@@ -500,7 +484,24 @@ export function TasksPage() {
                     <div className="h-3.5 w-3.5 rounded border border-muted-foreground/30 hover:border-primary transition-colors" />
                   )}
                 </button>
-                <span className={`text-xs ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
+                <span className={`text-xs flex-1 ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
+                {/* Move subtask */}
+                <div className="relative">
+                  <button
+                    className="opacity-0 group-hover/sub:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); setMoveSubtaskInfo(moveSubtaskInfo?.subtaskId === sub.id ? null : { taskId: task.id, subtaskId: sub.id }) }}
+                  >
+                    <ArrowRightLeft className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
+                  </button>
+                  <AnimatePresence>
+                    {moveSubtaskInfo?.subtaskId === sub.id && (
+                      <MoveSubtaskPopover
+                        subtaskId={sub.id} currentTaskId={task.id} tasks={tasks}
+                        onMove={moveSubtask} onClose={() => setMoveSubtaskInfo(null)}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             ))}
             <button onClick={() => addSubtaskInline(task.id)} className="flex items-center gap-1.5 py-1 px-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -510,22 +511,21 @@ export function TasksPage() {
         </motion.div>
       )}
     </AnimatePresence>
-  ), [toggleSubtask, addSubtaskInline])
+  ), [toggleSubtask, addSubtaskInline, tasks, moveSubtask, moveSubtaskInfo])
 
   /* ═══════════════════════════════════════════════════════ */
-  /* LIST VIEW — planner rows (default)                     */
+  /* LIST VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
   const renderListView = useCallback(() => {
     if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-        {/* Header */}
-        <div className="sticky top-0 z-10 grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,160px)] gap-6 px-6 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="sticky top-0 z-10 grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(140px,170px)] gap-6 px-6 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div>Task</div>
           <div className="hidden sm:block">Time Range</div>
           <div className="hidden sm:block">Duration</div>
           <div>Progress</div>
-          <div className="text-right">Actions</div>
+          <div>Actions</div>
         </div>
 
         <LayoutGroup>
@@ -543,7 +543,7 @@ export function TasksPage() {
                   draggable onDragStart={() => handleDragStart(task.id)}
                   onDragOver={(e) => handleDragOver(e, task.id)}
                   onDrop={() => handleDrop(task.id)} onDragEnd={handleDragEnd}
-                  className={`grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(120px,160px)] gap-6 px-6 py-3.5 items-center group transition-all duration-150 cursor-default border-b border-border/30 last:border-0 mx-1 my-0.5 rounded-xl ${
+                  className={`grid grid-cols-[minmax(200px,1fr)_minmax(140px,160px)_minmax(80px,100px)_minmax(100px,140px)_minmax(140px,170px)] gap-6 px-6 py-3.5 items-center group transition-all duration-150 cursor-default border-b border-border/30 last:border-0 mx-1 my-0.5 rounded-xl ${
                     isDragging ? "opacity-40 scale-[0.98]" : ""
                   } ${isDragOver ? "border-t-2 border-t-primary" : ""} hover:bg-muted/40`}
                   style={{ borderLeftWidth: "3px", borderLeftColor: pConfig.cssColor, backgroundColor: `${pConfig.pastelBg}40` }}
@@ -575,10 +575,15 @@ export function TasksPage() {
                             {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length}
                           </span>
                         )}
-                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 transition-opacity"
                           onClick={() => toggleExpanded(task.id)}>
                           {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                         </Button>
+                        {task.subtasks.length > 0 && (
+                          <span className="text-[10px] text-muted-foreground hidden group-hover:inline">
+                            {isExpanded ? "Collapse" : `Show ${task.subtasks.length}`}
+                          </span>
+                        )}
                       </div>
                       {task.whyItMatters && (
                         <InlineEdit taskId={task.id} field="whyItMatters" value={task.whyItMatters}
@@ -615,21 +620,32 @@ export function TasksPage() {
                     <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                   </div>
 
-                  {/* Actions — always visible on row */}
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all hover:bg-muted"
+                  {/* Actions — always visible */}
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                       onClick={(e) => { e.stopPropagation(); setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all hover:bg-muted"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                       onClick={(e) => { e.stopPropagation(); duplicateTask(task) }}>
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all hover:bg-muted"
+                    <div className="relative">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
+                        onClick={(e) => { e.stopPropagation(); setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id) }}>
+                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <AnimatePresence>
+                        {movePopoverTaskId === task.id && (
+                          <MoveTaskPopover taskId={task.id} currentDeadline={task.deadline} onMove={moveTask} onClose={() => setMovePopoverTaskId(null)} />
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                       onClick={(e) => { e.stopPropagation(); archiveTask(task.id) }}>
                       <Archive className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 text-destructive"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
                       onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -643,10 +659,10 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, draggedId, dragOverId, editingField, editValue, getSubtaskProgress, handleDragStart, handleDragOver, handleDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, saveEditing, duplicateTask, archiveTask, deleteTask])
+  }, [tasks, expandedTasks, draggedId, dragOverId, editingField, editValue, getSubtaskProgress, handleDragStart, handleDragOver, handleDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, saveEditing, duplicateTask, archiveTask, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo])
 
   /* ═══════════════════════════════════════════════════════ */
-  /* BOARD VIEW — compact card grid                         */
+  /* BOARD VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
   const renderBoardView = useCallback(() => {
     if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
@@ -666,7 +682,6 @@ export function TasksPage() {
                 className="rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"
                 style={{ borderTopWidth: "3px", borderTopColor: pConfig.pastelBorder, backgroundColor: pConfig.pastelBg + "30" }}>
                 <div className="p-4">
-                  {/* Header */}
                   <div className="flex items-start gap-2.5 mb-3">
                     <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
                       {task.completed ? (
@@ -692,14 +707,14 @@ export function TasksPage() {
                       style={{ backgroundColor: pConfig.pastelBorder + "20", color: pConfig.pastelBorder }}>{pConfig.label}</span>
                   </div>
 
-                  {/* Meta */}
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{task.timeRange}</span>
                     <span className="text-muted-foreground/40">|</span>
                     <span>{formatDuration(task.estimatedDuration)}</span>
+                    <span className="text-muted-foreground/40">|</span>
+                    <span className="text-[10px]">{task.deadline}</span>
                   </div>
 
-                  {/* Subtasks */}
                   {task.subtasks.length > 0 && (
                     <div className="mb-3 space-y-1">
                       {task.subtasks.slice(0, isExpanded ? undefined : 3).map((sub) => (
@@ -722,7 +737,6 @@ export function TasksPage() {
                     </div>
                   )}
 
-                  {/* Progress */}
                   <div className="flex items-center gap-2 mb-3">
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <motion.div
@@ -733,11 +747,22 @@ export function TasksPage() {
                     <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => duplicateTask(task)}><Copy className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => archiveTask(task.id)}><Archive className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteTask(task.id)}><Trash2 className="h-3 w-3" /></Button>
+                  {/* Actions — always visible */}
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" onClick={() => duplicateTask(task)}><Copy className="h-3 w-3" /></Button>
+                    <div className="relative">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
+                        onClick={() => setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id)}>
+                        <ArrowRightLeft className="h-3 w-3" />
+                      </Button>
+                      <AnimatePresence>
+                        {movePopoverTaskId === task.id && (
+                          <MoveTaskPopover taskId={task.id} currentDeadline={task.deadline} onMove={moveTask} onClose={() => setMovePopoverTaskId(null)} />
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" onClick={() => archiveTask(task.id)}><Archive className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 </div>
               </motion.div>
@@ -746,12 +771,11 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, duplicateTask, archiveTask, deleteTask])
+  }, [tasks, expandedTasks, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, duplicateTask, archiveTask, deleteTask, moveTask, movePopoverTaskId])
 
   return (
     <div className="min-h-screen">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <QuickWritePanel open={quickWriteOpen} onClose={() => setQuickWriteOpen(false)} />
 
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-6">
         {/* Header */}
@@ -759,25 +783,21 @@ export function TasksPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              <span style={{ color: "#3B82F6" }}>{totalToday}</span>{" "}
-              of which{" "}
-              <span style={{ color: "#22C55E" }}>{completedToday}</span>{" "}
-              completed, {" "}
-              <span style={{ color: "#EF4444" }}>{remainingToday}</span>{" "}
-              remaining
+              <span style={{ color: "#3B82F6" }}>{totalToday}</span> Tasks{" \u00B7 "}
+              <span style={{ color: "#22C55E" }}>{completedToday}</span> Completed{" \u00B7 "}
+              <span style={{ color: "#EF4444" }}>{remainingToday}</span> To Go
             </p>
           </div>
           <div className="flex items-center gap-2.5">
-            {/* Productivity Bar */}
-            <ProductivityBar percentage={productivity} />
+            <ProductivityScore percentage={productivity} />
 
-            {/* Quick Write */}
-            <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setQuickWriteOpen(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Write</span>
-            </Button>
+            <Link href="/journal">
+              <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                <Pencil className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline text-xs">Write</span>
+              </Button>
+            </Link>
 
-            {/* View Toggle */}
             <div className="flex items-center gap-0.5 p-0.5 bg-muted rounded-xl">
               <Button variant={activeView === "list" ? "default" : "ghost"} size="sm" className="h-8 px-3" onClick={() => setActiveView("list")}>
                 <List className="h-4 w-4" />
@@ -789,18 +809,13 @@ export function TasksPage() {
               </Button>
             </div>
 
-            {/* Add Task */}
             <Button className="glow h-9" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-1 h-4 w-4" /> Add Task
             </Button>
           </div>
         </div>
 
-        {/* Views */}
         {activeView === "list" ? renderListView() : renderBoardView()}
-
-        {/* Daily Reflection */}
-        <DailyReflection />
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
@@ -808,37 +823,6 @@ export function TasksPage() {
           <span>{remainingToday} remaining</span>
         </div>
       </div>
-
-      {/* Context Menu (board view only) */}
-      <AnimatePresence>
-        {contextMenu && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -4 }} transition={{ duration: 0.12 }}
-              className="fixed z-50 w-44 rounded-xl border bg-background shadow-xl p-1"
-              style={{ left: contextMenu.x, top: contextMenu.y }}>
-              <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors"
-                onClick={() => { const t = tasks.find((t) => t.id === contextMenu.taskId); if (t) { setEditingField({ taskId: t.id, field: "title" }); setEditValue(t.title) }; setContextMenu(null) }}>
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </button>
-              <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors"
-                onClick={() => { const t = tasks.find((t) => t.id === contextMenu.taskId); if (t) duplicateTask(t) }}>
-                <Copy className="h-3.5 w-3.5" /> Duplicate
-              </button>
-              <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors"
-                onClick={() => archiveTask(contextMenu.taskId)}>
-                <Archive className="h-3.5 w-3.5" /> Archive
-              </button>
-              <div className="h-px bg-border my-1" />
-              <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-                onClick={() => deleteTask(contextMenu.taskId)}>
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Create Modal */}
       <AnimatePresence>
@@ -915,69 +899,6 @@ export function TasksPage() {
         )}
       </AnimatePresence>
     </div>
-  )
-}
-
-/* ────────────────────────────────────────────────────── */
-/* Daily Reflection                                       */
-/* ────────────────────────────────────────────────────── */
-
-function DailyReflection() {
-  const [reflection, setReflection] = useState("")
-  const [savedAt, setSavedAt] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const maxChars = 2000
-
-  const handleSave = useCallback(() => {
-    setSavedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
-    setExpanded(false)
-  }, [])
-
-  const handleExpand = useCallback(() => { setExpanded(true); setTimeout(() => textareaRef.current?.focus(), 300) }, [])
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-      className="mt-8 rounded-2xl border bg-card shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><PenLine className="h-3.5 w-3.5 text-primary" /></div>
-          <h3 className="text-sm font-semibold">Daily Reflection</h3>
-        </div>
-        {savedAt && <span className="text-[10px] text-muted-foreground">Saved at {savedAt}</span>}
-      </div>
-      <AnimatePresence mode="wait">
-        {!expanded ? (
-          <motion.div key="input" initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }} className="overflow-hidden">
-            <input ref={inputRef} type="text" value={reflection}
-              onChange={(e) => setReflection(e.target.value.slice(0, maxChars))}
-              onFocus={handleExpand} placeholder="What are you thinking about your day?"
-              className="w-full px-5 py-3 text-sm bg-transparent focus:outline-none placeholder:text-muted-foreground/50" />
-          </motion.div>
-        ) : (
-          <motion.div key="textarea" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }} className="overflow-hidden">
-            <textarea ref={textareaRef} value={reflection}
-              onChange={(e) => setReflection(e.target.value.slice(0, maxChars))}
-              placeholder="What are you thinking about your day?"
-              className="w-full px-5 py-3 text-sm leading-relaxed bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/50 min-h-[120px]" />
-            <div className="flex items-center justify-between px-5 py-2.5 border-t bg-muted/20">
-              <span className={`text-[10px] ${reflection.length > maxChars * 0.9 ? "text-orange-500" : "text-muted-foreground"}`}>
-                {reflection.length}/{maxChars}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setExpanded(false)}>Continue Later</Button>
-                <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleSave} disabled={!reflection.trim()}>
-                  <Save className="h-3 w-3" /> Save
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
   )
 }
 
