@@ -54,10 +54,10 @@ const moodData = [
 ]
 
 const categoryData = [
-  { name: "Health", value: 35, color: "#10b981" },
-  { name: "Career", value: 30, color: "#3b82f6" },
-  { name: "Learning", value: 20, color: "#8b5cf6" },
-  { name: "Relationships", value: 15, color: "#f59e0b" },
+  { name: "Health", value: 35, color: "var(--color-success)" },
+  { name: "Career", value: 30, color: "var(--brand-primary)" },
+  { name: "Learning", value: 20, color: "#8B5CF6" },
+  { name: "Relationships", value: 15, color: "var(--brand-secondary)" },
 ]
 
 const insights = [

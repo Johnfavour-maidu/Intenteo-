@@ -37,27 +37,27 @@ const priorityConfig: Record<
 > = {
   priority: {
     label: "Priority",
-    cssColor: "#F97316",
-    pastelBg: "#FFF7ED",
-    pastelBorder: "#F97316",
-    railGradient: "linear-gradient(180deg, #FFB86B 0%, #EA580C 100%)",
-    tint: "#FFF7ED",
+    cssColor: "var(--brand-secondary)",
+    pastelBg: "var(--task-tint-priority)",
+    pastelBorder: "var(--task-priority)",
+    railGradient: "var(--task-rail-priority)",
+    tint: "var(--task-tint-priority)",
   },
   progress: {
     label: "Progress",
-    cssColor: "#7C3AED",
-    pastelBg: "#F5F3FF",
-    pastelBorder: "#7C3AED",
-    railGradient: "linear-gradient(180deg, #A78BFA 0%, #6D28D9 100%)",
-    tint: "#F5F3FF",
+    cssColor: "var(--brand-primary)",
+    pastelBg: "var(--task-tint-progress)",
+    pastelBorder: "var(--task-progress)",
+    railGradient: "var(--task-rail-progress)",
+    tint: "var(--task-tint-progress)",
   },
   maintenance: {
     label: "Maintenance",
-    cssColor: "#14B8A6",
-    pastelBg: "#F0FDFA",
-    pastelBorder: "#14B8A6",
-    railGradient: "linear-gradient(180deg, #5EEAD4 0%, #0F766E 100%)",
-    tint: "#F0FDFA",
+    cssColor: "var(--task-maintenance)",
+    pastelBg: "var(--task-tint-maintenance)",
+    pastelBorder: "var(--task-maintenance)",
+    railGradient: "var(--task-rail-maintenance)",
+    tint: "var(--task-tint-maintenance)",
   },
 }
 
@@ -931,9 +931,9 @@ export function TasksPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
             <p className="text-sm font-bold text-foreground mt-0.5 tracking-tight">
-              <span style={{ color: "#3B82F6" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
-              <span style={{ color: "#22C55E" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
-              <span style={{ color: "#EF4444" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
+              <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
+              <span style={{ color: "var(--color-success)" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
+              <span style={{ color: "var(--color-error)" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
             </p>
           </div>
           <div className="flex items-center gap-2.5">

@@ -5,9 +5,9 @@ import { Folder, Plus, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const projects = [
-  { id: "1", name: "Intenteo Web App", description: "Build the ultimate intentional living platform", progress: 65, tasks: 12, color: "#3D1F8C" },
-  { id: "2", name: "Morning Routine Overhaul", description: "Design and implement a 60-minute morning ritual", progress: 40, tasks: 8, color: "#F26522" },
-  { id: "3", name: "Finance Dashboard", description: "Track net worth, budget, and investment growth", progress: 20, tasks: 15, color: "#FFB81C" },
+  { id: "1", name: "Intenteo Web App", description: "Build the ultimate intentional living platform", progress: 65, tasks: 12, color: "var(--brand-primary)" },
+  { id: "2", name: "Morning Routine Overhaul", description: "Design and implement a 60-minute morning ritual", progress: 40, tasks: 8, color: "var(--brand-secondary)" },
+  { id: "3", name: "Finance Dashboard", description: "Track net worth, budget, and investment growth", progress: 20, tasks: 15, color: "#F59E0B" },
 ]
 
 export function ProjectsPage() {

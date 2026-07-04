@@ -82,18 +82,18 @@ interface JournalEntry {
 }
 
 const journalTypeConfig: Record<JournalType, { label: string; icon: React.ReactNode; color: string; accent: string }> = {
-  morning: { label: "Morning Journal", icon: <PenLine className="h-3.5 w-3.5" />, color: "#F59E0B", accent: "#FEF3C7" },
-  daily: { label: "Daily Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#3B82F6", accent: "#DBEAFE" },
-  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#8B5CF6", accent: "#EDE9FE" },
+  morning: { label: "Morning Journal", icon: <PenLine className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7" },
+  daily: { label: "Daily Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF" },
+  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#7C3AED", accent: "#EDE9FE" },
   gratitude: { label: "Gratitude", icon: <Heart className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3" },
-  decision: { label: "Decision Journal", icon: <Brain className="h-3.5 w-3.5" />, color: "#6366F1", accent: "#E0E7FF" },
+  decision: { label: "Decision Journal", icon: <Brain className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF" },
   dream: { label: "Dream Journal", icon: <Sparkles className="h-3.5 w-3.5" />, color: "#A855F7", accent: "#F3E8FF" },
   prayer: { label: "Prayer Journal", icon: <Heart className="h-3.5 w-3.5" />, color: "#14B8A6", accent: "#CCFBF1" },
-  legacy: { label: "Legacy Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#10B981", accent: "#D1FAE5" },
-  travel: { label: "Travel Journal", icon: <MapPin className="h-3.5 w-3.5" />, color: "#F97316", accent: "#FFEDD5" },
+  legacy: { label: "Legacy Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#16A34A", accent: "#D1FAE5" },
+  travel: { label: "Travel Journal", icon: <MapPin className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FFEDD5" },
   photo: { label: "Photo Journal", icon: <Camera className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3" },
   voice: { label: "Voice Journal", icon: <Mic className="h-3.5 w-3.5" />, color: "#64748B", accent: "#F1F5F9" },
-  quick: { label: "Quick Thoughts", icon: <Zap className="h-3.5 w-3.5" />, color: "#F59E0B", accent: "#FEF3C7" },
+  quick: { label: "Quick Thoughts", icon: <Zap className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7" },
 }
 
 const writingPrompts = [
@@ -777,13 +777,13 @@ function WritingArea({
       style={{
         borderWidth: "1.5px",
         borderStyle: "solid",
-        borderColor: isFocused ? "#4F46E5" : "#D6D8FF",
+        borderColor: isFocused ? "var(--brand-primary)" : "var(--color-border)",
         boxShadow: isFocused
-          ? "0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)"
+          ? "0 8px 30px rgba(30,14,107,0.08), 0 2px 8px rgba(30,14,107,0.04)"
           : "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
       }}
-      onMouseEnter={(e) => { if (!isFocused) e.currentTarget.style.borderColor = "#A5B4FC" }}
-      onMouseLeave={(e) => { if (!isFocused) e.currentTarget.style.borderColor = "#D6D8FF" }}
+      onMouseEnter={(e) => { if (!isFocused) e.currentTarget.style.borderColor = "var(--color-border-hover)" }}
+      onMouseLeave={(e) => { if (!isFocused) e.currentTarget.style.borderColor = "var(--color-border)" }}
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
       <div className="p-5 md:p-6 space-y-3">
@@ -1260,7 +1260,8 @@ export function JournalPage() {
             {/* Calendar Icon */}
             <div className="relative" ref={calendarRef}>
               <button
-                className="h-9 w-9 rounded-full bg-[#4F46E5] text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                style={{ backgroundColor: "var(--brand-primary)" }}
                 onClick={() => setCalendarOpen(!calendarOpen)}
               >
                 <Calendar className="h-4 w-4" />

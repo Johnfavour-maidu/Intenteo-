@@ -100,7 +100,7 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-3">
-                {["#7c3aed", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899"].map((color) => (
+                {["var(--brand-primary)", "var(--brand-secondary)", "#16A34A", "#F59E0B", "#EF4444", "#EC4899"].map((color) => (
                   <button
                     key={color}
                     className="h-10 w-10 rounded-full border-2 border-transparent hover:scale-110 transition-transform"
