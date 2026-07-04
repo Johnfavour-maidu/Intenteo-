@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Plus,
@@ -14,17 +13,12 @@ import {
   Camera,
   Mic,
   Brain,
-  Clock,
   Sparkles,
-  Search,
   X,
-  ChevronDown,
-  LayoutGrid,
-  List,
+  ChevronLeft,
+  ChevronRight,
   Flame,
-  Calendar,
   Tag,
-  Smile,
   MapPin,
   Save,
   ArrowLeft,
@@ -32,11 +26,10 @@ import {
   Copy,
   Share2,
   Download,
-  Printer,
   Star,
   MoreHorizontal,
   Eye,
-  FileText,
+  Zap,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -53,6 +46,7 @@ interface JournalEntry {
   content: string
   type: JournalType
   date: string
+  dateISO: string
   time: string
   mood?: number
   tags: string[]
@@ -90,42 +84,68 @@ const writingPrompts = [
 
 const moodEmojis = ["😔", "😐", "🙂", "😊", "🤩"]
 
+const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+]
+
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+function todayISO(): string {
+  return toISODate(new Date())
+}
+
 const sampleEntries: JournalEntry[] = [
   {
     id: "1", title: "Morning Intention Setting",
-    content: "Today I want to focus on being present in every conversation. I will put my phone away during meetings and truly listen to my colleagues. This aligns with my goal of building deeper relationships.\n\nI noticed that when I'm fully present, conversations become richer and more meaningful. The small act of putting away my phone has a profound impact on how people respond to me.",
-    type: "morning", date: "Today", time: "7:30 AM", mood: 5,
+    content: "Today I want to focus on being present in every conversation. I will put my phone away during meetings and truly listen to my colleagues.\n\nI noticed that when I'm fully present, conversations become richer and more meaningful.",
+    type: "morning", date: "Today", dateISO: todayISO(), time: "7:30 AM", mood: 5,
     tags: ["Intention", "Relationships"], favorited: true, createdAt: new Date().toISOString(),
   },
   {
     id: "2", title: "Gratitude for Small Moments",
-    content: "I'm grateful for the beautiful sunrise this morning. It reminded me that every day is a new opportunity to grow. I'm also thankful for my health and the ability to pursue my dreams.\n\nSometimes the simplest things carry the most meaning. A warm cup of coffee, a quiet moment, a kind word from a stranger.",
-    type: "gratitude", date: "Today", time: "8:15 AM", mood: 4,
+    content: "I'm grateful for the beautiful sunrise this morning. It reminded me that every day is a new opportunity to grow.\n\nSometimes the simplest things carry the most meaning.",
+    type: "gratitude", date: "Today", dateISO: todayISO(), time: "8:15 AM", mood: 4,
     tags: ["Gratitude", "Mindfulness"], favorited: false, createdAt: new Date().toISOString(),
   },
   {
     id: "3", title: "Reflection on Q2 Goals",
-    content: "Looking back at Q2, I accomplished 70% of my goals. The main challenge was time management. I need to be more intentional about prioritizing deep work over shallow tasks.\n\nKey takeaways:\n- Deep work blocks of 90 minutes are more effective than scattered 30-minute sessions\n- Saying no to non-essential meetings freed up 5+ hours per week\n- Morning routines compound over time",
-    type: "reflection", date: "Yesterday", time: "9:00 PM", mood: 4,
+    content: "Looking back at Q2, I accomplished 70% of my goals. The main challenge was time management.\n\nKey takeaways:\n- Deep work blocks of 90 minutes are more effective\n- Saying no to non-essential meetings freed up 5+ hours per week\n- Morning routines compound over time",
+    type: "reflection", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "9:00 PM", mood: 4,
     tags: ["Reflection", "Goals"], favorited: true, createdAt: new Date().toISOString(),
   },
   {
     id: "4", title: "Decision: Career Move",
-    content: "Should I take the new role? Pros: More responsibility, better alignment with long-term vision. Cons: Less work-life balance initially. My gut says yes \u2014 this moves me closer to who I want to become.\n\nAfter much deliberation, I realize that growth requires discomfort. The fear I feel is a signal that this matters.",
-    type: "decision", date: "Yesterday", time: "2:30 PM", mood: 3,
+    content: "Should I take the new role? Pros: More responsibility, better alignment with long-term vision. Cons: Less work-life balance initially. My gut says yes.",
+    type: "decision", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "2:30 PM", mood: 3,
     tags: ["Decision", "Career"], favorited: false, createdAt: new Date().toISOString(),
   },
   {
     id: "5", title: "Dream About the Future",
-    content: "I dreamed I was standing on a stage, speaking to thousands of people about intentional living. The audience was engaged and inspired. It felt like a glimpse of my future self.\n\nThe dream felt so real that I woke up with a sense of clarity about my direction.",
-    type: "dream", date: "2 days ago", time: "6:00 AM", mood: 5,
+    content: "I dreamed I was standing on a stage, speaking to thousands of people about intentional living. The audience was engaged and inspired.",
+    type: "dream", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "6:00 AM", mood: 5,
     tags: ["Dream", "Vision"], favorited: false, createdAt: new Date().toISOString(),
   },
   {
     id: "6", title: "Evening Wind-Down",
-    content: "The evening was calm. I spent time reading and reflecting on the day. Tomorrow I have an important presentation, but I feel prepared.\n\nI've learned that preparation breeds confidence. The work I do today shapes the opportunities of tomorrow.",
-    type: "daily", date: "2 days ago", time: "8:30 PM", mood: 4,
+    content: "The evening was calm. I spent time reading and reflecting on the day. Tomorrow I have an important presentation, but I feel prepared.",
+    type: "daily", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "8:30 PM", mood: 4,
     tags: ["Daily", "Evening"], favorited: false, createdAt: new Date().toISOString(),
+  },
+  {
+    id: "7", title: "Morning Gratitude",
+    content: "Woke up feeling refreshed. The weather is beautiful today. I'm grateful for my health and the people in my life.",
+    type: "morning", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "7:00 AM", mood: 5,
+    tags: ["Gratitude", "Morning"], favorited: false, createdAt: new Date().toISOString(),
+  },
+  {
+    id: "8", title: "Quick Thought on Growth",
+    content: "Growth isn't always comfortable. Sometimes the best things happen when we step outside our comfort zone.",
+    type: "quick", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "11:30 AM", mood: 4,
+    tags: ["Growth"], favorited: true, createdAt: new Date().toISOString(),
   },
 ]
 
@@ -147,65 +167,521 @@ function getTodayPrompt(): string {
   return writingPrompts[dayOfYear % writingPrompts.length]
 }
 
+function formatDateLong(iso: string): string {
+  const d = new Date(iso + "T00:00:00")
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+}
+
 /* ────────────────────────────────────────────────────── */
-/* Writing Streak Card                                   */
+/* Compact Streak Circle                                 */
 /* ────────────────────────────────────────────────────── */
 
-const WritingStreak = memo(function WritingStreak({ streak }: { streak: number }) {
+const StreakCircle = memo(function StreakCircle({ streak }: { streak: number }) {
+  const radius = 18
+  const circumference = 2 * Math.PI * radius
+  const progress = Math.min(streak / 30, 1)
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20"
-    >
-      <div className="h-9 w-9 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
-        <Flame className="h-4.5 w-4.5 text-orange-500" />
+    <div className="flex items-center gap-2.5">
+      <div className="relative h-11 w-11 shrink-0">
+        <svg className="h-11 w-11 -rotate-90" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r={radius} fill="none" stroke="currentColor" strokeWidth="3"
+            className="text-orange-500/15" />
+          <motion.circle
+            cx="22" cy="22" r={radius} fill="none" stroke="currentColor" strokeWidth="3"
+            className="text-orange-500"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: circumference * (1 - progress) }}
+            transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Flame className="h-4 w-4 text-orange-500" />
+        </div>
       </div>
-      <div>
-        <p className="text-sm font-semibold">
-          <span className="text-orange-600 dark:text-orange-400">{streak}-Day</span> Writing Streak
-        </p>
-        <p className="text-[11px] text-muted-foreground">Keep capturing your journey.</p>
+      <div className="hidden sm:block">
+        <p className="text-lg font-bold leading-tight">{streak}</p>
+        <p className="text-[10px] text-muted-foreground leading-tight">day streak</p>
       </div>
-    </motion.div>
+    </div>
   )
 })
 
 /* ────────────────────────────────────────────────────── */
-/* Quick Entry Hero                                      */
+/* Journal Calendar                                      */
 /* ────────────────────────────────────────────────────── */
 
-function QuickEntryHero({ onCreated }: { onCreated: (entry: JournalEntry) => void }) {
-  const [expanded, setExpanded] = useState(false)
+const JournalCalendar = memo(function JournalCalendar({
+  entries,
+  selectedDate,
+  onSelectDate,
+}: {
+  entries: JournalEntry[]
+  selectedDate: string
+  onSelectDate: (iso: string) => void
+}) {
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth())
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showYearPicker, setShowYearPicker] = useState(false)
+
+  const entryDates = useMemo(() => {
+    const map: Record<string, number> = {}
+    entries.forEach((e) => {
+      map[e.dateISO] = (map[e.dateISO] || 0) + 1
+    })
+    return map
+  }, [entries])
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
+
+  const days = useMemo(() => {
+    const result: (number | null)[] = []
+    for (let i = 0; i < firstDayOfWeek; i++) result.push(null)
+    for (let d = 1; d <= daysInMonth; d++) result.push(d)
+    return result
+  }, [firstDayOfWeek, daysInMonth])
+
+  const today = todayISO()
+
+  const prevMonth = useCallback(() => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1) }
+    else setViewMonth((m) => m - 1)
+  }, [viewMonth])
+
+  const nextMonth = useCallback(() => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1) }
+    else setViewMonth((m) => m + 1)
+  }, [viewMonth])
+
+  const goToToday = useCallback(() => {
+    const now = new Date()
+    setViewMonth(now.getMonth())
+    setViewYear(now.getFullYear())
+    onSelectDate(todayISO())
+  }, [onSelectDate])
+
+  const handleMonthSelect = useCallback((m: number) => {
+    setViewMonth(m)
+    setShowMonthPicker(false)
+  }, [])
+
+  const handleYearSelect = useCallback((y: number) => {
+    setViewYear(y)
+    setShowYearPicker(false)
+    setShowMonthPicker(true)
+  }, [])
+
+  return (
+    <div className="rounded-2xl border bg-card p-4">
+      {/* Month Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMonthPicker(!showMonthPicker)}
+            className="text-sm font-semibold hover:text-primary transition-colors"
+          >
+            {MONTH_NAMES[viewMonth]} {viewYear}
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToToday}>
+            <span className="text-[10px] font-medium">Today</span>
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevMonth}>
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextMonth}>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Month Picker Dropdown */}
+      <AnimatePresence>
+        {showMonthPicker && !showYearPicker && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden mb-3"
+          >
+            <div className="grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-muted/30">
+              {MONTH_NAMES.map((name, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleMonthSelect(i)}
+                  className={`text-xs py-1.5 rounded-lg transition-colors ${
+                    i === viewMonth ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {name.slice(0, 3)}
+                </button>
+              ))}
+              <button
+                onClick={() => { setShowYearPicker(true); setShowMonthPicker(false) }}
+                className="text-xs py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground col-span-3 mt-1"
+              >
+                {viewYear} ▾
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Year Picker Dropdown */}
+      <AnimatePresence>
+        {showYearPicker && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden mb-3"
+          >
+            <div className="grid grid-cols-4 gap-1.5 p-2 rounded-xl bg-muted/30 max-h-40 overflow-y-auto">
+              {Array.from({ length: 11 }, (_, i) => viewYear - 5 + i).map((y) => (
+                <button
+                  key={y}
+                  onClick={() => handleYearSelect(y)}
+                  className={`text-xs py-1.5 rounded-lg transition-colors ${
+                    y === viewYear ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Day Labels */}
+      <div className="grid grid-cols-7 gap-0 mb-1">
+        {DAY_LABELS.map((d) => (
+          <div key={d} className="text-center text-[10px] font-medium text-muted-foreground py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 gap-0">
+        {days.map((day, i) => {
+          if (day === null) return <div key={`empty-${i}`} />
+          const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+          const isToday = iso === today
+          const isSelected = iso === selectedDate
+          const count = entryDates[iso] || 0
+
+          return (
+            <button
+              key={iso}
+              onClick={() => onSelectDate(iso)}
+              className={`relative flex flex-col items-center justify-center h-9 rounded-lg text-xs transition-all duration-150 ${
+                isSelected
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                  : isToday
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-foreground hover:bg-muted/60"
+              }`}
+            >
+              {day}
+              {count > 0 && (
+                <div className="absolute bottom-0.5 flex gap-[2px]">
+                  {count === 1 ? (
+                    <span className="h-1 w-1 rounded-full bg-primary" />
+                  ) : count === 2 ? (
+                    <>
+                      <span className="h-1 w-1 rounded-full bg-primary" />
+                      <span className="h-1 w-1 rounded-full bg-primary" />
+                    </>
+                  ) : (
+                    <span className="h-1 w-1.5 rounded-full bg-primary" />
+                  )}
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+})
+
+/* ────────────────────────────────────────────────────── */
+/* Day Drawer                                            */
+/* ────────────────────────────────────────────────────── */
+
+function DayDrawer({
+  date,
+  entries,
+  onClose,
+  onOpenEntry,
+  onDeleteEntry,
+  onToggleFavorite,
+  onDuplicateEntry,
+  onNavigateDate,
+}: {
+  date: string
+  entries: JournalEntry[]
+  onClose: () => void
+  onOpenEntry: (entry: JournalEntry) => void
+  onDeleteEntry: (id: string) => void
+  onToggleFavorite: (id: string) => void
+  onDuplicateEntry: (entry: JournalEntry) => void
+  onNavigateDate: (iso: string) => void
+}) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handler = () => setOpenMenuId(null)
+    if (openMenuId) { window.addEventListener("click", handler); return () => window.removeEventListener("click", handler) }
+  }, [openMenuId])
+
+  const dayEntries = useMemo(() => {
+    return entries.filter((e) => e.dateISO === date).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }, [entries, date])
+
+  const prevDay = useCallback(() => {
+    const d = new Date(date + "T00:00:00")
+    d.setDate(d.getDate() - 1)
+    onNavigateDate(toISODate(d))
+  }, [date, onNavigateDate])
+
+  const nextDay = useCallback(() => {
+    const d = new Date(date + "T00:00:00")
+    d.setDate(d.getDate() + 1)
+    onNavigateDate(toISODate(d))
+  }, [date, onNavigateDate])
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] z-50 bg-background border-l shadow-2xl flex flex-col"
+      >
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevDay}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h2 className="text-sm font-semibold">{formatDateLong(date)}</h2>
+              <p className="text-[11px] text-muted-foreground">
+                {dayEntries.length} {dayEntries.length === 1 ? "entry" : "entries"}
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextDay}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Drawer Content */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {dayEntries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-20">
+              <div className="h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-4">
+                <BookOpen className="h-7 w-7 text-muted-foreground/50" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">No journal entries for this day.</p>
+              <p className="text-xs text-muted-foreground/60 mb-4">Start writing to capture your thoughts.</p>
+              <Button size="sm" className="glow" onClick={onClose}>
+                <Plus className="mr-1 h-3.5 w-3.5" /> Create Entry
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dayEntries.map((entry) => {
+                const cfg = journalTypeConfig[entry.type]
+                return (
+                  <motion.div
+                    key={entry.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="group rounded-xl border border-border/50 bg-card hover:shadow-md transition-all duration-200 overflow-hidden"
+                  >
+                    {/* Type color bar */}
+                    <div className="h-1" style={{ backgroundColor: cfg.color }} />
+
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                          style={{ backgroundColor: cfg.accent, color: cfg.color }}
+                        >
+                          {cfg.icon}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-semibold truncate">{entry.title}</h3>
+                            {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
+                            <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
+                            <span>·</span>
+                            <span>{entry.time}</span>
+                            {entry.mood && (
+                              <>
+                                <span>·</span>
+                                <span>{moodEmojis[entry.mood - 1]}</span>
+                              </>
+                            )}
+                            <span>·</span>
+                            <span>{estimateReadTime(entry.content)} min read</span>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-2">{entry.content}</p>
+
+                          {entry.tags.length > 0 && (
+                            <div className="flex items-center gap-1 mb-3">
+                              {entry.tags.map((tag) => (
+                                <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">{tag}</span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Actions — always visible */}
+                          <div className="flex items-center gap-1 pt-2 border-t border-border/30">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={() => onOpenEntry(entry)}>
+                              <Eye className="h-3 w-3" /> Open
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={() => onOpenEntry(entry)}>
+                              <PenLine className="h-3 w-3" /> Edit
+                            </Button>
+                            <div className="relative">
+                              <Button
+                                variant="ghost" size="icon" className="h-7 w-7"
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
+                              >
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                              <AnimatePresence>
+                                {openMenuId === entry.id && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    className="absolute left-0 bottom-full mb-1 w-40 rounded-xl border bg-background shadow-xl p-1 z-20"
+                                  >
+                                    <button
+                                      onClick={() => { onDuplicateEntry(entry); setOpenMenuId(null) }}
+                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
+                                    >
+                                      <Copy className="h-3 w-3" /> Duplicate
+                                    </button>
+                                    <button
+                                      onClick={() => { onToggleFavorite(entry.id); setOpenMenuId(null) }}
+                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
+                                    >
+                                      <Star className="h-3 w-3" /> {entry.favorited ? "Unfavorite" : "Favorite"}
+                                    </button>
+                                    <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                      <Download className="h-3 w-3" /> Export
+                                    </button>
+                                    <div className="h-px bg-border my-1" />
+                                    <button
+                                      onClick={() => { onDeleteEntry(entry.id); setOpenMenuId(null) }}
+                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left"
+                                    >
+                                      <Trash2 className="h-3 w-3" /> Delete
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Writing Area — Always Visible, Auto-Expand            */
+/* ────────────────────────────────────────────────────── */
+
+function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }) {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [type, setType] = useState<JournalType>("daily")
   const [tags, setTags] = useState("")
   const [mood, setMood] = useState<number | undefined>(undefined)
+  const [showToolbar, setShowToolbar] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const prompt = useMemo(() => getTodayPrompt(), [])
 
+  const autoExpand = useCallback(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [])
+
   useEffect(() => {
-    if (expanded) setTimeout(() => textareaRef.current?.focus(), 300)
-  }, [expanded])
+    autoExpand()
+  }, [content, autoExpand])
 
   const handleSave = useCallback(() => {
     if (!content.trim()) return
+    const now = new Date()
     const entry: JournalEntry = {
       id: `entry-${Date.now()}`,
       title: title || "Untitled Entry",
       content,
       type,
       date: "Today",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      dateISO: todayISO(),
+      time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       mood,
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       favorited: false,
-      createdAt: new Date().toISOString(),
+      createdAt: now.toISOString(),
     }
     onCreated(entry)
-    setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily"); setExpanded(false)
+    setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily")
   }, [title, content, type, tags, mood, onCreated])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault()
+      handleSave()
+    }
+  }, [handleSave])
 
   return (
     <motion.div
@@ -213,53 +689,40 @@ function QuickEntryHero({ onCreated }: { onCreated: (entry: JournalEntry) => voi
       className="rounded-2xl border bg-card shadow-sm overflow-hidden"
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
-      <AnimatePresence mode="wait">
-        {!expanded ? (
-          <motion.div
-            key="collapsed"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <button
-              onClick={() => setExpanded(true)}
-              className="w-full text-left px-5 py-4 flex items-center gap-3 hover:bg-muted/30 transition-colors"
+      <div className="p-5 space-y-3">
+        {/* Title */}
+        <Input
+          placeholder="Title (optional)"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="border-0 text-lg font-semibold px-0 focus-visible:ring-0 placeholder:text-muted-foreground/40 h-auto"
+        />
+
+        {/* Writing lines — always visible */}
+        <textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => { setContent(e.target.value); autoExpand() }}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setShowToolbar(true)}
+          placeholder={prompt}
+          rows={3}
+          className="w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none placeholder:text-muted-foreground/50 min-h-[72px] transition-[height] duration-200 ease-out"
+          style={{ height: "auto" }}
+        />
+
+        {/* Toolbar — visible when focused or has content */}
+        <AnimatePresence>
+          {(showToolbar || content.length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
             >
-              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <PenLine className="h-4 w-4 text-primary" />
-              </div>
-              <span className="text-sm text-muted-foreground/70 flex-1">{prompt}</span>
-              <ChevronDown className="h-4 w-4 text-muted-foreground/40" />
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="expanded"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="p-5 space-y-4">
-              {/* Title */}
-              <Input
-                placeholder="Title (optional)"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="border-0 text-lg font-semibold px-0 focus-visible:ring-0 placeholder:text-muted-foreground/40 h-auto"
-              />
-
-              {/* Writing Area */}
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={prompt}
-                className="w-full min-h-[180px] bg-transparent text-sm leading-relaxed resize-none focus:outline-none placeholder:text-muted-foreground/50"
-              />
-
               {/* Meta Row */}
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/50">
                 {/* Type */}
                 <select
                   value={type}
@@ -297,7 +760,7 @@ function QuickEntryHero({ onCreated }: { onCreated: (entry: JournalEntry) => voi
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between mt-3">
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" className="h-8 w-8"><Camera className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8"><Mic className="h-4 w-4" /></Button>
@@ -307,155 +770,21 @@ function QuickEntryHero({ onCreated }: { onCreated: (entry: JournalEntry) => voi
                   <span className="text-[10px] text-muted-foreground">
                     {getWordCount(content)} words · {estimateReadTime(content)} min read
                   </span>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setExpanded(false)}>Cancel</Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setContent(""); setTitle(""); setTags(""); setMood(undefined); setShowToolbar(false) }}>
+                    Cancel
+                  </Button>
                   <Button size="sm" className="h-8 text-xs gap-1.5 glow" onClick={handleSave} disabled={!content.trim()}>
                     <Save className="h-3 w-3" /> Save
                   </Button>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   )
 }
-
-/* ────────────────────────────────────────────────────── */
-/* Entry Card — Timeline View                            */
-/* ────────────────────────────────────────────────────── */
-
-const EntryCardTimeline = memo(function EntryCardTimeline({
-  entry,
-  onClick,
-}: {
-  entry: JournalEntry
-  onClick: () => void
-}) {
-  const cfg = journalTypeConfig[entry.type]
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      className="group cursor-pointer rounded-xl border border-border/50 bg-card hover:shadow-md transition-all duration-200"
-      onClick={onClick}
-    >
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          {/* Type indicator */}
-          <div
-            className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-            style={{ backgroundColor: cfg.accent, color: cfg.color }}
-          >
-            {cfg.icon}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm font-semibold truncate">{entry.title}</h3>
-              {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
-            </div>
-
-            {/* Meta */}
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
-              <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
-              <span>\u00B7</span>
-              <span>{entry.date}</span>
-              <span>\u00B7</span>
-              <span>{entry.time}</span>
-              {entry.mood && (
-                <>
-                  <span>\u00B7</span>
-                  <span>{moodEmojis[entry.mood - 1]}</span>
-                </>
-              )}
-            </div>
-
-            {/* Content preview */}
-            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{entry.content}</p>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/30">
-              <div className="flex items-center gap-1.5">
-                {entry.tags.slice(0, 3).map((tag) => (
-                  <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">{tag}</span>
-                ))}
-              </div>
-              <span className="text-[10px] text-muted-foreground">{estimateReadTime(entry.content)} min read</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )
-})
-
-/* ────────────────────────────────────────────────────── */
-/* Entry Card — Grid View                                */
-/* ────────────────────────────────────────────────────── */
-
-const EntryCardGrid = memo(function EntryCardGrid({
-  entry,
-  onClick,
-}: {
-  entry: JournalEntry
-  onClick: () => void
-}) {
-  const cfg = journalTypeConfig[entry.type]
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="group cursor-pointer rounded-2xl border border-border/50 bg-card hover:shadow-lg transition-all duration-200 overflow-hidden"
-      onClick={onClick}
-    >
-      {/* Accent top bar */}
-      <div className="h-1.5" style={{ backgroundColor: cfg.color }} />
-
-      <div className="p-4">
-        {/* Type badge */}
-        <div className="flex items-center justify-between mb-3">
-          <span
-            className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: cfg.accent, color: cfg.color }}
-          >
-            {cfg.label}
-          </span>
-          {entry.favorited && <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />}
-        </div>
-
-        {/* Title */}
-        <h3 className="text-sm font-semibold mb-2 line-clamp-2">{entry.title}</h3>
-
-        {/* Content */}
-        <p className="text-xs text-muted-foreground line-clamp-4 leading-relaxed mb-4">{entry.content}</p>
-
-        {/* Meta */}
-        <div className="flex items-center justify-between pt-3 border-t border-border/30">
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            <span>{entry.date}, {entry.time}</span>
-          </div>
-          {entry.mood && <span className="text-sm">{moodEmojis[entry.mood - 1]}</span>}
-        </div>
-
-        {/* Tags */}
-        {entry.tags.length > 0 && (
-          <div className="flex items-center gap-1 mt-2.5">
-            {entry.tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">{tag}</span>
-            ))}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  )
-})
 
 /* ────────────────────────────────────────────────────── */
 /* Entry Reader — Full Reading View                      */
@@ -483,7 +812,6 @@ function EntryReader({
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
       className="min-h-[60vh]"
     >
-      {/* Top bar */}
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={onBack}>
           <ArrowLeft className="h-3.5 w-3.5" /> Back
@@ -512,9 +840,6 @@ function EntryReader({
                 <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
                   <Download className="h-3.5 w-3.5" /> Export PDF
                 </button>
-                <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
-                  <Printer className="h-3.5 w-3.5" /> Print
-                </button>
                 <div className="h-px bg-border my-1" />
                 <button
                   className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left"
@@ -528,9 +853,7 @@ function EntryReader({
         </div>
       </div>
 
-      {/* Entry content */}
       <article className="max-w-2xl mx-auto">
-        {/* Type badge */}
         <div className="flex items-center gap-2 mb-4">
           <span
             className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
@@ -540,10 +863,8 @@ function EntryReader({
           </span>
         </div>
 
-        {/* Title */}
         <h1 className="text-2xl font-bold tracking-tight mb-3">{entry.title}</h1>
 
-        {/* Meta */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground mb-6 pb-6 border-b border-border/50">
           <span>{entry.date} at {entry.time}</span>
           {entry.mood && <span>{moodEmojis[entry.mood - 1]}</span>}
@@ -551,7 +872,6 @@ function EntryReader({
           <span>{getWordCount(entry.content)} words</span>
         </div>
 
-        {/* Content */}
         <div className="prose prose-sm dark:prose-invert max-w-none">
           {entry.content.split("\n").map((paragraph, i) => (
             paragraph ? (
@@ -560,7 +880,6 @@ function EntryReader({
           ))}
         </div>
 
-        {/* Tags */}
         {entry.tags.length > 0 && (
           <div className="flex items-center gap-2 mt-8 pt-6 border-t border-border/50">
             <Tag className="h-3.5 w-3.5 text-muted-foreground" />
@@ -580,58 +899,13 @@ function EntryReader({
 
 export function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>(sampleEntries)
-  const [view, setView] = useState<"timeline" | "grid">("timeline")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeFilter, setActiveFilter] = useState<string | null>(null)
-  const [typeFilter, setTypeFilter] = useState<JournalType | "all">("all")
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(todayISO())
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
-  // Close dropdowns on outside click
-  useEffect(() => {
-    const h = () => { setShowTypeDropdown(false); setShowMobileMenu(false) }
-    if (showTypeDropdown || showMobileMenu) { window.addEventListener("click", h); return () => window.removeEventListener("click", h) }
-  }, [showTypeDropdown, showMobileMenu])
-
-  // Filter entries
-  const filteredEntries = useMemo(() => {
-    let result = entries
-
-    if (typeFilter !== "all") {
-      result = result.filter((e) => e.type === typeFilter)
-    }
-
-    if (activeFilter === "today") {
-      result = result.filter((e) => e.date === "Today")
-    } else if (activeFilter === "week") {
-      result = result.filter((e) => e.date === "Today" || e.date === "Yesterday" || e.date.includes("day"))
-    } else if (activeFilter === "favorites") {
-      result = result.filter((e) => e.favorited)
-    } else if (activeFilter === "photos") {
-      result = result.filter((e) => e.type === "photo")
-    } else if (activeFilter === "voice") {
-      result = result.filter((e) => e.type === "voice")
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (e) =>
-          e.title.toLowerCase().includes(q) ||
-          e.content.toLowerCase().includes(q) ||
-          e.tags.some((t) => t.toLowerCase().includes(q)) ||
-          journalTypeConfig[e.type].label.toLowerCase().includes(q)
-      )
-    }
-
-    return result
-  }, [entries, typeFilter, activeFilter, searchQuery])
-
-  // Stats
   const streak = useMemo(() => {
-    const today = entries.filter((e) => e.date === "Today").length
-    return today > 0 ? 14 : 13 // Simulated streak
+    const today = entries.filter((e) => e.dateISO === todayISO()).length
+    return today > 0 ? 18 : 17
   }, [entries])
 
   const handleCreateEntry = useCallback((entry: JournalEntry) => {
@@ -646,6 +920,25 @@ export function JournalPage() {
   const handleToggleFavorite = useCallback((id: string) => {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, favorited: !e.favorited } : e)))
     setSelectedEntry((prev) => (prev && prev.id === id ? { ...prev, favorited: !prev.favorited } : prev))
+  }, [])
+
+  const handleDuplicateEntry = useCallback((entry: JournalEntry) => {
+    const dup: JournalEntry = {
+      ...entry,
+      id: `entry-${Date.now()}`,
+      title: `${entry.title} (Copy)`,
+      createdAt: new Date().toISOString(),
+    }
+    setEntries((prev) => [dup, ...prev])
+  }, [])
+
+  const handleSelectDate = useCallback((iso: string) => {
+    setSelectedDate(iso)
+    setDrawerOpen(true)
+  }, [])
+
+  const handleNavigateDate = useCallback((iso: string) => {
+    setSelectedDate(iso)
   }, [])
 
   // Entry reader view
@@ -670,208 +963,58 @@ export function JournalPage() {
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div>
+          <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold tracking-tight">Journal</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Capture your thoughts, reflections and memories.</p>
+            <StreakCircle streak={streak} />
           </div>
           <Button className="glow h-9" onClick={() => {
-            const el = document.querySelector("[data-quick-entry]")
+            const el = document.querySelector("[data-writing-area]")
             el?.scrollIntoView({ behavior: "smooth" })
           }}>
             <Plus className="mr-1 h-4 w-4" /> New Entry
           </Button>
         </div>
 
-        {/* Writing Streak */}
-        <div className="mb-6">
-          <WritingStreak streak={streak} />
-        </div>
+        {/* Calendar + Writing Area Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+          {/* Writing Area — Primary Focus */}
+          <div data-writing-area>
+            <WritingArea onCreated={handleCreateEntry} />
+          </div>
 
-        {/* Quick Entry Hero */}
-        <div className="mb-6" data-quick-entry>
-          <QuickEntryHero onCreated={handleCreateEntry} />
-        </div>
-
-        {/* Search + Filters */}
-        <div className="mb-5 space-y-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              placeholder="Search entries..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-muted/30 border-transparent focus:bg-background h-9"
+          {/* Calendar — Right Side */}
+          <div className="order-first lg:order-last">
+            <JournalCalendar
+              entries={entries}
+              selectedDate={selectedDate}
+              onSelectDate={handleSelectDate}
             />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-foreground transition-colors" />
-              </button>
-            )}
-          </div>
-
-          {/* Quick filter chips + Type dropdown + View toggle */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Filter chips */}
-            {[
-              { id: "today", label: "Today" },
-              { id: "week", label: "This Week" },
-              { id: "favorites", label: "Favorites" },
-              { id: "photos", label: "Photos" },
-              { id: "voice", label: "Voice" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setActiveFilter(activeFilter === f.id ? null : f.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  activeFilter === f.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-
-            {/* Type filter dropdown */}
-            <div className="relative">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowTypeDropdown(!showTypeDropdown) }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  typeFilter !== "all"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {typeFilter !== "all" ? journalTypeConfig[typeFilter].label : "Type"}
-                <ChevronDown className="h-3 w-3" />
-              </button>
-              <AnimatePresence>
-                {showTypeDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    className="absolute left-0 top-full mt-1 w-52 rounded-xl border bg-background shadow-xl p-1 z-20 max-h-64 overflow-y-auto"
-                  >
-                    <button
-                      onClick={() => { setTypeFilter("all"); setShowTypeDropdown(false) }}
-                      className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg transition-colors text-left ${
-                        typeFilter === "all" ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                      }`}
-                    >
-                      All Entries
-                    </button>
-                    {Object.entries(journalTypeConfig).map(([key, cfg]) => (
-                      <button
-                        key={key}
-                        onClick={() => { setTypeFilter(key as JournalType); setShowTypeDropdown(false) }}
-                        className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg transition-colors text-left ${
-                          typeFilter === key ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                        }`}
-                      >
-                        <span style={{ color: cfg.color }}>{cfg.icon}</span>
-                        {cfg.label}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* View toggle */}
-            <div className="flex items-center gap-0.5 p-0.5 bg-muted rounded-lg">
-              <Button
-                variant={view === "timeline" ? "default" : "ghost"}
-                size="sm" className="h-7 px-2"
-                onClick={() => setView("timeline")}
-              >
-                <List className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant={view === "grid" ? "default" : "ghost"}
-                size="sm" className="h-7 px-2"
-                onClick={() => setView("grid")}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </Button>
-            </div>
           </div>
         </div>
-
-        {/* Entries */}
-        <AnimatePresence mode="wait">
-          {filteredEntries.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="py-20 text-center"
-            >
-              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                <BookOpen className="h-8 w-8 text-primary/60" />
-              </div>
-              <h3 className="text-lg font-semibold mb-1">No entries found</h3>
-              <p className="text-sm text-muted-foreground mb-5">
-                {searchQuery ? "Try a different search term." : "Start writing to capture your thoughts."}
-              </p>
-            </motion.div>
-          ) : view === "timeline" ? (
-            <motion.div
-              key="timeline"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3"
-            >
-              {filteredEntries.map((entry) => (
-                <EntryCardTimeline
-                  key={entry.id}
-                  entry={entry}
-                  onClick={() => setSelectedEntry(entry)}
-                />
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="grid"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-            >
-              {filteredEntries.map((entry) => (
-                <EntryCardGrid
-                  key={entry.id}
-                  entry={entry}
-                  onClick={() => setSelectedEntry(entry)}
-                />
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-[11px] text-muted-foreground/50">{filteredEntries.length} {filteredEntries.length === 1 ? "entry" : "entries"}</p>
+          <p className="text-[11px] text-muted-foreground/50">
+            {entries.length} {entries.length === 1 ? "entry" : "entries"} in your journal
+          </p>
         </div>
       </div>
+
+      {/* Day Drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <DayDrawer
+            date={selectedDate}
+            entries={entries}
+            onClose={() => setDrawerOpen(false)}
+            onOpenEntry={(entry) => { setDrawerOpen(false); setSelectedEntry(entry) }}
+            onDeleteEntry={handleDeleteEntry}
+            onToggleFavorite={handleToggleFavorite}
+            onDuplicateEntry={handleDuplicateEntry}
+            onNavigateDate={handleNavigateDate}
+          />
+        )}
+      </AnimatePresence>
     </div>
-  )
-}
-
-/* ────────────────────────────────────────────────────── */
-/* Zap Icon (missing import)                             */
-/* ────────────────────────────────────────────────────── */
-
-function Zap(props: React.SVGProps<SVGSVGElement> & { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
   )
 }
