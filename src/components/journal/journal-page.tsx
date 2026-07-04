@@ -24,12 +24,15 @@ import {
   ArrowLeft,
   Trash2,
   Copy,
-  Share2,
   Download,
   Star,
   MoreHorizontal,
   Eye,
   Zap,
+  Calendar,
+  Search,
+  Pin,
+  Printer,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -51,6 +54,7 @@ interface JournalEntry {
   mood?: number
   tags: string[]
   favorited: boolean
+  pinned: boolean
   createdAt: string
 }
 
@@ -103,49 +107,49 @@ const sampleEntries: JournalEntry[] = [
     id: "1", title: "Morning Intention Setting",
     content: "Today I want to focus on being present in every conversation. I will put my phone away during meetings and truly listen to my colleagues.\n\nI noticed that when I'm fully present, conversations become richer and more meaningful.",
     type: "morning", date: "Today", dateISO: todayISO(), time: "7:30 AM", mood: 5,
-    tags: ["Intention", "Relationships"], favorited: true, createdAt: new Date().toISOString(),
+    tags: ["Intention", "Relationships"], favorited: true, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "2", title: "Gratitude for Small Moments",
     content: "I'm grateful for the beautiful sunrise this morning. It reminded me that every day is a new opportunity to grow.\n\nSometimes the simplest things carry the most meaning.",
     type: "gratitude", date: "Today", dateISO: todayISO(), time: "8:15 AM", mood: 4,
-    tags: ["Gratitude", "Mindfulness"], favorited: false, createdAt: new Date().toISOString(),
+    tags: ["Gratitude", "Mindfulness"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "3", title: "Reflection on Q2 Goals",
     content: "Looking back at Q2, I accomplished 70% of my goals. The main challenge was time management.\n\nKey takeaways:\n- Deep work blocks of 90 minutes are more effective\n- Saying no to non-essential meetings freed up 5+ hours per week\n- Morning routines compound over time",
     type: "reflection", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "9:00 PM", mood: 4,
-    tags: ["Reflection", "Goals"], favorited: true, createdAt: new Date().toISOString(),
+    tags: ["Reflection", "Goals"], favorited: true, pinned: true, createdAt: new Date().toISOString(),
   },
   {
     id: "4", title: "Decision: Career Move",
     content: "Should I take the new role? Pros: More responsibility, better alignment with long-term vision. Cons: Less work-life balance initially. My gut says yes.",
     type: "decision", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "2:30 PM", mood: 3,
-    tags: ["Decision", "Career"], favorited: false, createdAt: new Date().toISOString(),
+    tags: ["Decision", "Career"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "5", title: "Dream About the Future",
     content: "I dreamed I was standing on a stage, speaking to thousands of people about intentional living. The audience was engaged and inspired.",
     type: "dream", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "6:00 AM", mood: 5,
-    tags: ["Dream", "Vision"], favorited: false, createdAt: new Date().toISOString(),
+    tags: ["Dream", "Vision"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "6", title: "Evening Wind-Down",
     content: "The evening was calm. I spent time reading and reflecting on the day. Tomorrow I have an important presentation, but I feel prepared.",
     type: "daily", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "8:30 PM", mood: 4,
-    tags: ["Daily", "Evening"], favorited: false, createdAt: new Date().toISOString(),
+    tags: ["Daily", "Evening"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "7", title: "Morning Gratitude",
     content: "Woke up feeling refreshed. The weather is beautiful today. I'm grateful for my health and the people in my life.",
     type: "morning", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "7:00 AM", mood: 5,
-    tags: ["Gratitude", "Morning"], favorited: false, createdAt: new Date().toISOString(),
+    tags: ["Gratitude", "Morning"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "8", title: "Quick Thought on Growth",
     content: "Growth isn't always comfortable. Sometimes the best things happen when we step outside our comfort zone.",
     type: "quick", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "11:30 AM", mood: 4,
-    tags: ["Growth"], favorited: true, createdAt: new Date().toISOString(),
+    tags: ["Growth"], favorited: true, pinned: false, createdAt: new Date().toISOString(),
   },
 ]
 
@@ -173,6 +177,42 @@ function formatDateLong(iso: string): string {
 }
 
 /* ────────────────────────────────────────────────────── */
+/* Autosave Hook                                         */
+/* ────────────────────────────────────────────────────── */
+
+function useAutosave(key: string, delay: number = 3000) {
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const save = useCallback((data: unknown) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(key, JSON.stringify(data))
+        setLastSaved(new Date())
+      } catch {}
+    }, delay)
+  }, [key, delay])
+
+  const load = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(key)
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  }, [key])
+
+  const clear = useCallback(() => {
+    localStorage.removeItem(key)
+  }, [key])
+
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
+  }, [])
+
+  return { lastSaved, save, load, clear }
+}
+
+/* ────────────────────────────────────────────────────── */
 /* Compact Streak Circle                                 */
 /* ────────────────────────────────────────────────────── */
 
@@ -182,9 +222,9 @@ const StreakCircle = memo(function StreakCircle({ streak }: { streak: number }) 
   const progress = Math.min(streak / 30, 1)
 
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="relative h-11 w-11 shrink-0">
-        <svg className="h-11 w-11 -rotate-90" viewBox="0 0 44 44">
+    <div className="flex items-center gap-2">
+      <div className="relative h-10 w-10 shrink-0">
+        <svg className="h-10 w-10 -rotate-90" viewBox="0 0 44 44">
           <circle cx="22" cy="22" r={radius} fill="none" stroke="currentColor" strokeWidth="3"
             className="text-orange-500/15" />
           <motion.circle
@@ -202,36 +242,33 @@ const StreakCircle = memo(function StreakCircle({ streak }: { streak: number }) 
         </div>
       </div>
       <div className="hidden sm:block">
-        <p className="text-lg font-bold leading-tight">{streak}</p>
-        <p className="text-[10px] text-muted-foreground leading-tight">day streak</p>
+        <p className="text-sm font-bold leading-tight">{streak} <span className="text-xs font-medium text-muted-foreground">day streak</span></p>
       </div>
     </div>
   )
 })
 
 /* ────────────────────────────────────────────────────── */
-/* Journal Calendar                                      */
+/* Popover Calendar                                      */
 /* ────────────────────────────────────────────────────── */
 
-const JournalCalendar = memo(function JournalCalendar({
+const PopoverCalendar = memo(function PopoverCalendar({
   entries,
   selectedDate,
   onSelectDate,
+  onClose,
 }: {
   entries: JournalEntry[]
   selectedDate: string
   onSelectDate: (iso: string) => void
+  onClose: () => void
 }) {
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth())
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
-  const [showMonthPicker, setShowMonthPicker] = useState(false)
-  const [showYearPicker, setShowYearPicker] = useState(false)
 
   const entryDates = useMemo(() => {
-    const map: Record<string, number> = {}
-    entries.forEach((e) => {
-      map[e.dateISO] = (map[e.dateISO] || 0) + 1
-    })
+    const map: Record<string, boolean> = {}
+    entries.forEach((e) => { map[e.dateISO] = true })
     return map
   }, [entries])
 
@@ -264,29 +301,17 @@ const JournalCalendar = memo(function JournalCalendar({
     onSelectDate(todayISO())
   }, [onSelectDate])
 
-  const handleMonthSelect = useCallback((m: number) => {
-    setViewMonth(m)
-    setShowMonthPicker(false)
-  }, [])
-
-  const handleYearSelect = useCallback((y: number) => {
-    setViewYear(y)
-    setShowYearPicker(false)
-    setShowMonthPicker(true)
-  }, [])
-
   return (
-    <div className="rounded-2xl border bg-card p-4">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, y: -8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -8 }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      className="absolute right-0 top-full mt-2 w-72 rounded-2xl border bg-card shadow-xl p-4 z-50"
+    >
       {/* Month Header */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowMonthPicker(!showMonthPicker)}
-            className="text-sm font-semibold hover:text-primary transition-colors"
-          >
-            {MONTH_NAMES[viewMonth]} {viewYear}
-          </button>
-        </div>
+        <span className="text-sm font-semibold">{MONTH_NAMES[viewMonth]} {viewYear}</span>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToToday}>
             <span className="text-[10px] font-medium">Today</span>
@@ -299,64 +324,6 @@ const JournalCalendar = memo(function JournalCalendar({
           </Button>
         </div>
       </div>
-
-      {/* Month Picker Dropdown */}
-      <AnimatePresence>
-        {showMonthPicker && !showYearPicker && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-3"
-          >
-            <div className="grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-muted/30">
-              {MONTH_NAMES.map((name, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleMonthSelect(i)}
-                  className={`text-xs py-1.5 rounded-lg transition-colors ${
-                    i === viewMonth ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {name.slice(0, 3)}
-                </button>
-              ))}
-              <button
-                onClick={() => { setShowYearPicker(true); setShowMonthPicker(false) }}
-                className="text-xs py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground col-span-3 mt-1"
-              >
-                {viewYear} ▾
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Year Picker Dropdown */}
-      <AnimatePresence>
-        {showYearPicker && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-3"
-          >
-            <div className="grid grid-cols-4 gap-1.5 p-2 rounded-xl bg-muted/30 max-h-40 overflow-y-auto">
-              {Array.from({ length: 11 }, (_, i) => viewYear - 5 + i).map((y) => (
-                <button
-                  key={y}
-                  onClick={() => handleYearSelect(y)}
-                  className={`text-xs py-1.5 rounded-lg transition-colors ${
-                    y === viewYear ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Day Labels */}
       <div className="grid grid-cols-7 gap-0 mb-1">
@@ -374,12 +341,12 @@ const JournalCalendar = memo(function JournalCalendar({
           const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
           const isToday = iso === today
           const isSelected = iso === selectedDate
-          const count = entryDates[iso] || 0
+          const hasEntry = entryDates[iso]
 
           return (
             <button
               key={iso}
-              onClick={() => onSelectDate(iso)}
+              onClick={() => { onSelectDate(iso); onClose() }}
               className={`relative flex flex-col items-center justify-center h-9 rounded-lg text-xs transition-all duration-150 ${
                 isSelected
                   ? "bg-primary text-primary-foreground font-semibold shadow-sm"
@@ -389,25 +356,14 @@ const JournalCalendar = memo(function JournalCalendar({
               }`}
             >
               {day}
-              {count > 0 && (
-                <div className="absolute bottom-0.5 flex gap-[2px]">
-                  {count === 1 ? (
-                    <span className="h-1 w-1 rounded-full bg-primary" />
-                  ) : count === 2 ? (
-                    <>
-                      <span className="h-1 w-1 rounded-full bg-primary" />
-                      <span className="h-1 w-1 rounded-full bg-primary" />
-                    </>
-                  ) : (
-                    <span className="h-1 w-1.5 rounded-full bg-primary" />
-                  )}
-                </div>
+              {hasEntry && (
+                <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-primary" />
               )}
             </button>
           )
         })}
       </div>
-    </div>
+    </motion.div>
   )
 })
 
@@ -423,6 +379,7 @@ function DayDrawer({
   onDeleteEntry,
   onToggleFavorite,
   onDuplicateEntry,
+  onTogglePin,
   onNavigateDate,
 }: {
   date: string
@@ -432,6 +389,7 @@ function DayDrawer({
   onDeleteEntry: (id: string) => void
   onToggleFavorite: (id: string) => void
   onDuplicateEntry: (entry: JournalEntry) => void
+  onTogglePin: (id: string) => void
   onNavigateDate: (iso: string) => void
 }) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -442,7 +400,9 @@ function DayDrawer({
   }, [openMenuId])
 
   const dayEntries = useMemo(() => {
-    return entries.filter((e) => e.dateISO === date).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return entries
+      .filter((e) => e.dateISO === date)
+      .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.createdAt.localeCompare(a.createdAt))
   }, [entries, date])
 
   const prevDay = useCallback(() => {
@@ -459,7 +419,6 @@ function DayDrawer({
 
   return (
     <>
-      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -468,8 +427,6 @@ function DayDrawer({
         className="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm"
         onClick={onClose}
       />
-
-      {/* Drawer */}
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
@@ -477,7 +434,6 @@ function DayDrawer({
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
         className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] z-50 bg-background border-l shadow-2xl flex flex-col"
       >
-        {/* Drawer Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevDay}>
@@ -493,14 +449,11 @@ function DayDrawer({
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Drawer Content */}
         <div className="flex-1 overflow-y-auto p-5">
           {dayEntries.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-20">
@@ -525,9 +478,7 @@ function DayDrawer({
                     animate={{ opacity: 1, y: 0 }}
                     className="group rounded-xl border border-border/50 bg-card hover:shadow-md transition-all duration-200 overflow-hidden"
                   >
-                    {/* Type color bar */}
                     <div className="h-1" style={{ backgroundColor: cfg.color }} />
-
                     <div className="p-4">
                       <div className="flex items-start gap-3">
                         <div
@@ -536,13 +487,12 @@ function DayDrawer({
                         >
                           {cfg.icon}
                         </div>
-
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
+                            {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
                             <h3 className="text-sm font-semibold truncate">{entry.title}</h3>
                             {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
                           </div>
-
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
                             <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
                             <span>·</span>
@@ -556,9 +506,7 @@ function DayDrawer({
                             <span>·</span>
                             <span>{estimateReadTime(entry.content)} min read</span>
                           </div>
-
                           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-2">{entry.content}</p>
-
                           {entry.tags.length > 0 && (
                             <div className="flex items-center gap-1 mb-3">
                               {entry.tags.map((tag) => (
@@ -566,8 +514,6 @@ function DayDrawer({
                               ))}
                             </div>
                           )}
-
-                          {/* Actions — always visible */}
                           <div className="flex items-center gap-1 pt-2 border-t border-border/30">
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={() => onOpenEntry(entry)}>
                               <Eye className="h-3 w-3" /> Open
@@ -588,7 +534,7 @@ function DayDrawer({
                                     initial={{ opacity: 0, scale: 0.95, y: -4 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                                    className="absolute left-0 bottom-full mb-1 w-40 rounded-xl border bg-background shadow-xl p-1 z-20"
+                                    className="absolute left-0 bottom-full mb-1 w-44 rounded-xl border bg-background shadow-xl p-1 z-20"
                                   >
                                     <button
                                       onClick={() => { onDuplicateEntry(entry); setOpenMenuId(null) }}
@@ -602,8 +548,17 @@ function DayDrawer({
                                     >
                                       <Star className="h-3 w-3" /> {entry.favorited ? "Unfavorite" : "Favorite"}
                                     </button>
+                                    <button
+                                      onClick={() => { onTogglePin(entry.id); setOpenMenuId(null) }}
+                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
+                                    >
+                                      <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin" : "Pin"}
+                                    </button>
                                     <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                      <Download className="h-3 w-3" /> Export
+                                      <Download className="h-3 w-3" /> Export PDF
+                                    </button>
+                                    <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                      <Printer className="h-3 w-3" /> Print
                                     </button>
                                     <div className="h-px bg-border my-1" />
                                     <button
@@ -632,16 +587,24 @@ function DayDrawer({
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Writing Area — Always Visible, Auto-Expand            */
+/* Writing Area — Premium Notebook Feel                   */
 /* ────────────────────────────────────────────────────── */
 
-function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }) {
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [type, setType] = useState<JournalType>("daily")
-  const [tags, setTags] = useState("")
-  const [mood, setMood] = useState<number | undefined>(undefined)
-  const [showToolbar, setShowToolbar] = useState(false)
+function WritingArea({
+  onCreated,
+  autosave,
+}: {
+  onCreated: (entry: JournalEntry) => void
+  autosave: { save: (data: unknown) => void; load: () => Record<string, unknown> | null; clear: () => void }
+}) {
+  const draft = useMemo(() => autosave.load(), [autosave])
+  const [title, setTitle] = useState((draft?.title as string) || "")
+  const [content, setContent] = useState((draft?.content as string) || "")
+  const [type, setType] = useState<JournalType>((draft?.type as JournalType) || "daily")
+  const [tags, setTags] = useState((draft?.tags as string) || "")
+  const [mood, setMood] = useState<number | undefined>(draft?.mood as number | undefined)
+  const [showToolbar, setShowToolbar] = useState(!!draft?.content)
+  const [saveFlash, setSaveFlash] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const prompt = useMemo(() => getTodayPrompt(), [])
 
@@ -652,9 +615,11 @@ function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }
     el.style.height = `${el.scrollHeight}px`
   }, [])
 
+  useEffect(() => { autoExpand() }, [content, autoExpand])
+
   useEffect(() => {
-    autoExpand()
-  }, [content, autoExpand])
+    autosave.save({ title, content, type, tags, mood })
+  }, [title, content, type, tags, mood, autosave])
 
   const handleSave = useCallback(() => {
     if (!content.trim()) return
@@ -670,35 +635,36 @@ function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }
       mood,
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       favorited: false,
+      pinned: false,
       createdAt: now.toISOString(),
     }
     onCreated(entry)
-    setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily")
-  }, [title, content, type, tags, mood, onCreated])
+    setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily"); setShowToolbar(false)
+    autosave.clear()
+    setSaveFlash(true)
+    setTimeout(() => setSaveFlash(false), 1500)
+  }, [title, content, type, tags, mood, onCreated, autosave])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault()
-      handleSave()
-    }
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); handleSave() }
   }, [handleSave])
 
   return (
     <motion.div
       layout
-      className="rounded-2xl border bg-card shadow-sm overflow-hidden"
+      className="rounded-2xl border bg-card shadow-sm overflow-hidden transition-shadow duration-300 hover:shadow-md"
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
-      <div className="p-5 space-y-3">
+      <div className="p-6 md:p-8 space-y-4">
         {/* Title */}
         <Input
-          placeholder="Title (optional)"
+          placeholder="Give your thoughts a title..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="border-0 text-lg font-semibold px-0 focus-visible:ring-0 placeholder:text-muted-foreground/40 h-auto"
+          className="border-0 text-xl font-semibold px-0 focus-visible:ring-0 placeholder:text-muted-foreground/30 h-auto"
         />
 
-        {/* Writing lines — always visible */}
+        {/* Writing area */}
         <textarea
           ref={textareaRef}
           value={content}
@@ -706,12 +672,12 @@ function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }
           onKeyDown={handleKeyDown}
           onFocus={() => setShowToolbar(true)}
           placeholder={prompt}
-          rows={3}
-          className="w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none placeholder:text-muted-foreground/50 min-h-[72px] transition-[height] duration-200 ease-out"
+          rows={4}
+          className="w-full bg-transparent text-[15px] leading-[1.8] resize-none focus:outline-none placeholder:text-muted-foreground/40 min-h-[120px] transition-[height] duration-200 ease-out"
           style={{ height: "auto" }}
         />
 
-        {/* Toolbar — visible when focused or has content */}
+        {/* Toolbar */}
         <AnimatePresence>
           {(showToolbar || content.length > 0) && (
             <motion.div
@@ -721,9 +687,7 @@ function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              {/* Meta Row */}
-              <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/50">
-                {/* Type */}
+              <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-border/40">
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as JournalType)}
@@ -734,7 +698,6 @@ function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }
                   ))}
                 </select>
 
-                {/* Mood */}
                 <div className="flex items-center gap-1">
                   {moodEmojis.map((emoji, i) => (
                     <button
@@ -747,7 +710,6 @@ function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }
                   ))}
                 </div>
 
-                {/* Tags */}
                 <div className="flex items-center gap-1.5">
                   <Tag className="h-3 w-3 text-muted-foreground" />
                   <input
@@ -759,18 +721,29 @@ function WritingArea({ onCreated }: { onCreated: (entry: JournalEntry) => void }
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex items-center justify-between mt-3">
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" className="h-8 w-8"><Camera className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8"><Mic className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8"><MapPin className="h-4 w-4" /></Button>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="text-[10px] text-muted-foreground">
                     {getWordCount(content)} words · {estimateReadTime(content)} min read
                   </span>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setContent(""); setTitle(""); setTags(""); setMood(undefined); setShowToolbar(false) }}>
+                  <AnimatePresence>
+                    {saveFlash && (
+                      <motion.span
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-[10px] text-emerald-500 font-medium"
+                      >
+                        Saved!
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setContent(""); setTitle(""); setTags(""); setMood(undefined); setShowToolbar(false); autosave.clear() }}>
                     Cancel
                   </Button>
                   <Button size="sm" className="h-8 text-xs gap-1.5 glow" onClick={handleSave} disabled={!content.trim()}>
@@ -795,11 +768,15 @@ function EntryReader({
   onBack,
   onDelete,
   onToggleFavorite,
+  onTogglePin,
+  onDuplicate,
 }: {
   entry: JournalEntry
   onBack: () => void
   onDelete: () => void
   onToggleFavorite: () => void
+  onTogglePin: () => void
+  onDuplicate: () => void
 }) {
   const cfg = journalTypeConfig[entry.type]
   const [menuOpen, setMenuOpen] = useState(false)
@@ -817,6 +794,9 @@ function EntryReader({
           <ArrowLeft className="h-3.5 w-3.5" /> Back
         </Button>
         <div className="flex items-center gap-1.5 relative">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onTogglePin}>
+            <Pin className={`h-4 w-4 ${entry.pinned ? "text-primary fill-primary" : ""}`} />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleFavorite}>
             <Star className={`h-4 w-4 ${entry.favorited ? "text-amber-500 fill-amber-500" : ""}`} />
           </Button>
@@ -831,14 +811,17 @@ function EntryReader({
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 className="absolute right-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-20"
               >
-                <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
+                <button
+                  onClick={() => { onDuplicate(); setMenuOpen(false) }}
+                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left"
+                >
                   <Copy className="h-3.5 w-3.5" /> Duplicate
                 </button>
                 <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
-                  <Share2 className="h-3.5 w-3.5" /> Share
+                  <Download className="h-3.5 w-3.5" /> Export PDF
                 </button>
                 <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
-                  <Download className="h-3.5 w-3.5" /> Export PDF
+                  <Printer className="h-3.5 w-3.5" /> Print
                 </button>
                 <div className="h-px bg-border my-1" />
                 <button
@@ -853,7 +836,7 @@ function EntryReader({
         </div>
       </div>
 
-      <article className="max-w-2xl mx-auto">
+      <article className="max-w-3xl mx-auto">
         <div className="flex items-center gap-2 mb-4">
           <span
             className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
@@ -861,6 +844,11 @@ function EntryReader({
           >
             {cfg.label}
           </span>
+          {entry.pinned && (
+            <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+              Pinned
+            </span>
+          )}
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight mb-3">{entry.title}</h1>
@@ -902,11 +890,32 @@ export function JournalPage() {
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [typeFilter, setTypeFilter] = useState<JournalType | null>(null)
+  const calendarRef = useRef<HTMLDivElement>(null)
+
+  const draftAutosave = useAutosave("intenteo-journal-draft", 3000)
 
   const streak = useMemo(() => {
     const today = entries.filter((e) => e.dateISO === todayISO()).length
     return today > 0 ? 18 : 17
   }, [entries])
+
+  const filteredEntries = useMemo(() => {
+    let result = entries
+    if (typeFilter) result = result.filter((e) => e.type === typeFilter)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter((e) =>
+        e.title.toLowerCase().includes(q) ||
+        e.content.toLowerCase().includes(q) ||
+        e.tags.some((t) => t.toLowerCase().includes(q)) ||
+        journalTypeConfig[e.type].label.toLowerCase().includes(q)
+      )
+    }
+    return result.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.createdAt.localeCompare(a.createdAt))
+  }, [entries, typeFilter, searchQuery])
 
   const handleCreateEntry = useCallback((entry: JournalEntry) => {
     setEntries((prev) => [entry, ...prev])
@@ -922,11 +931,17 @@ export function JournalPage() {
     setSelectedEntry((prev) => (prev && prev.id === id ? { ...prev, favorited: !prev.favorited } : prev))
   }, [])
 
+  const handleTogglePin = useCallback((id: string) => {
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, pinned: !e.pinned } : e)))
+    setSelectedEntry((prev) => (prev && prev.id === id ? { ...prev, pinned: !prev.pinned } : prev))
+  }, [])
+
   const handleDuplicateEntry = useCallback((entry: JournalEntry) => {
     const dup: JournalEntry = {
       ...entry,
       id: `entry-${Date.now()}`,
       title: `${entry.title} (Copy)`,
+      pinned: false,
       createdAt: new Date().toISOString(),
     }
     setEntries((prev) => [dup, ...prev])
@@ -941,6 +956,16 @@ export function JournalPage() {
     setSelectedDate(iso)
   }, [])
 
+  // Close calendar on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setCalendarOpen(false)
+      }
+    }
+    if (calendarOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
+  }, [calendarOpen])
+
   // Entry reader view
   if (selectedEntry) {
     const currentEntry = entries.find((e) => e.id === selectedEntry.id) || selectedEntry
@@ -952,6 +977,8 @@ export function JournalPage() {
             onBack={() => setSelectedEntry(null)}
             onDelete={() => handleDeleteEntry(currentEntry.id)}
             onToggleFavorite={() => handleToggleFavorite(currentEntry.id)}
+            onTogglePin={() => handleTogglePin(currentEntry.id)}
+            onDuplicate={() => handleDuplicateEntry(currentEntry)}
           />
         </div>
       </div>
@@ -960,40 +987,171 @@ export function JournalPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold tracking-tight">Journal</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold tracking-tight">Journal</h1>
+          <div className="flex items-center gap-3">
+            {/* Calendar Icon */}
+            <div className="relative" ref={calendarRef}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setCalendarOpen(!calendarOpen)}
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+              <AnimatePresence>
+                {calendarOpen && (
+                  <PopoverCalendar
+                    entries={entries}
+                    selectedDate={selectedDate}
+                    onSelectDate={handleSelectDate}
+                    onClose={() => setCalendarOpen(false)}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Streak */}
             <StreakCircle streak={streak} />
+
+            {/* Write Button */}
+            <Button className="glow h-9" onClick={() => {
+              const el = document.querySelector("[data-writing-area]")
+              el?.scrollIntoView({ behavior: "smooth" })
+            }}>
+              <Plus className="mr-1 h-4 w-4" /> Write
+            </Button>
           </div>
-          <Button className="glow h-9" onClick={() => {
-            const el = document.querySelector("[data-writing-area]")
-            el?.scrollIntoView({ behavior: "smooth" })
-          }}>
-            <Plus className="mr-1 h-4 w-4" /> New Entry
-          </Button>
         </div>
 
-        {/* Calendar + Writing Area Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-          {/* Writing Area — Primary Focus */}
-          <div data-writing-area>
-            <WritingArea onCreated={handleCreateEntry} />
+        {/* Writing Area — Primary Focus, full width */}
+        <div className="mb-8" data-writing-area>
+          <WritingArea
+            onCreated={handleCreateEntry}
+            autosave={draftAutosave}
+          />
+        </div>
+
+        {/* Search + Type Filter */}
+        <div className="mb-6 space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+            <Input
+              placeholder="Search entries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-muted/30 border-transparent focus:bg-background h-9"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-foreground transition-colors" />
+              </button>
+            )}
           </div>
 
-          {/* Calendar — Right Side */}
-          <div className="order-first lg:order-last">
-            <JournalCalendar
-              entries={entries}
-              selectedDate={selectedDate}
-              onSelectDate={handleSelectDate}
-            />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setTypeFilter(null)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                typeFilter === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              All
+            </button>
+            {Object.entries(journalTypeConfig).map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => setTypeFilter(typeFilter === key ? null : key as JournalType)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                  typeFilter === key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {cfg.label}
+              </button>
+            ))}
           </div>
+        </div>
+
+        {/* Entry List */}
+        <div className="space-y-3 mb-8">
+          <AnimatePresence mode="popLayout">
+            {filteredEntries.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="py-16 text-center"
+              >
+                <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center">
+                  <BookOpen className="h-7 w-7 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  {searchQuery ? "No entries match your search." : "No entries yet."}
+                </p>
+                <p className="text-xs text-muted-foreground/60">Start writing to capture your thoughts.</p>
+              </motion.div>
+            ) : (
+              filteredEntries.map((entry) => {
+                const cfg = journalTypeConfig[entry.type]
+                return (
+                  <motion.div
+                    key={entry.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="group rounded-xl border border-border/50 bg-card hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+                    onClick={() => setSelectedEntry(entry)}
+                  >
+                    <div className="h-1" style={{ backgroundColor: cfg.color }} />
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                          style={{ backgroundColor: cfg.accent, color: cfg.color }}
+                        >
+                          {cfg.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
+                            <h3 className="text-sm font-semibold truncate">{entry.title}</h3>
+                            {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1.5">
+                            <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
+                            <span>·</span>
+                            <span>{entry.date}</span>
+                            <span>·</span>
+                            <span>{entry.time}</span>
+                            {entry.mood && (
+                              <>
+                                <span>·</span>
+                                <span>{moodEmojis[entry.mood - 1]}</span>
+                              </>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{entry.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
+        <div className="text-center">
           <p className="text-[11px] text-muted-foreground/50">
             {entries.length} {entries.length === 1 ? "entry" : "entries"} in your journal
           </p>
@@ -1011,6 +1169,7 @@ export function JournalPage() {
             onDeleteEntry={handleDeleteEntry}
             onToggleFavorite={handleToggleFavorite}
             onDuplicateEntry={handleDuplicateEntry}
+            onTogglePin={handleTogglePin}
             onNavigateDate={handleNavigateDate}
           />
         )}
