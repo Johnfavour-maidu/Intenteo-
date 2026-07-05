@@ -58,23 +58,19 @@ import {
   ChevronDown,
   Maximize2,
   Minimize2,
-  Code,
   Type,
   Image as ImageIcon,
   MapPin as MapPinIcon,
-  Mic as MicIcon,
   Play,
   Pause,
-  Square,
   Globe,
-  Languages,
   RotateCcw,
   Volume2,
   StopCircle,
   PlusCircle,
   Pencil,
-  CheckCircle,
   Search,
+  Circle,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -115,12 +111,12 @@ interface AudioRecording {
 const journalTypeConfig: Record<JournalType, { label: string; icon: React.ReactNode; color: string; accent: string; prompt: string }> = {
   morning: { label: "Morning Journal", icon: <PenLine className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7", prompt: "What are you looking forward to today?" },
   daily: { label: "Daily Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF", prompt: "What have you been up to today?" },
-  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#7C3AED", accent: "#EDE9FE", prompt: "What did today teach you?" },
+  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#7C3AED", accent: "#EDE9FE", prompt: "What challenged you today, and what did you learn?" },
   gratitude: { label: "Gratitude", icon: <Heart className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3", prompt: "What are you grateful for today?" },
-  decision: { label: "Decision Journal", icon: <Brain className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF", prompt: "What decision are you facing today?" },
-  dream: { label: "Dream Journal", icon: <Sparkles className="h-3.5 w-3.5" />, color: "#A855F7", accent: "#F3E8FF", prompt: "What dreams do you remember?" },
+  decision: { label: "Decision Journal", icon: <Brain className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF", prompt: "What important decision are you thinking about?" },
+  dream: { label: "Dream Journal", icon: <Sparkles className="h-3.5 w-3.5" />, color: "#A855F7", accent: "#F3E8FF", prompt: "What dream or vision do you want to remember?" },
   prayer: { label: "Prayer Journal", icon: <Heart className="h-3.5 w-3.5" />, color: "#14B8A6", accent: "#CCFBF1", prompt: "What have you been praying about?" },
-  legacy: { label: "Legacy Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#16A34A", accent: "#D1FAE5", prompt: "What would you like your future self to remember?" },
+  legacy: { label: "Legacy Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#16A34A", accent: "#D1FAE5", prompt: "What do you want to leave behind?" },
   travel: { label: "Travel Journal", icon: <MapPin className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FFEDD5", prompt: "What made today memorable?" },
   photo: { label: "Photo Journal", icon: <Camera className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3", prompt: "What story does this photo tell?" },
   voice: { label: "Voice Journal", icon: <Mic className="h-3.5 w-3.5" />, color: "#64748B", accent: "#F1F5F9", prompt: "What would you like to record today?" },
@@ -323,6 +319,32 @@ const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
+]
+
+const TEXT_COLOURS = [
+  { name: "Black", value: "#000000" },
+  { name: "Dark Grey", value: "#4B5563" },
+  { name: "Light Grey", value: "#9CA3AF" },
+  { name: "White", value: "#FFFFFF" },
+  { name: "Red", value: "#DC2626" },
+  { name: "Orange", value: "#EA580C" },
+  { name: "Yellow", value: "#CA8A04" },
+  { name: "Green", value: "#16A34A" },
+  { name: "Teal", value: "#0D9488" },
+  { name: "Blue", value: "#2563EB" },
+  { name: "Indigo", value: "#1E0E6B" },
+  { name: "Purple", value: "#7C3AED" },
+  { name: "Brown", value: "#92400E" },
+]
+
+const HIGHLIGHT_COLOURS = [
+  { name: "Yellow", value: "#FEF3C7" },
+  { name: "Green", value: "#D1FAE5" },
+  { name: "Cyan", value: "#CFFAFE" },
+  { name: "Pink", value: "#FCE7F3" },
+  { name: "Orange", value: "#FFEDD5" },
+  { name: "Purple", value: "#EDE9FE" },
+  { name: "Grey", value: "#F1F5F9" },
 ]
 
 function toISODate(d: Date): string {
@@ -1059,7 +1081,7 @@ function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
             className={`h-8 w-8 ${isRecording ? "text-red-500 bg-red-500/10" : ""}`}
             onClick={toggleRecording}
           >
-            {isRecording ? <StopCircle className="h-4 w-4" /> : <MicIcon className="h-4 w-4" />}
+            {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           </Button>
         </Tooltip>
         {isRecording && (
@@ -1153,18 +1175,19 @@ function FocusModeOverlay({ children, onExit }: { children: React.ReactNode; onE
 /* Formatting Toolbar                                    */
 /* ────────────────────────────────────────────────────── */
 
-function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: string) => void; activeFormats: Set<string> }) {
-  const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef<HTMLDivElement>(null)
+function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: string, value?: string) => void; activeFormats: Set<string> }) {
+  const [textColourOpen, setTextColourOpen] = useState(false)
+  const [highlightOpen, setHighlightOpen] = useState(false)
+  const textColourRef = useRef<HTMLDivElement>(null)
+  const highlightRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false)
-      }
+      if (textColourRef.current && !textColourRef.current.contains(e.target as Node)) setTextColourOpen(false)
+      if (highlightRef.current && !highlightRef.current.contains(e.target as Node)) setHighlightOpen(false)
     }
-    if (moreOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
-  }, [moreOpen])
+    if (textColourOpen || highlightOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
+  }, [textColourOpen, highlightOpen])
 
   const fmtBtn = (action: string, icon: React.ReactNode, label: string) => (
     <Tooltip label={label}>
@@ -1188,83 +1211,122 @@ function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: str
 
       <div className="w-px h-4 bg-border/40 mx-1" />
 
+      {fmtBtn("alignLeft", <AlignLeft className="h-3.5 w-3.5" />, "Align Left")}
+      {fmtBtn("alignCenter", <AlignCenter className="h-3.5 w-3.5" />, "Align Centre")}
+      {fmtBtn("alignRight", <AlignRight className="h-3.5 w-3.5" />, "Align Right")}
+      {fmtBtn("justify", <AlignJustify className="h-3.5 w-3.5" />, "Justify")}
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
       {fmtBtn("bulletList", <List className="h-3.5 w-3.5" />, "Bullet List")}
       {fmtBtn("numberedList", <ListOrdered className="h-3.5 w-3.5" />, "Numbered List")}
       {fmtBtn("checklist", <CheckSquare className="h-3.5 w-3.5" />, "Checklist")}
       {fmtBtn("quote", <Quote className="h-3.5 w-3.5" />, "Quote")}
-      {fmtBtn("code", <Code className="h-3.5 w-3.5" />, "Code Block")}
 
       <div className="w-px h-4 bg-border/40 mx-1" />
 
-      {fmtBtn("textColour", <Palette className="h-3.5 w-3.5" />, "Text Colour")}
-      {fmtBtn("highlight", <Highlighter className="h-3.5 w-3.5" />, "Highlight")}
+      {/* Text Colour Dropdown */}
+      <div className="relative" ref={textColourRef}>
+        <Tooltip label="Text Colour">
+          <button
+            onClick={() => { setTextColourOpen(!textColourOpen); setHighlightOpen(false) }}
+            className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
+              activeFormats.has("textColour") ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
+            }`}
+          >
+            <Palette className="h-3.5 w-3.5" />
+          </button>
+        </Tooltip>
+        <AnimatePresence>
+          {textColourOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              className="absolute left-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-2 z-40"
+            >
+              <div className="grid grid-cols-4 gap-1">
+                {TEXT_COLOURS.map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => { onFormat("textColour", c.value); setTextColourOpen(false) }}
+                    title={c.name}
+                    className="h-7 w-7 rounded-md border flex items-center justify-center hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c.value }}
+                  >
+                    {c.name === "White" && <div className="h-3 w-3 rounded-sm border border-gray-300" />}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { onFormat("textColour", "inherit"); setTextColourOpen(false) }}
+                className="w-full text-[10px] text-muted-foreground hover:text-foreground mt-1 py-1"
+              >
+                Reset to default
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Highlight Dropdown */}
+      <div className="relative" ref={highlightRef}>
+        <Tooltip label="Highlight">
+          <button
+            onClick={() => { setHighlightOpen(!highlightOpen); setTextColourOpen(false) }}
+            className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
+              activeFormats.has("highlight") ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
+            }`}
+          >
+            <Highlighter className="h-3.5 w-3.5" />
+          </button>
+        </Tooltip>
+        <AnimatePresence>
+          {highlightOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              className="absolute left-0 top-full mt-1 w-36 rounded-xl border bg-background shadow-xl p-2 z-40"
+            >
+              <div className="grid grid-cols-4 gap-1">
+                {HIGHLIGHT_COLOURS.map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => { onFormat("highlight", c.value); setHighlightOpen(false) }}
+                    title={c.name}
+                    className="h-7 w-7 rounded-md border border-border/30 flex items-center justify-center hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c.value }}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => { onFormat("highlight", "transparent"); setHighlightOpen(false) }}
+                className="w-full text-[10px] text-muted-foreground hover:text-foreground mt-1 py-1"
+              >
+                Remove highlight
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
+      {fmtBtn("h1", <Heading1 className="h-3.5 w-3.5" />, "Heading 1")}
+      {fmtBtn("h2", <Heading2 className="h-3.5 w-3.5" />, "Heading 2")}
+      {fmtBtn("h3", <Heading3 className="h-3.5 w-3.5" />, "Heading 3")}
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
+      {fmtBtn("link", <Link className="h-3.5 w-3.5" />, "Hyperlink (Ctrl+K)")}
+      {fmtBtn("divider", <Minus className="h-3.5 w-3.5" />, "Horizontal Divider")}
+      {fmtBtn("clearFormatting", <Type className="h-3.5 w-3.5" />, "Clear Formatting")}
 
       <div className="w-px h-4 bg-border/40 mx-1" />
 
       {fmtBtn("undo", <Undo2 className="h-3.5 w-3.5" />, "Undo (Ctrl+Z)")}
       {fmtBtn("redo", <Redo2 className="h-3.5 w-3.5" />, "Redo (Ctrl+Shift+Z)")}
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      <div className="relative" ref={moreRef}>
-        <Tooltip label="More Options">
-          <button
-            onClick={() => setMoreOpen(!moreOpen)}
-            className="h-7 px-2 flex items-center justify-center rounded-md hover:bg-muted transition-colors gap-0.5"
-          >
-            <span className="text-xs text-muted-foreground font-medium">More</span>
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-          </button>
-        </Tooltip>
-        <AnimatePresence>
-          {moreOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-52 rounded-xl border bg-background shadow-xl z-30 max-h-[280px] overflow-y-auto"
-            >
-              <div className="p-1">
-                <button onClick={() => { onFormat("h1"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <Heading1 className="h-3.5 w-3.5" /> Heading 1
-                </button>
-                <button onClick={() => { onFormat("h2"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <Heading2 className="h-3.5 w-3.5" /> Heading 2
-                </button>
-                <button onClick={() => { onFormat("h3"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <Heading3 className="h-3.5 w-3.5" /> Heading 3
-                </button>
-                <button onClick={() => { onFormat("link"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <Link className="h-3.5 w-3.5" /> Hyperlink (Ctrl+K)
-                </button>
-                <button onClick={() => { onFormat("divider"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <Minus className="h-3.5 w-3.5" /> Horizontal Divider
-                </button>
-                <div className="h-px bg-border my-1" />
-                <button onClick={() => { onFormat("alignLeft"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <AlignLeft className="h-3.5 w-3.5" /> Align Left
-                </button>
-                <button onClick={() => { onFormat("alignCenter"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <AlignCenter className="h-3.5 w-3.5" /> Align Centre
-                </button>
-                <button onClick={() => { onFormat("alignRight"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <AlignRight className="h-3.5 w-3.5" /> Align Right
-                </button>
-                <button onClick={() => { onFormat("justify"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <AlignJustify className="h-3.5 w-3.5" /> Justify
-                </button>
-                <div className="h-px bg-border my-1" />
-                <button onClick={() => { onFormat("inlineCode"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <Code className="h-3.5 w-3.5" /> Inline Code
-                </button>
-                <button onClick={() => { onFormat("clearFormatting"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                  <Type className="h-3.5 w-3.5" /> Clear Formatting
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
     </div>
   )
 }
@@ -1347,7 +1409,8 @@ function MoodPicker({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 top-full mt-1 w-[340px] rounded-xl border bg-background shadow-xl z-30 overflow-hidden"
+            className="absolute left-0 top-full mt-1 rounded-xl border bg-background shadow-xl z-50 overflow-hidden"
+            style={{ width: 360 }}
           >
             {/* Search bar */}
             <div className="p-2 border-b">
@@ -1369,7 +1432,7 @@ function MoodPicker({
             </div>
 
             {/* Mood grid */}
-            <div className="max-h-[260px] overflow-y-auto p-2">
+            <div className="max-h-[280px] overflow-y-auto p-2">
               {Object.keys(categories).length === 0 ? (
                 <div className="text-center py-4 text-xs text-muted-foreground">No moods found</div>
               ) : (
@@ -1379,13 +1442,13 @@ function MoodPicker({
                   return (
                     <div key={cat} className="mb-2">
                       <div className="px-1 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
-                      <div className="grid grid-cols-8 gap-0.5">
+                      <div className="grid grid-cols-9 gap-0.5">
                         {catMoods.map((m) => (
                           <button
                             key={`${m.emoji}-${m.label}`}
                             onClick={() => { onSelectMood(m.emoji); onOpenChange(false); setSearch("") }}
                             title={m.label}
-                            className={`h-9 w-9 flex items-center justify-center rounded-lg text-lg transition-all hover:bg-muted hover:scale-110 ${
+                            className={`h-8 w-8 flex items-center justify-center rounded-lg text-lg transition-all hover:bg-muted hover:scale-110 ${
                               selectedMood === m.emoji && !customMood ? "bg-primary/10 ring-1 ring-primary" : ""
                             }`}
                           >
@@ -1491,7 +1554,6 @@ function RichTextEditor({
   }, [onContentChange, editorRef])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Allow tab to indent in code blocks
     if (e.key === "Tab") {
       e.preventDefault()
       document.execCommand("insertText", false, "    ")
@@ -1511,6 +1573,138 @@ function RichTextEditor({
       lang="en-GB"
       style={{ wordBreak: "break-word" }}
     />
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Camera Modal                                          */
+/* ────────────────────────────────────────────────────── */
+
+function CameraModal({ onClose, onCapture, onChoose }: {
+  onClose: () => void
+  onCapture: (dataUrl: string) => void
+  onChoose: (files: FileList) => void
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [cameraActive, setCameraActive] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+
+  const startCamera = useCallback(async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      setStream(s)
+      setCameraActive(true)
+      if (videoRef.current) {
+        videoRef.current.srcObject = s
+        videoRef.current.play()
+      }
+    } catch {
+      cameraInputRef.current?.click()
+    }
+  }, [])
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext("2d")
+    if (ctx) {
+      ctx.drawImage(video, 0, 0)
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9)
+      onCapture(dataUrl)
+    }
+    stream?.getTracks().forEach((t) => t.stop())
+    onClose()
+  }, [onCapture, onClose, stream])
+
+  useEffect(() => {
+    return () => { stream?.getTracks().forEach((t) => t.stop()) }
+  }, [stream])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="bg-card rounded-2xl border shadow-2xl w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b">
+          <span className="text-sm font-semibold">Add Photo</span>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {cameraActive ? (
+            <div className="relative rounded-xl overflow-hidden bg-black">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-video object-cover" />
+              <canvas ref={canvasRef} className="hidden" />
+              <button
+                onClick={capturePhoto}
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 h-14 w-14 rounded-full bg-white border-4 border-white/80 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+              >
+                <div className="h-11 w-11 rounded-full bg-red-500" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={startCamera}
+                className="flex items-center gap-3 w-full p-3 rounded-xl border hover:bg-muted transition-colors text-left"
+              >
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "var(--brand-primary)", color: "white" }}>
+                  <Camera className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Take Photo</p>
+                  <p className="text-xs text-muted-foreground">Open your device camera</p>
+                </div>
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-3 w-full p-3 rounded-xl border hover:bg-muted transition-colors text-left"
+              >
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "var(--brand-primary)", color: "white" }}>
+                  <ImageIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Choose from Device</p>
+                  <p className="text-xs text-muted-foreground">Select images from your gallery</p>
+                </div>
+              </button>
+            </>
+          )}
+        </div>
+
+        <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            onChoose(e.target.files)
+            onClose()
+          }
+        }} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader()
+            reader.onload = (ev) => { onCapture(ev.target?.result as string); onClose() }
+            reader.readAsDataURL(e.target.files[0])
+          }
+        }} />
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -1544,10 +1738,13 @@ function WritingArea({
   const [location, setLocation] = useState<string>("")
   const [locationLoading, setLocationLoading] = useState(false)
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set())
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const moodRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const writingStartTime = useRef<Date>(new Date())
+  const recognitionRef = useRef<unknown>(null)
 
   const currentPrompt = useMemo(() => journalTypeConfig[type].prompt, [type])
   const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
@@ -1600,7 +1797,7 @@ function WritingArea({
     setContentText(text)
   }, [])
 
-  const handleFormat = useCallback((action: string) => {
+  const handleFormat = useCallback((action: string, value?: string) => {
     setActiveFormats((prev) => {
       const next = new Set(prev)
       if (next.has(action)) next.delete(action)
@@ -1620,28 +1817,6 @@ function WritingArea({
       case "h2": document.execCommand("formatBlock", false, "h2"); break
       case "h3": document.execCommand("formatBlock", false, "h3"); break
       case "quote": document.execCommand("formatBlock", false, "blockquote"); break
-      case "code": document.execCommand("formatBlock", false, "pre"); break
-      case "inlineCode": {
-        const sel = window.getSelection()
-        if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-          const range = sel.getRangeAt(0)
-          const selectedText = range.toString()
-          const code = document.createElement("code")
-          code.textContent = selectedText
-          code.style.backgroundColor = "rgba(148,163,184,0.15)"
-          code.style.padding = "1px 4px"
-          code.style.borderRadius = "3px"
-          code.style.fontSize = "0.9em"
-          code.style.fontFamily = "ui-monospace, monospace"
-          range.deleteContents()
-          range.insertNode(code)
-          sel.removeAllRanges()
-          const newRange = document.createRange()
-          newRange.selectNodeContents(code)
-          sel.addRange(newRange)
-        }
-        break
-      }
       case "bulletList": document.execCommand("insertUnorderedList"); break
       case "numberedList": document.execCommand("insertOrderedList"); break
       case "checklist": {
@@ -1664,13 +1839,11 @@ function WritingArea({
         break
       }
       case "textColour": {
-        const color = prompt("Enter colour (e.g. #FF0000, red, var(--brand-primary)):", "var(--brand-primary)")
-        if (color) document.execCommand("foreColor", false, color)
+        if (value) document.execCommand("foreColor", false, value)
         break
       }
       case "highlight": {
-        const color = prompt("Highlight colour:", "#FEF3C7")
-        if (color) document.execCommand("hiliteColor", false, color)
+        if (value) document.execCommand("hiliteColor", false, value)
         break
       }
       case "undo": document.execCommand("undo"); break
@@ -1774,6 +1947,51 @@ function WritingArea({
   const renameRecording = useCallback((id: string, name: string) => {
     setRecordings((prev) => prev.map((r) => r.id === id ? { ...r, name } : r))
   }, [])
+
+  // Speech-to-Text
+  const toggleListening = useCallback(() => {
+    const w = window as unknown as Record<string, unknown>
+    const SpeechRecognitionAPI = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) {
+      alert("Speech recognition is not supported in this browser.")
+      return
+    }
+
+    if (isListening && recognitionRef.current) {
+      (recognitionRef.current as { stop: () => void }).stop()
+      setIsListening(false)
+      return
+    }
+
+    const recognition = new (SpeechRecognitionAPI as new () => Record<string, unknown>)()
+    recognition.lang = "en-GB"
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognitionRef.current = recognition
+
+    recognition.onresult = (event: unknown) => {
+      const e = event as { resultIndex: number; results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } } }
+      let finalTranscript = ""
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript
+        if (e.results[i].isFinal) {
+          finalTranscript += transcript
+        }
+      }
+      if (finalTranscript && editorRef.current) {
+        editorRef.current.focus()
+        document.execCommand("insertText", false, finalTranscript)
+        setContentHtml(editorRef.current.innerHTML)
+        setContentText(editorRef.current.innerText || "")
+      }
+    }
+
+    recognition.onend = () => { setIsListening(false) }
+    recognition.onerror = () => { setIsListening(false) }
+
+    (recognition as { start: () => void }).start()
+    setIsListening(true)
+  }, [isListening])
 
   const selectedMood = customMood || moods.find((m) => m.emoji === mood)
 
@@ -1930,25 +2148,18 @@ function WritingArea({
               <button
                 className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
                 style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setCameraOpen(true)}
               >
                 <Camera className="h-4 w-4" />
               </button>
             </Tooltip>
-            <Tooltip label="Microphone">
+            <Tooltip label={isListening ? "Stop Dictation" : "Dictate"}>
               <button
-                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
-                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
-                onClick={async () => {
-                  // Start recording or handle mic
-                  if (recordings.length === 0) {
-                    // Trigger voice recorder button
-                    const micBtn = document.querySelector("[data-voice-recorder-trigger]") as HTMLButtonElement
-                    micBtn?.click()
-                  }
-                }}
+                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isListening ? "animate-pulse" : ""}`}
+                style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
+                onClick={toggleListening}
               >
-                <Mic className="h-4 w-4" />
+                <Volume2 className="h-4 w-4" />
               </button>
             </Tooltip>
             <Tooltip label="Location">
@@ -1960,15 +2171,12 @@ function WritingArea({
                 <MapPinIcon className="h-4 w-4" />
               </button>
             </Tooltip>
-            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
           </div>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
               <span className="tabular-nums">{wordCount} words</span>
-              <span className="text-muted-foreground/40">\u00B7</span>
               <span className="tabular-nums">{paraCount} paragraphs</span>
-              <span className="text-muted-foreground/40">\u00B7</span>
               <span className="tabular-nums">{voiceCount} {voiceCount === 1 ? "voice note" : "voice notes"}</span>
             </div>
 
@@ -1993,6 +2201,25 @@ function WritingArea({
           {editorContent}
         </FocusModeOverlay>
       ) : editorContent}
+
+      {/* Camera Modal */}
+      <AnimatePresence>
+        {cameraOpen && (
+          <CameraModal
+            onClose={() => setCameraOpen(false)}
+            onCapture={(dataUrl) => setImages((prev) => [...prev, dataUrl])}
+            onChoose={(files) => {
+              Array.from(files).forEach((file) => {
+                const reader = new FileReader()
+                reader.onload = (ev) => {
+                  setImages((prev) => [...prev, ev.target?.result as string])
+                }
+                reader.readAsDataURL(file)
+              })
+            }}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }
