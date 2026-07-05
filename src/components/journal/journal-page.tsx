@@ -2405,11 +2405,12 @@ function RichTextEditor({
         onPaste={handlePaste}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className="min-h-[120px] p-4 focus:outline-none prose prose-slate max-w-none [&_p]:mb-0"
+        className="min-h-[120px] focus:outline-none prose prose-slate max-w-none [&_p]:mb-0 [&_p]:mt-0"
         style={{
           fontFamily: currentFontFamily,
           fontSize: `${currentFontSize}px`,
           lineHeight: "28px",
+          padding: "0 16px",
           wordBreak: "break-word",
           overflowWrap: "break-word",
           overflowX: "hidden",
@@ -2421,12 +2422,6 @@ function RichTextEditor({
         data-gramm="false"
         data-gramm_editor="false"
       />
-
-      {isFocused && charCount > 0 && (
-        <div className="absolute bottom-2 right-2 text-xs text-slate-400">
-          {charCount.toLocaleString()} characters
-        </div>
-      )}
     </div>
   )
 }
@@ -2851,7 +2846,7 @@ function WritingArea({
   }, [isListening])
 
   const wordCount = useMemo(() => getWordCount(contentText), [contentText])
-  const paraCount = useMemo(() => getParagraphCount(contentText), [contentText])
+  const charCount = useMemo(() => contentText.length, [contentText])
   const voiceCount = recordings.length
 
   const editorContent = (
@@ -2917,44 +2912,6 @@ function WritingArea({
             </button>
           </div>
         </div>
-
-        <FormattingToolbar
-          onToggleBold={() => execFormat("bold")}
-          onToggleItalic={() => execFormat("italic")}
-          onToggleUnderline={() => execFormat("underline")}
-          onToggleStrikethrough={() => execFormat("strikeThrough")}
-          onAlignLeft={() => execFormat("justifyLeft")}
-          onAlignCenter={() => execFormat("justifyCenter")}
-          onAlignRight={() => execFormat("justifyRight")}
-          onInsertUnorderedList={() => execFormat("insertUnorderedList")}
-          onInsertOrderedList={() => execFormat("insertOrderedList")}
-          onInsertBlockquote={() => execFormat("formatBlock", "blockquote")}
-          onInsertHorizontalRule={() => execFormat("insertHorizontalRule")}
-          onUndo={() => execFormat("undo")}
-          onRedo={() => execFormat("redo")}
-          onTextColour={(colour) => execFormat("foreColor", colour)}
-          onHighlight={(colour) => execFormat("hiliteColor", colour)}
-          onFontSizeChange={(size) => {
-            setCurrentFontSize(size)
-            const sel = window.getSelection()
-            if (sel && sel.rangeCount > 0) {
-              const range = sel.getRangeAt(0)
-              const span = document.createElement("span")
-              span.style.fontSize = size + "px"
-              range.surroundContents(span)
-              if (editorRef.current) {
-                setContentHtml(editorRef.current.innerHTML)
-                setContentText(editorRef.current.innerText || "")
-              }
-            }
-          }}
-          onFontFamilyChange={(family) => {
-            setCurrentFontFamily(family)
-            execFormat("fontName", family)
-          }}
-          currentFontSize={currentFontSize}
-          currentFontFamily={currentFontFamily}
-        />
 
         <div
           className={`rounded-xl transition-all duration-200 ${
@@ -3033,6 +2990,44 @@ function WritingArea({
           </div>
         )}
 
+        <FormattingToolbar
+          onToggleBold={() => execFormat("bold")}
+          onToggleItalic={() => execFormat("italic")}
+          onToggleUnderline={() => execFormat("underline")}
+          onToggleStrikethrough={() => execFormat("strikeThrough")}
+          onAlignLeft={() => execFormat("justifyLeft")}
+          onAlignCenter={() => execFormat("justifyCenter")}
+          onAlignRight={() => execFormat("justifyRight")}
+          onInsertUnorderedList={() => execFormat("insertUnorderedList")}
+          onInsertOrderedList={() => execFormat("insertOrderedList")}
+          onInsertBlockquote={() => execFormat("formatBlock", "blockquote")}
+          onInsertHorizontalRule={() => execFormat("insertHorizontalRule")}
+          onUndo={() => execFormat("undo")}
+          onRedo={() => execFormat("redo")}
+          onTextColour={(colour) => execFormat("foreColor", colour)}
+          onHighlight={(colour) => execFormat("hiliteColor", colour)}
+          onFontSizeChange={(size) => {
+            setCurrentFontSize(size)
+            const sel = window.getSelection()
+            if (sel && sel.rangeCount > 0) {
+              const range = sel.getRangeAt(0)
+              const span = document.createElement("span")
+              span.style.fontSize = size + "px"
+              range.surroundContents(span)
+              if (editorRef.current) {
+                setContentHtml(editorRef.current.innerHTML)
+                setContentText(editorRef.current.innerText || "")
+              }
+            }
+          }}
+          onFontFamilyChange={(family) => {
+            setCurrentFontFamily(family)
+            execFormat("fontName", family)
+          }}
+          currentFontSize={currentFontSize}
+          currentFontFamily={currentFontFamily}
+        />
+
         <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
           <select
             value={type}
@@ -3086,6 +3081,15 @@ function WritingArea({
                 <Camera className="h-4 w-4" />
               </button>
             </Tooltip>
+            <Tooltip label={isListening ? "Stop Dictation" : "Dictate"}>
+              <button
+                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isListening ? "animate-pulse" : ""}`}
+                style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
+                onClick={toggleListening}
+              >
+                <Volume2 className="h-4 w-4" />
+              </button>
+            </Tooltip>
             <div data-voice-recorder className="flex items-center gap-1">
               <VoiceRecorder
                 recordings={recordings}
@@ -3108,7 +3112,7 @@ function WritingArea({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
               <span className="tabular-nums">{wordCount} words</span>
-              <span className="tabular-nums">{paraCount} paragraphs</span>
+              <span className="tabular-nums">{charCount} characters</span>
               <span className="tabular-nums">{voiceCount} {voiceCount === 1 ? "voice note" : "voice notes"}</span>
             </div>
 
