@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { UserAvatar } from "@/components/ui/user-avatar"
+import { useSidebar } from "./sidebar-context"
 
 interface NavItem {
   title: string
@@ -64,42 +65,50 @@ const bottomNav: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  const { collapsed, toggleCollapsed } = useSidebar()
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r bg-card/50 backdrop-blur-xl transition-all duration-300",
+        "fixed left-0 top-0 z-40 h-screen border-r bg-card/50 backdrop-blur-xl transition-all duration-200 ease-in-out",
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
       <div className="flex h-full flex-col">
-        {/* Logo */}
+        {/* Logo Section */}
         <div className="flex h-16 items-center justify-between px-4">
-          {!collapsed ? (
-            <Link href="/" className="flex items-center">
-              <img
-                src="/logo.png"
-                alt="Intenteo — Live with Intentionality"
-                className="h-auto transition-opacity duration-200 ease-in-out"
-                style={{ width: '170px' }}
-              />
-            </Link>
-          ) : (
-            <Link href="/" className="flex items-center justify-center">
-              <img
-                src="/favicon-40.png"
-                alt="Intenteo"
-                className="transition-opacity duration-200 ease-in-out"
-                style={{ width: '40px', height: '40px' }}
-              />
-            </Link>
-          )}
+          {/* Favicon/Logo Container */}
+          <div className={cn(
+            "flex items-center justify-center transition-all duration-200 ease-in-out",
+            collapsed ? "w-10 h-10" : "flex-1"
+          )}>
+            {!collapsed ? (
+              <Link href="/" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="Intenteo — Live with Intentionality"
+                  className="h-auto transition-opacity duration-200 ease-in-out"
+                  style={{ width: '170px' }}
+                />
+              </Link>
+            ) : (
+              <Link href="/" className="flex items-center justify-center">
+                <img
+                  src="/favicon-40.png"
+                  alt="Intenteo"
+                  className="transition-opacity duration-200 ease-in-out"
+                  style={{ width: '40px', height: '40px' }}
+                />
+              </Link>
+            )}
+          </div>
+
+          {/* Toggle Button - Outside favicon container */}
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            className="h-8 w-8"
+            onClick={toggleCollapsed}
+            className="h-8 w-8 shrink-0"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
