@@ -79,10 +79,10 @@ export function Sidebar() {
           {!collapsed ? (
             <Link href="/" className="flex items-center">
               <img
-                src="/logo.svg"
-                alt="Intenteo"
-                className="w-[170px] h-[51px]"
-                style={{ width: '170px', height: '51px' }}
+                src="/logo.png"
+                alt="Intenteo — Live with Intentionality"
+                className="h-auto"
+                style={{ width: '170px' }}
               />
             </Link>
           ) : (
@@ -90,8 +90,8 @@ export function Sidebar() {
               <img
                 src="/logo-icon.svg"
                 alt="Intenteo"
-                className="h-[51px] w-[56px]"
-                style={{ width: '56px', height: '51px' }}
+                className="h-9 w-9"
+                style={{ width: '36px', height: '36px' }}
               />
             </Link>
           )}
