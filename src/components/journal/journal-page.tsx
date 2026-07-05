@@ -63,7 +63,17 @@ import {
   Image as ImageIcon,
   MapPin as MapPinIcon,
   Mic as MicIcon,
+  Play,
+  Pause,
   Square,
+  Globe,
+  Languages,
+  RotateCcw,
+  Volume2,
+  StopCircle,
+  PlusCircle,
+  Pencil,
+  CheckCircle,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -83,70 +93,235 @@ interface JournalEntry {
   dateISO: string
   time: string
   mood?: string
+  customMood?: string
   tags: string[]
   favorited: boolean
   pinned: boolean
   createdAt: string
   images?: string[]
-  audioUrl?: string
+  audioRecordings?: AudioRecording[]
   location?: string
 }
 
-const journalTypeConfig: Record<JournalType, { label: string; icon: React.ReactNode; color: string; accent: string }> = {
-  morning: { label: "Morning Journal", icon: <PenLine className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7" },
-  daily: { label: "Daily Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF" },
-  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#7C3AED", accent: "#EDE9FE" },
-  gratitude: { label: "Gratitude", icon: <Heart className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3" },
-  decision: { label: "Decision Journal", icon: <Brain className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF" },
-  dream: { label: "Dream Journal", icon: <Sparkles className="h-3.5 w-3.5" />, color: "#A855F7", accent: "#F3E8FF" },
-  prayer: { label: "Prayer Journal", icon: <Heart className="h-3.5 w-3.5" />, color: "#14B8A6", accent: "#CCFBF1" },
-  legacy: { label: "Legacy Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#16A34A", accent: "#D1FAE5" },
-  travel: { label: "Travel Journal", icon: <MapPin className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FFEDD5" },
-  photo: { label: "Photo Journal", icon: <Camera className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3" },
-  voice: { label: "Voice Journal", icon: <Mic className="h-3.5 w-3.5" />, color: "#64748B", accent: "#F1F5F9" },
-  quick: { label: "Quick Thoughts", icon: <Zap className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7" },
+interface AudioRecording {
+  id: string
+  name: string
+  url: string
+  duration: number
+  createdAt: string
 }
 
-const writingPrompts = [
-  "What made you smile today?",
-  "What challenged you today?",
-  "What are you grateful for right now?",
-  "What lesson did today teach you?",
-  "What would you tell your younger self?",
-  "What moment today felt most alive?",
-  "What are you looking forward to?",
-  "What boundary did you honor today?",
-  "What surprised you today?",
-  "How did you show kindness today?",
+const journalTypeConfig: Record<JournalType, { label: string; icon: React.ReactNode; color: string; accent: string; prompt: string }> = {
+  morning: { label: "Morning Journal", icon: <PenLine className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7", prompt: "What are you looking forward to today?" },
+  daily: { label: "Daily Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF", prompt: "What have you been up to today?" },
+  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#7C3AED", accent: "#EDE9FE", prompt: "What did today teach you?" },
+  gratitude: { label: "Gratitude", icon: <Heart className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3", prompt: "What are you grateful for today?" },
+  decision: { label: "Decision Journal", icon: <Brain className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF", prompt: "What decision are you facing today?" },
+  dream: { label: "Dream Journal", icon: <Sparkles className="h-3.5 w-3.5" />, color: "#A855F7", accent: "#F3E8FF", prompt: "What dreams do you remember?" },
+  prayer: { label: "Prayer Journal", icon: <Heart className="h-3.5 w-3.5" />, color: "#14B8A6", accent: "#CCFBF1", prompt: "What have you been praying about?" },
+  legacy: { label: "Legacy Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#16A34A", accent: "#D1FAE5", prompt: "What would you like your future self to remember?" },
+  travel: { label: "Travel Journal", icon: <MapPin className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FFEDD5", prompt: "What made today memorable?" },
+  photo: { label: "Photo Journal", icon: <Camera className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3", prompt: "What story does this photo tell?" },
+  voice: { label: "Voice Journal", icon: <Mic className="h-3.5 w-3.5" />, color: "#64748B", accent: "#F1F5F9", prompt: "What would you like to record today?" },
+  quick: { label: "Quick Thoughts", icon: <Zap className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7", prompt: "What's on your mind right now?" },
+}
+
+const journalGreetings = [
+  "Every intentional moment becomes part of your story.",
+  "What's worth remembering today?",
+  "Your future self will thank you for writing today.",
+  "Small reflections create lasting growth.",
+  "Every page is a step toward intentional living.",
+  "Today's words shape tomorrow's wisdom.",
+  "Capture the moment, embrace the journey.",
+  "Your thoughts deserve space to breathe.",
+  "Writing is an act of self-care.",
+  "Every entry is a gift to your future self.",
+  "Reflection is the compass of the soul.",
+  "Your story matters, one word at a time.",
+  "Today is worth remembering.",
+  "Let your thoughts flow freely.",
+  "Growth begins with self-awareness.",
+  "Each day holds a lesson waiting to be learned.",
+  "Your words have power, use them wisely.",
+  "Mindfulness starts with putting pen to paper.",
+  "The present moment is always worth recording.",
+  "Your journey is unique, document it beautifully.",
+  "Gratitude turns what we have into enough.",
+  "Every reflection brings clarity.",
+  "Writing illuminates the path forward.",
+  "Today's thoughts become tomorrow's insights.",
+  "Your voice deserves to be heard, starting here.",
+  "Intentional living begins with intentional reflection.",
+  "The best time to reflect is always now.",
+  "Your story is being written, one entry at a time.",
+  "Stillness speaks volumes when we listen.",
+  "Every word you write builds your legacy.",
+  "What you reflect on, you grow toward.",
+  "Today's journal is tomorrow's treasure.",
+  "Writing bridges the gap between thought and action.",
+  "Your inner world deserves attention.",
+  "Reflection transforms experience into wisdom.",
+  "The pen is mightier when guided by intention.",
+  "Every entry is a step toward self-discovery.",
+  "Your thoughts are worth preserving.",
+  "Writing is the art of making the invisible visible.",
+  "Today's reflections fuel tomorrow's decisions.",
+  "Your journal is your personal sanctuary.",
+  "Growth happens in the space between events.",
+  "Writing clarifies what the mind cannot see.",
+  "Every moment of reflection is a moment of growth.",
+  "Your story is worth telling, one day at a time.",
+  "Intentional writing creates intentional living.",
+  "The quiet moments hold the loudest truths.",
+  "Your words create your world.",
+  "Reflection is the key to self-understanding.",
+  "Today's writing is tomorrow's wisdom.",
+  "Your journal holds the map to your inner self.",
 ]
 
-const moodOptions = [
-  { emoji: "\uD83D\uDE00", label: "Amazing" },
-  { emoji: "\uD83D\uDE04", label: "Happy" },
-  { emoji: "\uD83D\uDE0A", label: "Content" },
-  { emoji: "\uD83D\uDE42", label: "Good" },
-  { emoji: "\uD83D\uDE0C", label: "Peaceful" },
-  { emoji: "\uD83E\uDD70", label: "Loved" },
-  { emoji: "\uD83E\uDD29", label: "Excited" },
-  { emoji: "\uD83D\uDE0E", label: "Confident" },
-  { emoji: "\uD83D\uDE4F", label: "Grateful" },
-  { emoji: "\uD83D\uDCAA", label: "Motivated" },
-  { emoji: "\uD83E\uDD14", label: "Thoughtful" },
-  { emoji: "\uD83D\uDE10", label: "Neutral" },
-  { emoji: "\uD83D\uDE34", label: "Tired" },
-  { emoji: "\uD83E\uDD71", label: "Exhausted" },
-  { emoji: "\uD83D\uDE14", label: "Sad" },
-  { emoji: "\uD83D\uDE22", label: "Heartbroken" },
-  { emoji: "\uD83D\uDE30", label: "Anxious" },
-  { emoji: "\uD83D\uDE1F", label: "Worried" },
-  { emoji: "\uD83D\uDE21", label: "Angry" },
-  { emoji: "\uD83D\uDE24", label: "Frustrated" },
-  { emoji: "\uD83D\uDE1E", label: "Disappointed" },
-  { emoji: "\uD83E\uDD12", label: "Sick" },
-  { emoji: "\uD83E\uDD73", label: "Celebrating" },
-  { emoji: "\u2764\uFE0F", label: "Inspired" },
-  { emoji: "\uD83C\uDF31", label: "Growing" },
-  { emoji: "\u2728", label: "Hopeful" },
+const moods: { emoji: string; label: string; category: string }[] = [
+  // Positive
+  { emoji: "\uD83D\uDE00", label: "Happy", category: "Positive" },
+  { emoji: "\uD83D\uDE04", label: "Joyful", category: "Positive" },
+  { emoji: "\uD83D\uDE01", label: "Grinning", category: "Positive" },
+  { emoji: "\uD83D\uDE06", label: "Laughing", category: "Positive" },
+  { emoji: "\uD83E\uDD29", label: "Excited", category: "Positive" },
+  { emoji: "\uD83E\uDD73", label: "Celebrating", category: "Positive" },
+  { emoji: "\uD83D\uDE0E", label: "Confident", category: "Positive" },
+  { emoji: "\uD83D\uDE0A", label: "Content", category: "Positive" },
+  { emoji: "\uD83D\uDE42", label: "Good", category: "Positive" },
+  { emoji: "\uD83D\uDE0C", label: "Peaceful", category: "Positive" },
+  { emoji: "\uD83E\uDD70", label: "Loved", category: "Positive" },
+  { emoji: "\u2764\uFE0F", label: "In Love", category: "Positive" },
+  { emoji: "\uD83E\uDDE1", label: "Accepted", category: "Positive" },
+  { emoji: "\uD83E\uDD7D", label: "Proud", category: "Positive" },
+  { emoji: "\uD83D\uDCAB", label: "Inspired", category: "Positive" },
+  { emoji: "\uD83E\uDD14", label: "Curious", category: "Positive" },
+  { emoji: "\uD83E\uDD2D", label: "Playful", category: "Positive" },
+  { emoji: "\uD83D\uDE07", label: "Trusting", category: "Positive" },
+  { emoji: "\uD83E\uDD72", label: "Grateful", category: "Positive" },
+  { emoji: "\uD83D\uDE0D", label: "Charming", category: "Positive" },
+  { emoji: "\uD83E\uDD20", label: "Cool", category: "Positive" },
+  { emoji: "\uD83D\uDC4D", label: "Approving", category: "Positive" },
+  { emoji: "\uD83D\uDE4F", label: "Thankful", category: "Positive" },
+  { emoji: "\uD83C\uDF1F", label: "Hopeful", category: "Positive" },
+  { emoji: "\uD83C\uDF08", label: "Optimistic", category: "Positive" },
+  { emoji: "\uD83C\uDF31", label: "Growing", category: "Positive" },
+  { emoji: "\uD83D\uDD25", label: "Motivated", category: "Positive" },
+  { emoji: "\uD83D\uDCAA", label: "Strong", category: "Positive" },
+  { emoji: "\uD83C\uDFAF", label: "Focused", category: "Positive" },
+  { emoji: "\u2728", label: "Magical", category: "Positive" },
+  // Calm
+  { emoji: "\uD83D\uDE0C", label: "Calm", category: "Calm" },
+  { emoji: "\uD83E\uDDD8", label: "Zen", category: "Calm" },
+  { emoji: "\uD83C\uDF27\uFE0F", label: "Serene", category: "Calm" },
+  { emoji: "\uD83D\uDE16", label: "Relieved", category: "Calm" },
+  { emoji: "\uD83E\uDDCD", label: "Meditative", category: "Calm" },
+  { emoji: "\uD83C\uDF3A", label: "Tranquil", category: "Calm" },
+  { emoji: "\uD83E\uDDD9", label: "Mindful", category: "Calm" },
+  { emoji: "\uD83C\uDF32", label: "Grounded", category: "Calm" },
+  { emoji: "\uD83C\uDF3F", label: "Centered", category: "Calm" },
+  { emoji: "\uD83C\uDF3B", label: "Balanced", category: "Calm" },
+  // Tired
+  { emoji: "\uD83D\uDE34", label: "Sleepy", category: "Tired" },
+  { emoji: "\uD83D\uDE0B", label: "Tired", category: "Tired" },
+  { emoji: "\uD83D\uDE2A", label: "Exhausted", category: "Tired" },
+  { emoji: "\uD83E\uDD71", label: "Drained", category: "Tired" },
+  { emoji: "\uD83D\uDE13", label: "Weary", category: "Tired" },
+  { emoji: "\uD83E\uDD74", label: "Burnout", category: "Tired" },
+  { emoji: "\uD83D\uDCA4", label: "Drowsy", category: "Tired" },
+  { emoji: "\uD83D\uDE2B", label: "Spent", category: "Tired" },
+  // Sad
+  { emoji: "\uD83D\uDE14", label: "Sad", category: "Sad" },
+  { emoji: "\uD83D\uDE22", label: "Crying", category: "Sad" },
+  { emoji: "\uD83D\uDE1E", label: "Disappointed", category: "Sad" },
+  { emoji: "\uD83D\uDE15", label: "Unhappy", category: "Sad" },
+  { emoji: "\uD83D\uDE29", label: "Pensive", category: "Sad" },
+  { emoji: "\uD83E\uDD13", label: "Confused", category: "Sad" },
+  { emoji: "\uD83D\uDE20", label: "Angry", category: "Sad" },
+  { emoji: "\uD83D\uDE24", label: "Frustrated", category: "Sad" },
+  { emoji: "\uD83D\uDE21", label: "Enraged", category: "Sad" },
+  { emoji: "\uD83E\uDD2C", label: "Amused", category: "Sad" },
+  { emoji: "\uD83D\uDE1B", label: "Skeptical", category: "Sad" },
+  { emoji: "\uD83E\uDD12", label: "Sick", category: "Sad" },
+  { emoji: "\uD83D\uDE1F", label: "Worried", category: "Sad" },
+  { emoji: "\uD83D\uDE27", label: "Scared", category: "Sad" },
+  { emoji: "\uD83D\uDE30", label: "Anxious", category: "Sad" },
+  { emoji: "\uD83D\uDE28", label: "Nervous", category: "Sad" },
+  { emoji: "\uD83D\uDE2C", label: "Overwhelmed", category: "Sad" },
+  { emoji: "\uD83D\uDE11", label: "Apathetic", category: "Sad" },
+  { emoji: "\uD83E\uDD11", label: "Lonely", category: "Sad" },
+  { emoji: "\uD83E\uDD17", label: "Rejected", category: "Sad" },
+  { emoji: "\uD83E\uDD1D", label: "Guilty", category: "Sad" },
+  { emoji: "\uD83E\uDD1E", label: "Embarrassed", category: "Sad" },
+  { emoji: "\uD83E\uDD1F", label: "Jealous", category: "Sad" },
+  { emoji: "\uD83D\uDE19", label: "Disgusted", category: "Sad" },
+  { emoji: "\uD83D\uDE12", label: "Unimpressed", category: "Sad" },
+  { emoji: "\uD83D\uDE33", label: "Shocked", category: "Sad" },
+  { emoji: "\uD83D\uDE2F", label: "Horrified", category: "Sad" },
+  { emoji: "\uD83E\uDD25", label: "Drooling", category: "Sad" },
+  { emoji: "\uD83E\uDD21", label: "Clowning", category: "Sad" },
+  { emoji: "\uD83E\uDD75", label: "Lying", category: "Sad" },
+  { emoji: "\uD83E\uDD76", label: "Nose Pinching", category: "Sad" },
+  { emoji: "\uD83E\uDD22", label: "Sneezing", category: "Sad" },
+  { emoji: "\uD83E\uDD2E", label: "Mind Blown", category: "Sad" },
+  { emoji: "\uD83E\uDD27", label: "Starstruck", category: "Sad" },
+  { emoji: "\uD83D\uDE0F", label: "Smirking", category: "Sad" },
+  { emoji: "\uD83D\uDE09", label: "Winking", category: "Sad" },
+  { emoji: "\uD83E\uDD14", label: "Thinking", category: "Sad" },
+  { emoji: "\uD83E\uDD35", label: "Shushing", category: "Sad" },
+  { emoji: "\uD83E\uDD18", label: "Hand on Mouth", category: "Sad" },
+  { emoji: "\uD83E\uDD19", label: "Peeking", category: "Sad" },
+  { emoji: "\uD83E\uDD1A", label: "Silent", category: "Sad" },
+  { emoji: "\uD83E\uDD1B", label: "Saluting", category: "Sad" },
+  { emoji: "\uD83E\uDD1C", label: "Earless", category: "Sad" },
+  // States
+  { emoji: "\uD83E\uDD78", label: "Monocle", category: "States" },
+  { emoji: "\uD83E\uDD28", label: "Mind Blown", category: "States" },
+  { emoji: "\uD83E\uDD2F", label: "Hugging", category: "States" },
+  { emoji: "\uD83E\uDD30", label: "Shaking", category: "States" },
+  { emoji: "\uD83E\uDD31", label: "Party", category: "States" },
+  { emoji: "\uD83E\uDD32", label: "Disguised", category: "States" },
+  { emoji: "\uD83E\uDD33", label: "Pleading", category: "States" },
+  { emoji: "\uD83E\uDD34", label: "Monocle", category: "States" },
+  { emoji: "\uD83E\uDD35", label: "Liar", category: "States" },
+  { emoji: "\uD83E\uDD70", label: "Swooning", category: "States" },
+  { emoji: "\uD83E\uDD73", label: "Tada", category: "States" },
+  { emoji: "\uD83E\uDD74", label: "Unamused", category: "States" },
+  { emoji: "\uD83E\uDD75", label: "Sweat", category: "States" },
+  { emoji: "\uD83E\uDD76", label: "Zzz", category: "States" },
+  { emoji: "\uD83E\uDD78", label: "Pinocchio", category: "States" },
+  // Gestures
+  { emoji: "\uD83D\uDC4D", label: "Thumbs Up", category: "Gestures" },
+  { emoji: "\uD83D\uDC4E", label: "Thumbs Down", category: "Gestures" },
+  { emoji: "\uD83D\uDC4B", label: "Wave", category: "Gestures" },
+  { emoji: "\uD83E\uDD1A", label: "Fist", category: "Gestures" },
+  { emoji: "\u270A", label: "Punch", category: "Gestures" },
+  { emoji: "\uD83E\uDD1B", label: "Fist Bump", category: "Gestures" },
+  { emoji: "\u270B", label: "Hand", category: "Gestures" },
+  { emoji: "\uD83E\uDD1C", label: "High Five", category: "Gestures" },
+  { emoji: "\uD83E\uDD18", label: "OK", category: "Gestures" },
+  { emoji: "\uD83E\uDD19", label: "Call Me", category: "Gestures" },
+  { emoji: "\uD83E\uDD1E", label: "Pinch", category: "Gestures" },
+  { emoji: "\uD83E\uDD1F", label: "Handshake", category: "Gestures" },
+  // Hearts
+  { emoji: "\u2764\uFE0F", label: "Red Heart", category: "Hearts" },
+  { emoji: "\uD83D\uDC94", label: "Broken Heart", category: "Hearts" },
+  { emoji: "\uD83D\uDC95", label: "Two Hearts", category: "Hearts" },
+  { emoji: "\uD83D\uDC93", label: "Sparkling Heart", category: "Hearts" },
+  { emoji: "\uD83D\uDC97", label: "Beating Heart", category: "Hearts" },
+  { emoji: "\uD83D\uDC98", label: "Heart Arrow", category: "Hearts" },
+  { emoji: "\uD83D\uDC99", label: "Purple Heart", category: "Hearts" },
+  { emoji: "\uD83D\uDC9A", label: "Green Heart", category: "Hearts" },
+  { emoji: "\uD83E\uDDE1", label: "Revolving Hearts", category: "Hearts" },
+  { emoji: "\uD83D\uDC9B", label: "Yellow Heart", category: "Hearts" },
+  { emoji: "\uD83E\uDD0D", label: "Brown Heart", category: "Hearts" },
+  { emoji: "\uD83E\uDD0E", label: "Black Heart", category: "Hearts" },
+  { emoji: "\u2763\uFE0F", label: "Heart Exclamation", category: "Hearts" },
+  { emoji: "\uD83E\uDD0F", label: "White Heart", category: "Hearts" },
+  { emoji: "\uD83E\uDD0F", label: "Orange Heart", category: "Hearts" },
+  { emoji: "\uD83E\uDD0F", label: "Pink Heart", category: "Hearts" },
 ]
 
 const teoEncouragements = [
@@ -184,7 +359,7 @@ const sampleEntries: JournalEntry[] = [
   {
     id: "2", title: "Gratitude for Small Moments",
     content: "I'm grateful for the beautiful sunrise this morning. It reminded me that every day is a new opportunity to grow.\n\nSometimes the simplest things carry the most meaning.",
-    type: "gratitude", date: "Today", dateISO: todayISO(), time: "8:15 AM", mood: "\uD83D\uDE4F",
+    type: "gratitude", date: "Today", dateISO: todayISO(), time: "8:15 AM", mood: "\uD83E\uDD72",
     tags: ["Gratitude", "Mindfulness"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
@@ -196,32 +371,14 @@ const sampleEntries: JournalEntry[] = [
   {
     id: "4", title: "Decision: Career Move",
     content: "Should I take the new role? Pros: More responsibility, better alignment with long-term vision. Cons: Less work-life balance initially. My gut says yes.",
-    type: "decision", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "2:30 PM", mood: "\uD83D\uDE0E",
+    type: "decision", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "2:30 PM", mood: "\uD83D\uDCAB",
     tags: ["Decision", "Career"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "5", title: "Dream About the Future",
     content: "I dreamed I was standing on a stage, speaking to thousands of people about intentional living. The audience was engaged and inspired.",
-    type: "dream", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "6:00 AM", mood: "\uD83E\uDD29",
+    type: "dream", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "6:00 AM", mood: "\u2728",
     tags: ["Dream", "Vision"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
-  },
-  {
-    id: "6", title: "Evening Wind-Down",
-    content: "The evening was calm. I spent time reading and reflecting on the day. Tomorrow I have an important presentation, but I feel prepared.",
-    type: "daily", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "8:30 PM", mood: "\uD83D\uDE42",
-    tags: ["Daily", "Evening"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
-  },
-  {
-    id: "7", title: "Morning Gratitude",
-    content: "Woke up feeling refreshed. The weather is beautiful today. I'm grateful for my health and the people in my life.",
-    type: "morning", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "7:00 AM", mood: "\uD83D\uDE04",
-    tags: ["Gratitude", "Morning"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
-  },
-  {
-    id: "8", title: "Quick Thought on Growth",
-    content: "Growth isn't always comfortable. Sometimes the best things happen when we step outside our comfort zone.",
-    type: "quick", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "11:30 AM", mood: "\uD83C\uDF31",
-    tags: ["Growth"], favorited: true, pinned: false, createdAt: new Date().toISOString(),
   },
 ]
 
@@ -238,14 +395,31 @@ function getWordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length
 }
 
-function getTodayPrompt(): string {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
-  return writingPrompts[dayOfYear % writingPrompts.length]
+function getCharCount(text: string): number {
+  return text.length
+}
+
+function getParagraphCount(text: string): number {
+  return text.split(/\n\n+/).filter(Boolean).length
 }
 
 function formatDateLong(iso: string): string {
   const d = new Date(iso + "T00:00:00")
-  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+  return d.toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+    const data = await res.json()
+    if (data.address) {
+      const parts = [data.address.city || data.address.town || data.address.village, data.address.country].filter(Boolean)
+      return parts.join(", ") || "Location found"
+    }
+    return "Location found"
+  } catch {
+    return "Location unavailable"
+  }
 }
 
 /* ────────────────────────────────────────────────────── */
@@ -293,9 +467,9 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 
 function Tooltip({ children, label }: { children: React.ReactNode; label: string }) {
   return (
-    <div className="relative group">
+    <div className="relative group/tooltip">
       {children}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md bg-foreground text-background text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md bg-foreground text-background text-[10px] font-medium whitespace-nowrap opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
         {label}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
       </div>
@@ -307,9 +481,10 @@ function Tooltip({ children, label }: { children: React.ReactNode; label: string
 /* Autosave Hook                                         */
 /* ────────────────────────────────────────────────────── */
 
-function useAutosave(key: string, delay: number = 3000) {
+function useAutosave(key: string, delay: number = 2000) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const save = useCallback((data: unknown) => {
@@ -320,6 +495,8 @@ function useAutosave(key: string, delay: number = 3000) {
         localStorage.setItem(key, JSON.stringify(data))
         setLastSaved(new Date())
         setIsSaving(false)
+        setShowSaved(true)
+        setTimeout(() => setShowSaved(false), 1500)
       } catch { setIsSaving(false) }
     }, delay)
   }, [key, delay])
@@ -339,7 +516,7 @@ function useAutosave(key: string, delay: number = 3000) {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
   }, [])
 
-  return { lastSaved, isSaving, save, load, clear }
+  return { lastSaved, isSaving, showSaved, save, load, clear }
 }
 
 /* ────────────────────────────────────────────────────── */
@@ -757,7 +934,7 @@ function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onC
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">T\u00E9o AI Writing Assistant</span>
+          <span className="text-sm font-semibold">Teo AI Writing Assistant</span>
         </div>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
           <X className="h-3.5 w-3.5" />
@@ -780,7 +957,7 @@ function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onC
       {loading && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
           <Loader2 className="h-3 w-3 animate-spin" />
-          <span>T\u00E9o is thinking...</span>
+          <span>Teo is thinking...</span>
         </div>
       )}
 
@@ -794,7 +971,7 @@ function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onC
         <Input
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Ask T\u00E0o anything about your writing..."
+          placeholder="Ask Teo anything about your writing..."
           className="text-xs h-8"
         />
         <Button size="sm" className="h-8 text-xs" onClick={() => {
@@ -811,6 +988,150 @@ function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onC
         </Button>
       </div>
     </motion.div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Voice Recorder Component                              */
+/* ────────────────────────────────────────────────────── */
+
+function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
+  recordings: AudioRecording[]
+  onAdd: (recording: AudioRecording) => void
+  onDelete: (id: string) => void
+  onRename: (id: string, name: string) => void
+}) {
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [playingId, setPlayingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState("")
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const toggleRecording = useCallback(async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop()
+      if (timerRef.current) clearInterval(timerRef.current)
+      setIsRecording(false)
+      setRecordingTime(0)
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        const mediaRecorder = new MediaRecorder(stream)
+        mediaRecorderRef.current = mediaRecorder
+        const chunks: Blob[] = []
+        mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: "audio/webm" })
+          const url = URL.createObjectURL(blob)
+          onAdd({
+            id: `audio-${Date.now()}`,
+            name: `Recording ${recordings.length + 1}`,
+            url,
+            duration: recordingTime,
+            createdAt: new Date().toISOString(),
+          })
+          stream.getTracks().forEach((t) => t.stop())
+        }
+        mediaRecorder.start()
+        setIsRecording(true)
+        setRecordingTime(0)
+        timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000)
+      } catch {
+        console.log("Microphone access denied")
+      }
+    }
+  }, [isRecording, onAdd, recordings.length, recordingTime])
+
+  const playRecording = useCallback((recording: AudioRecording) => {
+    if (playingId === recording.id) {
+      audioRef.current?.pause()
+      setPlayingId(null)
+    } else {
+      if (audioRef.current) audioRef.current.pause()
+      const audio = new Audio(recording.url)
+      audio.onended = () => setPlayingId(null)
+      audio.play()
+      audioRef.current = audio
+      setPlayingId(recording.id)
+    }
+  }, [playingId])
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${String(s).padStart(2, "0")}`
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      if (audioRef.current) audioRef.current.pause()
+    }
+  }, [])
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Tooltip label={isRecording ? "Stop Recording" : "Start Recording"}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-8 w-8 ${isRecording ? "text-red-500 bg-red-500/10" : ""}`}
+            onClick={toggleRecording}
+          >
+            {isRecording ? <StopCircle className="h-4 w-4" /> : <MicIcon className="h-4 w-4" />}
+          </Button>
+        </Tooltip>
+        {isRecording && (
+          <span className="text-xs text-red-500 font-medium tabular-nums">{formatTime(recordingTime)}</span>
+        )}
+      </div>
+
+      {recordings.length > 0 && (
+        <div className="space-y-1.5">
+          {recordings.map((rec) => (
+            <div key={rec.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/30 group">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() => playRecording(rec)}
+              >
+                {playingId === rec.id ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              </Button>
+              {editingId === rec.id ? (
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={() => { onRename(rec.id, editName); setEditingId(null) }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { onRename(rec.id, editName); setEditingId(null) } }}
+                  className="flex-1 text-xs bg-transparent focus:outline-none"
+                  autoFocus
+                />
+              ) : (
+                <span className="flex-1 text-xs truncate">{rec.name}</span>
+              )}
+              <span className="text-[10px] text-muted-foreground tabular-nums">{formatTime(rec.duration)}</span>
+              <button
+                onClick={() => { setEditingId(rec.id); setEditName(rec.name) }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              </button>
+              <button
+                onClick={() => onDelete(rec.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -852,10 +1173,10 @@ function FocusModeOverlay({ children, onExit }: { children: React.ReactNode; onE
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Minimal Formatting Toolbar                            */
+/* Formatting Toolbar                                    */
 /* ────────────────────────────────────────────────────── */
 
-function FormattingToolbar({ onFormat }: { onFormat: (action: string) => void }) {
+function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: string) => void; activeFormats: Set<string> }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
 
@@ -868,31 +1189,48 @@ function FormattingToolbar({ onFormat }: { onFormat: (action: string) => void })
     if (moreOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
   }, [moreOpen])
 
+  const fmtBtn = (action: string, icon: React.ReactNode, label: string) => (
+    <Tooltip label={label}>
+      <button
+        onClick={() => onFormat(action)}
+        className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
+          activeFormats.has(action) ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
+        }`}
+      >
+        {icon}
+      </button>
+    </Tooltip>
+  )
+
   return (
     <div className="flex items-center gap-0.5 flex-wrap py-2 border-t border-border/40">
-      {/* Default visible actions */}
-      <Tooltip label="Bold"><button onClick={() => onFormat("bold")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Bold className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
-      <Tooltip label="Italic"><button onClick={() => onFormat("italic")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Italic className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
-      <Tooltip label="Underline"><button onClick={() => onFormat("underline")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Underline className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
-      <Tooltip label="Strikethrough"><button onClick={() => onFormat("strikethrough")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Strikethrough className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      {fmtBtn("bold", <Bold className="h-3.5 w-3.5" />, "Bold (Ctrl+B)")}
+      {fmtBtn("italic", <Italic className="h-3.5 w-3.5" />, "Italic (Ctrl+I)")}
+      {fmtBtn("underline", <Underline className="h-3.5 w-3.5" />, "Underline (Ctrl+U)")}
+      {fmtBtn("strikethrough", <Strikethrough className="h-3.5 w-3.5" />, "Strikethrough")}
 
       <div className="w-px h-4 bg-border/40 mx-1" />
 
-      <Tooltip label="Bullet List"><button onClick={() => onFormat("bulletList")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><List className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
-      <Tooltip label="Checklist"><button onClick={() => onFormat("checklist")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><CheckSquare className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
-      <Tooltip label="Text Colour"><button onClick={() => onFormat("textColour")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Palette className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
-      <Tooltip label="Highlight"><button onClick={() => onFormat("highlight")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Highlighter className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      {fmtBtn("bulletList", <List className="h-3.5 w-3.5" />, "Bullet List")}
+      {fmtBtn("numberedList", <ListOrdered className="h-3.5 w-3.5" />, "Numbered List")}
+      {fmtBtn("checklist", <CheckSquare className="h-3.5 w-3.5" />, "Checklist")}
+      {fmtBtn("quote", <Quote className="h-3.5 w-3.5" />, "Quote")}
+      {fmtBtn("code", <Code className="h-3.5 w-3.5" />, "Code Block")}
 
       <div className="w-px h-4 bg-border/40 mx-1" />
 
-      <Tooltip label="Undo"><button onClick={() => onFormat("undo")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Undo2 className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
-      <Tooltip label="Redo"><button onClick={() => onFormat("redo")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Redo2 className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      {fmtBtn("textColour", <Palette className="h-3.5 w-3.5" />, "Text Colour")}
+      {fmtBtn("highlight", <Highlighter className="h-3.5 w-3.5" />, "Highlight")}
 
       <div className="w-px h-4 bg-border/40 mx-1" />
 
-      {/* More button */}
+      {fmtBtn("undo", <Undo2 className="h-3.5 w-3.5" />, "Undo (Ctrl+Z)")}
+      {fmtBtn("redo", <Redo2 className="h-3.5 w-3.5" />, "Redo (Ctrl+Shift+Z)")}
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
       <div className="relative" ref={moreRef}>
-        <Tooltip label="More">
+        <Tooltip label="More Options">
           <button
             onClick={() => setMoreOpen(!moreOpen)}
             className="h-7 px-2 flex items-center justify-center rounded-md hover:bg-muted transition-colors gap-0.5"
@@ -918,17 +1256,8 @@ function FormattingToolbar({ onFormat }: { onFormat: (action: string) => void })
               <button onClick={() => { onFormat("h3"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
                 <Heading3 className="h-3.5 w-3.5" /> Heading 3
               </button>
-              <button onClick={() => { onFormat("numberedList"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <ListOrdered className="h-3.5 w-3.5" /> Numbered List
-              </button>
-              <button onClick={() => { onFormat("quote"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Quote className="h-3.5 w-3.5" /> Quote
-              </button>
-              <button onClick={() => { onFormat("code"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Code className="h-3.5 w-3.5" /> Code Block
-              </button>
               <button onClick={() => { onFormat("link"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Link className="h-3.5 w-3.5" /> Hyperlink
+                <Link className="h-3.5 w-3.5" /> Hyperlink (Ctrl+K)
               </button>
               <button onClick={() => { onFormat("divider"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
                 <Minus className="h-3.5 w-3.5" /> Horizontal Divider
@@ -947,6 +1276,9 @@ function FormattingToolbar({ onFormat }: { onFormat: (action: string) => void })
                 <AlignJustify className="h-3.5 w-3.5" /> Justify
               </button>
               <div className="h-px bg-border my-1" />
+              <button onClick={() => { onFormat("inlineCode"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Code className="h-3.5 w-3.5" /> Inline Code
+              </button>
               <button onClick={() => { onFormat("clearFormatting"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
                 <Type className="h-3.5 w-3.5" /> Clear Formatting
               </button>
@@ -968,7 +1300,7 @@ function WritingArea({
   onSaveSuccess,
 }: {
   onCreated: (entry: JournalEntry) => void
-  autosave: { lastSaved: Date | null; isSaving: boolean; save: (data: unknown) => void; load: () => Record<string, unknown> | null; clear: () => void }
+  autosave: { lastSaved: Date | null; isSaving: boolean; showSaved: boolean; save: (data: unknown) => void; load: () => Record<string, unknown> | null; clear: () => void }
   onSaveSuccess: (message: string) => void
 }) {
   const draft = useMemo(() => autosave.load(), [autosave])
@@ -977,20 +1309,26 @@ function WritingArea({
   const [type, setType] = useState<JournalType>((draft?.type as JournalType) || "daily")
   const [tags, setTags] = useState((draft?.tags as string) || "")
   const [mood, setMood] = useState<string | undefined>(draft?.mood as string | undefined)
+  const [customMood, setCustomMood] = useState<{ emoji: string; label: string } | null>(null)
   const [isFocused, setIsFocused] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
   const [moodOpen, setMoodOpen] = useState(false)
+  const [customMoodOpen, setCustomMoodOpen] = useState(false)
+  const [customEmoji, setCustomEmoji] = useState("\uD83D\uDE0A")
+  const [customMoodLabel, setCustomMoodLabel] = useState("")
   const [focusMode, setFocusMode] = useState(false)
   const [teoOpen, setTeoOpen] = useState(false)
   const [images, setImages] = useState<string[]>([])
-  const [isRecording, setIsRecording] = useState(false)
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [recordings, setRecordings] = useState<AudioRecording[]>([])
   const [location, setLocation] = useState<string>("")
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set())
   const moodRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const prompt = useMemo(() => getTodayPrompt(), [])
+  const writingStartTime = useRef<Date>(new Date())
+
+  const currentPrompt = useMemo(() => journalTypeConfig[type].prompt, [type])
+  const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
 
   const autoExpand = useCallback(() => {
     const el = textareaRef.current
@@ -1001,19 +1339,13 @@ function WritingArea({
 
   useEffect(() => { autoExpand() }, [content, autoExpand])
 
+  // Auto-save
   useEffect(() => {
-    autosave.save({ title, content, type, tags, mood })
-  }, [title, content, type, tags, mood, autosave])
-
-  useEffect(() => {
-    if (autosave.isSaving) {
-      setSaveStatus("saving")
-    } else if (autosave.lastSaved) {
-      setSaveStatus("saved")
-      const timer = setTimeout(() => setSaveStatus("idle"), 2500)
-      return () => clearTimeout(timer)
-    }
-  }, [autosave.isSaving, autosave.lastSaved])
+    autosave.save({
+      title, content, type, tags, mood, customMood,
+      images, recordings: recordings.map((r) => ({ ...r, url: "" })), location,
+    })
+  }, [title, content, type, tags, mood, customMood, images, recordings, location, autosave])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -1024,12 +1356,21 @@ function WritingArea({
     if (moodOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
   }, [moodOpen])
 
-  // F11 keyboard shortcut for focus mode
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "F11") {
         e.preventDefault()
         setFocusMode((prev) => !prev)
+      }
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === "b") { e.preventDefault(); document.execCommand("bold") }
+        if (e.key === "i") { e.preventDefault(); document.execCommand("italic") }
+        if (e.key === "u") { e.preventDefault(); document.execCommand("underline") }
+        if (e.key === "k") { e.preventDefault(); handleFormat("link") }
+        if (e.key === "z" && e.shiftKey) { e.preventDefault(); document.execCommand("redo") }
+        if (e.key === "z" && !e.shiftKey) { e.preventDefault(); document.execCommand("undo") }
+        if (e.key === "s") { e.preventDefault(); handleSave() }
       }
     }
     document.addEventListener("keydown", handler)
@@ -1039,6 +1380,7 @@ function WritingArea({
   const handleSave = useCallback(() => {
     if (!content.trim()) return
     const now = new Date()
+    const writingDuration = Math.round((now.getTime() - writingStartTime.current.getTime()) / 60000)
     const entry: JournalEntry = {
       id: `entry-${Date.now()}`,
       title: title || "Untitled Entry",
@@ -1047,37 +1389,77 @@ function WritingArea({
       date: "Today",
       dateISO: todayISO(),
       time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      mood,
+      mood: customMood ? `${customMood.emoji} ${customMood.label}` : mood,
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       favorited: false,
       pinned: false,
       createdAt: now.toISOString(),
       images,
-      audioUrl: audioUrl || undefined,
+      audioRecordings: recordings,
       location: location || undefined,
     }
     onCreated(entry)
-    setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily")
-    setImages([]); setAudioUrl(null); setLocation("")
+    setTitle(""); setContent(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
+    setImages([]); setRecordings([]); setLocation("")
     autosave.clear()
     const encouragement = teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]
     onSaveSuccess(encouragement)
-  }, [title, content, type, tags, mood, images, audioUrl, location, onCreated, autosave, onSaveSuccess])
+  }, [title, content, type, tags, mood, customMood, images, recordings, location, onCreated, autosave, onSaveSuccess])
 
   const handleCancel = useCallback(() => {
-    setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily")
-    setImages([]); setAudioUrl(null); setLocation("")
+    setTitle(""); setContent(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
+    setImages([]); setRecordings([]); setLocation("")
     autosave.clear()
     setIsFocused(false)
   }, [autosave])
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); handleSave() }
-  }, [handleSave])
-
   const handleFormat = useCallback((action: string) => {
-    console.log("Format action:", action)
-  }, [])
+    setActiveFormats((prev) => {
+      const next = new Set(prev)
+      if (next.has(action)) next.delete(action)
+      else next.add(action)
+      return next
+    })
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selected = content.substring(start, end)
+
+    const formatMap: Record<string, (s: string) => string> = {
+      bold: (s) => `**${s}**`,
+      italic: (s) => `*${s}*`,
+      underline: (s) => `__${s}__`,
+      strikethrough: (s) => `~~${s}~~`,
+      h1: (s) => `# ${s}`,
+      h2: (s) => `## ${s}`,
+      h3: (s) => `### ${s}`,
+      quote: (s) => `> ${s}`,
+      code: (s) => `\`\`\`\n${s}\n\`\`\``,
+      inlineCode: (s) => `\`${s}\``,
+      bulletList: (s) => s.split("\n").map((l) => `- ${l}`).join("\n"),
+      numberedList: (s) => s.split("\n").map((l, i) => `${i + 1}. ${l}`).join("\n"),
+      checklist: (s) => s.split("\n").map((l) => `- [ ] ${l}`).join("\n"),
+      divider: () => "\n---\n",
+      link: (s) => `[${s}](url)`,
+      textColour: (s) => `<span style="color: var(--brand-primary)">${s}</span>`,
+      highlight: (s) => `<mark>${s}</mark>`,
+    }
+
+    if (formatMap[action]) {
+      const formatted = formatMap[action](selected || "text")
+      const newContent = content.substring(0, start) + formatted + content.substring(end)
+      setContent(newContent)
+    }
+
+    if (action === "undo") document.execCommand("undo")
+    if (action === "redo") document.execCommand("redo")
+    if (action === "clearFormatting") {
+      const cleaned = selected.replace(/[*_~`#>\[\]()-]/g, "")
+      const newContent = content.substring(0, start) + cleaned + content.substring(end)
+      setContent(newContent)
+    }
+  }, [content])
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -1096,46 +1478,43 @@ function WritingArea({
     setImages((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  const toggleRecording = useCallback(async () => {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop()
-      setIsRecording(false)
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        const mediaRecorder = new MediaRecorder(stream)
-        mediaRecorderRef.current = mediaRecorder
-        const chunks: Blob[] = []
-        mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: "audio/webm" })
-          setAudioUrl(URL.createObjectURL(blob))
-          stream.getTracks().forEach((t) => t.stop())
-        }
-        mediaRecorder.start()
-        setIsRecording(true)
-      } catch {
-        console.log("Microphone access denied")
-      }
-    }
-  }, [isRecording])
-
-  const handleGetLocation = useCallback(() => {
+  const handleGetLocation = useCallback(async () => {
+    setLocationLoading(true)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`)
+        async (pos) => {
+          const address = await reverseGeocode(pos.coords.latitude, pos.coords.longitude)
+          setLocation(address)
+          setLocationLoading(false)
         },
         () => {
           setLocation("Location unavailable")
+          setLocationLoading(false)
         }
       )
+    } else {
+      setLocation("Location unavailable")
+      setLocationLoading(false)
     }
   }, [])
 
+  const addRecording = useCallback((recording: AudioRecording) => {
+    setRecordings((prev) => [...prev, recording])
+  }, [])
+
+  const deleteRecording = useCallback((id: string) => {
+    setRecordings((prev) => prev.filter((r) => r.id !== id))
+  }, [])
+
+  const renameRecording = useCallback((id: string, name: string) => {
+    setRecordings((prev) => prev.map((r) => r.id === id ? { ...r, name } : r))
+  }, [])
+
   const wordCount = getWordCount(content)
+  const charCount = getCharCount(content)
   const readTime = estimateReadTime(content)
-  const selectedMood = moodOptions.find((m) => m.emoji === mood)
+  const paraCount = getParagraphCount(content)
+  const selectedMood = customMood || moods.find((m) => m.emoji === mood)
 
   const editorContent = (
     <motion.div
@@ -1154,34 +1533,33 @@ function WritingArea({
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
       <div className="p-5 md:p-6 space-y-3">
-        {/* Title */}
-        <Input
+        {/* Title - Clean, no background */}
+        <input
+          type="text"
           placeholder="Give your thoughts a title..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => !content && setIsFocused(false)}
-          className="border-0 text-xl font-semibold px-0 focus-visible:ring-0 placeholder:text-muted-foreground/30 h-auto"
+          className="w-full border-0 bg-transparent text-xl font-semibold focus:outline-none placeholder:text-muted-foreground/30 pb-3 border-b border-border/40"
         />
-
-        {/* Title/Body Divider */}
-        <div className="h-px bg-border/40 w-full" />
 
         {/* Writing area */}
         <textarea
           ref={textareaRef}
           value={content}
           onChange={(e) => { setContent(e.target.value); autoExpand() }}
-          onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => !title && setIsFocused(false)}
-          placeholder={prompt}
+          placeholder={currentPrompt}
           rows={4}
           className="w-full bg-transparent text-[15px] leading-[1.8] resize-none focus:outline-none placeholder:text-muted-foreground/40 min-h-[140px] transition-[height] duration-200 ease-out"
           style={{ height: "auto" }}
+          spellCheck
+          lang="en-GB"
         />
 
-        {/* Téo AI Panel */}
+        {/* Teo AI Panel */}
         <AnimatePresence>
           {teoOpen && (
             <TeoPanel
@@ -1208,12 +1586,13 @@ function WritingArea({
           </div>
         )}
 
-        {/* Audio Preview */}
-        {audioUrl && (
-          <div className="py-2">
-            <audio controls src={audioUrl} className="h-8 w-full" />
-          </div>
-        )}
+        {/* Voice Recordings */}
+        <VoiceRecorder
+          recordings={recordings}
+          onAdd={addRecording}
+          onDelete={deleteRecording}
+          onRename={renameRecording}
+        />
 
         {/* Location */}
         {location && (
@@ -1227,7 +1606,7 @@ function WritingArea({
         )}
 
         {/* Formatting Toolbar */}
-        <FormattingToolbar onFormat={handleFormat} />
+        <FormattingToolbar onFormat={handleFormat} activeFormats={activeFormats} />
 
         {/* Row 1: Type, Mood, Tags */}
         <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
@@ -1261,20 +1640,32 @@ function WritingArea({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -4 }}
                   transition={{ duration: 0.12 }}
-                  className="absolute left-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-30 max-h-64 overflow-y-auto"
+                  className="absolute left-0 top-full mt-1 w-64 rounded-xl border bg-background shadow-xl p-1 z-30 max-h-72 overflow-y-auto"
                 >
-                  {moodOptions.map((m) => (
-                    <button
-                      key={m.emoji}
-                      onClick={() => { setMood(mood === m.emoji ? undefined : m.emoji); setMoodOpen(false) }}
-                      className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg transition-colors text-left ${
-                        mood === m.emoji ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
-                      }`}
-                    >
-                      <span className="text-sm">{m.emoji}</span>
-                      <span>{m.label}</span>
-                    </button>
+                  {["Positive", "Calm", "Tired", "Sad", "States", "Gestures", "Hearts"].map((category) => (
+                    <div key={category}>
+                      <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase">{category}</div>
+                      {moods.filter((m) => m.category === category).map((m) => (
+                        <button
+                          key={`${m.emoji}-${m.label}`}
+                          onClick={() => { setMood(m.emoji); setCustomMood(null); setMoodOpen(false) }}
+                          className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg transition-colors text-left ${
+                            mood === m.emoji && !customMood ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
+                          }`}
+                        >
+                          <span className="text-sm">{m.emoji}</span>
+                          <span>{m.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   ))}
+                  <div className="h-px bg-border my-1" />
+                  <button
+                    onClick={() => { setCustomMoodOpen(true); setMoodOpen(false) }}
+                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
+                  >
+                    <PlusCircle className="h-3.5 w-3.5" /> Other Mood...
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1294,7 +1685,7 @@ function WritingArea({
         {/* Row 2: Action buttons + Stats + Save */}
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <div className="flex items-center gap-1">
-            <Tooltip label="T\u00E9o AI">
+            <Tooltip label="Ask Teo">
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setTeoOpen(!teoOpen)}>
                 <Sparkles className="h-3.5 w-3.5 text-primary/70" />
               </Button>
@@ -1304,13 +1695,8 @@ function WritingArea({
                 <Camera className="h-3.5 w-3.5" />
               </Button>
             </Tooltip>
-            <Tooltip label={isRecording ? "Stop Recording" : "Voice Recording"}>
-              <Button variant="ghost" size="icon" className={`h-7 w-7 ${isRecording ? "text-red-500" : ""}`} onClick={toggleRecording}>
-                <Mic className="h-3.5 w-3.5" />
-              </Button>
-            </Tooltip>
             <Tooltip label="Add Location">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleGetLocation}>
+              <Button variant="ghost" size="icon" className={`h-7 w-7 ${locationLoading ? "animate-pulse" : ""}`} onClick={handleGetLocation}>
                 <MapPinIcon className="h-3.5 w-3.5" />
               </Button>
             </Tooltip>
@@ -1321,15 +1707,19 @@ function WritingArea({
             <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
               <span className="tabular-nums">{wordCount} words</span>
               <span className="text-muted-foreground/40">·</span>
+              <span className="tabular-nums">{charCount} chars</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="tabular-nums">{paraCount} paragraphs</span>
+              <span className="text-muted-foreground/40">·</span>
               <span className="tabular-nums">{readTime} min read</span>
               <AnimatePresence>
-                {saveStatus === "saving" && (
-                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-muted-foreground">
-                    Saving...
-                  </motion.span>
-                )}
-                {saveStatus === "saved" && (
-                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-emerald-500 font-medium">
+                {autosave.showSaved && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="text-emerald-500 font-medium"
+                  >
                     {"\u2713"} Saved
                   </motion.span>
                 )}
@@ -1352,13 +1742,15 @@ function WritingArea({
 
   return (
     <>
-      {/* Focus Mode Toggle */}
+      {/* Focus Mode Toggle - Circular button like Calendar */}
       <div className="flex items-center justify-end mb-2">
-        <Tooltip label="Focus Mode (F11)">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setFocusMode(true)}>
-            <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
-        </Tooltip>
+        <button
+          className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+          style={{ backgroundColor: "var(--brand-primary)" }}
+          onClick={() => setFocusMode(true)}
+        >
+          <Maximize2 className="h-4 w-4" />
+        </button>
       </div>
 
       {focusMode ? (
@@ -1366,12 +1758,72 @@ function WritingArea({
           {editorContent}
         </FocusModeOverlay>
       ) : editorContent}
+
+      {/* Custom Mood Modal */}
+      <AnimatePresence>
+        {customMoodOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center"
+            onClick={() => setCustomMoodOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-card rounded-2xl border shadow-xl p-6 w-80"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-sm font-semibold mb-4">Create Custom Mood</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Emoji</label>
+                  <input
+                    type="text"
+                    value={customEmoji}
+                    onChange={(e) => setCustomEmoji(e.target.value)}
+                    className="w-full text-2xl text-center p-2 rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
+                    maxLength={2}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Mood Name</label>
+                  <input
+                    type="text"
+                    value={customMoodLabel}
+                    onChange={(e) => setCustomMoodLabel(e.target.value)}
+                    placeholder="e.g., Energized"
+                    className="w-full text-sm p-2 rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="ghost" size="sm" onClick={() => setCustomMoodOpen(false)}>Cancel</Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (customMoodLabel.trim()) {
+                      setCustomMood({ emoji: customEmoji, label: customMoodLabel })
+                      setMood(undefined)
+                      setCustomMoodOpen(false)
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Entry Reader — Full Reading View                      */
+/* Entry Reader                                          */
 /* ────────────────────────────────────────────────────── */
 
 function EntryReader({
@@ -1422,10 +1874,7 @@ function EntryReader({
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 className="absolute right-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-20"
               >
-                <button
-                  onClick={() => { onDuplicate(); setMenuOpen(false) }}
-                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left"
-                >
+                <button onClick={() => { onDuplicate(); setMenuOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
                   <Copy className="h-3.5 w-3.5" /> Duplicate
                 </button>
                 <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
@@ -1435,10 +1884,7 @@ function EntryReader({
                   <Printer className="h-3.5 w-3.5" /> Print
                 </button>
                 <div className="h-px bg-border my-1" />
-                <button
-                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left"
-                  onClick={() => { onDelete(); setMenuOpen(false) }}
-                >
+                <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left" onClick={() => { onDelete(); setMenuOpen(false) }}>
                   <Trash2 className="h-3.5 w-3.5" /> Delete
                 </button>
               </motion.div>
@@ -1449,16 +1895,11 @@ function EntryReader({
 
       <article className="max-w-3xl mx-auto">
         <div className="flex items-center gap-2 mb-4">
-          <span
-            className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: cfg.accent, color: cfg.color }}
-          >
+          <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ backgroundColor: cfg.accent, color: cfg.color }}>
             {cfg.label}
           </span>
           {entry.pinned && (
-            <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary/10 text-primary">
-              Pinned
-            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary/10 text-primary">Pinned</span>
           )}
         </div>
 
@@ -1505,12 +1946,14 @@ export function JournalPage() {
   const [toasts, setToasts] = useState<Toast[]>([])
   const calendarRef = useRef<HTMLDivElement>(null)
 
-  const draftAutosave = useAutosave("intenteo-journal-draft", 3000)
+  const draftAutosave = useAutosave("intenteo-journal-draft", 2000)
 
   const streak = useMemo(() => {
     const today = entries.filter((e) => e.dateISO === todayISO()).length
     return today > 0 ? 18 : 17
   }, [entries])
+
+  const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
 
   const addToast = useCallback((message: string, type: "success" | "info" = "success") => {
     const id = `toast-${Date.now()}`
@@ -1596,40 +2039,45 @@ export function JournalPage() {
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">Journal</h1>
-          <div className="flex items-center gap-3">
-            {/* Calendar Icon */}
-            <div className="relative" ref={calendarRef}>
-              <button
-                className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-                style={{ backgroundColor: "var(--brand-primary)" }}
-                onClick={() => setCalendarOpen(!calendarOpen)}
-              >
-                <Calendar className="h-4 w-4" />
-              </button>
-              <AnimatePresence>
-                {calendarOpen && (
-                  <PopoverCalendar
-                    entries={entries}
-                    selectedDate={selectedDate}
-                    onSelectDate={handleSelectDate}
-                    onClose={() => setCalendarOpen(false)}
-                  />
-                )}
-              </AnimatePresence>
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Journal</h1>
+              <p className="text-sm text-muted-foreground mt-1">{greeting}</p>
             </div>
+            <div className="flex items-center gap-3">
+              {/* Calendar Icon */}
+              <div className="relative" ref={calendarRef}>
+                <button
+                  className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  style={{ backgroundColor: "var(--brand-primary)" }}
+                  onClick={() => setCalendarOpen(!calendarOpen)}
+                >
+                  <Calendar className="h-4 w-4" />
+                </button>
+                <AnimatePresence>
+                  {calendarOpen && (
+                    <PopoverCalendar
+                      entries={entries}
+                      selectedDate={selectedDate}
+                      onSelectDate={handleSelectDate}
+                      onClose={() => setCalendarOpen(false)}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
 
-            {/* Streak */}
-            <StreakCircle streak={streak} />
+              {/* Streak */}
+              <StreakCircle streak={streak} />
 
-            {/* New Entry Button */}
-            <Button className="glow h-9" onClick={() => {
-              const el = document.querySelector("[data-writing-area]")
-              el?.scrollIntoView({ behavior: "smooth" })
-            }}>
-              <Plus className="mr-1 h-4 w-4" /> New Entry
-            </Button>
+              {/* New Entry Button */}
+              <Button className="glow h-9" onClick={() => {
+                const el = document.querySelector("[data-writing-area]")
+                el?.scrollIntoView({ behavior: "smooth" })
+              }}>
+                <Plus className="mr-1 h-4 w-4" /> New Entry
+              </Button>
+            </div>
           </div>
         </div>
 
