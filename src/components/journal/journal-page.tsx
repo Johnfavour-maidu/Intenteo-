@@ -74,6 +74,7 @@ import {
   PlusCircle,
   Pencil,
   CheckCircle,
+  Search,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -181,38 +182,22 @@ const journalGreetings = [
 ]
 
 const moods: { emoji: string; label: string; category: string }[] = [
-  // Positive
-  { emoji: "\uD83D\uDE00", label: "Happy", category: "Positive" },
-  { emoji: "\uD83D\uDE04", label: "Joyful", category: "Positive" },
-  { emoji: "\uD83D\uDE01", label: "Grinning", category: "Positive" },
-  { emoji: "\uD83D\uDE06", label: "Laughing", category: "Positive" },
-  { emoji: "\uD83E\uDD29", label: "Excited", category: "Positive" },
-  { emoji: "\uD83E\uDD73", label: "Celebrating", category: "Positive" },
-  { emoji: "\uD83D\uDE0E", label: "Confident", category: "Positive" },
-  { emoji: "\uD83D\uDE0A", label: "Content", category: "Positive" },
-  { emoji: "\uD83D\uDE42", label: "Good", category: "Positive" },
-  { emoji: "\uD83D\uDE0C", label: "Peaceful", category: "Positive" },
-  { emoji: "\uD83E\uDD70", label: "Loved", category: "Positive" },
-  { emoji: "\u2764\uFE0F", label: "In Love", category: "Positive" },
-  { emoji: "\uD83E\uDDE1", label: "Accepted", category: "Positive" },
-  { emoji: "\uD83E\uDD7D", label: "Proud", category: "Positive" },
-  { emoji: "\uD83D\uDCAB", label: "Inspired", category: "Positive" },
-  { emoji: "\uD83E\uDD14", label: "Curious", category: "Positive" },
-  { emoji: "\uD83E\uDD2D", label: "Playful", category: "Positive" },
-  { emoji: "\uD83D\uDE07", label: "Trusting", category: "Positive" },
-  { emoji: "\uD83E\uDD72", label: "Grateful", category: "Positive" },
-  { emoji: "\uD83D\uDE0D", label: "Charming", category: "Positive" },
-  { emoji: "\uD83E\uDD20", label: "Cool", category: "Positive" },
-  { emoji: "\uD83D\uDC4D", label: "Approving", category: "Positive" },
-  { emoji: "\uD83D\uDE4F", label: "Thankful", category: "Positive" },
-  { emoji: "\uD83C\uDF1F", label: "Hopeful", category: "Positive" },
-  { emoji: "\uD83C\uDF08", label: "Optimistic", category: "Positive" },
-  { emoji: "\uD83C\uDF31", label: "Growing", category: "Positive" },
-  { emoji: "\uD83D\uDD25", label: "Motivated", category: "Positive" },
-  { emoji: "\uD83D\uDCAA", label: "Strong", category: "Positive" },
-  { emoji: "\uD83C\uDFAF", label: "Focused", category: "Positive" },
-  { emoji: "\u2728", label: "Magical", category: "Positive" },
-  // Calm
+  { emoji: "\uD83D\uDE00", label: "Happy", category: "Joyful" },
+  { emoji: "\uD83D\uDE04", label: "Joyful", category: "Joyful" },
+  { emoji: "\uD83D\uDE01", label: "Grinning", category: "Joyful" },
+  { emoji: "\uD83D\uDE06", label: "Laughing", category: "Joyful" },
+  { emoji: "\uD83E\uDD29", label: "Excited", category: "Joyful" },
+  { emoji: "\uD83E\uDD73", label: "Celebrating", category: "Joyful" },
+  { emoji: "\uD83D\uDCAB", label: "Inspired", category: "Joyful" },
+  { emoji: "\uD83D\uDD25", label: "Motivated", category: "Joyful" },
+  { emoji: "\uD83C\uDF1F", label: "Hopeful", category: "Joyful" },
+  { emoji: "\uD83C\uDF08", label: "Optimistic", category: "Joyful" },
+  { emoji: "\u2728", label: "Magical", category: "Joyful" },
+  { emoji: "\uD83E\uDD29", label: "Playful", category: "Joyful" },
+  { emoji: "\uD83D\uDE0E", label: "Confident", category: "Joyful" },
+  { emoji: "\uD83D\uDCAA", label: "Strong", category: "Joyful" },
+  { emoji: "\uD83C\uDFAF", label: "Focused", category: "Joyful" },
+  { emoji: "\uD83E\uDD7D", label: "Proud", category: "Joyful" },
   { emoji: "\uD83D\uDE0C", label: "Calm", category: "Calm" },
   { emoji: "\uD83E\uDDD8", label: "Zen", category: "Calm" },
   { emoji: "\uD83C\uDF27\uFE0F", label: "Serene", category: "Calm" },
@@ -223,7 +208,18 @@ const moods: { emoji: string; label: string; category: string }[] = [
   { emoji: "\uD83C\uDF32", label: "Grounded", category: "Calm" },
   { emoji: "\uD83C\uDF3F", label: "Centered", category: "Calm" },
   { emoji: "\uD83C\uDF3B", label: "Balanced", category: "Calm" },
-  // Tired
+  { emoji: "\uD83E\uDD72", label: "Grateful", category: "Calm" },
+  { emoji: "\uD83D\uDE0A", label: "Content", category: "Calm" },
+  { emoji: "\uD83E\uDD70", label: "Loved", category: "Calm" },
+  { emoji: "\u2764\uFE0F", label: "In Love", category: "Calm" },
+  { emoji: "\uD83E\uDDE1", label: "Accepted", category: "Calm" },
+  { emoji: "\uD83D\uDE42", label: "Good", category: "Calm" },
+  { emoji: "\uD83D\uDE07", label: "Trusting", category: "Calm" },
+  { emoji: "\uD83D\uDE0D", label: "Charming", category: "Calm" },
+  { emoji: "\uD83E\uDD20", label: "Cool", category: "Calm" },
+  { emoji: "\uD83D\uDC4D", label: "Approving", category: "Calm" },
+  { emoji: "\uD83D\uDE4F", label: "Thankful", category: "Calm" },
+  { emoji: "\uD83C\uDF31", label: "Growing", category: "Calm" },
   { emoji: "\uD83D\uDE34", label: "Sleepy", category: "Tired" },
   { emoji: "\uD83D\uDE0B", label: "Tired", category: "Tired" },
   { emoji: "\uD83D\uDE2A", label: "Exhausted", category: "Tired" },
@@ -232,7 +228,8 @@ const moods: { emoji: string; label: string; category: string }[] = [
   { emoji: "\uD83E\uDD74", label: "Burnout", category: "Tired" },
   { emoji: "\uD83D\uDCA4", label: "Drowsy", category: "Tired" },
   { emoji: "\uD83D\uDE2B", label: "Spent", category: "Tired" },
-  // Sad
+  { emoji: "\uD83E\uDD2B", label: "Stressed", category: "Tired" },
+  { emoji: "\uD83E\uDD25", label: "Overwhelmed", category: "Tired" },
   { emoji: "\uD83D\uDE14", label: "Sad", category: "Sad" },
   { emoji: "\uD83D\uDE22", label: "Crying", category: "Sad" },
   { emoji: "\uD83D\uDE1E", label: "Disappointed", category: "Sad" },
@@ -260,10 +257,7 @@ const moods: { emoji: string; label: string; category: string }[] = [
   { emoji: "\uD83D\uDE12", label: "Unimpressed", category: "Sad" },
   { emoji: "\uD83D\uDE33", label: "Shocked", category: "Sad" },
   { emoji: "\uD83D\uDE2F", label: "Horrified", category: "Sad" },
-  { emoji: "\uD83E\uDD25", label: "Drooling", category: "Sad" },
-  { emoji: "\uD83E\uDD21", label: "Clowning", category: "Sad" },
   { emoji: "\uD83E\uDD75", label: "Lying", category: "Sad" },
-  { emoji: "\uD83E\uDD76", label: "Nose Pinching", category: "Sad" },
   { emoji: "\uD83E\uDD22", label: "Sneezing", category: "Sad" },
   { emoji: "\uD83E\uDD2E", label: "Mind Blown", category: "Sad" },
   { emoji: "\uD83E\uDD27", label: "Starstruck", category: "Sad" },
@@ -276,23 +270,16 @@ const moods: { emoji: string; label: string; category: string }[] = [
   { emoji: "\uD83E\uDD1A", label: "Silent", category: "Sad" },
   { emoji: "\uD83E\uDD1B", label: "Saluting", category: "Sad" },
   { emoji: "\uD83E\uDD1C", label: "Earless", category: "Sad" },
-  // States
-  { emoji: "\uD83E\uDD78", label: "Monocle", category: "States" },
-  { emoji: "\uD83E\uDD28", label: "Mind Blown", category: "States" },
-  { emoji: "\uD83E\uDD2F", label: "Hugging", category: "States" },
-  { emoji: "\uD83E\uDD30", label: "Shaking", category: "States" },
-  { emoji: "\uD83E\uDD31", label: "Party", category: "States" },
-  { emoji: "\uD83E\uDD32", label: "Disguised", category: "States" },
-  { emoji: "\uD83E\uDD33", label: "Pleading", category: "States" },
-  { emoji: "\uD83E\uDD34", label: "Monocle", category: "States" },
-  { emoji: "\uD83E\uDD35", label: "Liar", category: "States" },
-  { emoji: "\uD83E\uDD70", label: "Swooning", category: "States" },
-  { emoji: "\uD83E\uDD73", label: "Tada", category: "States" },
-  { emoji: "\uD83E\uDD74", label: "Unamused", category: "States" },
-  { emoji: "\uD83E\uDD75", label: "Sweat", category: "States" },
-  { emoji: "\uD83E\uDD76", label: "Zzz", category: "States" },
-  { emoji: "\uD83E\uDD78", label: "Pinocchio", category: "States" },
-  // Gestures
+  { emoji: "\uD83E\uDD78", label: "Monocle", category: "Extra" },
+  { emoji: "\uD83E\uDD28", label: "Mind Blown", category: "Extra" },
+  { emoji: "\uD83E\uDD2F", label: "Hugging", category: "Extra" },
+  { emoji: "\uD83E\uDD30", label: "Shaking", category: "Extra" },
+  { emoji: "\uD83E\uDD31", label: "Party", category: "Extra" },
+  { emoji: "\uD83E\uDD32", label: "Disguised", category: "Extra" },
+  { emoji: "\uD83E\uDD33", label: "Pleading", category: "Extra" },
+  { emoji: "\uD83E\uDD34", label: "Sweat", category: "Extra" },
+  { emoji: "\uD83E\uDD70", label: "Swooning", category: "Extra" },
+  { emoji: "\uD83E\uDD76", label: "Zzz", category: "Extra" },
   { emoji: "\uD83D\uDC4D", label: "Thumbs Up", category: "Gestures" },
   { emoji: "\uD83D\uDC4E", label: "Thumbs Down", category: "Gestures" },
   { emoji: "\uD83D\uDC4B", label: "Wave", category: "Gestures" },
@@ -305,7 +292,6 @@ const moods: { emoji: string; label: string; category: string }[] = [
   { emoji: "\uD83E\uDD19", label: "Call Me", category: "Gestures" },
   { emoji: "\uD83E\uDD1E", label: "Pinch", category: "Gestures" },
   { emoji: "\uD83E\uDD1F", label: "Handshake", category: "Gestures" },
-  // Hearts
   { emoji: "\u2764\uFE0F", label: "Red Heart", category: "Hearts" },
   { emoji: "\uD83D\uDC94", label: "Broken Heart", category: "Hearts" },
   { emoji: "\uD83D\uDC95", label: "Two Hearts", category: "Hearts" },
@@ -320,8 +306,6 @@ const moods: { emoji: string; label: string; category: string }[] = [
   { emoji: "\uD83E\uDD0E", label: "Black Heart", category: "Hearts" },
   { emoji: "\u2763\uFE0F", label: "Heart Exclamation", category: "Hearts" },
   { emoji: "\uD83E\uDD0F", label: "White Heart", category: "Hearts" },
-  { emoji: "\uD83E\uDD0F", label: "Orange Heart", category: "Hearts" },
-  { emoji: "\uD83E\uDD0F", label: "Pink Heart", category: "Hearts" },
 ]
 
 const teoEncouragements = [
@@ -393,10 +377,6 @@ function estimateReadTime(text: string): number {
 
 function getWordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length
-}
-
-function getCharCount(text: string): number {
-  return text.length
 }
 
 function getParagraphCount(text: string): number {
@@ -484,7 +464,6 @@ function Tooltip({ children, label }: { children: React.ReactNode; label: string
 function useAutosave(key: string, delay: number = 2000) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [showSaved, setShowSaved] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const save = useCallback((data: unknown) => {
@@ -495,8 +474,6 @@ function useAutosave(key: string, delay: number = 2000) {
         localStorage.setItem(key, JSON.stringify(data))
         setLastSaved(new Date())
         setIsSaving(false)
-        setShowSaved(true)
-        setTimeout(() => setShowSaved(false), 1500)
       } catch { setIsSaving(false) }
     }, delay)
   }, [key, delay])
@@ -516,7 +493,7 @@ function useAutosave(key: string, delay: number = 2000) {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
   }, [])
 
-  return { lastSaved, isSaving, showSaved, save, load, clear }
+  return { lastSaved, isSaving, save, load, clear }
 }
 
 /* ────────────────────────────────────────────────────── */
@@ -799,15 +776,15 @@ function DayDrawer({
                           </div>
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
                             <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
-                            <span>·</span>
+                            <span>\u00B7</span>
                             <span>{entry.time}</span>
                             {entry.mood && (
                               <>
-                                <span>·</span>
+                                <span>\u00B7</span>
                                 <span>{entry.mood}</span>
                               </>
                             )}
-                            <span>·</span>
+                            <span>\u00B7</span>
                             <span>{estimateReadTime(entry.content)} min read</span>
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-2">{entry.content}</p>
@@ -891,7 +868,7 @@ function DayDrawer({
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Téo AI Assistant Panel                                */
+/* T\u00e9o AI Assistant Panel                                */
 /* ────────────────────────────────────────────────────── */
 
 function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onClose: () => void }) {
@@ -1161,7 +1138,7 @@ function FocusModeOverlay({ children, onExit }: { children: React.ReactNode; onE
     >
       <div className="w-full max-w-[760px] px-6 pb-20">
         <div className="flex items-center justify-between mb-6">
-          <span className="text-xs text-muted-foreground">Focus Mode \u2022 Press F11 or Escape to exit</span>
+          <span className="text-xs text-muted-foreground">Click Esc to exit</span>
           <Button variant="ghost" size="sm" className="text-xs gap-1.5" onClick={onExit}>
             <Minimize2 className="h-3.5 w-3.5" /> Exit Focus
           </Button>
@@ -1245,48 +1222,295 @@ function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: str
               initial={{ opacity: 0, scale: 0.95, y: -4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-52 rounded-xl border bg-background shadow-xl p-1 z-30"
+              className="absolute left-0 top-full mt-1 w-52 rounded-xl border bg-background shadow-xl z-30 max-h-[280px] overflow-y-auto"
             >
-              <button onClick={() => { onFormat("h1"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Heading1 className="h-3.5 w-3.5" /> Heading 1
-              </button>
-              <button onClick={() => { onFormat("h2"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Heading2 className="h-3.5 w-3.5" /> Heading 2
-              </button>
-              <button onClick={() => { onFormat("h3"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Heading3 className="h-3.5 w-3.5" /> Heading 3
-              </button>
-              <button onClick={() => { onFormat("link"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Link className="h-3.5 w-3.5" /> Hyperlink (Ctrl+K)
-              </button>
-              <button onClick={() => { onFormat("divider"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Minus className="h-3.5 w-3.5" /> Horizontal Divider
-              </button>
-              <div className="h-px bg-border my-1" />
-              <button onClick={() => { onFormat("alignLeft"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <AlignLeft className="h-3.5 w-3.5" /> Align Left
-              </button>
-              <button onClick={() => { onFormat("alignCenter"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <AlignCenter className="h-3.5 w-3.5" /> Align Centre
-              </button>
-              <button onClick={() => { onFormat("alignRight"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <AlignRight className="h-3.5 w-3.5" /> Align Right
-              </button>
-              <button onClick={() => { onFormat("justify"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <AlignJustify className="h-3.5 w-3.5" /> Justify
-              </button>
-              <div className="h-px bg-border my-1" />
-              <button onClick={() => { onFormat("inlineCode"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Code className="h-3.5 w-3.5" /> Inline Code
-              </button>
-              <button onClick={() => { onFormat("clearFormatting"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                <Type className="h-3.5 w-3.5" /> Clear Formatting
-              </button>
+              <div className="p-1">
+                <button onClick={() => { onFormat("h1"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <Heading1 className="h-3.5 w-3.5" /> Heading 1
+                </button>
+                <button onClick={() => { onFormat("h2"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <Heading2 className="h-3.5 w-3.5" /> Heading 2
+                </button>
+                <button onClick={() => { onFormat("h3"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <Heading3 className="h-3.5 w-3.5" /> Heading 3
+                </button>
+                <button onClick={() => { onFormat("link"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <Link className="h-3.5 w-3.5" /> Hyperlink (Ctrl+K)
+                </button>
+                <button onClick={() => { onFormat("divider"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <Minus className="h-3.5 w-3.5" /> Horizontal Divider
+                </button>
+                <div className="h-px bg-border my-1" />
+                <button onClick={() => { onFormat("alignLeft"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <AlignLeft className="h-3.5 w-3.5" /> Align Left
+                </button>
+                <button onClick={() => { onFormat("alignCenter"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <AlignCenter className="h-3.5 w-3.5" /> Align Centre
+                </button>
+                <button onClick={() => { onFormat("alignRight"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <AlignRight className="h-3.5 w-3.5" /> Align Right
+                </button>
+                <button onClick={() => { onFormat("justify"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <AlignJustify className="h-3.5 w-3.5" /> Justify
+                </button>
+                <div className="h-px bg-border my-1" />
+                <button onClick={() => { onFormat("inlineCode"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <Code className="h-3.5 w-3.5" /> Inline Code
+                </button>
+                <button onClick={() => { onFormat("clearFormatting"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                  <Type className="h-3.5 w-3.5" /> Clear Formatting
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Mood Picker (WhatsApp-style)                          */
+/* ────────────────────────────────────────────────────── */
+
+function MoodPicker({
+  selectedMood,
+  onSelectMood,
+  onCreateCustom,
+  customMood,
+  open,
+  onOpenChange,
+}: {
+  selectedMood: string | undefined
+  onSelectMood: (emoji: string) => void
+  onCreateCustom: (emoji: string, label: string) => void
+  customMood: { emoji: string; label: string } | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [search, setSearch] = useState("")
+  const [showCustom, setShowCustom] = useState(false)
+  const [customEmoji, setCustomEmoji] = useState("\uD83D\uDE0A")
+  const [customLabel, setCustomLabel] = useState("")
+  const containerRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onOpenChange(false)
+        setSearch("")
+      }
+    }
+    if (open) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
+  }, [open, onOpenChange])
+
+  useEffect(() => {
+    if (open && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 100)
+    }
+  }, [open])
+
+  const categories = useMemo(() => {
+    const cats: Record<string, typeof moods> = {}
+    const filtered = search
+      ? moods.filter((m) => m.label.toLowerCase().includes(search.toLowerCase()))
+      : moods
+    filtered.forEach((m) => {
+      if (!cats[m.category]) cats[m.category] = []
+      cats[m.category].push(m)
+    })
+    return cats
+  }, [search])
+
+  const allCategories = ["Joyful", "Calm", "Tired", "Sad", "Extra", "Gestures", "Hearts"]
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        onClick={() => onOpenChange(!open)}
+        className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border bg-muted/30 text-foreground hover:bg-muted/50 transition-colors"
+      >
+        {customMood ? (
+          <span>{customMood.emoji} {customMood.label}</span>
+        ) : selectedMood ? (
+          <span>{selectedMood}</span>
+        ) : (
+          <span className="text-muted-foreground">Mood</span>
+        )}
+        <ChevronDown className="h-3 w-3 text-muted-foreground" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 top-full mt-1 w-[340px] rounded-xl border bg-background shadow-xl z-30 overflow-hidden"
+          >
+            {/* Search bar */}
+            <div className="p-2 border-b">
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/50">
+                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search moods..."
+                  className="flex-1 text-xs bg-transparent focus:outline-none placeholder:text-muted-foreground/50"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")}>
+                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Mood grid */}
+            <div className="max-h-[260px] overflow-y-auto p-2">
+              {Object.keys(categories).length === 0 ? (
+                <div className="text-center py-4 text-xs text-muted-foreground">No moods found</div>
+              ) : (
+                allCategories.map((cat) => {
+                  const catMoods = categories[cat]
+                  if (!catMoods || catMoods.length === 0) return null
+                  return (
+                    <div key={cat} className="mb-2">
+                      <div className="px-1 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
+                      <div className="grid grid-cols-8 gap-0.5">
+                        {catMoods.map((m) => (
+                          <button
+                            key={`${m.emoji}-${m.label}`}
+                            onClick={() => { onSelectMood(m.emoji); onOpenChange(false); setSearch("") }}
+                            title={m.label}
+                            className={`h-9 w-9 flex items-center justify-center rounded-lg text-lg transition-all hover:bg-muted hover:scale-110 ${
+                              selectedMood === m.emoji && !customMood ? "bg-primary/10 ring-1 ring-primary" : ""
+                            }`}
+                          >
+                            {m.emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {/* Custom mood */}
+            <div className="p-2 border-t">
+              {!showCustom ? (
+                <button
+                  onClick={() => setShowCustom(true)}
+                  className="flex items-center gap-2 w-full px-2.5 py-2 text-xs rounded-lg hover:bg-muted transition-colors text-left"
+                >
+                  <PlusCircle className="h-3.5 w-3.5 text-primary" /> Custom Mood...
+                </button>
+              ) : (
+                <div className="space-y-2 p-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={customEmoji}
+                      onChange={(e) => setCustomEmoji(e.target.value)}
+                      className="w-10 h-9 text-lg text-center rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
+                      maxLength={2}
+                    />
+                    <input
+                      type="text"
+                      value={customLabel}
+                      onChange={(e) => setCustomLabel(e.target.value)}
+                      placeholder="Mood name"
+                      className="flex-1 h-9 text-xs px-2 rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-9 px-3"
+                      onClick={() => {
+                        if (customLabel.trim()) {
+                          onCreateCustom(customEmoji, customLabel)
+                          setShowCustom(false)
+                          setCustomLabel("")
+                          setCustomEmoji("\uD83D\uDE0A")
+                          onOpenChange(false)
+                          setSearch("")
+                        }
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  <button
+                    onClick={() => { setShowCustom(false); setCustomLabel(""); setCustomEmoji("\uD83D\uDE0A") }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Rich Text Editor (contenteditable)                    */
+/* ────────────────────────────────────────────────────── */
+
+function RichTextEditor({
+  initialContent,
+  placeholder,
+  onContentChange,
+  editorRef,
+}: {
+  initialContent: string
+  placeholder: string
+  onContentChange: (html: string, text: string) => void
+  editorRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const isInternalChange = useRef(false)
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== initialContent) {
+      editorRef.current.innerHTML = initialContent
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleInput = useCallback(() => {
+    if (!editorRef.current) return
+    isInternalChange.current = true
+    const html = editorRef.current.innerHTML
+    const text = editorRef.current.innerText || ""
+    onContentChange(html, text)
+    setTimeout(() => { isInternalChange.current = false }, 0)
+  }, [onContentChange, editorRef])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Allow tab to indent in code blocks
+    if (e.key === "Tab") {
+      e.preventDefault()
+      document.execCommand("insertText", false, "    ")
+    }
+  }, [])
+
+  return (
+    <div
+      ref={editorRef}
+      contentEditable
+      suppressContentEditableWarning
+      className="w-full bg-transparent text-[15px] leading-[1.8] focus:outline-none min-h-[140px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/40 empty:before:pointer-events-none"
+      data-placeholder={placeholder}
+      onInput={handleInput}
+      onKeyDown={handleKeyDown}
+      spellCheck
+      lang="en-GB"
+      style={{ wordBreak: "break-word" }}
+    />
   )
 }
 
@@ -1300,21 +1524,19 @@ function WritingArea({
   onSaveSuccess,
 }: {
   onCreated: (entry: JournalEntry) => void
-  autosave: { lastSaved: Date | null; isSaving: boolean; showSaved: boolean; save: (data: unknown) => void; load: () => Record<string, unknown> | null; clear: () => void }
+  autosave: { lastSaved: Date | null; isSaving: boolean; save: (data: unknown) => void; load: () => Record<string, unknown> | null; clear: () => void }
   onSaveSuccess: (message: string) => void
 }) {
   const draft = useMemo(() => autosave.load(), [autosave])
   const [title, setTitle] = useState((draft?.title as string) || "")
-  const [content, setContent] = useState((draft?.content as string) || "")
+  const [contentHtml, setContentHtml] = useState((draft?.contentHtml as string) || "")
+  const [contentText, setContentText] = useState((draft?.contentText as string) || "")
   const [type, setType] = useState<JournalType>((draft?.type as JournalType) || "daily")
   const [tags, setTags] = useState((draft?.tags as string) || "")
   const [mood, setMood] = useState<string | undefined>(draft?.mood as string | undefined)
   const [customMood, setCustomMood] = useState<{ emoji: string; label: string } | null>(null)
   const [isFocused, setIsFocused] = useState(false)
   const [moodOpen, setMoodOpen] = useState(false)
-  const [customMoodOpen, setCustomMoodOpen] = useState(false)
-  const [customEmoji, setCustomEmoji] = useState("\uD83D\uDE0A")
-  const [customMoodLabel, setCustomMoodLabel] = useState("")
   const [focusMode, setFocusMode] = useState(false)
   const [teoOpen, setTeoOpen] = useState(false)
   const [images, setImages] = useState<string[]>([])
@@ -1323,30 +1545,26 @@ function WritingArea({
   const [locationLoading, setLocationLoading] = useState(false)
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set())
   const moodRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const editorRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const writingStartTime = useRef<Date>(new Date())
 
   const currentPrompt = useMemo(() => journalTypeConfig[type].prompt, [type])
   const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
 
-  const autoExpand = useCallback(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = "auto"
-    el.style.height = `${el.scrollHeight}px`
-  }, [])
-
-  useEffect(() => { autoExpand() }, [content, autoExpand])
+  const wordCount = useMemo(() => getWordCount(contentText), [contentText])
+  const paraCount = useMemo(() => getParagraphCount(contentText), [contentText])
+  const voiceCount = recordings.length
 
   // Auto-save
   useEffect(() => {
     autosave.save({
-      title, content, type, tags, mood, customMood,
+      title, contentHtml, contentText, type, tags, mood, customMood,
       images, recordings: recordings.map((r) => ({ ...r, url: "" })), location,
     })
-  }, [title, content, type, tags, mood, customMood, images, recordings, location, autosave])
+  }, [title, contentHtml, contentText, type, tags, mood, customMood, images, recordings, location, autosave])
 
+  // Close mood on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (moodRef.current && !moodRef.current.contains(e.target as Node)) {
@@ -1375,16 +1593,109 @@ function WritingArea({
     }
     document.addEventListener("keydown", handler)
     return () => document.removeEventListener("keydown", handler)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleContentChange = useCallback((html: string, text: string) => {
+    setContentHtml(html)
+    setContentText(text)
+  }, [])
+
+  const handleFormat = useCallback((action: string) => {
+    setActiveFormats((prev) => {
+      const next = new Set(prev)
+      if (next.has(action)) next.delete(action)
+      else next.add(action)
+      return next
+    })
+
+    const editor = editorRef.current
+    if (editor) editor.focus()
+
+    switch (action) {
+      case "bold": document.execCommand("bold"); break
+      case "italic": document.execCommand("italic"); break
+      case "underline": document.execCommand("underline"); break
+      case "strikethrough": document.execCommand("strikeThrough"); break
+      case "h1": document.execCommand("formatBlock", false, "h1"); break
+      case "h2": document.execCommand("formatBlock", false, "h2"); break
+      case "h3": document.execCommand("formatBlock", false, "h3"); break
+      case "quote": document.execCommand("formatBlock", false, "blockquote"); break
+      case "code": document.execCommand("formatBlock", false, "pre"); break
+      case "inlineCode": {
+        const sel = window.getSelection()
+        if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+          const range = sel.getRangeAt(0)
+          const selectedText = range.toString()
+          const code = document.createElement("code")
+          code.textContent = selectedText
+          code.style.backgroundColor = "rgba(148,163,184,0.15)"
+          code.style.padding = "1px 4px"
+          code.style.borderRadius = "3px"
+          code.style.fontSize = "0.9em"
+          code.style.fontFamily = "ui-monospace, monospace"
+          range.deleteContents()
+          range.insertNode(code)
+          sel.removeAllRanges()
+          const newRange = document.createRange()
+          newRange.selectNodeContents(code)
+          sel.addRange(newRange)
+        }
+        break
+      }
+      case "bulletList": document.execCommand("insertUnorderedList"); break
+      case "numberedList": document.execCommand("insertOrderedList"); break
+      case "checklist": {
+        const sel = window.getSelection()
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0)
+          const text = range.toString() || "Task"
+          const lines = text.split("\n")
+          const html = lines.map((l) => `<div><input type="checkbox" disabled /> ${l}</div>`).join("")
+          document.execCommand("insertHTML", false, html)
+        }
+        break
+      }
+      case "divider":
+        document.execCommand("insertHorizontalRule")
+        break
+      case "link": {
+        const url = prompt("Enter URL:", "https://")
+        if (url) document.execCommand("createLink", false, url)
+        break
+      }
+      case "textColour": {
+        const color = prompt("Enter colour (e.g. #FF0000, red, var(--brand-primary)):", "var(--brand-primary)")
+        if (color) document.execCommand("foreColor", false, color)
+        break
+      }
+      case "highlight": {
+        const color = prompt("Highlight colour:", "#FEF3C7")
+        if (color) document.execCommand("hiliteColor", false, color)
+        break
+      }
+      case "undo": document.execCommand("undo"); break
+      case "redo": document.execCommand("redo"); break
+      case "clearFormatting": document.execCommand("removeFormat"); break
+      case "alignLeft": document.execCommand("justifyLeft"); break
+      case "alignCenter": document.execCommand("justifyCenter"); break
+      case "alignRight": document.execCommand("justifyRight"); break
+      case "justify": document.execCommand("justifyFull"); break
+    }
+
+    // Update content state after formatting
+    if (editorRef.current) {
+      setContentHtml(editorRef.current.innerHTML)
+      setContentText(editorRef.current.innerText || "")
+    }
   }, [])
 
   const handleSave = useCallback(() => {
-    if (!content.trim()) return
+    if (!contentText.trim()) return
     const now = new Date()
-    const writingDuration = Math.round((now.getTime() - writingStartTime.current.getTime()) / 60000)
     const entry: JournalEntry = {
       id: `entry-${Date.now()}`,
       title: title || "Untitled Entry",
-      content,
+      content: contentText,
       type,
       date: "Today",
       dateISO: todayISO(),
@@ -1399,67 +1710,21 @@ function WritingArea({
       location: location || undefined,
     }
     onCreated(entry)
-    setTitle(""); setContent(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
+    setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
     setImages([]); setRecordings([]); setLocation("")
+    if (editorRef.current) editorRef.current.innerHTML = ""
     autosave.clear()
     const encouragement = teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]
     onSaveSuccess(encouragement)
-  }, [title, content, type, tags, mood, customMood, images, recordings, location, onCreated, autosave, onSaveSuccess])
+  }, [title, contentText, type, tags, mood, customMood, images, recordings, location, onCreated, autosave, onSaveSuccess])
 
   const handleCancel = useCallback(() => {
-    setTitle(""); setContent(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
+    setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
     setImages([]); setRecordings([]); setLocation("")
+    if (editorRef.current) editorRef.current.innerHTML = ""
     autosave.clear()
     setIsFocused(false)
   }, [autosave])
-
-  const handleFormat = useCallback((action: string) => {
-    setActiveFormats((prev) => {
-      const next = new Set(prev)
-      if (next.has(action)) next.delete(action)
-      else next.add(action)
-      return next
-    })
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selected = content.substring(start, end)
-
-    const formatMap: Record<string, (s: string) => string> = {
-      bold: (s) => `**${s}**`,
-      italic: (s) => `*${s}*`,
-      underline: (s) => `__${s}__`,
-      strikethrough: (s) => `~~${s}~~`,
-      h1: (s) => `# ${s}`,
-      h2: (s) => `## ${s}`,
-      h3: (s) => `### ${s}`,
-      quote: (s) => `> ${s}`,
-      code: (s) => `\`\`\`\n${s}\n\`\`\``,
-      inlineCode: (s) => `\`${s}\``,
-      bulletList: (s) => s.split("\n").map((l) => `- ${l}`).join("\n"),
-      numberedList: (s) => s.split("\n").map((l, i) => `${i + 1}. ${l}`).join("\n"),
-      checklist: (s) => s.split("\n").map((l) => `- [ ] ${l}`).join("\n"),
-      divider: () => "\n---\n",
-      link: (s) => `[${s}](url)`,
-      textColour: (s) => `<span style="color: var(--brand-primary)">${s}</span>`,
-      highlight: (s) => `<mark>${s}</mark>`,
-    }
-
-    if (formatMap[action]) {
-      const formatted = formatMap[action](selected || "text")
-      const newContent = content.substring(0, start) + formatted + content.substring(end)
-      setContent(newContent)
-    }
-
-    if (action === "undo") document.execCommand("undo")
-    if (action === "redo") document.execCommand("redo")
-    if (action === "clearFormatting") {
-      const cleaned = selected.replace(/[*_~`#>\[\]()-]/g, "")
-      const newContent = content.substring(0, start) + cleaned + content.substring(end)
-      setContent(newContent)
-    }
-  }, [content])
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -1510,10 +1775,6 @@ function WritingArea({
     setRecordings((prev) => prev.map((r) => r.id === id ? { ...r, name } : r))
   }, [])
 
-  const wordCount = getWordCount(content)
-  const charCount = getCharCount(content)
-  const readTime = estimateReadTime(content)
-  const paraCount = getParagraphCount(content)
   const selectedMood = customMood || moods.find((m) => m.emoji === mood)
 
   const editorContent = (
@@ -1533,37 +1794,47 @@ function WritingArea({
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
       <div className="p-5 md:p-6 space-y-3">
-        {/* Title - Clean, no background */}
-        <input
-          type="text"
-          placeholder="Give your thoughts a title..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => !content && setIsFocused(false)}
-          className="w-full border-0 bg-transparent text-xl font-semibold focus:outline-none placeholder:text-muted-foreground/30 pb-3 border-b border-border/40"
-        />
+        {/* Title + Focus Button row */}
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="Give your thoughts a title..."
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => !contentText && setIsFocused(false)}
+            className="flex-1 border-0 bg-transparent text-xl font-semibold focus:outline-none placeholder:text-muted-foreground/30 pb-3 border-b border-border/40"
+          />
+          <button
+            className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 mb-2"
+            style={{ backgroundColor: "var(--brand-primary)" }}
+            onClick={() => setFocusMode(true)}
+            title="Focus Mode"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        </div>
 
-        {/* Writing area */}
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => { setContent(e.target.value); autoExpand() }}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => !title && setIsFocused(false)}
+        {/* Rich text editor */}
+        <RichTextEditor
+          initialContent={contentHtml}
           placeholder={currentPrompt}
-          rows={4}
-          className="w-full bg-transparent text-[15px] leading-[1.8] resize-none focus:outline-none placeholder:text-muted-foreground/40 min-h-[140px] transition-[height] duration-200 ease-out"
-          style={{ height: "auto" }}
-          spellCheck
-          lang="en-GB"
+          onContentChange={handleContentChange}
+          editorRef={editorRef}
         />
 
         {/* Teo AI Panel */}
         <AnimatePresence>
           {teoOpen && (
             <TeoPanel
-              onInsert={(text) => setContent((prev) => prev + "\n\n" + text)}
+              onInsert={(text) => {
+                if (editorRef.current) {
+                  editorRef.current.focus()
+                  document.execCommand("insertHTML", false, `<p>${text}</p>`)
+                  setContentHtml(editorRef.current.innerHTML)
+                  setContentText(editorRef.current.innerText || "")
+                }
+              }}
               onClose={() => setTeoOpen(false)}
             />
           )}
@@ -1620,55 +1891,16 @@ function WritingArea({
             ))}
           </select>
 
-          {/* Mood Dropdown */}
-          <div className="relative" ref={moodRef}>
-            <button
-              onClick={() => setMoodOpen(!moodOpen)}
-              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border bg-muted/30 text-foreground hover:bg-muted/50 transition-colors"
-            >
-              {selectedMood ? (
-                <span>{selectedMood.emoji} {selectedMood.label}</span>
-              ) : (
-                <span className="text-muted-foreground">Mood</span>
-              )}
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            </button>
-            <AnimatePresence>
-              {moodOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                  transition={{ duration: 0.12 }}
-                  className="absolute left-0 top-full mt-1 w-64 rounded-xl border bg-background shadow-xl p-1 z-30 max-h-72 overflow-y-auto"
-                >
-                  {["Positive", "Calm", "Tired", "Sad", "States", "Gestures", "Hearts"].map((category) => (
-                    <div key={category}>
-                      <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase">{category}</div>
-                      {moods.filter((m) => m.category === category).map((m) => (
-                        <button
-                          key={`${m.emoji}-${m.label}`}
-                          onClick={() => { setMood(m.emoji); setCustomMood(null); setMoodOpen(false) }}
-                          className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg transition-colors text-left ${
-                            mood === m.emoji && !customMood ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
-                          }`}
-                        >
-                          <span className="text-sm">{m.emoji}</span>
-                          <span>{m.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                  <div className="h-px bg-border my-1" />
-                  <button
-                    onClick={() => { setCustomMoodOpen(true); setMoodOpen(false) }}
-                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
-                  >
-                    <PlusCircle className="h-3.5 w-3.5" /> Other Mood...
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* Mood Picker (WhatsApp-style) */}
+          <div ref={moodRef}>
+            <MoodPicker
+              selectedMood={mood}
+              onSelectMood={(emoji) => { setMood(emoji); setCustomMood(null) }}
+              onCreateCustom={(emoji, label) => { setCustomMood({ emoji, label }); setMood(undefined) }}
+              customMood={customMood}
+              open={moodOpen}
+              onOpenChange={setMoodOpen}
+            />
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -1684,21 +1916,49 @@ function WritingArea({
 
         {/* Row 2: Action buttons + Stats + Save */}
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Tooltip label="Ask Teo">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setTeoOpen(!teoOpen)}>
-                <Sparkles className="h-3.5 w-3.5 text-primary/70" />
-              </Button>
+              <button
+                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
+                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                onClick={() => setTeoOpen(!teoOpen)}
+              >
+                <Sparkles className="h-4 w-4" />
+              </button>
             </Tooltip>
-            <Tooltip label="Add Image">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => fileInputRef.current?.click()}>
-                <Camera className="h-3.5 w-3.5" />
-              </Button>
+            <Tooltip label="Camera">
+              <button
+                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
+                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Camera className="h-4 w-4" />
+              </button>
             </Tooltip>
-            <Tooltip label="Add Location">
-              <Button variant="ghost" size="icon" className={`h-7 w-7 ${locationLoading ? "animate-pulse" : ""}`} onClick={handleGetLocation}>
-                <MapPinIcon className="h-3.5 w-3.5" />
-              </Button>
+            <Tooltip label="Microphone">
+              <button
+                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
+                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                onClick={async () => {
+                  // Start recording or handle mic
+                  if (recordings.length === 0) {
+                    // Trigger voice recorder button
+                    const micBtn = document.querySelector("[data-voice-recorder-trigger]") as HTMLButtonElement
+                    micBtn?.click()
+                  }
+                }}
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Location">
+              <button
+                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${locationLoading ? "animate-pulse" : ""}`}
+                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                onClick={handleGetLocation}
+              >
+                <MapPinIcon className="h-4 w-4" />
+              </button>
             </Tooltip>
             <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
           </div>
@@ -1706,31 +1966,17 @@ function WritingArea({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
               <span className="tabular-nums">{wordCount} words</span>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="tabular-nums">{charCount} chars</span>
-              <span className="text-muted-foreground/40">·</span>
+              <span className="text-muted-foreground/40">\u00B7</span>
               <span className="tabular-nums">{paraCount} paragraphs</span>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="tabular-nums">{readTime} min read</span>
-              <AnimatePresence>
-                {autosave.showSaved && (
-                  <motion.span
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="text-emerald-500 font-medium"
-                  >
-                    {"\u2713"} Saved
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <span className="text-muted-foreground/40">\u00B7</span>
+              <span className="tabular-nums">{voiceCount} {voiceCount === 1 ? "voice note" : "voice notes"}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancel}>
                 Cancel
               </Button>
-              <Button size="sm" className="h-7 text-xs gap-1.5 glow" onClick={handleSave} disabled={!content.trim()}>
+              <Button size="sm" className="h-7 text-xs gap-1.5 glow" onClick={handleSave} disabled={!contentText.trim()}>
                 <Save className="h-3 w-3" /> Save
               </Button>
             </div>
@@ -1742,82 +1988,11 @@ function WritingArea({
 
   return (
     <>
-      {/* Focus Mode Toggle - Circular button like Calendar */}
-      <div className="flex items-center justify-end mb-2">
-        <button
-          className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-          style={{ backgroundColor: "var(--brand-primary)" }}
-          onClick={() => setFocusMode(true)}
-        >
-          <Maximize2 className="h-4 w-4" />
-        </button>
-      </div>
-
       {focusMode ? (
         <FocusModeOverlay onExit={() => setFocusMode(false)}>
           {editorContent}
         </FocusModeOverlay>
       ) : editorContent}
-
-      {/* Custom Mood Modal */}
-      <AnimatePresence>
-        {customMoodOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center"
-            onClick={() => setCustomMoodOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card rounded-2xl border shadow-xl p-6 w-80"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-sm font-semibold mb-4">Create Custom Mood</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Emoji</label>
-                  <input
-                    type="text"
-                    value={customEmoji}
-                    onChange={(e) => setCustomEmoji(e.target.value)}
-                    className="w-full text-2xl text-center p-2 rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
-                    maxLength={2}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Mood Name</label>
-                  <input
-                    type="text"
-                    value={customMoodLabel}
-                    onChange={(e) => setCustomMoodLabel(e.target.value)}
-                    placeholder="e.g., Energized"
-                    className="w-full text-sm p-2 rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="ghost" size="sm" onClick={() => setCustomMoodOpen(false)}>Cancel</Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (customMoodLabel.trim()) {
-                      setCustomMood({ emoji: customEmoji, label: customMoodLabel })
-                      setMood(undefined)
-                      setCustomMoodOpen(false)
-                    }
-                  }}
-                >
-                  Save
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   )
 }
