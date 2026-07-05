@@ -1731,15 +1731,14 @@ function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Tooltip label={isRecording ? "Stop Recording" : "Start Recording"}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-8 w-8 ${isRecording ? "text-red-500 bg-red-500/10" : ""}`}
+        <Tooltip label={isRecording ? "Stop Recording" : "Voice Notes"}>
+          <button
+            className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isRecording ? "animate-pulse" : ""}`}
+            style={{ backgroundColor: isRecording ? "#DC2626" : "var(--brand-primary)", color: "white" }}
             onClick={toggleRecording}
           >
             {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </Button>
+          </button>
         </Tooltip>
         {isRecording && (
           <span className="text-xs text-red-500 font-medium tabular-nums">{formatTime(recordingTime)}</span>
@@ -1846,6 +1845,8 @@ interface FormattingToolbarProps {
   onInsertHorizontalRule?: () => void
   onUndo?: () => void
   onRedo?: () => void
+  onTextColour?: (colour: string) => void
+  onHighlight?: (colour: string) => void
   onFontSizeChange?: (size: FontSize) => void
   onFontFamilyChange?: (family: FontFamily) => void
   currentFontSize?: FontSize
@@ -1951,11 +1952,28 @@ export function FormattingToolbar({
   onRedo,
   onFontSizeChange,
   onFontFamilyChange,
+  onTextColour,
+  onHighlight,
   currentFontSize = "14",
   currentFontFamily = "Calibri",
 }: FormattingToolbarProps) {
+  const [textColourOpen, setTextColourOpen] = useState(false)
+  const [highlightOpen, setHighlightOpen] = useState(false)
+  const textColourRef = useRef<HTMLDivElement>(null)
+  const highlightRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (textColourRef.current && !textColourRef.current.contains(t)) setTextColourOpen(false)
+      if (highlightRef.current && !highlightRef.current.contains(t)) setHighlightOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
   return (
-    <div className="flex items-center flex-wrap gap-0.5 p-2 bg-slate-50 border border-slate-200 rounded-xl">
+    <div className="flex items-center flex-wrap gap-0.5 py-2 border-t border-border/40">
       <DropdownButton
         label="Font"
         options={FONT_FAMILIES}
@@ -1981,6 +1999,90 @@ export function FormattingToolbar({
       <ToolbarButton icon={<List className="h-4 w-4" />} onClick={onInsertUnorderedList || (() => {})} tooltip="Bullet List" />
       <ToolbarButton icon={<ListOrdered className="h-4 w-4" />} onClick={onInsertOrderedList || (() => {})} tooltip="Numbered List" />
       <ToolbarButton icon={<Quote className="h-4 w-4" />} onClick={onInsertBlockquote || (() => {})} tooltip="Quote" />
+      <Divider />
+
+      {/* Text Colour */}
+      <div className="relative" ref={textColourRef}>
+        <Tooltip label="Text Colour">
+          <button
+            onClick={() => { setTextColourOpen(!textColourOpen); setHighlightOpen(false) }}
+            className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
+          >
+            <Palette className="h-4 w-4" />
+          </button>
+        </Tooltip>
+        <AnimatePresence>
+          {textColourOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              className="absolute left-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-2 z-50"
+            >
+              <div className="grid grid-cols-4 gap-1">
+                {TEXT_COLOURS.map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => { onTextColour?.(c.value); setTextColourOpen(false) }}
+                    title={c.name}
+                    className="h-7 w-7 rounded-md border flex items-center justify-center hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c.value }}
+                  >
+                    {c.name === "White" && <div className="h-3 w-3 rounded-sm border border-gray-300" />}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { onTextColour?.("inherit"); setTextColourOpen(false) }}
+                className="w-full text-[10px] text-muted-foreground hover:text-foreground mt-1 py-1"
+              >
+                Reset to default
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Highlight Colour */}
+      <div className="relative" ref={highlightRef}>
+        <Tooltip label="Highlight">
+          <button
+            onClick={() => { setHighlightOpen(!highlightOpen); setTextColourOpen(false) }}
+            className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
+          >
+            <Highlighter className="h-4 w-4" />
+          </button>
+        </Tooltip>
+        <AnimatePresence>
+          {highlightOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              className="absolute left-0 top-full mt-1 w-36 rounded-xl border bg-background shadow-xl p-2 z-50"
+            >
+              <div className="grid grid-cols-4 gap-1">
+                {HIGHLIGHT_COLOURS.map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => { onHighlight?.(c.value); setHighlightOpen(false) }}
+                    title={c.name}
+                    className="h-7 w-7 rounded-md border border-border/30 flex items-center justify-center hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c.value }}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => { onHighlight?.("transparent"); setHighlightOpen(false) }}
+                className="w-full text-[10px] text-muted-foreground hover:text-foreground mt-1 py-1"
+              >
+                Remove highlight
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <Divider />
       <ToolbarButton icon={<Undo2 className="h-4 w-4" />} onClick={onUndo || (() => {})} tooltip="Undo" />
       <ToolbarButton icon={<Redo2 className="h-4 w-4" />} onClick={onRedo || (() => {})} tooltip="Redo" />
@@ -2059,6 +2161,11 @@ function MoodPicker({
     return cat ? cat.emojis : []
   }, [emojiCategory])
 
+  const selectedMoodObj = useMemo(() => {
+    if (customMood) return null
+    return moods.find((m) => m.emoji === selectedMood)
+  }, [selectedMood, customMood])
+
   return (
     <div className="relative" ref={containerRef}>
       <button
@@ -2067,6 +2174,8 @@ function MoodPicker({
       >
         {customMood ? (
           <span>{customMood.emoji} {customMood.label}</span>
+        ) : selectedMoodObj ? (
+          <span>{selectedMoodObj.emoji} {selectedMoodObj.label}</span>
         ) : selectedMood ? (
           <span>{selectedMood}</span>
         ) : (
@@ -2296,13 +2405,21 @@ function RichTextEditor({
         onPaste={handlePaste}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className="min-h-[120px] p-4 focus:outline-none prose prose-slate max-w-none [&_p]:mb-1 [&_p]:leading-relaxed"
+        className="min-h-[120px] p-4 focus:outline-none prose prose-slate max-w-none [&_p]:mb-0"
         style={{
           fontFamily: currentFontFamily,
           fontSize: `${currentFontSize}px`,
+          lineHeight: "28px",
+          wordBreak: "break-word",
+          overflowWrap: "break-word",
+          overflowX: "hidden",
         }}
         data-placeholder={placeholder}
         suppressContentEditableWarning
+        spellCheck
+        lang="en-GB"
+        data-gramm="false"
+        data-gramm_editor="false"
       />
 
       {isFocused && charCount > 0 && (
@@ -2815,6 +2932,8 @@ function WritingArea({
           onInsertHorizontalRule={() => execFormat("insertHorizontalRule")}
           onUndo={() => execFormat("undo")}
           onRedo={() => execFormat("redo")}
+          onTextColour={(colour) => execFormat("foreColor", colour)}
+          onHighlight={(colour) => execFormat("hiliteColor", colour)}
           onFontSizeChange={(size) => {
             setCurrentFontSize(size)
             const sel = window.getSelection()
@@ -2842,8 +2961,10 @@ function WritingArea({
             pageStyle === "lined" ? "journal-page-lined" : ""
           }`}
           style={pageStyle === "lined" ? {
-            backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, #e0e0e0 27px, #e0e0e0 28px)",
-            backgroundPosition: "0 -1px",
+            backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, #d1d5db 27px, #d1d5db 28px)",
+            backgroundSize: "100% 28px",
+            backgroundPosition: "0 0",
+            lineHeight: "28px",
           } : undefined}
         >
           <RichTextEditor
@@ -2886,21 +3007,6 @@ function WritingArea({
             ))}
           </div>
         )}
-
-        <div className="flex items-center gap-2 py-1">
-          <Tooltip label={isListening ? "Stop Dictation" : "Dictate (Speech-to-Text)"}>
-            <button
-              className={`h-8 w-8 rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ${isListening ? "animate-pulse" : ""}`}
-              style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
-              onClick={toggleListening}
-            >
-              <Volume2 className="h-4 w-4" />
-            </button>
-          </Tooltip>
-          {isListening && (
-            <span className="text-xs text-red-500 font-medium">Listening...</span>
-          )}
-        </div>
 
         {location && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1">
@@ -2978,18 +3084,6 @@ function WritingArea({
                 onClick={() => setCameraOpen(true)}
               >
                 <Camera className="h-4 w-4" />
-              </button>
-            </Tooltip>
-            <Tooltip label="Voice Notes">
-              <button
-                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
-                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
-                onClick={() => {
-                  const el = document.querySelector("[data-voice-recorder]")
-                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
-                }}
-              >
-                <Mic className="h-4 w-4" />
               </button>
             </Tooltip>
             <div data-voice-recorder className="flex items-center gap-1">
