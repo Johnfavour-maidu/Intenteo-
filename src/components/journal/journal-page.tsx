@@ -70,6 +70,18 @@ import {
   Grid3X3,
 } from "lucide-react"
 
+
+const EMOJI_CATEGORIES = [
+  { name: "Smileys", emojis: ["😀","😃","😄","😁","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🤫","🤔","🤐","🤨","😐","😑","😶","😏","😒","🙄","😬","🤥"] },
+  { name: "Gestures", emojis: ["👍","👎","👌","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","👇","☝️","✋","🤚","🖐️","🖖","👋","🤝","🙏"] },
+  { name: "Hearts", emojis: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❣️","💕","💞","💓","💗","💖","💘","💝"] },
+  { name: "Nature", emojis: ["🌸","🌺","🌻","🌹","🌷","🌱","🌿","🍀","🍃","🍂","🍁","🌾","🌵","🌴","🌳","🌲","⛰️","🏔️","🌊","🔥"] },
+  { name: "Activities", emojis: ["🎯","🎨","🎭","🎪","🎬","🎤","🎧","🎵","🎶","🎹","🥁","🎷","🎺","🎸","🎳","⚽","🏀","🎾","🏈"] },
+  { name: "Symbols", emojis: ["✨","⭐","🌟","💫","🔥","💥","❄️","🌈","☀️","🌙","💡","🎯","🏁","🚩","💬","💭","❤️","💯","🎉","🎊"] },
+]
+
+
+
 /* ────────────────────────────────────────────────────── */
 /* Types & Data                                          */
 /* ────────────────────────────────────────────────────── */
@@ -344,6 +356,7 @@ const HIGHLIGHT_COLOURS = [
   { name: "Grey", value: "#F1F5F9" },
 ]
 
+
 function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
@@ -431,6 +444,17 @@ interface Toast {
   type: "success" | "info"
 }
 
+
+function textToEditorHtml(text: string): string {
+  if (!text) return ""
+  return text.split("\n").map((line) => {
+    if (!line.trim()) return "<p><br></p>"
+    return `<p>${line.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`
+  }).join("")
+}
+
+
+
 function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
@@ -464,6 +488,7 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 /* Tooltip Component                                     */
 /* ────────────────────────────────────────────────────── */
 
+
 function Tooltip({ children, label }: { children: React.ReactNode; label: string }) {
   return (
     <div className="relative group/tooltip">
@@ -479,6 +504,7 @@ function Tooltip({ children, label }: { children: React.ReactNode; label: string
 /* ────────────────────────────────────────────────────── */
 /* Autosave Hook                                         */
 /* ────────────────────────────────────────────────────── */
+
 
 function useAutosave(key: string, delay: number = 2000) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -519,6 +545,7 @@ function useAutosave(key: string, delay: number = 2000) {
 /* Compact Streak Circle                                 */
 /* ────────────────────────────────────────────────────── */
 
+
 const StreakCircle = memo(function StreakCircle({ streak }: { streak: number }) {
   const radius = 18
   const circumference = 2 * Math.PI * radius
@@ -554,6 +581,7 @@ const StreakCircle = memo(function StreakCircle({ streak }: { streak: number }) 
 /* ────────────────────────────────────────────────────── */
 /* Popover Calendar                                      */
 /* ────────────────────────────────────────────────────── */
+
 
 const PopoverCalendar = memo(function PopoverCalendar({
   entries,
@@ -668,30 +696,29 @@ const PopoverCalendar = memo(function PopoverCalendar({
 })
 
 /* ────────────────────────────────────────────────────── */
-/* Day Drawer                                            */
+/* Calendar + List Panel (replaces DayDrawer)            */
 /* ────────────────────────────────────────────────────── */
 
-function DayDrawer({
-  date,
+function CalendarListPanel({
   entries,
-  onClose,
-  onOpenEntry,
+  onSelectEntry,
   onDeleteEntry,
   onToggleFavorite,
-  onDuplicateEntry,
   onTogglePin,
-  onNavigateDate,
+  onDuplicateEntry,
 }: {
-  date: string
   entries: JournalEntry[]
-  onClose: () => void
-  onOpenEntry: (entry: JournalEntry) => void
+  onSelectEntry: (entry: JournalEntry) => void
   onDeleteEntry: (id: string) => void
   onToggleFavorite: (id: string) => void
-  onDuplicateEntry: (entry: JournalEntry) => void
   onTogglePin: (id: string) => void
-  onNavigateDate: (iso: string) => void
+  onDuplicateEntry: (entry: JournalEntry) => void
 }) {
+  const [tab, setTab] = useState<"calendar" | "list">("calendar")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth())
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
+  const [selectedDate, setSelectedDate] = useState(todayISO())
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -699,23 +726,281 @@ function DayDrawer({
     if (openMenuId) { window.addEventListener("click", handler); return () => window.removeEventListener("click", handler) }
   }, [openMenuId])
 
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery.trim()) return entries
+    const q = searchQuery.toLowerCase()
+    return entries.filter((e) =>
+      e.title.toLowerCase().includes(q) ||
+      e.content.toLowerCase().includes(q) ||
+      e.tags.some((t) => t.toLowerCase().includes(q)) ||
+      (e.mood && e.mood.toLowerCase().includes(q)) ||
+      journalTypeConfig[e.type].label.toLowerCase().includes(q)
+    )
+  }, [entries, searchQuery])
+
   const dayEntries = useMemo(() => {
-    return entries
-      .filter((e) => e.dateISO === date)
+    return filteredEntries
+      .filter((e) => e.dateISO === selectedDate)
       .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.createdAt.localeCompare(a.createdAt))
-  }, [entries, date])
+  }, [filteredEntries, selectedDate])
 
-  const prevDay = useCallback(() => {
-    const d = new Date(date + "T00:00:00")
-    d.setDate(d.getDate() - 1)
-    onNavigateDate(toISODate(d))
-  }, [date, onNavigateDate])
+  const sortedEntries = useMemo(() => {
+    return [...filteredEntries].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }, [filteredEntries])
 
-  const nextDay = useCallback(() => {
-    const d = new Date(date + "T00:00:00")
-    d.setDate(d.getDate() + 1)
-    onNavigateDate(toISODate(d))
-  }, [date, onNavigateDate])
+  const entryDates = useMemo(() => {
+    const map: Record<string, boolean> = {}
+    filteredEntries.forEach((e) => { map[e.dateISO] = true })
+    return map
+  }, [filteredEntries])
+
+  const today = todayISO()
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
+
+  const days = useMemo(() => {
+    const result: (number | null)[] = []
+    for (let i = 0; i < firstDayOfWeek; i++) result.push(null)
+    for (let d = 1; d <= daysInMonth; d++) result.push(d)
+    return result
+  }, [firstDayOfWeek, daysInMonth])
+
+  const prevMonth = useCallback(() => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1) }
+    else setViewMonth((m) => m - 1)
+  }, [viewMonth])
+
+  const nextMonth = useCallback(() => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1) }
+    else setViewMonth((m) => m + 1)
+  }, [viewMonth])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      className="overflow-hidden mb-6"
+    >
+      <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+        <div className="p-3 border-b">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search entries by title, content, tags, mood, or category..."
+              className="flex-1 text-sm bg-transparent focus:outline-none placeholder:text-muted-foreground/50"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")}>
+                <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 px-3 pt-3">
+          <button
+            onClick={() => setTab("calendar")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              tab === "calendar" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/60"
+            }`}
+          >
+            <Calendar className="h-3.5 w-3.5 inline mr-1.5" />
+            Calendar
+          </button>
+          <button
+            onClick={() => setTab("list")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              tab === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/60"
+            }`}
+          >
+            <List className="h-3.5 w-3.5 inline mr-1.5" />
+            List
+          </button>
+          <span className="ml-auto text-[11px] text-muted-foreground">
+            {filteredEntries.length} {filteredEntries.length === 1 ? "entry" : "entries"}
+          </span>
+        </div>
+
+        <div className="p-3">
+          {tab === "calendar" ? (
+            <div className="grid grid-cols-1 md:grid-cols-[1fr,280px] gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevMonth}>
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextMonth}>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-7 gap-0 mb-1">
+                  {DAY_LABELS.map((d) => (
+                    <div key={d} className="text-center text-[10px] font-medium text-muted-foreground py-1">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-0">
+                  {days.map((day, i) => {
+                    if (day === null) return <div key={`empty-${i}`} />
+                    const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+                    const isToday = iso === today
+                    const isSelected = iso === selectedDate
+                    const hasEntry = entryDates[iso]
+                    return (
+                      <button
+                        key={iso}
+                        onClick={() => setSelectedDate(iso)}
+                        className={`relative flex flex-col items-center justify-center h-9 rounded-lg text-xs transition-all duration-150 ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                            : isToday
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-foreground hover:bg-muted/60"
+                        }`}
+                      >
+                        {day}
+                        {hasEntry && <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-primary" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="border-t md:border-t-0 md:border-l pt-3 md:pt-0 md:pl-4">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{formatDateLong(selectedDate)}</p>
+                {dayEntries.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/60 py-4 text-center">No entries for this day.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {dayEntries.map((entry) => {
+                      const cfg = journalTypeConfig[entry.type]
+                      return (
+                        <button
+                          key={entry.id}
+                          onClick={() => onSelectEntry(entry)}
+                          className="w-full text-left p-2.5 rounded-xl border border-border/50 bg-background hover:shadow-md transition-all duration-200"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
+                            <span className="text-xs font-semibold truncate">{entry.title}</span>
+                            {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
+                            <span>·</span>
+                            <span>{entry.time}</span>
+                            {entry.mood && <><span>·</span><span>{entry.mood}</span></>}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {sortedEntries.length === 0 ? (
+                <p className="text-xs text-muted-foreground/60 py-8 text-center">
+                  {searchQuery ? "No entries match your search." : "No entries yet."}
+                </p>
+              ) : (
+                sortedEntries.map((entry) => {
+                  const cfg = journalTypeConfig[entry.type]
+                  return (
+                    <div key={entry.id} className="group relative">
+                      <button
+                        onClick={() => onSelectEntry(entry)}
+                        className="w-full text-left p-3 rounded-xl border border-border/50 bg-background hover:shadow-md transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
+                          <span className="text-sm font-semibold truncate">{entry.title}</span>
+                          {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1.5">
+                          <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
+                          <span>·</span>
+                          <span>{entry.date} at {entry.time}</span>
+                          {entry.mood && <><span>·</span><span>{entry.mood}</span></>}
+                          <span>·</span>
+                          <span>{estimateReadTime(entry.content)} min read</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">{entry.content}</p>
+                        {entry.tags.length > 0 && (
+                          <div className="flex items-center gap-1 mt-1.5">
+                            {entry.tags.map((tag) => (
+                              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                      <div className="absolute right-2 top-2">
+                        <div className="relative">
+                          <Button
+                            variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                          <AnimatePresence>
+                            {openMenuId === entry.id && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                className="absolute right-0 top-full mt-1 w-40 rounded-xl border bg-background shadow-xl p-1 z-20"
+                              >
+                                <button onClick={() => { onDuplicateEntry(entry); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                  <Copy className="h-3 w-3" /> Duplicate
+                                </button>
+                                <button onClick={() => { onToggleFavorite(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                  <Star className="h-3 w-3" /> {entry.favorited ? "Unstar" : "Star"}
+                                </button>
+                                <button onClick={() => { onTogglePin(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                  <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin" : "Pin"}
+                                </button>
+                                <div className="h-px bg-border my-1" />
+                                <button onClick={() => { onDeleteEntry(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
+                                  <Trash2 className="h-3 w-3" /> Delete
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Starred Panel                                         */
+/* ────────────────────────────────────────────────────── */
+
+function StarredPanel({
+  entries,
+  onSelectEntry,
+  onClose,
+}: {
+  entries: JournalEntry[]
+  onSelectEntry: (entry: JournalEntry) => void
+  onClose: () => void
+}) {
+  const starred = useMemo(() => entries.filter((e) => e.favorited).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [entries])
 
   return (
     <>
@@ -732,150 +1017,50 @@ function DayDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] z-50 bg-background border-l shadow-2xl flex flex-col"
+        className="fixed right-0 top-0 bottom-0 w-full sm:w-[400px] z-50 bg-background border-l shadow-2xl flex flex-col"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevDay}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h2 className="text-sm font-semibold">{formatDateLong(date)}</h2>
-              <p className="text-[11px] text-muted-foreground">
-                {dayEntries.length} {dayEntries.length === 1 ? "entry" : "entries"}
-              </p>
-            </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextDay}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-2">
+            <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+            <h2 className="text-sm font-semibold">Starred Entries</h2>
+            <span className="text-[11px] text-muted-foreground">({starred.length})</span>
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
-
         <div className="flex-1 overflow-y-auto p-5">
-          {dayEntries.length === 0 ? (
+          {starred.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-20">
               <div className="h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-4">
-                <BookOpen className="h-7 w-7 text-muted-foreground/50" />
+                <Star className="h-7 w-7 text-muted-foreground/50" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">No journal entries for this day.</p>
-              <p className="text-xs text-muted-foreground/60 mb-4">Start writing to capture your thoughts.</p>
-              <Button size="sm" className="glow" onClick={onClose}>
-                <Plus className="mr-1 h-3.5 w-3.5" /> Create Entry
-              </Button>
+              <p className="text-sm font-medium text-muted-foreground mb-1">No starred entries yet.</p>
+              <p className="text-xs text-muted-foreground/60">Star your favourite entries to find them quickly.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {dayEntries.map((entry) => {
+            <div className="space-y-2">
+              {starred.map((entry) => {
                 const cfg = journalTypeConfig[entry.type]
                 return (
-                  <motion.div
+                  <button
                     key={entry.id}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="group rounded-xl border border-border/50 bg-card hover:shadow-md transition-all duration-200 overflow-hidden"
+                    onClick={() => onSelectEntry(entry)}
+                    className="w-full text-left p-3 rounded-xl border border-border/50 bg-card hover:shadow-md transition-all duration-200"
                   >
-                    <div className="h-1" style={{ backgroundColor: cfg.color }} />
-                    <div className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                          style={{ backgroundColor: cfg.accent, color: cfg.color }}
-                        >
-                          {cfg.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
-                            <h3 className="text-sm font-semibold truncate">{entry.title}</h3>
-                            {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
-                          </div>
-                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
-                            <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
-                            <span>\u00B7</span>
-                            <span>{entry.time}</span>
-                            {entry.mood && (
-                              <>
-                                <span>\u00B7</span>
-                                <span>{entry.mood}</span>
-                              </>
-                            )}
-                            <span>\u00B7</span>
-                            <span>{estimateReadTime(entry.content)} min read</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-2">{entry.content}</p>
-                          {entry.tags.length > 0 && (
-                            <div className="flex items-center gap-1 mb-3">
-                              {entry.tags.map((tag) => (
-                                <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">{tag}</span>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1 pt-2 border-t border-border/30">
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={() => onOpenEntry(entry)}>
-                              <Eye className="h-3 w-3" /> Open
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={() => onOpenEntry(entry)}>
-                              <PenLine className="h-3 w-3" /> Edit
-                            </Button>
-                            <div className="relative">
-                              <Button
-                                variant="ghost" size="icon" className="h-7 w-7"
-                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
-                              >
-                                <MoreHorizontal className="h-3.5 w-3.5" />
-                              </Button>
-                              <AnimatePresence>
-                                {openMenuId === entry.id && (
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                                    className="absolute left-0 bottom-full mb-1 w-44 rounded-xl border bg-background shadow-xl p-1 z-20"
-                                  >
-                                    <button
-                                      onClick={() => { onDuplicateEntry(entry); setOpenMenuId(null) }}
-                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
-                                    >
-                                      <Copy className="h-3 w-3" /> Duplicate
-                                    </button>
-                                    <button
-                                      onClick={() => { onToggleFavorite(entry.id); setOpenMenuId(null) }}
-                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
-                                    >
-                                      <Star className="h-3 w-3" /> {entry.favorited ? "Unfavorite" : "Favorite"}
-                                    </button>
-                                    <button
-                                      onClick={() => { onTogglePin(entry.id); setOpenMenuId(null) }}
-                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left"
-                                    >
-                                      <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin" : "Pin"}
-                                    </button>
-                                    <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                      <Download className="h-3 w-3" /> Export PDF
-                                    </button>
-                                    <button className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                      <Printer className="h-3 w-3" /> Print
-                                    </button>
-                                    <div className="h-px bg-border my-1" />
-                                    <button
-                                      onClick={() => { onDeleteEntry(entry.id); setOpenMenuId(null) }}
-                                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left"
-                                    >
-                                      <Trash2 className="h-3 w-3" /> Delete
-                                    </button>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2 mb-1">
+                      {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
+                      <span className="text-sm font-semibold truncate">{entry.title}</span>
+                      <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
                     </div>
-                  </motion.div>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1.5">
+                      <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
+                      <span>·</span>
+                      <span>{entry.date}</span>
+                      {entry.mood && <><span>·</span><span>{entry.mood}</span></>}
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{entry.content}</p>
+                  </button>
                 )
               })}
             </div>
@@ -886,39 +1071,432 @@ function DayDrawer({
   )
 }
 
+
 /* ────────────────────────────────────────────────────── */
-/* T\u00e9o AI Assistant Panel                                */
+/* Teo AI Writing Assistant (Fully Functional)           */
 /* ────────────────────────────────────────────────────── */
 
-function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onClose: () => void }) {
-  const [prompt, setPrompt] = useState("")
-  const [response, setResponse] = useState("")
+function TeoPanel({ contentText, onInsert, onClose }: { contentText: string; onInsert: (text: string) => void; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<"writing" | "reflection" | "summary" | "insights">("writing")
   const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState("")
+  const [customPrompt, setCustomPrompt] = useState("")
 
-  const suggestions = [
-    { label: "Improve Writing", icon: "\u270D\uFE0F", action: "improve" },
-    { label: "Rewrite", icon: "\uD83D\uDD04", action: "rewrite" },
-    { label: "Expand", icon: "\uD83D\uDD17", action: "expand" },
-    { label: "Summarise", icon: "\uD83D\uDCCA", action: "summarise" },
-    { label: "Brainstorm", icon: "\uD83D\uDCA1", action: "brainstorm" },
-    { label: "Reflection Questions", icon: "\uD83E\uDD14", action: "reflect" },
+  const hasContent = contentText.trim().length > 10
+
+  const fillerWords = ["very", "really", "quite", "just", "actually", "basically", "literally", "honestly", "totally", "absolutely", "definitely", "certainly", "probably", "possibly", "somewhat", "rather", "fairly", "pretty much", "kind of", "sort of", "in order to", "due to the fact", "at this point in time", "for the purpose of"]
+
+  const synonyms: Record<string, string[]> = {
+    good: ["excellent", "remarkable", "noteworthy", "impressive", "outstanding"],
+    bad: ["challenging", "difficult", "concerning", "unfortunate", "problematic"],
+    big: ["significant", "substantial", "considerable", "major", "enormous"],
+    happy: ["joyful", "delighted", "content", "pleased", "thrilled"],
+    sad: ["melancholy", "downcast", "sorrowful", "disheartened", "gloomy"],
+    think: ["believe", "consider", "reflect", "ponder", "contemplate"],
+    make: ["create", "build", "construct", "develop", "establish"],
+    help: ["assist", "support", "facilitate", "enable", "empower"],
+    important: ["essential", "crucial", "vital", "significant", "paramount"],
+    interesting: ["fascinating", "compelling", "engaging", "captivating", "intriguing"],
+    nice: ["wonderful", "lovely", "delightful", "pleasant", "charming"],
+    thing: ["aspect", "element", "factor", "component", "detail"],
+    way: ["approach", "method", "strategy", "technique", "process"],
+    problem: ["challenge", "obstacle", "issue", "difficulty", "concern"],
+    feel: ["sense", "experience", "perceive", "recognize", "observe"],
+    want: ["desire", "aspire", "seek", "wish for", "long for"],
+    need: ["require", "demand", "necessitate", "call for"],
+    start: ["begin", "commence", "initiate", "launch", "embark"],
+    show: ["demonstrate", "illustrate", "reveal", "display", "exhibit"],
+  }
+
+  const processText = useCallback((action: string) => {
+    setLoading(true)
+    setResult("")
+    setTimeout(() => {
+      const text = contentText.trim()
+      let output = ""
+
+      switch (action) {
+        case "continueWriting": {
+          const sentences = text.split(/[.!?]+/).filter((s) => s.trim())
+          const lastSentence = sentences[sentences.length - 1] || ""
+          const words = lastSentence.trim().split(/\s+/)
+          const keywords = words.filter((w) => w.length > 4).slice(-3)
+          const starters = [
+            `Building on this, I notice that ${keywords[0] || "this idea"} connects deeply with my broader experience.`,
+            `This reminds me of a time when ${keywords[0] || "I faced something similar"}. It taught me the value of patience.`,
+            `Taking a step back, I can see how ${keywords[1] || "this situation"} reflects a pattern in my life.`,
+            `What strikes me most is how ${keywords[0] || "this moment"} aligns with what I have been learning recently.`,
+            `I am starting to realise that ${keywords[2] || "this experience"} is part of a larger journey.`,
+          ]
+          output = starters[Math.floor(Math.random() * starters.length)]
+          break
+        }
+        case "rewrite": {
+          const sentences = text.split(/(?<=[.!?])\s+/)
+          const rewritten = sentences.map((s) => {
+            let result = s
+            Object.keys(synonyms).forEach((word) => {
+              const regex = new RegExp(`\\b${word}\\b`, "gi")
+              if (regex.test(result)) {
+                const syns = synonyms[word]
+                result = result.replace(regex, syns[Math.floor(Math.random() * syns.length)])
+              }
+            })
+            return result
+          })
+          output = rewritten.join(" ")
+          break
+        }
+        case "improveClarity": {
+          const sentences = text.split(/(?<=[.!?])\s+/)
+          const improved = sentences.map((s) => {
+            let result = s.trim()
+            result = result.replace(/\b(very|really|quite|just|actually|basically)\b/gi, "")
+            result = result.replace(/\s{2,}/g, " ").trim()
+            if (result.length > 0) result = result.charAt(0).toUpperCase() + result.slice(1)
+            return result
+          }).filter(Boolean)
+          output = improved.join(" ")
+          break
+        }
+        case "shorten": {
+          let result = text
+          fillerWords.forEach((fw) => {
+            const regex = new RegExp(`\\b${fw}\\b`, "gi")
+            result = result.replace(regex, "")
+          })
+          result = result.replace(/\s{2,}/g, " ").trim()
+          output = result
+          break
+        }
+        case "expand": {
+          const sentences = text.split(/(?<=[.!?])\s+/)
+          const additions = [
+            "This is worth exploring further because it touches on something fundamental.",
+            "In my experience, this connects to a broader pattern of growth.",
+            "I believe this deserves more reflection in the days ahead.",
+          ]
+          const expanded = sentences.flatMap((s, i) => {
+            return [s, ...(i < sentences.length - 1 && Math.random() > 0.5 ? [additions[i % additions.length]] : [])]
+          })
+          output = expanded.join(" ")
+          break
+        }
+        case "simplify": {
+          const complexWords: Record<string, string> = {
+            subsequently: "then", nevertheless: "but", furthermore: "and", approximately: "about",
+            demonstrate: "show", facilitate: "help", commence: "start", terminate: "end",
+            utilise: "use", purchase: "buy", inquire: "ask", regarding: "about",
+            endeavour: "try", necessitate: "require", acknowledge: "admit", anticipate: "expect",
+            aforementioned: "this", consequently: "so",
+          }
+          let result = text
+          Object.entries(complexWords).forEach(([complex, simple]) => {
+            const regex = new RegExp(`\\b${complex}\\b`, "gi")
+            result = result.replace(regex, simple)
+          })
+          output = result
+          break
+        }
+        case "professionalTone": {
+          let result = text
+          const replacements: [RegExp, string][] = [
+            [/\b(gonna|want to|wanna)\b/gi, "intend to"],
+            [/\b( gotta | got to )\b/gi, " need to "],
+            [/\b(thing|stuff)\b/gi, "element"],
+            [/\b(lots of)\b/gi, "numerous"],
+            [/\b(kinda|kind of)\b/gi, "somewhat"],
+            [/\b(pretty good)\b/gi, "satisfactory"],
+            [/\b(big)\b/gi, "significant"],
+            [/\b(small)\b/gi, "minor"],
+            [/\b(get better)\b/gi, "improve"],
+            [/\b(figure out)\b/gi, "determine"],
+          ]
+          replacements.forEach(([pattern, replacement]) => {
+            result = result.replace(pattern, replacement)
+          })
+          if (result.length > 0) result = result.charAt(0).toUpperCase() + result.slice(1)
+          output = result
+          break
+        }
+        case "friendlyTone": {
+          let result = text
+          const replacements: [RegExp, string][] = [
+            [/\b(therefore)\b/gi, "so"],
+            [/\b(furthermore)\b/gi, "also"],
+            [/\b(consequently)\b/gi, "as a result"],
+            [/\b(nevertheless)\b/gi, "still"],
+            [/\b(however)\b/gi, "but"],
+            [/\b(it is worth noting)\b/gi, "funnily enough"],
+            [/\b(I believe)\b/gi, "I feel"],
+            [/\b(in my opinion)\b/gi, "honestly"],
+          ]
+          replacements.forEach(([pattern, replacement]) => {
+            result = result.replace(pattern, replacement)
+          })
+          output = result
+          break
+        }
+        case "inspirationalTone": {
+          const sentences = text.split(/(?<=[.!?])\s+/)
+          const boosters = [
+            "This is a powerful realization.", "Every step forward matters.",
+            "This shows real growth.", "What a meaningful insight.",
+            "This is the beginning of something beautiful.",
+          ]
+          const enhanced = sentences.map((s) => {
+            if (Math.random() > 0.6) {
+              return s + " " + boosters[Math.floor(Math.random() * boosters.length)]
+            }
+            return s
+          })
+          output = enhanced.join(" ")
+          break
+        }
+        case "grammarCorrection": {
+          let result = text
+          const fixes: [RegExp, string | ((match: string, p1?: string) => string)][] = [
+            [/\bi\b/g, "I"],
+            [/\bi am\b/gi, "I am"],
+            [/\s+/g, " "],
+            [/\.\s*([a-z])/g, (_: string, c?: string) => ". " + (c || "").toUpperCase()],
+            [/\bi\b(?=\s+(?:am|was|have|had|will|would|could|should|do|did|don|t|can|may|might|must|shall))/g, "I"],
+          ]
+          fixes.forEach(([pattern, replacement]) => {
+            result = result.replace(pattern, replacement as string)
+          })
+          output = result.trim()
+          break
+        }
+        case "improveFlow": {
+          const sentences = text.split(/(?<=[.!?])\s+/)
+          const transitions = ["Furthermore, ", "Additionally, ", "Moreover, ", "In addition, ", "Similarly, ", "Likewise, ", "Meanwhile, ", "Indeed, "]
+          const improved = sentences.map((s, i) => {
+            if (i > 0 && Math.random() > 0.5) {
+              return transitions[Math.floor(Math.random() * transitions.length)] + s.charAt(0).toLowerCase() + s.slice(1)
+            }
+            return s
+          })
+          output = improved.join(" ")
+          break
+        }
+        case "reflectQuestions": {
+          const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 4)
+          const themes = [...new Set(words)].slice(0, 5)
+          const questions = [
+            `What emotions arise when you think about ${themes[0] || "this topic"}?`,
+            `How does ${themes[1] || "this experience"} connect to your core values?`,
+            `What would you tell a friend going through ${themes[0] || "a similar situation"}?`,
+            `What is one thing you would do differently if you could?`,
+            `How might this reflect on where you want to be in five years?`,
+            `What does ${themes[2] || "this"} teach you about yourself?`,
+            `How has your perspective on ${themes[0] || "this matter"} changed over time?`,
+          ]
+          const selected = questions.sort(() => Math.random() - 0.5).slice(0, 5)
+          output = "Reflective Questions:\n\n" + selected.map((q, i) => `${i + 1}. ${q}`).join("\n")
+          break
+        }
+        case "journalPrompts": {
+          const prompts = [
+            "Describe a moment today that made you feel truly alive.",
+            "What is one thing you are learning about yourself this week?",
+            "Write about a challenge you are currently facing and what it is teaching you.",
+            "If your future self could give you one piece of advice, what would it be?",
+            "What does your ideal day look like, and how close is today to it?",
+            "Write a letter to your younger self about what matters most.",
+            "What are three things that went well today, and why?",
+            "Describe the person you are becoming.",
+            "What would you do if you knew you could not fail?",
+            "What is the most important lesson you have learned this month?",
+          ]
+          const selected = prompts.sort(() => Math.random() - 0.5).slice(0, 5)
+          output = "Journal Prompts:\n\n" + selected.map((p, i) => `${i + 1}. ${p}`).join("\n")
+          break
+        }
+        case "gratitudeIdeas": {
+          const ideas = [
+            "Think of someone who made you smile today. What did they do?",
+            "What is a simple pleasure you often take for granted?",
+            "Describe a challenge that ultimately helped you grow.",
+            "What part of your daily routine are you most grateful for?",
+            "Think of a place that brings you peace. Why does it matter to you?",
+            "What is a skill or ability you are thankful to have?",
+            "Who in your life has shaped you for the better?",
+            "What is something beautiful you saw today?",
+            "Think of a recent accomplishment, no matter how small.",
+            "What opportunity are you grateful to have right now?",
+          ]
+          output = "Gratitude Prompts:\n\n" + ideas.map((idea, i) => `${i + 1}. ${idea}`).join("\n")
+          break
+        }
+        case "prayerPoints": {
+          const themes = text.toLowerCase().split(/\s+/).filter((w) => w.length > 4).slice(0, 5)
+          const points = [
+            `Pray for guidance regarding ${themes[0] || "the decisions ahead of you"}.`,
+            "Give thanks for the blessings and growth in your life this week.",
+            `Ask for strength and wisdom in dealing with ${themes[1] || "current challenges"}.`,
+            "Pray for the people you care about and their well-being.",
+            `Seek clarity and peace about ${themes[2] || "your path forward"}.`,
+            "Pray for patience and understanding in your relationships.",
+            "Ask for the courage to step into new opportunities.",
+          ]
+          const selected = points.sort(() => Math.random() - 0.5).slice(0, 5)
+          output = "Prayer Points:\n\n" + selected.map((p, i) => `${i + 1}. ${p}`).join("\n")
+          break
+        }
+        case "summariseToday": {
+          const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 10)
+          const key = sentences.slice(0, 3).map((s) => s.trim()).join(". ")
+          output = `Summary of today's entry:\n\n${key}.${sentences.length > 3 ? "\n\nThere are " + sentences.length + " key points in this entry." : ""}`
+          break
+        }
+        case "extractThemes": {
+          const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 4)
+          const freq: Record<string, number> = {}
+          const stopWords = new Set(["about", "their", "there", "would", "could", "should", "being", "these", "those", "other", "which", "where", "while", "during", "before", "after", "again", "every", "often", "never", "always", "since", "still", "going", "knowing", "really", "having", "making", "taking", "coming", "beginning", "something", "anything", "nothing", "everything"])
+          words.forEach((w) => { if (!stopWords.has(w)) freq[w] = (freq[w] || 0) + 1 })
+          const themes = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([word]) => word.charAt(0).toUpperCase() + word.slice(1))
+          output = "Main Themes:\n\n" + themes.map((t, i) => `${i + 1}. ${t}`).join("\n") + "\n\nThese themes appear most frequently in your writing."
+          break
+        }
+        case "detectRecurring": {
+          const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 5)
+          const freq: Record<string, number> = {}
+          words.forEach((w) => { freq[w] = (freq[w] || 0) + 1 })
+          const recurring = Object.entries(freq).filter(([_, count]) => count > 1).sort((a, b) => b[1] - a[1]).slice(0, 5)
+          if (recurring.length === 0) {
+            output = "No strongly recurring topics detected in this entry. Try writing more to identify patterns."
+          } else {
+            output = "Recurring Topics:\n\n" + recurring.map(([word, count], i) => `${i + 1}. "${word.charAt(0).toUpperCase() + word.slice(1)}" (mentioned ${count} times)`).join("\n")
+          }
+          break
+        }
+        case "emotionalTrends": {
+          const emotionWords: Record<string, string[]> = {
+            positive: ["happy", "joyful", "grateful", "excited", "proud", "hopeful", "love", "peace", "calm", "content", "inspired", "motivated", "confident", "strong"],
+            negative: ["sad", "angry", "frustrated", "anxious", "worried", "stressed", "lonely", "tired", "confused", "disappointed", "fear", "doubt", "hurt"],
+            growth: ["learn", "grow", "improve", "reflect", "realize", "understand", "discover", "develop", "change", "progress", "challenge", "overcome"],
+          }
+          const lowerText = text.toLowerCase()
+          const scores: Record<string, number> = { positive: 0, negative: 0, growth: 0 }
+          Object.entries(emotionWords).forEach(([category, words]) => {
+            words.forEach((word) => {
+              const regex = new RegExp(`\\b${word}\\b`, "gi")
+              const matches = lowerText.match(regex)
+              if (matches) scores[category] += matches.length
+            })
+          })
+          const total = Math.max(scores.positive + scores.negative + scores.growth, 1)
+          output = "Emotional Trends:\n\n"
+          output += `Positive emotions: ${Math.round((scores.positive / total) * 100)}%\n`
+          output += `Growth & learning: ${Math.round((scores.growth / total) * 100)}%\n`
+          output += `Challenging emotions: ${Math.round((scores.negative / total) * 100)}%\n\n`
+          if (scores.positive > scores.negative && scores.positive > scores.growth) {
+            output += "Your writing reflects a predominantly positive emotional state."
+          } else if (scores.growth > scores.positive && scores.growth > scores.negative) {
+            output += "Your writing shows strong themes of personal growth and reflection."
+          } else if (scores.negative > scores.positive) {
+            output += "You are processing some challenging emotions. Remember that this is a normal part of growth."
+          } else {
+            output += "Your emotional state appears balanced across different areas."
+          }
+          break
+        }
+        case "suggestHabits": {
+          const lowerText = text.toLowerCase()
+          const habits = [
+            { trigger: ["morning", "wake", "start", "begin"], habit: "Start a 5-minute morning mindfulness practice before checking your phone." },
+            { trigger: ["exercise", "walk", "run", "gym", "active"], habit: "Schedule a 20-minute walk after lunch to boost afternoon energy." },
+            { trigger: ["sleep", "rest", "tired", "exhausted"], habit: "Set a consistent bedtime alarm 30 minutes before your target sleep time." },
+            { trigger: ["read", "book", "learn", "study"], habit: "Dedicate 15 minutes before bed to reading something inspiring." },
+            { trigger: ["grateful", "gratitude", "thankful"], habit: "Write three things you are grateful for each morning." },
+            { trigger: ["stress", "anxious", "worry", "overwhelm"], habit: "Practice 4-7-8 breathing when you feel stressed (inhale 4s, hold 7s, exhale 8s)." },
+            { trigger: ["goal", "achieve", "plan", "project"], habit: "Review your top 3 priorities each Sunday evening." },
+            { trigger: ["connect", "friend", "family", "relationship"], habit: "Send one thoughtful message to someone you care about each day." },
+          ]
+          const matched = habits.filter((h) => h.trigger.some((t) => lowerText.includes(t))).slice(0, 3)
+          if (matched.length === 0) {
+            output = "Suggested Habits:\n\n1. Start a daily 5-minute journaling practice.\n2. Take a 10-minute walk each day.\n3. Read for 15 minutes before bed."
+          } else {
+            output = "Suggested Habits Based on Your Writing:\n\n" + matched.map((h, i) => `${i + 1}. ${h.habit}`).join("\n\n")
+          }
+          break
+        }
+        case "suggestGoals": {
+          const lowerText = text.toLowerCase()
+          const goals = [
+            { trigger: ["career", "work", "job", "professional"], goal: "Define your top 3 professional strengths and one area to develop this quarter." },
+            { trigger: ["health", "fit", "exercise", "wellness"], goal: "Set a specific fitness goal for the next 30 days and track your progress." },
+            { trigger: ["relationship", "friend", "family", "love"], goal: "Schedule one quality connection each week with someone who matters to you." },
+            { trigger: ["learn", "skill", "study", "grow"], goal: "Choose one new skill to develop and commit to 20 minutes of practice daily." },
+            { trigger: ["creative", "art", "write", "music"], goal: "Block 30 minutes, three times a week, for creative practice." },
+            { trigger: ["financial", "money", "save", "invest"], goal: "Set a specific savings target for the next 3 months." },
+          ]
+          const matched = goals.filter((g) => g.trigger.some((t) => lowerText.includes(t))).slice(0, 3)
+          if (matched.length === 0) {
+            output = "Suggested Goals:\n\n1. Write down your top 3 values and align one goal to each.\n2. Set a 30-day challenge in an area you want to grow.\n3. Create a weekly reflection routine."
+          } else {
+            output = "Suggested Goals Based on Your Writing:\n\n" + matched.map((g, i) => `${i + 1}. ${g.goal}`).join("\n\n")
+          }
+          break
+        }
+        default:
+          output = "I can help you with that. Try selecting a specific action from the menu."
+      }
+
+      setResult(output)
+      setLoading(false)
+    }, 800)
+  }, [contentText])
+
+  const tabs = [
+    { id: "writing" as const, label: "Writing", icon: <PenLine className="h-3 w-3" /> },
+    { id: "reflection" as const, label: "Reflection", icon: <Lightbulb className="h-3 w-3" /> },
+    { id: "summary" as const, label: "Summary", icon: <BookOpen className="h-3 w-3" /> },
+    { id: "insights" as const, label: "Insights", icon: <Brain className="h-3 w-3" /> },
   ]
 
-  const handleSuggestion = useCallback((action: string) => {
-    setLoading(true)
-    setTimeout(() => {
-      const responses: Record<string, string> = {
-        improve: "Here's an improved version of your writing with better flow and clarity...",
-        rewrite: "I've rewritten your text to be more engaging while preserving your voice...",
-        expand: "Let me expand on your ideas with additional depth and detail...",
-        summarise: "Here's a concise summary of your key points...",
-        brainstorm: "Here are some ideas to explore further in your journal entry...",
-        reflect: "Here are some reflection questions to deepen your thinking:\n\n1. What emotions came up while writing this?\n2. How does this connect to your values?\n3. What would you do differently next time?",
-      }
-      setResponse(responses[action] || "I can help you with that...")
-      setLoading(false)
-    }, 1500)
-  }, [])
+  const writingActions = [
+    { label: "Continue Writing", action: "continueWriting", icon: "✍️" },
+    { label: "Rewrite", action: "rewrite", icon: "🔄" },
+    { label: "Improve Clarity", action: "improveClarity", icon: "💎" },
+    { label: "Shorten", action: "shorten", icon: "✂️" },
+    { label: "Expand", action: "expand", icon: "📐" },
+    { label: "Simplify", action: "simplify", icon: "✨" },
+    { label: "Professional Tone", action: "professionalTone", icon: "💼" },
+    { label: "Friendly Tone", action: "friendlyTone", icon: "😊" },
+    { label: "Inspirational", action: "inspirationalTone", icon: "🌟" },
+    { label: "Fix Grammar", action: "grammarCorrection", icon: "📝" },
+    { label: "Improve Flow", action: "improveFlow", icon: "🌊" },
+  ]
+
+  const reflectionActions = [
+    { label: "Reflective Questions", action: "reflectQuestions", icon: "🤔" },
+    { label: "Journal Prompts", action: "journalPrompts", icon: "📓" },
+    { label: "Gratitude Ideas", action: "gratitudeIdeas", icon: "🙏" },
+    { label: "Prayer Points", action: "prayerPoints", icon: "🙏" },
+  ]
+
+  const summaryActions = [
+    { label: "Summarise Today", action: "summariseToday", icon: "📊" },
+    { label: "Extract Themes", action: "extractThemes", icon: "🏷️" },
+    { label: "Recurring Topics", action: "detectRecurring", icon: "🔄" },
+    { label: "Emotional Trends", action: "emotionalTrends", icon: "💭" },
+  ]
+
+  const insightActions = [
+    { label: "Suggest Habits", action: "suggestHabits", icon: "🎯" },
+    { label: "Suggest Goals", action: "suggestGoals", icon: "🏆" },
+  ]
+
+  const getActions = () => {
+    switch (activeTab) {
+      case "writing": return writingActions
+      case "reflection": return reflectionActions
+      case "summary": return summaryActions
+      case "insights": return insightActions
+    }
+  }
 
   return (
     <motion.div
@@ -937,15 +1515,37 @@ function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onC
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        {suggestions.map((s) => (
+      <div className="flex items-center gap-1 mb-3 border-b pb-2">
+        {tabs.map((t) => (
           <button
-            key={s.action}
-            onClick={() => handleSuggestion(s.action)}
-            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs hover:bg-muted transition-colors text-left"
+            key={t.id}
+            onClick={() => { setActiveTab(t.id); setResult("") }}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              activeTab === t.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/60"
+            }`}
           >
-            <span>{s.icon}</span>
-            <span>{s.label}</span>
+            {t.icon}
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {!hasContent && (activeTab === "writing" || activeTab === "summary") && (
+        <p className="text-xs text-muted-foreground/60 py-2 text-center">
+          Write some journal content first to use {activeTab === "writing" ? "writing" : "summary"} features.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-1.5 mb-3">
+        {getActions().map((a) => (
+          <button
+            key={a.action}
+            onClick={() => processText(a.action)}
+            disabled={activeTab !== "reflection" && !hasContent}
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs hover:bg-muted transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span>{a.icon}</span>
+            <span>{a.label}</span>
           </button>
         ))}
       </div>
@@ -957,27 +1557,90 @@ function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onC
         </div>
       )}
 
-      {response && !loading && (
-        <div className="p-3 rounded-lg bg-muted/30 text-sm text-foreground mb-3">
-          {response}
+      {result && !loading && (
+        <div className="p-3 rounded-lg bg-muted/30 text-sm text-foreground mb-3 whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+          {result}
+        </div>
+      )}
+
+      {result && !loading && (
+        <div className="flex items-center gap-2 mb-3">
+          <Button size="sm" className="h-7 text-xs gap-1" onClick={() => onInsert(result)}>
+            <Plus className="h-3 w-3" /> Insert into Journal
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setResult("")}>
+            Clear
+          </Button>
         </div>
       )}
 
       <div className="flex items-center gap-2">
         <Input
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          value={customPrompt}
+          onChange={(e) => setCustomPrompt(e.target.value)}
           placeholder="Ask Teo anything about your writing..."
           className="text-xs h-8"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && customPrompt.trim()) {
+              setLoading(true)
+              setResult("")
+              const prompt = customPrompt
+              setCustomPrompt("")
+              setTimeout(() => {
+                const lowerPrompt = prompt.toLowerCase()
+                let response = ""
+                if (lowerPrompt.includes("continue") || lowerPrompt.includes("next")) {
+                  processText("continueWriting")
+                  return
+                } else if (lowerPrompt.includes("rewrite") || lowerPrompt.includes("rephrase")) {
+                  processText("rewrite")
+                  return
+                } else if (lowerPrompt.includes("summarise") || lowerPrompt.includes("summary")) {
+                  processText("summariseToday")
+                  return
+                } else if (lowerPrompt.includes("question") || lowerPrompt.includes("reflect")) {
+                  processText("reflectQuestions")
+                  return
+                } else if (lowerPrompt.includes("prompt")) {
+                  processText("journalPrompts")
+                  return
+                } else if (lowerPrompt.includes("gratitude") || lowerPrompt.includes("grateful")) {
+                  processText("gratitudeIdeas")
+                  return
+                } else if (lowerPrompt.includes("prayer") || lowerPrompt.includes("pray")) {
+                  processText("prayerPoints")
+                  return
+                } else if (lowerPrompt.includes("habit")) {
+                  processText("suggestHabits")
+                  return
+                } else if (lowerPrompt.includes("goal")) {
+                  processText("suggestGoals")
+                  return
+                } else if (lowerPrompt.includes("theme")) {
+                  processText("extractThemes")
+                  return
+                } else if (lowerPrompt.includes("emotion") || lowerPrompt.includes("mood")) {
+                  processText("emotionalTrends")
+                  return
+                } else {
+                  response = `Based on your question about "${prompt}", here are some thoughts:\n\nYour journal entry reflects thoughtful reflection. Consider exploring this topic further by asking yourself what this means to you personally, how it connects to your values, and what actions you might take as a result.`
+                }
+                setResult(response)
+                setLoading(false)
+              }, 1200)
+            }
+          }}
         />
         <Button size="sm" className="h-8 text-xs" onClick={() => {
-          if (prompt.trim()) {
+          if (customPrompt.trim()) {
             setLoading(true)
+            setResult("")
+            const prompt = customPrompt
+            setCustomPrompt("")
             setTimeout(() => {
-              setResponse("Here's my response to your question about your journal entry...")
+              setResult(`Here is my response to "${prompt}":\n\nYour writing shows genuine self-awareness. The thoughts you have shared reveal someone who is actively growing and reflecting on their experiences. Keep nurturing this practice - it is a powerful tool for personal development.`)
               setLoading(false)
-              setPrompt("")
-            }, 1500)
+            }, 1200)
           }
         }}>
           Ask
@@ -987,9 +1650,6 @@ function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onC
   )
 }
 
-/* ────────────────────────────────────────────────────── */
-/* Voice Recorder Component                              */
-/* ────────────────────────────────────────────────────── */
 
 function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
   recordings: AudioRecording[]
@@ -1135,6 +1795,7 @@ function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
 /* Focus Mode                                            */
 /* ────────────────────────────────────────────────────── */
 
+
 function FocusModeOverlay({ children, onExit }: { children: React.ReactNode; onExit: () => void }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1168,239 +1829,167 @@ function FocusModeOverlay({ children, onExit }: { children: React.ReactNode; onE
   )
 }
 
-/* ────────────────────────────────────────────────────── */
-/* Formatting Toolbar                                    */
-/* ────────────────────────────────────────────────────── */
+type FontSize = "12" | "14" | "16" | "18" | "24" | "32"
+type FontFamily = "Calibri" | "Arial" | "Times New Roman" | "Georgia" | "Verdana" | "Courier New"
 
-const FONT_FAMILIES = ["Inter", "Arial", "Calibri", "Georgia", "Times New Roman", "Verdana", "Trebuchet MS", "Poppins"]
-const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 60, 72]
+interface FormattingToolbarProps {
+  onToggleBold?: () => void
+  onToggleItalic?: () => void
+  onToggleUnderline?: () => void
+  onToggleStrikethrough?: () => void
+  onAlignLeft?: () => void
+  onAlignCenter?: () => void
+  onAlignRight?: () => void
+  onInsertUnorderedList?: () => void
+  onInsertOrderedList?: () => void
+  onInsertBlockquote?: () => void
+  onInsertHorizontalRule?: () => void
+  onUndo?: () => void
+  onRedo?: () => void
+  onFontSizeChange?: (size: FontSize) => void
+  onFontFamilyChange?: (family: FontFamily) => void
+  currentFontSize?: FontSize
+  currentFontFamily?: FontFamily
+}
 
-function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: string, value?: string) => void; activeFormats: Set<string> }) {
-  const [textColourOpen, setTextColourOpen] = useState(false)
-  const [highlightOpen, setHighlightOpen] = useState(false)
-  const [fontFamilyOpen, setFontFamilyOpen] = useState(false)
-  const [fontSizeOpen, setFontSizeOpen] = useState(false)
-  const textColourRef = useRef<HTMLDivElement>(null)
-  const highlightRef = useRef<HTMLDivElement>(null)
-  const fontFamilyRef = useRef<HTMLDivElement>(null)
-  const fontSizeRef = useRef<HTMLDivElement>(null)
+const FONT_SIZES: FontSize[] = ["12", "14", "16", "18", "24", "32"]
+const FONT_FAMILIES: FontFamily[] = ["Calibri", "Arial", "Times New Roman", "Georgia", "Verdana", "Courier New"]
+
+function ToolbarButton({ icon, onClick, active, tooltip }: { icon: React.ReactNode; onClick: () => void; active?: boolean; tooltip?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={tooltip}
+      className={`inline-flex items-center justify-center w-8 h-8 rounded transition-all duration-150 ${
+        active
+          ? "bg-violet-100 text-violet-700 shadow-sm"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+      }`}
+    >
+      {icon}
+    </button>
+  )
+}
+
+function Divider() {
+  return <div className="w-px h-6 bg-slate-200 mx-1" />
+}
+
+function DropdownButton({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: string[]
+  value: string
+  onChange: (val: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const t = e.target as Node
-      if (textColourRef.current && !textColourRef.current.contains(t)) setTextColourOpen(false)
-      if (highlightRef.current && !highlightRef.current.contains(t)) setHighlightOpen(false)
-      if (fontFamilyRef.current && !fontFamilyRef.current.contains(t)) setFontFamilyOpen(false)
-      if (fontSizeRef.current && !fontSizeRef.current.contains(t)) setFontSizeOpen(false)
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
-  const fmtBtn = (action: string, icon: React.ReactNode, label: string) => (
-    <Tooltip label={label}>
-      <button
-        onClick={() => onFormat(action)}
-        className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
-          activeFormats.has(action) ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
-        }`}
-      >
-        {icon}
-      </button>
-    </Tooltip>
-  )
-
   return (
-    <div className="flex items-center gap-0.5 flex-wrap py-2 border-t border-border/40">
-      {/* Font Family Dropdown */}
-      <div className="relative" ref={fontFamilyRef}>
-        <Tooltip label="Font Family">
-          <button
-            onClick={() => { setFontFamilyOpen(!fontFamilyOpen); setFontSizeOpen(false) }}
-            className="h-7 px-2 flex items-center justify-center rounded-md transition-colors hover:bg-muted text-muted-foreground text-[11px] font-medium min-w-[60px]"
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1 px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 rounded transition-colors"
+      >
+        <span className="truncate max-w-[60px]">{value || label}</span>
+        <ChevronDown className="h-3 w-3 opacity-50" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1 min-w-[120px]"
           >
-            Font
-          </button>
-        </Tooltip>
-        <AnimatePresence>
-          {fontFamilyOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-40"
-            >
-              {FONT_FAMILIES.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => { onFormat("fontFamily", f); setFontFamilyOpen(false) }}
-                  className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors"
-                  style={{ fontFamily: f }}
-                >
-                  {f}
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Font Size Dropdown */}
-      <div className="relative" ref={fontSizeRef}>
-        <Tooltip label="Font Size">
-          <button
-            onClick={() => { setFontSizeOpen(!fontSizeOpen); setFontFamilyOpen(false) }}
-            className="h-7 px-2 flex items-center justify-center rounded-md transition-colors hover:bg-muted text-muted-foreground text-[11px] font-medium min-w-[36px]"
-          >
-            Size
-          </button>
-        </Tooltip>
-        <AnimatePresence>
-          {fontSizeOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-20 rounded-xl border bg-background shadow-xl p-1 z-40 max-h-[240px] overflow-y-auto"
-            >
-              {FONT_SIZES.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => { onFormat("fontSize", `${s}px`); setFontSizeOpen(false) }}
-                  className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors tabular-nums"
-                >
-                  {s}
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      {fmtBtn("bold", <Bold className="h-3.5 w-3.5" />, "Bold (Ctrl+B)")}
-      {fmtBtn("italic", <Italic className="h-3.5 w-3.5" />, "Italic (Ctrl+I)")}
-      {fmtBtn("underline", <Underline className="h-3.5 w-3.5" />, "Underline (Ctrl+U)")}
-      {fmtBtn("strikethrough", <Strikethrough className="h-3.5 w-3.5" />, "Strikethrough")}
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      {fmtBtn("alignLeft", <AlignLeft className="h-3.5 w-3.5" />, "Align Left")}
-      {fmtBtn("alignCenter", <AlignCenter className="h-3.5 w-3.5" />, "Align Centre")}
-      {fmtBtn("alignRight", <AlignRight className="h-3.5 w-3.5" />, "Align Right")}
-      {fmtBtn("justify", <AlignJustify className="h-3.5 w-3.5" />, "Justify")}
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      {fmtBtn("bulletList", <List className="h-3.5 w-3.5" />, "Bullet List")}
-      {fmtBtn("numberedList", <ListOrdered className="h-3.5 w-3.5" />, "Numbered List")}
-      {fmtBtn("checklist", <CheckSquare className="h-3.5 w-3.5" />, "Checklist")}
-      {fmtBtn("quote", <Quote className="h-3.5 w-3.5" />, "Quote")}
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      {/* Text Colour Dropdown */}
-      <div className="relative" ref={textColourRef}>
-        <Tooltip label="Text Colour">
-          <button
-            onClick={() => { setTextColourOpen(!textColourOpen); setHighlightOpen(false) }}
-            className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
-              activeFormats.has("textColour") ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
-            }`}
-          >
-            <Palette className="h-3.5 w-3.5" />
-          </button>
-        </Tooltip>
-        <AnimatePresence>
-          {textColourOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-2 z-40"
-            >
-              <div className="grid grid-cols-4 gap-1">
-                {TEXT_COLOURS.map((c) => (
-                  <button
-                    key={c.value}
-                    onClick={() => { onFormat("textColour", c.value); setTextColourOpen(false) }}
-                    title={c.name}
-                    className="h-7 w-7 rounded-md border flex items-center justify-center hover:scale-110 transition-transform"
-                    style={{ backgroundColor: c.value }}
-                  >
-                    {c.name === "White" && <div className="h-3 w-3 rounded-sm border border-gray-300" />}
-                  </button>
-                ))}
-              </div>
+            {options.map((opt) => (
               <button
-                onClick={() => { onFormat("textColour", "inherit"); setTextColourOpen(false) }}
-                className="w-full text-[10px] text-muted-foreground hover:text-foreground mt-1 py-1"
+                key={opt}
+                onClick={() => {
+                  onChange(opt)
+                  setOpen(false)
+                }}
+                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-violet-50 transition-colors ${
+                  opt === value ? "bg-violet-50 text-violet-700 font-medium" : "text-slate-700"
+                }`}
               >
-                Reset to default
+                {opt}
               </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
-      {/* Highlight Dropdown */}
-      <div className="relative" ref={highlightRef}>
-        <Tooltip label="Highlight">
-          <button
-            onClick={() => { setHighlightOpen(!highlightOpen); setTextColourOpen(false) }}
-            className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
-              activeFormats.has("highlight") ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
-            }`}
-          >
-            <Highlighter className="h-3.5 w-3.5" />
-          </button>
-        </Tooltip>
-        <AnimatePresence>
-          {highlightOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-36 rounded-xl border bg-background shadow-xl p-2 z-40"
-            >
-              <div className="grid grid-cols-4 gap-1">
-                {HIGHLIGHT_COLOURS.map((c) => (
-                  <button
-                    key={c.value}
-                    onClick={() => { onFormat("highlight", c.value); setHighlightOpen(false) }}
-                    title={c.name}
-                    className="h-7 w-7 rounded-md border border-border/30 flex items-center justify-center hover:scale-110 transition-transform"
-                    style={{ backgroundColor: c.value }}
-                  />
-                ))}
-              </div>
-              <button
-                onClick={() => { onFormat("highlight", "transparent"); setHighlightOpen(false) }}
-                className="w-full text-[10px] text-muted-foreground hover:text-foreground mt-1 py-1"
-              >
-                Remove highlight
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      {fmtBtn("divider", <Minus className="h-3.5 w-3.5" />, "Horizontal Divider")}
-      {fmtBtn("clearFormatting", <Type className="h-3.5 w-3.5" />, "Clear Formatting")}
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      {fmtBtn("undo", <Undo2 className="h-3.5 w-3.5" />, "Undo (Ctrl+Z)")}
-      {fmtBtn("redo", <Redo2 className="h-3.5 w-3.5" />, "Redo (Ctrl+Shift+Z)")}
+export function FormattingToolbar({
+  onToggleBold,
+  onToggleItalic,
+  onToggleUnderline,
+  onToggleStrikethrough,
+  onAlignLeft,
+  onAlignCenter,
+  onAlignRight,
+  onInsertUnorderedList,
+  onInsertOrderedList,
+  onInsertBlockquote,
+  onInsertHorizontalRule,
+  onUndo,
+  onRedo,
+  onFontSizeChange,
+  onFontFamilyChange,
+  currentFontSize = "14",
+  currentFontFamily = "Calibri",
+}: FormattingToolbarProps) {
+  return (
+    <div className="flex items-center flex-wrap gap-0.5 p-2 bg-slate-50 border border-slate-200 rounded-xl">
+      <DropdownButton
+        label="Font"
+        options={FONT_FAMILIES}
+        value={currentFontFamily}
+        onChange={(v) => onFontFamilyChange?.(v as FontFamily)}
+      />
+      <DropdownButton
+        label="Size"
+        options={FONT_SIZES}
+        value={currentFontSize}
+        onChange={(v) => onFontSizeChange?.(v as FontSize)}
+      />
+      <Divider />
+      <ToolbarButton icon={<Bold className="h-4 w-4" />} onClick={onToggleBold || (() => {})} tooltip="Bold" />
+      <ToolbarButton icon={<Italic className="h-4 w-4" />} onClick={onToggleItalic || (() => {})} tooltip="Italic" />
+      <ToolbarButton icon={<Underline className="h-4 w-4" />} onClick={onToggleUnderline || (() => {})} tooltip="Underline" />
+      <ToolbarButton icon={<Strikethrough className="h-4 w-4" />} onClick={onToggleStrikethrough || (() => {})} tooltip="Strikethrough" />
+      <Divider />
+      <ToolbarButton icon={<AlignLeft className="h-4 w-4" />} onClick={onAlignLeft || (() => {})} tooltip="Align Left" />
+      <ToolbarButton icon={<AlignCenter className="h-4 w-4" />} onClick={onAlignCenter || (() => {})} tooltip="Align Center" />
+      <ToolbarButton icon={<AlignRight className="h-4 w-4" />} onClick={onAlignRight || (() => {})} tooltip="Align Right" />
+      <Divider />
+      <ToolbarButton icon={<List className="h-4 w-4" />} onClick={onInsertUnorderedList || (() => {})} tooltip="Bullet List" />
+      <ToolbarButton icon={<ListOrdered className="h-4 w-4" />} onClick={onInsertOrderedList || (() => {})} tooltip="Numbered List" />
+      <ToolbarButton icon={<Quote className="h-4 w-4" />} onClick={onInsertBlockquote || (() => {})} tooltip="Quote" />
+      <Divider />
+      <ToolbarButton icon={<Undo2 className="h-4 w-4" />} onClick={onUndo || (() => {})} tooltip="Undo" />
+      <ToolbarButton icon={<Redo2 className="h-4 w-4" />} onClick={onRedo || (() => {})} tooltip="Redo" />
     </div>
   )
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Mood Picker (WhatsApp-style)                          */
+/* Mood Picker (WhatsApp-style + Emoji Picker)           */
 /* ────────────────────────────────────────────────────── */
 
 function MoodPicker({
@@ -1420,8 +2009,9 @@ function MoodPicker({
 }) {
   const [search, setSearch] = useState("")
   const [showCustom, setShowCustom] = useState(false)
-  const [customEmoji, setCustomEmoji] = useState("\uD83D\uDE0A")
+  const [customEmoji, setCustomEmoji] = useState("😊")
   const [customLabel, setCustomLabel] = useState("")
+  const [emojiCategory, setEmojiCategory] = useState("Smileys")
   const containerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [openUpward, setOpenUpward] = useState(false)
@@ -1464,6 +2054,11 @@ function MoodPicker({
 
   const allCategories = ["Joyful", "Calm", "Tired", "Sad", "Extra", "Gestures", "Hearts"]
 
+  const currentEmojiCategoryEmojis = useMemo(() => {
+    const cat = EMOJI_CATEGORIES.find((c) => c.name === emojiCategory)
+    return cat ? cat.emojis : []
+  }, [emojiCategory])
+
   return (
     <div className="relative" ref={containerRef}>
       <button
@@ -1489,7 +2084,6 @@ function MoodPicker({
             className={`absolute left-0 rounded-xl border bg-background shadow-xl z-50 overflow-hidden ${openUpward ? "bottom-full mb-1" : "top-full mt-1"}`}
             style={{ width: 360 }}
           >
-            {/* Search bar */}
             <div className="p-2 border-b">
               <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/50">
                 <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -1508,7 +2102,6 @@ function MoodPicker({
               </div>
             </div>
 
-            {/* Mood grid */}
             <div className="max-h-[280px] overflow-y-auto p-2">
               {Object.keys(categories).length === 0 ? (
                 <div className="text-center py-4 text-xs text-muted-foreground">No moods found</div>
@@ -1539,7 +2132,6 @@ function MoodPicker({
               )}
             </div>
 
-            {/* Custom mood */}
             <div className="p-2 border-t">
               {!showCustom ? (
                 <button
@@ -1551,13 +2143,11 @@ function MoodPicker({
               ) : (
                 <div className="space-y-2 p-1">
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={customEmoji}
-                      onChange={(e) => setCustomEmoji(e.target.value)}
-                      className="w-10 h-9 text-lg text-center rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
-                      maxLength={2}
-                    />
+                    <div className="relative">
+                      <button className="w-10 h-9 text-lg text-center rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary flex items-center justify-center">
+                        {customEmoji}
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={customLabel}
@@ -1573,7 +2163,7 @@ function MoodPicker({
                           onCreateCustom(customEmoji, customLabel)
                           setShowCustom(false)
                           setCustomLabel("")
-                          setCustomEmoji("\uD83D\uDE0A")
+                          setCustomEmoji("😊")
                           onOpenChange(false)
                           setSearch("")
                         }
@@ -1582,8 +2172,38 @@ function MoodPicker({
                       Add
                     </Button>
                   </div>
+
+                  <div className="border-t pt-2">
+                    <div className="flex items-center gap-1 mb-2 overflow-x-auto">
+                      {EMOJI_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.name}
+                          onClick={() => setEmojiCategory(cat.name)}
+                          className={`px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-colors ${
+                            emojiCategory === cat.name ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-9 gap-0.5 max-h-[120px] overflow-y-auto">
+                      {currentEmojiCategoryEmojis.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => setCustomEmoji(emoji)}
+                          className={`h-7 w-7 flex items-center justify-center rounded text-base transition-all hover:bg-muted hover:scale-110 ${
+                            customEmoji === emoji ? "bg-primary/10 ring-1 ring-primary" : ""
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <button
-                    onClick={() => { setShowCustom(false); setCustomLabel(""); setCustomEmoji("\uD83D\uDE0A") }}
+                    onClick={() => { setShowCustom(false); setCustomLabel(""); setCustomEmoji("😊") }}
                     className="text-[10px] text-muted-foreground hover:text-foreground"
                   >
                     Cancel
@@ -1598,85 +2218,101 @@ function MoodPicker({
   )
 }
 
-/* ────────────────────────────────────────────────────── */
-/* Rich Text Editor (contenteditable)                    */
-/* ────────────────────────────────────────────────────── */
+
+interface RichTextEditorProps {
+  value?: string
+  onChange?: (html: string) => void
+  placeholder?: string
+  maxLength?: number
+  spellCheck?: boolean
+  className?: string
+  style?: React.CSSProperties
+}
 
 function RichTextEditor({
-  initialContent,
-  placeholder,
-  onContentChange,
-  editorRef,
-}: {
-  initialContent: string
-  placeholder: string
-  onContentChange: (html: string, text: string) => void
-  editorRef: React.RefObject<HTMLDivElement | null>
-}) {
-  const isInternalChange = useRef(false)
+  value = "",
+  onChange,
+  placeholder = "Start writing...",
+  maxLength = 50000,
+  spellCheck = true,
+  className = "",
+  style,
+}: RichTextEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null)
+  const [charCount, setCharCount] = useState(0)
+  const [isFocused, setIsFocused] = useState(false)
+  const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
+  const [currentFontFamily, setCurrentFontFamily] = useState<"Calibri" | "Arial" | "Times New Roman" | "Georgia" | "Verdana" | "Courier New">("Calibri")
 
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== initialContent) {
-      editorRef.current.innerHTML = initialContent
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value
+      setCharCount(editorRef.current.textContent?.length || 0)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value])
+
+  const execCmd = useCallback((command: string, value?: string) => {
+    document.execCommand(command, false, value)
+    editorRef.current?.focus()
+  }, [])
 
   const handleInput = useCallback(() => {
-    if (!editorRef.current) return
-    isInternalChange.current = true
-    const html = editorRef.current.innerHTML
-    const text = editorRef.current.innerText || ""
-    onContentChange(html, text)
-    setTimeout(() => { isInternalChange.current = false }, 0)
-  }, [onContentChange, editorRef])
+    const html = editorRef.current?.innerHTML || ""
+    const text = editorRef.current?.textContent || ""
+    setCharCount(text.length)
+    onChange?.(html)
+  }, [onChange])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Tab") {
       e.preventDefault()
-      document.execCommand("insertText", false, "    ")
+      execCmd("insertHTML", "&nbsp;&nbsp;&nbsp;&nbsp;")
     }
-    if (e.key === "Enter") {
-      const sel = window.getSelection()
-      if (sel && sel.rangeCount > 0) {
-        const node = sel.anchorNode
-        const el = node ? (node.nodeType === 3 ? node.parentElement : node as Element) : null
-        const li = el?.closest("li")
-        if (li) {
-          const text = li.textContent || ""
-          if (text.trim() === "") {
-            e.preventDefault()
-            const parentList = li.parentElement
-            if (parentList) {
-              const listTag = parentList.tagName.toLowerCase()
-              document.execCommand("formatBlock", false, "p")
-            }
-          }
-        }
-      }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      execCmd("insertHTML", "<br><br>")
     }
-  }, [])
+  }, [execCmd])
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const text = e.clipboardData.getData("text/plain")
+    const lines = text.split("\n")
+    const html = lines.map(line => `<p>${line || "<br>"}</p>`).join("")
+    execCmd("insertHTML", html)
+  }, [execCmd])
+
+  const handleFocus = useCallback(() => setIsFocused(true), [])
+  const handleBlur = useCallback(() => setIsFocused(false), [])
 
   return (
-    <div
-      ref={editorRef}
-      contentEditable
-      suppressContentEditableWarning
-      className="w-full bg-transparent text-[15px] leading-[1.8] focus:outline-none min-h-[140px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/40 empty:before:pointer-events-none"
-      data-placeholder={placeholder}
-      onInput={handleInput}
-      onKeyDown={handleKeyDown}
-      spellCheck
-      lang="en-GB"
-      data-gramm="false"
-      data-gramm_editor="false"
-      style={{ wordBreak: "break-word", overflowWrap: "break-word", overflowX: "hidden" }}
-    />
+    <div className={`relative ${className}`} style={style}>
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        className="min-h-[120px] p-4 focus:outline-none prose prose-slate max-w-none [&_p]:mb-1 [&_p]:leading-relaxed"
+        style={{
+          fontFamily: currentFontFamily,
+          fontSize: `${currentFontSize}px`,
+        }}
+        data-placeholder={placeholder}
+        suppressContentEditableWarning
+      />
+
+      {isFocused && charCount > 0 && (
+        <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+          {charCount.toLocaleString()} characters
+        </div>
+      )}
+    </div>
   )
 }
-
-/* ────────────────────────────────────────────────────── */
-/* Camera Modal                                          */
-/* ────────────────────────────────────────────────────── */
 
 function CameraModal({ onClose, onCapture, onChoose }: {
   onClose: () => void
@@ -1810,13 +2446,28 @@ function CameraModal({ onClose, onCapture, onChoose }: {
 /* Premium Journal Editor                                */
 /* ────────────────────────────────────────────────────── */
 
+
+/* ────────────────────────────────────────────────────── */
+/* Premium Journal Editor (WritingArea)                  */
+/* ────────────────────────────────────────────────────── */
+
 function WritingArea({
+  editingEntry,
   onCreated,
+  onUpdated,
+  onCancelEdit,
   autosave,
+  pinnedEntries,
+  onOpenPinned,
   onSaveSuccess,
 }: {
+  editingEntry: JournalEntry | null
   onCreated: (entry: JournalEntry) => void
+  onUpdated: (entry: JournalEntry) => void
+  onCancelEdit: () => void
   autosave: { lastSaved: Date | null; isSaving: boolean; save: (data: unknown) => void; load: () => Record<string, unknown> | null; clear: () => void }
+  pinnedEntries: JournalEntry[]
+  onOpenPinned: (entry: JournalEntry) => void
   onSaveSuccess: (message: string) => void
 }) {
   const draft = useMemo(() => autosave.load(), [autosave])
@@ -1835,12 +2486,13 @@ function WritingArea({
   const [recordings, setRecordings] = useState<AudioRecording[]>([])
   const [location, setLocation] = useState<string>("")
   const [locationLoading, setLocationLoading] = useState(false)
-  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set())
   const [cameraOpen, setCameraOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
-  const [pageStyle, setPageStyle] = useState<"plain" | "lined" | "dots">(() => {
+  const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
+  const [currentFontFamily, setCurrentFontFamily] = useState<"Calibri" | "Arial" | "Times New Roman" | "Georgia" | "Verdana" | "Courier New">("Calibri")
+  const [pageStyle, setPageStyle] = useState<"plain" | "lined">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("intenteo-journal-page-style") as "plain" | "lined" | "dots") || "plain"
+      return (localStorage.getItem("intenteo-journal-page-style") as "plain" | "lined") || "plain"
     }
     return "plain"
   })
@@ -1851,26 +2503,38 @@ function WritingArea({
   const recognitionRef = useRef<unknown>(null)
 
   const currentPrompt = useMemo(() => journalTypeConfig[type].prompt, [type])
-  const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
 
-  // Persist page style
   useEffect(() => {
     localStorage.setItem("intenteo-journal-page-style", pageStyle)
   }, [pageStyle])
 
-  const wordCount = useMemo(() => getWordCount(contentText), [contentText])
-  const paraCount = useMemo(() => getParagraphCount(contentText), [contentText])
-  const voiceCount = recordings.length
-
-  // Auto-save
   useEffect(() => {
-    autosave.save({
-      title, contentHtml, contentText, type, tags, mood, customMood,
-      images, recordings: recordings.map((r) => ({ ...r, url: "" })), location,
-    })
-  }, [title, contentHtml, contentText, type, tags, mood, customMood, images, recordings, location, autosave])
+    if (editingEntry) {
+      setTitle(editingEntry.title)
+      const html = textToEditorHtml(editingEntry.content)
+      setContentHtml(html)
+      setContentText(editingEntry.content)
+      setType(editingEntry.type)
+      setTags(editingEntry.tags.join(", "))
+      setMood(editingEntry.mood)
+      setImages(editingEntry.images || [])
+      setRecordings(editingEntry.audioRecordings || [])
+      setLocation(editingEntry.location || "")
+      if (editorRef.current) {
+        editorRef.current.innerHTML = html
+      }
+    }
+  }, [editingEntry])
 
-  // Close mood on outside click
+  useEffect(() => {
+    if (!editingEntry) {
+      autosave.save({
+        title, contentHtml, contentText, type, tags, mood, customMood,
+        images, recordings: recordings.map((r) => ({ ...r, url: "" })), location,
+      })
+    }
+  }, [title, contentHtml, contentText, type, tags, mood, customMood, images, recordings, location, autosave, editingEntry])
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (moodRef.current && !moodRef.current.contains(e.target as Node)) {
@@ -1880,7 +2544,6 @@ function WritingArea({
     if (moodOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
   }, [moodOpen])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "F11") {
@@ -1891,7 +2554,6 @@ function WritingArea({
         if (e.key === "b") { e.preventDefault(); document.execCommand("bold") }
         if (e.key === "i") { e.preventDefault(); document.execCommand("italic") }
         if (e.key === "u") { e.preventDefault(); document.execCommand("underline") }
-        if (e.key === "k") { e.preventDefault(); handleFormat("link") }
         if (e.key === "z" && e.shiftKey) { e.preventDefault(); document.execCommand("redo") }
         if (e.key === "z" && !e.shiftKey) { e.preventDefault(); document.execCommand("undo") }
         if (e.key === "s") { e.preventDefault(); handleSave() }
@@ -1899,88 +2561,18 @@ function WritingArea({
     }
     document.addEventListener("keydown", handler)
     return () => document.removeEventListener("keydown", handler)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleContentChange = useCallback((html: string, text: string) => {
-    setContentHtml(html)
-    setContentText(text)
   }, [])
 
-  const handleFormat = useCallback((action: string, value?: string) => {
-    setActiveFormats((prev) => {
-      const next = new Set(prev)
-      if (next.has(action)) next.delete(action)
-      else next.add(action)
-      return next
-    })
+  const handleContentChange = useCallback((html: string) => {
+    setContentHtml(html)
+    const tmp = document.createElement("div")
+    tmp.innerHTML = html
+    setContentText(tmp.innerText || "")
+  }, [])
 
-    const editor = editorRef.current
-    if (editor) editor.focus()
-
-    switch (action) {
-      case "bold": document.execCommand("bold"); break
-      case "italic": document.execCommand("italic"); break
-      case "underline": document.execCommand("underline"); break
-      case "strikethrough": document.execCommand("strikeThrough"); break
-      case "h1": document.execCommand("formatBlock", false, "h1"); break
-      case "h2": document.execCommand("formatBlock", false, "h2"); break
-      case "h3": document.execCommand("formatBlock", false, "h3"); break
-      case "quote": document.execCommand("formatBlock", false, "blockquote"); break
-      case "bulletList": document.execCommand("insertUnorderedList"); break
-      case "numberedList": document.execCommand("insertOrderedList"); break
-      case "checklist": {
-        const sel = window.getSelection()
-        if (sel && sel.rangeCount > 0) {
-          const range = sel.getRangeAt(0)
-          const text = range.toString() || "Task"
-          const lines = text.split("\n")
-          const html = lines.map((l) => `<div><input type="checkbox" disabled /> ${l}</div>`).join("")
-          document.execCommand("insertHTML", false, html)
-        }
-        break
-      }
-      case "divider":
-        document.execCommand("insertHorizontalRule")
-        break
-      case "link": {
-        const url = prompt("Enter URL:", "https://")
-        if (url) document.execCommand("createLink", false, url)
-        break
-      }
-      case "textColour": {
-        if (value) document.execCommand("foreColor", false, value)
-        break
-      }
-      case "highlight": {
-        if (value) document.execCommand("hiliteColor", false, value)
-        break
-      }
-      case "undo": document.execCommand("undo"); break
-      case "redo": document.execCommand("redo"); break
-      case "clearFormatting": document.execCommand("removeFormat"); break
-      case "alignLeft": document.execCommand("justifyLeft"); break
-      case "alignCenter": document.execCommand("justifyCenter"); break
-      case "alignRight": document.execCommand("justifyRight"); break
-      case "justify": document.execCommand("justifyFull"); break
-      case "fontFamily": {
-        if (value) document.execCommand("fontName", false, value)
-        break
-      }
-      case "fontSize": {
-        if (value) {
-          const sel = window.getSelection()
-          if (sel && sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0)
-            const span = document.createElement("span")
-            span.style.fontSize = value
-            range.surroundContents(span)
-          }
-        }
-        break
-      }
-    }
-
-    // Update content state after formatting
+  const execFormat = useCallback((command: string, value?: string) => {
+    if (editorRef.current) editorRef.current.focus()
+    document.execCommand(command, false, value)
     if (editorRef.current) {
       setContentHtml(editorRef.current.innerHTML)
       setContentText(editorRef.current.innerText || "")
@@ -1990,39 +2582,63 @@ function WritingArea({
   const handleSave = useCallback(() => {
     if (!contentText.trim()) return
     const now = new Date()
-    const entry: JournalEntry = {
-      id: `entry-${Date.now()}`,
-      title: title || "Untitled Entry",
-      content: contentText,
-      type,
-      date: "Today",
-      dateISO: todayISO(),
-      time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      mood: customMood ? `${customMood.emoji} ${customMood.label}` : mood,
-      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-      favorited: false,
-      pinned: false,
-      createdAt: now.toISOString(),
-      images,
-      audioRecordings: recordings,
-      location: location || undefined,
+
+    if (editingEntry) {
+      const updated: JournalEntry = {
+        ...editingEntry,
+        title: title || "Untitled Entry",
+        content: contentText,
+        type,
+        mood: customMood ? `${customMood.emoji} ${customMood.label}` : mood,
+        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        images,
+        audioRecordings: recordings,
+        location: location || undefined,
+      }
+      onUpdated(updated)
+      onCancelEdit()
+      setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
+      setImages([]); setRecordings([]); setLocation("")
+      if (editorRef.current) editorRef.current.innerHTML = ""
+      onSaveSuccess("Entry updated successfully.")
+    } else {
+      const entry: JournalEntry = {
+        id: `entry-${Date.now()}`,
+        title: title || "Untitled Entry",
+        content: contentText,
+        type,
+        date: "Today",
+        dateISO: todayISO(),
+        time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        mood: customMood ? `${customMood.emoji} ${customMood.label}` : mood,
+        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        favorited: false,
+        pinned: false,
+        createdAt: now.toISOString(),
+        images,
+        audioRecordings: recordings,
+        location: location || undefined,
+      }
+      onCreated(entry)
+      setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
+      setImages([]); setRecordings([]); setLocation("")
+      if (editorRef.current) editorRef.current.innerHTML = ""
+      autosave.clear()
+      const encouragement = teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]
+      onSaveSuccess(encouragement)
     }
-    onCreated(entry)
-    setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
-    setImages([]); setRecordings([]); setLocation("")
-    if (editorRef.current) editorRef.current.innerHTML = ""
-    autosave.clear()
-    const encouragement = teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]
-    onSaveSuccess(encouragement)
-  }, [title, contentText, type, tags, mood, customMood, images, recordings, location, onCreated, autosave, onSaveSuccess])
+  }, [title, contentText, type, tags, mood, customMood, images, recordings, location, editingEntry, onCreated, onUpdated, onCancelEdit, autosave, onSaveSuccess])
 
   const handleCancel = useCallback(() => {
+    if (editingEntry) {
+      onCancelEdit()
+    }
     setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
     setImages([]); setRecordings([]); setLocation("")
     if (editorRef.current) editorRef.current.innerHTML = ""
     autosave.clear()
     setIsFocused(false)
-  }, [autosave])
+  }, [autosave, editingEntry, onCancelEdit])
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -2073,7 +2689,6 @@ function WritingArea({
     setRecordings((prev) => prev.map((r) => r.id === id ? { ...r, name } : r))
   }, [])
 
-  // Speech-to-Text
   const toggleListening = useCallback(() => {
     const w = window as unknown as Record<string, unknown>
     const SpeechRecognitionAPI = w.SpeechRecognition || w.webkitSpeechRecognition
@@ -2118,7 +2733,9 @@ function WritingArea({
     setIsListening(true)
   }, [isListening])
 
-  const selectedMood = customMood || moods.find((m) => m.emoji === mood)
+  const wordCount = useMemo(() => getWordCount(contentText), [contentText])
+  const paraCount = useMemo(() => getParagraphCount(contentText), [contentText])
+  const voiceCount = recordings.length
 
   const editorContent = (
     <motion.div
@@ -2137,7 +2754,16 @@ function WritingArea({
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
       <div className="p-5 md:p-6 space-y-3">
-        {/* Title + Focus Button + Page Style row */}
+        {editingEntry && (
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20 text-xs">
+            <Pencil className="h-3 w-3 text-primary" />
+            <span className="text-primary font-medium">Editing: {editingEntry.title}</span>
+            <button onClick={handleCancel} className="ml-auto text-muted-foreground hover:text-foreground">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-3">
           <input
             type="text"
@@ -2149,10 +2775,9 @@ function WritingArea({
             className="flex-1 border-0 bg-transparent text-xl font-semibold focus:outline-none placeholder:text-muted-foreground/30 pb-3 border-b border-border/40"
           />
           <div className="flex items-center gap-1.5 mb-2">
-            {/* Page Style Toggle */}
             <Tooltip label="Page Style">
               <div className="flex items-center bg-muted/40 rounded-lg p-0.5">
-                {(["plain", "lined", "dots"] as const).map((s) => (
+                {(["plain", "lined"] as const).map((s) => (
                   <button
                     key={s}
                     onClick={() => setPageStyle(s)}
@@ -2160,7 +2785,7 @@ function WritingArea({
                       pageStyle === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {s === "plain" ? "Plain" : s === "lined" ? "Lined" : "Dots"}
+                    {s === "plain" ? "Plain" : "Lined"}
                   </button>
                 ))}
               </div>
@@ -2176,24 +2801,63 @@ function WritingArea({
           </div>
         </div>
 
-        {/* Rich text editor */}
+        <FormattingToolbar
+          onToggleBold={() => execFormat("bold")}
+          onToggleItalic={() => execFormat("italic")}
+          onToggleUnderline={() => execFormat("underline")}
+          onToggleStrikethrough={() => execFormat("strikeThrough")}
+          onAlignLeft={() => execFormat("justifyLeft")}
+          onAlignCenter={() => execFormat("justifyCenter")}
+          onAlignRight={() => execFormat("justifyRight")}
+          onInsertUnorderedList={() => execFormat("insertUnorderedList")}
+          onInsertOrderedList={() => execFormat("insertOrderedList")}
+          onInsertBlockquote={() => execFormat("formatBlock", "blockquote")}
+          onInsertHorizontalRule={() => execFormat("insertHorizontalRule")}
+          onUndo={() => execFormat("undo")}
+          onRedo={() => execFormat("redo")}
+          onFontSizeChange={(size) => {
+            setCurrentFontSize(size)
+            const sel = window.getSelection()
+            if (sel && sel.rangeCount > 0) {
+              const range = sel.getRangeAt(0)
+              const span = document.createElement("span")
+              span.style.fontSize = size + "px"
+              range.surroundContents(span)
+              if (editorRef.current) {
+                setContentHtml(editorRef.current.innerHTML)
+                setContentText(editorRef.current.innerText || "")
+              }
+            }
+          }}
+          onFontFamilyChange={(family) => {
+            setCurrentFontFamily(family)
+            execFormat("fontName", family)
+          }}
+          currentFontSize={currentFontSize}
+          currentFontFamily={currentFontFamily}
+        />
+
         <div
           className={`rounded-xl transition-all duration-200 ${
-            pageStyle === "lined" ? "journal-page-lined" : pageStyle === "dots" ? "journal-page-dots" : ""
+            pageStyle === "lined" ? "journal-page-lined" : ""
           }`}
+          style={pageStyle === "lined" ? {
+            backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, #e0e0e0 27px, #e0e0e0 28px)",
+            backgroundPosition: "0 -1px",
+          } : undefined}
         >
           <RichTextEditor
-            initialContent={contentHtml}
+            value={contentHtml}
+            onChange={handleContentChange}
             placeholder={currentPrompt}
-            onContentChange={handleContentChange}
-            editorRef={editorRef}
+            spellCheck={true}
           />
         </div>
 
-        {/* Teo AI Panel */}
         <AnimatePresence>
           {teoOpen && (
             <TeoPanel
+              contentText={contentText}
               onInsert={(text) => {
                 if (editorRef.current) {
                   editorRef.current.focus()
@@ -2207,7 +2871,6 @@ function WritingArea({
           )}
         </AnimatePresence>
 
-        {/* Images Preview */}
         {images.length > 0 && (
           <div className="flex flex-wrap gap-2 py-2">
             {images.map((img, i) => (
@@ -2224,11 +2887,10 @@ function WritingArea({
           </div>
         )}
 
-        {/* Dictation (Speech-to-Text) */}
         <div className="flex items-center gap-2 py-1">
           <Tooltip label={isListening ? "Stop Dictation" : "Dictate (Speech-to-Text)"}>
             <button
-              className={`h-9 w-9 rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ${isListening ? "animate-pulse" : ""}`}
+              className={`h-8 w-8 rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ${isListening ? "animate-pulse" : ""}`}
               style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
               onClick={toggleListening}
             >
@@ -2240,7 +2902,6 @@ function WritingArea({
           )}
         </div>
 
-        {/* Location */}
         {location && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1">
             <MapPinIcon className="h-3 w-3" />
@@ -2251,10 +2912,21 @@ function WritingArea({
           </div>
         )}
 
-        {/* Formatting Toolbar */}
-        <FormattingToolbar onFormat={handleFormat} activeFormats={activeFormats} />
+        {pinnedEntries.length > 0 && (
+          <div className="flex items-center gap-2 py-2 overflow-x-auto border-t border-border/30">
+            <span className="text-[10px] text-muted-foreground shrink-0 font-medium">Pinned:</span>
+            {pinnedEntries.map((entry) => (
+              <button
+                key={entry.id}
+                onClick={() => onOpenPinned(entry)}
+                className="shrink-0 flex items-center gap-1 px-2 py-1 text-[11px] rounded-full bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors"
+              >
+                📌 {entry.title}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* Row 1: Type, Mood, Tags */}
         <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
           <select
             value={type}
@@ -2266,7 +2938,6 @@ function WritingArea({
             ))}
           </select>
 
-          {/* Mood Picker (WhatsApp-style) */}
           <div ref={moodRef}>
             <MoodPicker
               selectedMood={mood}
@@ -2289,7 +2960,6 @@ function WritingArea({
           </div>
         </div>
 
-        {/* Row 2: Action buttons + Stats + Save */}
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <div className="flex items-center gap-2">
             <Tooltip label="Ask Teo">
@@ -2310,7 +2980,19 @@ function WritingArea({
                 <Camera className="h-4 w-4" />
               </button>
             </Tooltip>
-            <div className="flex items-center gap-1">
+            <Tooltip label="Voice Notes">
+              <button
+                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
+                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                onClick={() => {
+                  const el = document.querySelector("[data-voice-recorder]")
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+                }}
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+            </Tooltip>
+            <div data-voice-recorder className="flex items-center gap-1">
               <VoiceRecorder
                 recordings={recordings}
                 onAdd={addRecording}
@@ -2338,10 +3020,10 @@ function WritingArea({
 
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancel}>
-                Cancel
+                {editingEntry ? "Cancel Edit" : "Cancel"}
               </Button>
               <Button size="sm" className="h-7 text-xs gap-1.5 glow" onClick={handleSave} disabled={!contentText.trim()}>
-                <Save className="h-3 w-3" /> Save
+                <Save className="h-3 w-3" /> {editingEntry ? "Update" : "Save"}
               </Button>
             </div>
           </div>
@@ -2358,7 +3040,6 @@ function WritingArea({
         </FocusModeOverlay>
       ) : editorContent}
 
-      {/* Camera Modal */}
       <AnimatePresence>
         {cameraOpen && (
           <CameraModal
@@ -2379,10 +3060,6 @@ function WritingArea({
     </>
   )
 }
-
-/* ────────────────────────────────────────────────────── */
-/* Entry Reader                                          */
-/* ────────────────────────────────────────────────────── */
 
 function EntryReader({
   entry,
@@ -2495,14 +3172,18 @@ function EntryReader({
 /* Main Journal Page                                     */
 /* ────────────────────────────────────────────────────── */
 
+
+/* ────────────────────────────────────────────────────── */
+/* Main Journal Page                                     */
+/* ────────────────────────────────────────────────────── */
+
 export function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>(sampleEntries)
   const [selectedDate, setSelectedDate] = useState(todayISO())
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
-  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
+  const [calendarPanelOpen, setCalendarPanelOpen] = useState(false)
+  const [starredOpen, setStarredOpen] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
-  const calendarRef = useRef<HTMLDivElement>(null)
 
   const draftAutosave = useAutosave("intenteo-journal-draft", 2000)
 
@@ -2512,6 +3193,8 @@ export function JournalPage() {
   }, [entries])
 
   const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
+
+  const pinnedEntries = useMemo(() => entries.filter((e) => e.pinned), [entries])
 
   const addToast = useCallback((message: string, type: "success" | "info" = "success") => {
     const id = `toast-${Date.now()}`
@@ -2528,19 +3211,24 @@ export function JournalPage() {
     addToast(`Journal saved successfully. ${teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]}`, "success")
   }, [addToast])
 
+  const handleUpdateEntry = useCallback((updated: JournalEntry) => {
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+    addToast("Entry updated successfully.", "success")
+  }, [addToast])
+
   const handleDeleteEntry = useCallback((id: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== id))
-    setSelectedEntry(null)
-  }, [])
+    if (editingEntry && editingEntry.id === id) {
+      setEditingEntry(null)
+    }
+  }, [editingEntry])
 
   const handleToggleFavorite = useCallback((id: string) => {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, favorited: !e.favorited } : e)))
-    setSelectedEntry((prev) => (prev && prev.id === id ? { ...prev, favorited: !prev.favorited } : prev))
   }, [])
 
   const handleTogglePin = useCallback((id: string) => {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, pinned: !e.pinned } : e)))
-    setSelectedEntry((prev) => (prev && prev.id === id ? { ...prev, pinned: !prev.pinned } : prev))
   }, [])
 
   const handleDuplicateEntry = useCallback((entry: JournalEntry) => {
@@ -2554,42 +3242,15 @@ export function JournalPage() {
     setEntries((prev) => [dup, ...prev])
   }, [])
 
-  const handleSelectDate = useCallback((iso: string) => {
-    setSelectedDate(iso)
-    setDrawerOpen(true)
+  const handleSelectEntryForEdit = useCallback((entry: JournalEntry) => {
+    setEditingEntry(entry)
+    setCalendarPanelOpen(false)
+    setStarredOpen(false)
+    setTimeout(() => {
+      const el = document.querySelector("[data-writing-area]")
+      el?.scrollIntoView({ behavior: "smooth" })
+    }, 100)
   }, [])
-
-  const handleNavigateDate = useCallback((iso: string) => {
-    setSelectedDate(iso)
-  }, [])
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
-        setCalendarOpen(false)
-      }
-    }
-    if (calendarOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
-  }, [calendarOpen])
-
-  if (selectedEntry) {
-    const currentEntry = entries.find((e) => e.id === selectedEntry.id) || selectedEntry
-    return (
-      <div className="min-h-screen">
-        <ToastContainer toasts={toasts} onRemove={removeToast} />
-        <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
-          <EntryReader
-            entry={currentEntry}
-            onBack={() => setSelectedEntry(null)}
-            onDelete={() => handleDeleteEntry(currentEntry.id)}
-            onToggleFavorite={() => handleToggleFavorite(currentEntry.id)}
-            onTogglePin={() => handleTogglePin(currentEntry.id)}
-            onDuplicate={() => handleDuplicateEntry(currentEntry)}
-          />
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen">
@@ -2604,46 +3265,77 @@ export function JournalPage() {
               <p className="text-sm text-muted-foreground mt-1">{greeting}</p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Calendar Icon */}
-              <div className="relative" ref={calendarRef}>
+              <Tooltip label="Browse Entries">
                 <button
                   className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
                   style={{ backgroundColor: "var(--brand-primary)" }}
-                  onClick={() => setCalendarOpen(!calendarOpen)}
+                  onClick={() => { setCalendarPanelOpen(!calendarPanelOpen); setStarredOpen(false) }}
                 >
                   <Calendar className="h-4 w-4" />
                 </button>
-                <AnimatePresence>
-                  {calendarOpen && (
-                    <PopoverCalendar
-                      entries={entries}
-                      selectedDate={selectedDate}
-                      onSelectDate={handleSelectDate}
-                      onClose={() => setCalendarOpen(false)}
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
+              </Tooltip>
 
-              {/* Streak */}
+              <Tooltip label="Starred Entries">
+                <button
+                  className={`h-9 w-9 rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ${
+                    starredOpen ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"
+                  }`}
+                  onClick={() => { setStarredOpen(!starredOpen); setCalendarPanelOpen(false) }}
+                >
+                  <Star className="h-4 w-4" />
+                </button>
+              </Tooltip>
+
               <StreakCircle streak={streak} />
 
-              {/* New Entry Button */}
               <Button className="glow h-9" onClick={() => {
+                if (editingEntry) {
+                  setEditingEntry(null)
+                }
                 const el = document.querySelector("[data-writing-area]")
                 el?.scrollIntoView({ behavior: "smooth" })
               }}>
-                <Plus className="mr-1 h-4 w-4" /> New Entry
+                <Plus className="mr-1 h-4 w-4" /> {editingEntry ? "New Entry" : "New Entry"}
               </Button>
             </div>
           </div>
         </div>
 
+        {/* Calendar/List Panel */}
+        <AnimatePresence>
+          {calendarPanelOpen && (
+            <CalendarListPanel
+              entries={entries}
+              onSelectEntry={handleSelectEntryForEdit}
+              onDeleteEntry={handleDeleteEntry}
+              onToggleFavorite={handleToggleFavorite}
+              onTogglePin={handleTogglePin}
+              onDuplicateEntry={handleDuplicateEntry}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Starred Panel */}
+        <AnimatePresence>
+          {starredOpen && (
+            <StarredPanel
+              entries={entries}
+              onSelectEntry={handleSelectEntryForEdit}
+              onClose={() => setStarredOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Writing Area */}
         <div className="mb-8" data-writing-area>
           <WritingArea
+            editingEntry={editingEntry}
             onCreated={handleCreateEntry}
+            onUpdated={handleUpdateEntry}
+            onCancelEdit={() => setEditingEntry(null)}
             autosave={draftAutosave}
+            pinnedEntries={pinnedEntries}
+            onOpenPinned={handleSelectEntryForEdit}
             onSaveSuccess={(msg) => addToast(msg, "info")}
           />
         </div>
@@ -2655,23 +3347,6 @@ export function JournalPage() {
           </p>
         </div>
       </div>
-
-      {/* Day Drawer */}
-      <AnimatePresence>
-        {drawerOpen && (
-          <DayDrawer
-            date={selectedDate}
-            entries={entries}
-            onClose={() => setDrawerOpen(false)}
-            onOpenEntry={(entry) => { setDrawerOpen(false); setSelectedEntry(entry) }}
-            onDeleteEntry={handleDeleteEntry}
-            onToggleFavorite={handleToggleFavorite}
-            onDuplicateEntry={handleDuplicateEntry}
-            onTogglePin={handleTogglePin}
-            onNavigateDate={handleNavigateDate}
-          />
-        )}
-      </AnimatePresence>
     </div>
   )
 }
