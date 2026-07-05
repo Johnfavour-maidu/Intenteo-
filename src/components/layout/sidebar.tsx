@@ -81,7 +81,8 @@ export function Sidebar() {
               <img
                 src="/logo.svg"
                 alt="Intenteo"
-                className="h-9 w-auto"
+                className="w-[170px] h-[51px]"
+                style={{ width: '170px', height: '51px' }}
               />
             </Link>
           ) : (
@@ -89,7 +90,8 @@ export function Sidebar() {
               <img
                 src="/logo-icon.svg"
                 alt="Intenteo"
-                className="h-9 w-9"
+                className="h-[51px] w-[56px]"
+                style={{ width: '56px', height: '51px' }}
               />
             </Link>
           )}
