@@ -45,12 +45,8 @@ import {
   List,
   ListOrdered,
   CheckSquare,
-  Heading1,
-  Heading2,
-  Heading3,
   Palette,
   Highlighter,
-  Link,
   Quote,
   Minus,
   Undo2,
@@ -71,6 +67,7 @@ import {
   Pencil,
   Search,
   Circle,
+  Grid3X3,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -1175,19 +1172,30 @@ function FocusModeOverlay({ children, onExit }: { children: React.ReactNode; onE
 /* Formatting Toolbar                                    */
 /* ────────────────────────────────────────────────────── */
 
+const FONT_FAMILIES = ["Inter", "Arial", "Calibri", "Georgia", "Times New Roman", "Verdana", "Trebuchet MS", "Poppins"]
+const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 60, 72]
+
 function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: string, value?: string) => void; activeFormats: Set<string> }) {
   const [textColourOpen, setTextColourOpen] = useState(false)
   const [highlightOpen, setHighlightOpen] = useState(false)
+  const [fontFamilyOpen, setFontFamilyOpen] = useState(false)
+  const [fontSizeOpen, setFontSizeOpen] = useState(false)
   const textColourRef = useRef<HTMLDivElement>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
+  const fontFamilyRef = useRef<HTMLDivElement>(null)
+  const fontSizeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (textColourRef.current && !textColourRef.current.contains(e.target as Node)) setTextColourOpen(false)
-      if (highlightRef.current && !highlightRef.current.contains(e.target as Node)) setHighlightOpen(false)
+      const t = e.target as Node
+      if (textColourRef.current && !textColourRef.current.contains(t)) setTextColourOpen(false)
+      if (highlightRef.current && !highlightRef.current.contains(t)) setHighlightOpen(false)
+      if (fontFamilyRef.current && !fontFamilyRef.current.contains(t)) setFontFamilyOpen(false)
+      if (fontSizeRef.current && !fontSizeRef.current.contains(t)) setFontSizeOpen(false)
     }
-    if (textColourOpen || highlightOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
-  }, [textColourOpen, highlightOpen])
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
 
   const fmtBtn = (action: string, icon: React.ReactNode, label: string) => (
     <Tooltip label={label}>
@@ -1204,6 +1212,73 @@ function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: str
 
   return (
     <div className="flex items-center gap-0.5 flex-wrap py-2 border-t border-border/40">
+      {/* Font Family Dropdown */}
+      <div className="relative" ref={fontFamilyRef}>
+        <Tooltip label="Font Family">
+          <button
+            onClick={() => { setFontFamilyOpen(!fontFamilyOpen); setFontSizeOpen(false) }}
+            className="h-7 px-2 flex items-center justify-center rounded-md transition-colors hover:bg-muted text-muted-foreground text-[11px] font-medium min-w-[60px]"
+          >
+            Font
+          </button>
+        </Tooltip>
+        <AnimatePresence>
+          {fontFamilyOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              className="absolute left-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-40"
+            >
+              {FONT_FAMILIES.map((f) => (
+                <button
+                  key={f}
+                  onClick={() => { onFormat("fontFamily", f); setFontFamilyOpen(false) }}
+                  className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors"
+                  style={{ fontFamily: f }}
+                >
+                  {f}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Font Size Dropdown */}
+      <div className="relative" ref={fontSizeRef}>
+        <Tooltip label="Font Size">
+          <button
+            onClick={() => { setFontSizeOpen(!fontSizeOpen); setFontFamilyOpen(false) }}
+            className="h-7 px-2 flex items-center justify-center rounded-md transition-colors hover:bg-muted text-muted-foreground text-[11px] font-medium min-w-[36px]"
+          >
+            Size
+          </button>
+        </Tooltip>
+        <AnimatePresence>
+          {fontSizeOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              className="absolute left-0 top-full mt-1 w-20 rounded-xl border bg-background shadow-xl p-1 z-40 max-h-[240px] overflow-y-auto"
+            >
+              {FONT_SIZES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => { onFormat("fontSize", `${s}px`); setFontSizeOpen(false) }}
+                  className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors tabular-nums"
+                >
+                  {s}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
       {fmtBtn("bold", <Bold className="h-3.5 w-3.5" />, "Bold (Ctrl+B)")}
       {fmtBtn("italic", <Italic className="h-3.5 w-3.5" />, "Italic (Ctrl+I)")}
       {fmtBtn("underline", <Underline className="h-3.5 w-3.5" />, "Underline (Ctrl+U)")}
@@ -1313,13 +1388,6 @@ function FormattingToolbar({ onFormat, activeFormats }: { onFormat: (action: str
 
       <div className="w-px h-4 bg-border/40 mx-1" />
 
-      {fmtBtn("h1", <Heading1 className="h-3.5 w-3.5" />, "Heading 1")}
-      {fmtBtn("h2", <Heading2 className="h-3.5 w-3.5" />, "Heading 2")}
-      {fmtBtn("h3", <Heading3 className="h-3.5 w-3.5" />, "Heading 3")}
-
-      <div className="w-px h-4 bg-border/40 mx-1" />
-
-      {fmtBtn("link", <Link className="h-3.5 w-3.5" />, "Hyperlink (Ctrl+K)")}
       {fmtBtn("divider", <Minus className="h-3.5 w-3.5" />, "Horizontal Divider")}
       {fmtBtn("clearFormatting", <Type className="h-3.5 w-3.5" />, "Clear Formatting")}
 
@@ -1356,6 +1424,15 @@ function MoodPicker({
   const [customLabel, setCustomLabel] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [openUpward, setOpenUpward] = useState(false)
+
+  useEffect(() => {
+    if (open && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      setOpenUpward(spaceBelow < 380)
+    }
+  }, [open])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -1409,7 +1486,7 @@ function MoodPicker({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 top-full mt-1 rounded-xl border bg-background shadow-xl z-50 overflow-hidden"
+            className={`absolute left-0 rounded-xl border bg-background shadow-xl z-50 overflow-hidden ${openUpward ? "bottom-full mb-1" : "top-full mt-1"}`}
             style={{ width: 360 }}
           >
             {/* Search bar */}
@@ -1558,6 +1635,25 @@ function RichTextEditor({
       e.preventDefault()
       document.execCommand("insertText", false, "    ")
     }
+    if (e.key === "Enter") {
+      const sel = window.getSelection()
+      if (sel && sel.rangeCount > 0) {
+        const node = sel.anchorNode
+        const el = node ? (node.nodeType === 3 ? node.parentElement : node as Element) : null
+        const li = el?.closest("li")
+        if (li) {
+          const text = li.textContent || ""
+          if (text.trim() === "") {
+            e.preventDefault()
+            const parentList = li.parentElement
+            if (parentList) {
+              const listTag = parentList.tagName.toLowerCase()
+              document.execCommand("formatBlock", false, "p")
+            }
+          }
+        }
+      }
+    }
   }, [])
 
   return (
@@ -1571,7 +1667,9 @@ function RichTextEditor({
       onKeyDown={handleKeyDown}
       spellCheck
       lang="en-GB"
-      style={{ wordBreak: "break-word" }}
+      data-gramm="false"
+      data-gramm_editor="false"
+      style={{ wordBreak: "break-word", overflowWrap: "break-word", overflowX: "hidden" }}
     />
   )
 }
@@ -1740,6 +1838,12 @@ function WritingArea({
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set())
   const [cameraOpen, setCameraOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [pageStyle, setPageStyle] = useState<"plain" | "lined" | "dots">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("intenteo-journal-page-style") as "plain" | "lined" | "dots") || "plain"
+    }
+    return "plain"
+  })
   const moodRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -1748,6 +1852,11 @@ function WritingArea({
 
   const currentPrompt = useMemo(() => journalTypeConfig[type].prompt, [type])
   const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
+
+  // Persist page style
+  useEffect(() => {
+    localStorage.setItem("intenteo-journal-page-style", pageStyle)
+  }, [pageStyle])
 
   const wordCount = useMemo(() => getWordCount(contentText), [contentText])
   const paraCount = useMemo(() => getParagraphCount(contentText), [contentText])
@@ -1853,6 +1962,22 @@ function WritingArea({
       case "alignCenter": document.execCommand("justifyCenter"); break
       case "alignRight": document.execCommand("justifyRight"); break
       case "justify": document.execCommand("justifyFull"); break
+      case "fontFamily": {
+        if (value) document.execCommand("fontName", false, value)
+        break
+      }
+      case "fontSize": {
+        if (value) {
+          const sel = window.getSelection()
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0)
+            const span = document.createElement("span")
+            span.style.fontSize = value
+            range.surroundContents(span)
+          }
+        }
+        break
+      }
     }
 
     // Update content state after formatting
@@ -2012,7 +2137,7 @@ function WritingArea({
       transition={{ layout: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
     >
       <div className="p-5 md:p-6 space-y-3">
-        {/* Title + Focus Button row */}
+        {/* Title + Focus Button + Page Style row */}
         <div className="flex items-center gap-3">
           <input
             type="text"
@@ -2023,23 +2148,47 @@ function WritingArea({
             onBlur={() => !contentText && setIsFocused(false)}
             className="flex-1 border-0 bg-transparent text-xl font-semibold focus:outline-none placeholder:text-muted-foreground/30 pb-3 border-b border-border/40"
           />
-          <button
-            className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 mb-2"
-            style={{ backgroundColor: "var(--brand-primary)" }}
-            onClick={() => setFocusMode(true)}
-            title="Focus Mode"
-          >
-            <Maximize2 className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1.5 mb-2">
+            {/* Page Style Toggle */}
+            <Tooltip label="Page Style">
+              <div className="flex items-center bg-muted/40 rounded-lg p-0.5">
+                {(["plain", "lined", "dots"] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setPageStyle(s)}
+                    className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                      pageStyle === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {s === "plain" ? "Plain" : s === "lined" ? "Lined" : "Dots"}
+                  </button>
+                ))}
+              </div>
+            </Tooltip>
+            <button
+              className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 shrink-0"
+              style={{ backgroundColor: "var(--brand-primary)" }}
+              onClick={() => setFocusMode(true)}
+              title="Focus Mode"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Rich text editor */}
-        <RichTextEditor
-          initialContent={contentHtml}
-          placeholder={currentPrompt}
-          onContentChange={handleContentChange}
-          editorRef={editorRef}
-        />
+        <div
+          className={`rounded-xl transition-all duration-200 ${
+            pageStyle === "lined" ? "journal-page-lined" : pageStyle === "dots" ? "journal-page-dots" : ""
+          }`}
+        >
+          <RichTextEditor
+            initialContent={contentHtml}
+            placeholder={currentPrompt}
+            onContentChange={handleContentChange}
+            editorRef={editorRef}
+          />
+        </div>
 
         {/* Teo AI Panel */}
         <AnimatePresence>
@@ -2075,13 +2224,21 @@ function WritingArea({
           </div>
         )}
 
-        {/* Voice Recordings */}
-        <VoiceRecorder
-          recordings={recordings}
-          onAdd={addRecording}
-          onDelete={deleteRecording}
-          onRename={renameRecording}
-        />
+        {/* Dictation (Speech-to-Text) */}
+        <div className="flex items-center gap-2 py-1">
+          <Tooltip label={isListening ? "Stop Dictation" : "Dictate (Speech-to-Text)"}>
+            <button
+              className={`h-9 w-9 rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 ${isListening ? "animate-pulse" : ""}`}
+              style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
+              onClick={toggleListening}
+            >
+              <Volume2 className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          {isListening && (
+            <span className="text-xs text-red-500 font-medium">Listening...</span>
+          )}
+        </div>
 
         {/* Location */}
         {location && (
@@ -2153,15 +2310,14 @@ function WritingArea({
                 <Camera className="h-4 w-4" />
               </button>
             </Tooltip>
-            <Tooltip label={isListening ? "Stop Dictation" : "Dictate"}>
-              <button
-                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isListening ? "animate-pulse" : ""}`}
-                style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
-                onClick={toggleListening}
-              >
-                <Volume2 className="h-4 w-4" />
-              </button>
-            </Tooltip>
+            <div className="flex items-center gap-1">
+              <VoiceRecorder
+                recordings={recordings}
+                onAdd={addRecording}
+                onDelete={deleteRecording}
+                onRename={renameRecording}
+              />
+            </div>
             <Tooltip label="Location">
               <button
                 className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${locationLoading ? "animate-pulse" : ""}`}
