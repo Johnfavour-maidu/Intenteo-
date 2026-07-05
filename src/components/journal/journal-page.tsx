@@ -56,6 +56,14 @@ import {
   Undo2,
   Redo2,
   ChevronDown,
+  Maximize2,
+  Minimize2,
+  Code,
+  Type,
+  Image as ImageIcon,
+  MapPin as MapPinIcon,
+  Mic as MicIcon,
+  Square,
 } from "lucide-react"
 
 /* ────────────────────────────────────────────────────── */
@@ -74,11 +82,14 @@ interface JournalEntry {
   date: string
   dateISO: string
   time: string
-  mood?: number
+  mood?: string
   tags: string[]
   favorited: boolean
   pinned: boolean
   createdAt: string
+  images?: string[]
+  audioUrl?: string
+  location?: string
 }
 
 const journalTypeConfig: Record<JournalType, { label: string; icon: React.ReactNode; color: string; accent: string }> = {
@@ -110,18 +121,32 @@ const writingPrompts = [
 ]
 
 const moodOptions = [
-  { value: 1, emoji: "\uD83D\uDE00", label: "Great" },
-  { value: 2, emoji: "\uD83D\uDE0A", label: "Happy" },
-  { value: 3, emoji: "\uD83D\uDE42", label: "Good" },
-  { value: 4, emoji: "\uD83D\uDE10", label: "Neutral" },
-  { value: 5, emoji: "\uD83D\uDE14", label: "Sad" },
-  { value: 6, emoji: "\uD83D\uDE22", label: "Very Sad" },
-  { value: 7, emoji: "\uD83D\uDE21", label: "Angry" },
-  { value: 8, emoji: "\uD83D\uDCA4", label: "Tired" },
-  { value: 9, emoji: "\uD83D\uDE30", label: "Anxious" },
-  { value: 10, emoji: "\uD83E\uDD29", label: "Excited" },
-  { value: 11, emoji: "\uD83D\uDE0C", label: "Peaceful" },
-  { value: 12, emoji: "\uD83E\uDD73", label: "Celebrating" },
+  { emoji: "\uD83D\uDE00", label: "Amazing" },
+  { emoji: "\uD83D\uDE04", label: "Happy" },
+  { emoji: "\uD83D\uDE0A", label: "Content" },
+  { emoji: "\uD83D\uDE42", label: "Good" },
+  { emoji: "\uD83D\uDE0C", label: "Peaceful" },
+  { emoji: "\uD83E\uDD70", label: "Loved" },
+  { emoji: "\uD83E\uDD29", label: "Excited" },
+  { emoji: "\uD83D\uDE0E", label: "Confident" },
+  { emoji: "\uD83D\uDE4F", label: "Grateful" },
+  { emoji: "\uD83D\uDCAA", label: "Motivated" },
+  { emoji: "\uD83E\uDD14", label: "Thoughtful" },
+  { emoji: "\uD83D\uDE10", label: "Neutral" },
+  { emoji: "\uD83D\uDE34", label: "Tired" },
+  { emoji: "\uD83E\uDD71", label: "Exhausted" },
+  { emoji: "\uD83D\uDE14", label: "Sad" },
+  { emoji: "\uD83D\uDE22", label: "Heartbroken" },
+  { emoji: "\uD83D\uDE30", label: "Anxious" },
+  { emoji: "\uD83D\uDE1F", label: "Worried" },
+  { emoji: "\uD83D\uDE21", label: "Angry" },
+  { emoji: "\uD83D\uDE24", label: "Frustrated" },
+  { emoji: "\uD83D\uDE1E", label: "Disappointed" },
+  { emoji: "\uD83E\uDD12", label: "Sick" },
+  { emoji: "\uD83E\uDD73", label: "Celebrating" },
+  { emoji: "\u2764\uFE0F", label: "Inspired" },
+  { emoji: "\uD83C\uDF31", label: "Growing" },
+  { emoji: "\u2728", label: "Hopeful" },
 ]
 
 const teoEncouragements = [
@@ -153,49 +178,49 @@ const sampleEntries: JournalEntry[] = [
   {
     id: "1", title: "Morning Intention Setting",
     content: "Today I want to focus on being present in every conversation. I will put my phone away during meetings and truly listen to my colleagues.\n\nI noticed that when I'm fully present, conversations become richer and more meaningful.",
-    type: "morning", date: "Today", dateISO: todayISO(), time: "7:30 AM", mood: 5,
+    type: "morning", date: "Today", dateISO: todayISO(), time: "7:30 AM", mood: "\uD83D\uDE0C",
     tags: ["Intention", "Relationships"], favorited: true, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "2", title: "Gratitude for Small Moments",
     content: "I'm grateful for the beautiful sunrise this morning. It reminded me that every day is a new opportunity to grow.\n\nSometimes the simplest things carry the most meaning.",
-    type: "gratitude", date: "Today", dateISO: todayISO(), time: "8:15 AM", mood: 4,
+    type: "gratitude", date: "Today", dateISO: todayISO(), time: "8:15 AM", mood: "\uD83D\uDE4F",
     tags: ["Gratitude", "Mindfulness"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "3", title: "Reflection on Q2 Goals",
     content: "Looking back at Q2, I accomplished 70% of my goals. The main challenge was time management.\n\nKey takeaways:\n- Deep work blocks of 90 minutes are more effective\n- Saying no to non-essential meetings freed up 5+ hours per week\n- Morning routines compound over time",
-    type: "reflection", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "9:00 PM", mood: 4,
+    type: "reflection", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "9:00 PM", mood: "\uD83E\uDD14",
     tags: ["Reflection", "Goals"], favorited: true, pinned: true, createdAt: new Date().toISOString(),
   },
   {
     id: "4", title: "Decision: Career Move",
     content: "Should I take the new role? Pros: More responsibility, better alignment with long-term vision. Cons: Less work-life balance initially. My gut says yes.",
-    type: "decision", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "2:30 PM", mood: 3,
+    type: "decision", date: "Yesterday", dateISO: toISODate(new Date(Date.now() - 86400000)), time: "2:30 PM", mood: "\uD83D\uDE0E",
     tags: ["Decision", "Career"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "5", title: "Dream About the Future",
     content: "I dreamed I was standing on a stage, speaking to thousands of people about intentional living. The audience was engaged and inspired.",
-    type: "dream", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "6:00 AM", mood: 5,
+    type: "dream", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "6:00 AM", mood: "\uD83E\uDD29",
     tags: ["Dream", "Vision"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "6", title: "Evening Wind-Down",
     content: "The evening was calm. I spent time reading and reflecting on the day. Tomorrow I have an important presentation, but I feel prepared.",
-    type: "daily", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "8:30 PM", mood: 4,
+    type: "daily", date: "2 days ago", dateISO: toISODate(new Date(Date.now() - 2 * 86400000)), time: "8:30 PM", mood: "\uD83D\uDE42",
     tags: ["Daily", "Evening"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "7", title: "Morning Gratitude",
     content: "Woke up feeling refreshed. The weather is beautiful today. I'm grateful for my health and the people in my life.",
-    type: "morning", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "7:00 AM", mood: 5,
+    type: "morning", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "7:00 AM", mood: "\uD83D\uDE04",
     tags: ["Gratitude", "Morning"], favorited: false, pinned: false, createdAt: new Date().toISOString(),
   },
   {
     id: "8", title: "Quick Thought on Growth",
     content: "Growth isn't always comfortable. Sometimes the best things happen when we step outside our comfort zone.",
-    type: "quick", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "11:30 AM", mood: 4,
+    type: "quick", date: "3 days ago", dateISO: toISODate(new Date(Date.now() - 3 * 86400000)), time: "11:30 AM", mood: "\uD83C\uDF31",
     tags: ["Growth"], favorited: true, pinned: false, createdAt: new Date().toISOString(),
   },
 ]
@@ -258,6 +283,22 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
           </motion.div>
         ))}
       </AnimatePresence>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Tooltip Component                                     */
+/* ────────────────────────────────────────────────────── */
+
+function Tooltip({ children, label }: { children: React.ReactNode; label: string }) {
+  return (
+    <div className="relative group">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md bg-foreground text-background text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+        {label}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+      </div>
     </div>
   )
 }
@@ -586,7 +627,7 @@ function DayDrawer({
                             {entry.mood && (
                               <>
                                 <span>·</span>
-                                <span>{moodOptions.find((m) => m.value === entry.mood)?.emoji || "\uD83D\uDE10"}</span>
+                                <span>{entry.mood}</span>
                               </>
                             )}
                             <span>·</span>
@@ -673,6 +714,251 @@ function DayDrawer({
 }
 
 /* ────────────────────────────────────────────────────── */
+/* Téo AI Assistant Panel                                */
+/* ────────────────────────────────────────────────────── */
+
+function TeoPanel({ onInsert, onClose }: { onInsert: (text: string) => void; onClose: () => void }) {
+  const [prompt, setPrompt] = useState("")
+  const [response, setResponse] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const suggestions = [
+    { label: "Improve Writing", icon: "\u270D\uFE0F", action: "improve" },
+    { label: "Rewrite", icon: "\uD83D\uDD04", action: "rewrite" },
+    { label: "Expand", icon: "\uD83D\uDD17", action: "expand" },
+    { label: "Summarise", icon: "\uD83D\uDCCA", action: "summarise" },
+    { label: "Brainstorm", icon: "\uD83D\uDCA1", action: "brainstorm" },
+    { label: "Reflection Questions", icon: "\uD83E\uDD14", action: "reflect" },
+  ]
+
+  const handleSuggestion = useCallback((action: string) => {
+    setLoading(true)
+    setTimeout(() => {
+      const responses: Record<string, string> = {
+        improve: "Here's an improved version of your writing with better flow and clarity...",
+        rewrite: "I've rewritten your text to be more engaging while preserving your voice...",
+        expand: "Let me expand on your ideas with additional depth and detail...",
+        summarise: "Here's a concise summary of your key points...",
+        brainstorm: "Here are some ideas to explore further in your journal entry...",
+        reflect: "Here are some reflection questions to deepen your thinking:\n\n1. What emotions came up while writing this?\n2. How does this connect to your values?\n3. What would you do differently next time?",
+      }
+      setResponse(responses[action] || "I can help you with that...")
+      setLoading(false)
+    }, 1500)
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      className="rounded-xl border bg-card shadow-lg p-4 mb-4"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">T\u00E9o AI Writing Assistant</span>
+        </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {suggestions.map((s) => (
+          <button
+            key={s.action}
+            onClick={() => handleSuggestion(s.action)}
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs hover:bg-muted transition-colors text-left"
+          >
+            <span>{s.icon}</span>
+            <span>{s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {loading && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>T\u00E9o is thinking...</span>
+        </div>
+      )}
+
+      {response && !loading && (
+        <div className="p-3 rounded-lg bg-muted/30 text-sm text-foreground mb-3">
+          {response}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <Input
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Ask T\u00E0o anything about your writing..."
+          className="text-xs h-8"
+        />
+        <Button size="sm" className="h-8 text-xs" onClick={() => {
+          if (prompt.trim()) {
+            setLoading(true)
+            setTimeout(() => {
+              setResponse("Here's my response to your question about your journal entry...")
+              setLoading(false)
+              setPrompt("")
+            }, 1500)
+          }
+        }}>
+          Ask
+        </Button>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Focus Mode                                            */
+/* ────────────────────────────────────────────────────── */
+
+function FocusModeOverlay({ children, onExit }: { children: React.ReactNode; onExit: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "F11") {
+        e.preventDefault()
+        onExit()
+      }
+    }
+    document.addEventListener("keydown", handler)
+    return () => document.removeEventListener("keydown", handler)
+  }, [onExit])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-start justify-center pt-16 overflow-y-auto"
+    >
+      <div className="w-full max-w-[760px] px-6 pb-20">
+        <div className="flex items-center justify-between mb-6">
+          <span className="text-xs text-muted-foreground">Focus Mode \u2022 Press F11 or Escape to exit</span>
+          <Button variant="ghost" size="sm" className="text-xs gap-1.5" onClick={onExit}>
+            <Minimize2 className="h-3.5 w-3.5" /> Exit Focus
+          </Button>
+        </div>
+        {children}
+      </div>
+    </motion.div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Minimal Formatting Toolbar                            */
+/* ────────────────────────────────────────────────────── */
+
+function FormattingToolbar({ onFormat }: { onFormat: (action: string) => void }) {
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false)
+      }
+    }
+    if (moreOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
+  }, [moreOpen])
+
+  return (
+    <div className="flex items-center gap-0.5 flex-wrap py-2 border-t border-border/40">
+      {/* Default visible actions */}
+      <Tooltip label="Bold"><button onClick={() => onFormat("bold")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Bold className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      <Tooltip label="Italic"><button onClick={() => onFormat("italic")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Italic className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      <Tooltip label="Underline"><button onClick={() => onFormat("underline")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Underline className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      <Tooltip label="Strikethrough"><button onClick={() => onFormat("strikethrough")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Strikethrough className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
+      <Tooltip label="Bullet List"><button onClick={() => onFormat("bulletList")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><List className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      <Tooltip label="Checklist"><button onClick={() => onFormat("checklist")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><CheckSquare className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      <Tooltip label="Text Colour"><button onClick={() => onFormat("textColour")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Palette className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      <Tooltip label="Highlight"><button onClick={() => onFormat("highlight")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Highlighter className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
+      <Tooltip label="Undo"><button onClick={() => onFormat("undo")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Undo2 className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+      <Tooltip label="Redo"><button onClick={() => onFormat("redo")} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"><Redo2 className="h-3.5 w-3.5 text-muted-foreground" /></button></Tooltip>
+
+      <div className="w-px h-4 bg-border/40 mx-1" />
+
+      {/* More button */}
+      <div className="relative" ref={moreRef}>
+        <Tooltip label="More">
+          <button
+            onClick={() => setMoreOpen(!moreOpen)}
+            className="h-7 px-2 flex items-center justify-center rounded-md hover:bg-muted transition-colors gap-0.5"
+          >
+            <span className="text-xs text-muted-foreground font-medium">More</span>
+            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          </button>
+        </Tooltip>
+        <AnimatePresence>
+          {moreOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              className="absolute left-0 top-full mt-1 w-52 rounded-xl border bg-background shadow-xl p-1 z-30"
+            >
+              <button onClick={() => { onFormat("h1"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Heading1 className="h-3.5 w-3.5" /> Heading 1
+              </button>
+              <button onClick={() => { onFormat("h2"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Heading2 className="h-3.5 w-3.5" /> Heading 2
+              </button>
+              <button onClick={() => { onFormat("h3"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Heading3 className="h-3.5 w-3.5" /> Heading 3
+              </button>
+              <button onClick={() => { onFormat("numberedList"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <ListOrdered className="h-3.5 w-3.5" /> Numbered List
+              </button>
+              <button onClick={() => { onFormat("quote"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Quote className="h-3.5 w-3.5" /> Quote
+              </button>
+              <button onClick={() => { onFormat("code"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Code className="h-3.5 w-3.5" /> Code Block
+              </button>
+              <button onClick={() => { onFormat("link"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Link className="h-3.5 w-3.5" /> Hyperlink
+              </button>
+              <button onClick={() => { onFormat("divider"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Minus className="h-3.5 w-3.5" /> Horizontal Divider
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button onClick={() => { onFormat("alignLeft"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <AlignLeft className="h-3.5 w-3.5" /> Align Left
+              </button>
+              <button onClick={() => { onFormat("alignCenter"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <AlignCenter className="h-3.5 w-3.5" /> Align Centre
+              </button>
+              <button onClick={() => { onFormat("alignRight"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <AlignRight className="h-3.5 w-3.5" /> Align Right
+              </button>
+              <button onClick={() => { onFormat("justify"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <AlignJustify className="h-3.5 w-3.5" /> Justify
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button onClick={() => { onFormat("clearFormatting"); setMoreOpen(false) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                <Type className="h-3.5 w-3.5" /> Clear Formatting
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
 /* Premium Journal Editor                                */
 /* ────────────────────────────────────────────────────── */
 
@@ -690,12 +976,20 @@ function WritingArea({
   const [content, setContent] = useState((draft?.content as string) || "")
   const [type, setType] = useState<JournalType>((draft?.type as JournalType) || "daily")
   const [tags, setTags] = useState((draft?.tags as string) || "")
-  const [mood, setMood] = useState<number | undefined>(draft?.mood as number | undefined)
+  const [mood, setMood] = useState<string | undefined>(draft?.mood as string | undefined)
   const [isFocused, setIsFocused] = useState(false)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
   const [moodOpen, setMoodOpen] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
+  const [teoOpen, setTeoOpen] = useState(false)
+  const [images, setImages] = useState<string[]>([])
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [location, setLocation] = useState<string>("")
   const moodRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const prompt = useMemo(() => getTodayPrompt(), [])
 
   const autoExpand = useCallback(() => {
@@ -711,7 +1005,6 @@ function WritingArea({
     autosave.save({ title, content, type, tags, mood })
   }, [title, content, type, tags, mood, autosave])
 
-  // Handle autosave status display
   useEffect(() => {
     if (autosave.isSaving) {
       setSaveStatus("saving")
@@ -722,7 +1015,6 @@ function WritingArea({
     }
   }, [autosave.isSaving, autosave.lastSaved])
 
-  // Close mood dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (moodRef.current && !moodRef.current.contains(e.target as Node)) {
@@ -731,6 +1023,18 @@ function WritingArea({
     }
     if (moodOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
   }, [moodOpen])
+
+  // F11 keyboard shortcut for focus mode
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "F11") {
+        e.preventDefault()
+        setFocusMode((prev) => !prev)
+      }
+    }
+    document.addEventListener("keydown", handler)
+    return () => document.removeEventListener("keydown", handler)
+  }, [])
 
   const handleSave = useCallback(() => {
     if (!content.trim()) return
@@ -748,16 +1052,21 @@ function WritingArea({
       favorited: false,
       pinned: false,
       createdAt: now.toISOString(),
+      images,
+      audioUrl: audioUrl || undefined,
+      location: location || undefined,
     }
     onCreated(entry)
     setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily")
+    setImages([]); setAudioUrl(null); setLocation("")
     autosave.clear()
     const encouragement = teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]
     onSaveSuccess(encouragement)
-  }, [title, content, type, tags, mood, onCreated, autosave, onSaveSuccess])
+  }, [title, content, type, tags, mood, images, audioUrl, location, onCreated, autosave, onSaveSuccess])
 
   const handleCancel = useCallback(() => {
     setTitle(""); setContent(""); setTags(""); setMood(undefined); setType("daily")
+    setImages([]); setAudioUrl(null); setLocation("")
     autosave.clear()
     setIsFocused(false)
   }, [autosave])
@@ -766,11 +1075,69 @@ function WritingArea({
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); handleSave() }
   }, [handleSave])
 
+  const handleFormat = useCallback((action: string) => {
+    console.log("Format action:", action)
+  }, [])
+
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files) {
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          setImages((prev) => [...prev, ev.target?.result as string])
+        }
+        reader.readAsDataURL(file)
+      })
+    }
+  }, [])
+
+  const handleRemoveImage = useCallback((index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
+  const toggleRecording = useCallback(async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop()
+      setIsRecording(false)
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        const mediaRecorder = new MediaRecorder(stream)
+        mediaRecorderRef.current = mediaRecorder
+        const chunks: Blob[] = []
+        mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: "audio/webm" })
+          setAudioUrl(URL.createObjectURL(blob))
+          stream.getTracks().forEach((t) => t.stop())
+        }
+        mediaRecorder.start()
+        setIsRecording(true)
+      } catch {
+        console.log("Microphone access denied")
+      }
+    }
+  }, [isRecording])
+
+  const handleGetLocation = useCallback(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`)
+        },
+        () => {
+          setLocation("Location unavailable")
+        }
+      )
+    }
+  }, [])
+
   const wordCount = getWordCount(content)
   const readTime = estimateReadTime(content)
-  const selectedMood = moodOptions.find((m) => m.value === mood)
+  const selectedMood = moodOptions.find((m) => m.emoji === mood)
 
-  return (
+  const editorContent = (
     <motion.div
       layout
       className="rounded-2xl bg-card overflow-hidden transition-all duration-300"
@@ -797,6 +1164,9 @@ function WritingArea({
           className="border-0 text-xl font-semibold px-0 focus-visible:ring-0 placeholder:text-muted-foreground/30 h-auto"
         />
 
+        {/* Title/Body Divider */}
+        <div className="h-px bg-border/40 w-full" />
+
         {/* Writing area */}
         <textarea
           ref={textareaRef}
@@ -811,97 +1181,53 @@ function WritingArea({
           style={{ height: "auto" }}
         />
 
-        {/* Rich Text Formatting Toolbar */}
-        <div className="flex items-center gap-0.5 flex-wrap py-2 border-t border-border/40">
-          {/* Formatting */}
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Bold">
-            <Bold className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Italic">
-            <Italic className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Underline">
-            <Underline className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Strikethrough">
-            <Strikethrough className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
+        {/* Téo AI Panel */}
+        <AnimatePresence>
+          {teoOpen && (
+            <TeoPanel
+              onInsert={(text) => setContent((prev) => prev + "\n\n" + text)}
+              onClose={() => setTeoOpen(false)}
+            />
+          )}
+        </AnimatePresence>
 
-          <div className="w-px h-4 bg-border/40 mx-1" />
+        {/* Images Preview */}
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2 py-2">
+            {images.map((img, i) => (
+              <div key={i} className="relative group">
+                <img src={img} alt="" className="h-20 w-20 object-cover rounded-lg border" />
+                <button
+                  onClick={() => handleRemoveImage(i)}
+                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
-          {/* Headings */}
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Heading 1">
-            <Heading1 className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Heading 2">
-            <Heading2 className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Heading 3">
-            <Heading3 className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
+        {/* Audio Preview */}
+        {audioUrl && (
+          <div className="py-2">
+            <audio controls src={audioUrl} className="h-8 w-full" />
+          </div>
+        )}
 
-          <div className="w-px h-4 bg-border/40 mx-1" />
+        {/* Location */}
+        {location && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1">
+            <MapPinIcon className="h-3 w-3" />
+            <span>{location}</span>
+            <button onClick={() => setLocation("")} className="ml-1 hover:text-foreground">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
 
-          {/* Lists */}
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Bullet List">
-            <List className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Numbered List">
-            <ListOrdered className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Checklist">
-            <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-
-          <div className="w-px h-4 bg-border/40 mx-1" />
-
-          {/* Alignment */}
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Align Left">
-            <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Align Centre">
-            <AlignCenter className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Align Right">
-            <AlignRight className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Justify">
-            <AlignJustify className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-
-          <div className="w-px h-4 bg-border/40 mx-1" />
-
-          {/* Colours */}
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Text Colour">
-            <Palette className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Highlight">
-            <Highlighter className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-
-          <div className="w-px h-4 bg-border/40 mx-1" />
-
-          {/* Insert */}
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Link">
-            <Link className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Quote">
-            <Quote className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Horizontal Line">
-            <Minus className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-
-          <div className="w-px h-4 bg-border/40 mx-1" />
-
-          {/* History */}
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Undo">
-            <Undo2 className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors" title="Redo">
-            <Redo2 className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-        </div>
+        {/* Formatting Toolbar */}
+        <FormattingToolbar onFormat={handleFormat} />
 
         {/* Row 1: Type, Mood, Tags */}
         <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
@@ -935,14 +1261,14 @@ function WritingArea({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -4 }}
                   transition={{ duration: 0.12 }}
-                  className="absolute left-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-1 z-30"
+                  className="absolute left-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-30 max-h-64 overflow-y-auto"
                 >
                   {moodOptions.map((m) => (
                     <button
-                      key={m.value}
-                      onClick={() => { setMood(mood === m.value ? undefined : m.value); setMoodOpen(false) }}
+                      key={m.emoji}
+                      onClick={() => { setMood(mood === m.emoji ? undefined : m.emoji); setMoodOpen(false) }}
                       className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg transition-colors text-left ${
-                        mood === m.value ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
+                        mood === m.emoji ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
                       }`}
                     >
                       <span className="text-sm">{m.emoji}</span>
@@ -968,18 +1294,27 @@ function WritingArea({
         {/* Row 2: Action buttons + Stats + Save */}
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="AI Assist">
-              <Sparkles className="h-3.5 w-3.5 text-primary/70" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="Add Photo">
-              <Camera className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="Voice Recording">
-              <Mic className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="Add Location">
-              <MapPin className="h-3.5 w-3.5" />
-            </Button>
+            <Tooltip label="T\u00E9o AI">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setTeoOpen(!teoOpen)}>
+                <Sparkles className="h-3.5 w-3.5 text-primary/70" />
+              </Button>
+            </Tooltip>
+            <Tooltip label="Add Image">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => fileInputRef.current?.click()}>
+                <Camera className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+            <Tooltip label={isRecording ? "Stop Recording" : "Voice Recording"}>
+              <Button variant="ghost" size="icon" className={`h-7 w-7 ${isRecording ? "text-red-500" : ""}`} onClick={toggleRecording}>
+                <Mic className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+            <Tooltip label="Add Location">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleGetLocation}>
+                <MapPinIcon className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
           </div>
 
           <div className="flex items-center gap-3">
@@ -989,22 +1324,12 @@ function WritingArea({
               <span className="tabular-nums">{readTime} min read</span>
               <AnimatePresence>
                 {saveStatus === "saving" && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-muted-foreground"
-                  >
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-muted-foreground">
                     Saving...
                   </motion.span>
                 )}
                 {saveStatus === "saved" && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-emerald-500 font-medium"
-                  >
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-emerald-500 font-medium">
                     {"\u2713"} Saved
                   </motion.span>
                 )}
@@ -1023,6 +1348,25 @@ function WritingArea({
         </div>
       </div>
     </motion.div>
+  )
+
+  return (
+    <>
+      {/* Focus Mode Toggle */}
+      <div className="flex items-center justify-end mb-2">
+        <Tooltip label="Focus Mode (F11)">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setFocusMode(true)}>
+            <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </Tooltip>
+      </div>
+
+      {focusMode ? (
+        <FocusModeOverlay onExit={() => setFocusMode(false)}>
+          {editorContent}
+        </FocusModeOverlay>
+      ) : editorContent}
+    </>
   )
 }
 
@@ -1122,7 +1466,7 @@ function EntryReader({
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground mb-6 pb-6 border-b border-border/50">
           <span>{entry.date} at {entry.time}</span>
-          {entry.mood && <span>{moodOptions.find((m) => m.value === entry.mood)?.emoji || "\uD83D\uDE10"}</span>}
+          {entry.mood && <span>{entry.mood}</span>}
           <span>{estimateReadTime(entry.content)} min read</span>
           <span>{getWordCount(entry.content)} words</span>
         </div>
@@ -1218,7 +1562,6 @@ export function JournalPage() {
     setSelectedDate(iso)
   }, [])
 
-  // Close calendar on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
@@ -1228,7 +1571,6 @@ export function JournalPage() {
     if (calendarOpen) { document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler) }
   }, [calendarOpen])
 
-  // Entry reader view
   if (selectedEntry) {
     const currentEntry = entries.find((e) => e.id === selectedEntry.id) || selectedEntry
     return (
@@ -1291,7 +1633,7 @@ export function JournalPage() {
           </div>
         </div>
 
-        {/* Writing Area — Hero, full width */}
+        {/* Writing Area */}
         <div className="mb-8" data-writing-area>
           <WritingArea
             onCreated={handleCreateEntry}
