@@ -81,17 +81,17 @@ export function Sidebar() {
               <img
                 src="/logo.png"
                 alt="Intenteo — Live with Intentionality"
-                className="h-auto"
+                className="h-auto transition-opacity duration-200 ease-in-out"
                 style={{ width: '170px' }}
               />
             </Link>
           ) : (
             <Link href="/" className="flex items-center justify-center">
               <img
-                src="/logo-icon.svg"
+                src="/favicon-40.png"
                 alt="Intenteo"
-                className="h-9 w-9"
-                style={{ width: '36px', height: '36px' }}
+                className="transition-opacity duration-200 ease-in-out"
+                style={{ width: '40px', height: '40px' }}
               />
             </Link>
           )}

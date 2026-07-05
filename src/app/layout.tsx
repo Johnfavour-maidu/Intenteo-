@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   title: "Intenteo — Live with Intentionality",
   description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
   icons: {
-    icon: "/logo-icon.svg",
-    apple: "/logo-icon.svg",
+    icon: "/favicon-40.png",
+    apple: "/favicon-40.png",
   },
   openGraph: {
     title: "Intenteo — Live with Intentionality",
