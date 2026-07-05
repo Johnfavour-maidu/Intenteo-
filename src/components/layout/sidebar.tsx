@@ -76,43 +76,45 @@ export function Sidebar() {
     >
       <div className="flex h-full flex-col">
         {/* Logo Section */}
-        <div className="flex h-16 items-center justify-between px-4">
-          {/* Favicon/Logo Container */}
-          <div className={cn(
-            "flex items-center justify-center transition-all duration-200 ease-in-out",
-            collapsed ? "w-10 h-10" : "flex-1"
-          )}>
-            {!collapsed ? (
-              <Link href="/" className="flex items-center">
-                <img
-                  src="/logo.png"
-                  alt="Intenteo — Live with Intentionality"
-                  className="h-auto transition-opacity duration-200 ease-in-out"
-                  style={{ width: '170px' }}
-                />
-              </Link>
-            ) : (
-              <Link href="/" className="flex items-center justify-center">
-                <img
-                  src="/favicon-40.png"
-                  alt="Intenteo"
-                  className="transition-opacity duration-200 ease-in-out"
-                  style={{ width: '40px', height: '40px' }}
-                />
-              </Link>
-            )}
+        {!collapsed ? (
+          <div className="flex h-16 items-center justify-between px-4">
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo.png"
+                alt="Intenteo — Live with Intentionality"
+                className="h-auto transition-opacity duration-200 ease-in-out"
+                style={{ width: '170px' }}
+              />
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleCollapsed}
+              className="h-8 w-8 shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
           </div>
-
-          {/* Toggle Button - Outside favicon container */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleCollapsed}
-            className="h-8 w-8 shrink-0"
-          >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
-        </div>
+        ) : (
+          <div className="flex h-16 items-center justify-center px-4 gap-2">
+            <Link href="/" className="flex items-center justify-center w-10 h-10">
+              <img
+                src="/favicon-40.png"
+                alt="Intenteo"
+                className="transition-opacity duration-200 ease-in-out"
+                style={{ width: '40px', height: '40px' }}
+              />
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleCollapsed}
+              className="h-8 w-8 shrink-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
         <Separator />
 
