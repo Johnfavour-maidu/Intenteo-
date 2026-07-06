@@ -1,4 +1,7 @@
-"use client"
+const fs = require('fs');
+const path = require('path');
+
+const content = `"use client"
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -61,7 +64,7 @@ const formatDateISO = (date: Date): string => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
   const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+  return \`\${year}-\${month}-\${day}\`
 }
 
 const formatDayName = (date: Date): string => date.toLocaleDateString("en-US", { weekday: "short" })
@@ -407,13 +410,13 @@ const WeeklyCalendar = ({
             <button
               key={dateStr}
               onClick={() => onDateSelect(date)}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+              className={\`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all \${
                 isSelected
                   ? "bg-[#1E0E6B] text-white"
                   : isToday
                   ? "bg-[#EB9E5B]/20 text-[#1E0E6B] font-semibold"
                   : "hover:bg-white/50"
-              }`}
+              }\`}
             >
               <span className="text-xs font-medium">{formatDayName(date)}</span>
               <span className="text-lg font-bold">{formatDayNumber(date)}</span>
@@ -422,9 +425,9 @@ const WeeklyCalendar = ({
                   {[...Array(Math.min(completedCount, 3))].map((_, i) => (
                     <div
                       key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${
+                      className={\`w-1.5 h-1.5 rounded-full \${
                         isSelected ? "bg-white" : "bg-emerald-500"
-                      }`}
+                      }\`}
                     />
                   ))}
                 </div>
@@ -624,7 +627,7 @@ const HabitRow = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-xl">{habit.icon}</span>
-          <h3 className={`font-medium ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
+          <h3 className={\`font-medium \${isCompleted ? "line-through text-muted-foreground" : ""}\`}>
             {habit.name}
           </h3>
           <Badge variant="secondary" className="text-xs">{habit.category}</Badge>
@@ -709,9 +712,9 @@ const TrackerView = ({
               const dateStr = formatDateISO(date)
               const isToday = dateStr === today
               return (
-                <th key={dateStr} className={`p-2 text-center font-medium text-xs min-w-[48px] ${
+                <th key={dateStr} className={\`p-2 text-center font-medium text-xs min-w-[48px] \${
                   isToday ? "text-[#1E0E6B] font-bold" : "text-muted-foreground"
-                }`}>
+                }\`}>
                   <div className="flex flex-col items-center gap-0.5">
                     <span>{formatDayName(date)}</span>
                     <span className="text-lg">{formatDayNumber(date)}</span>
@@ -762,23 +765,20 @@ const TrackerView = ({
                         onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateStr })}
                         onMouseLeave={() => setHoveredCell(null)}
                         disabled={isFuture}
-                        className={`relative w-8 h-8 rounded-lg transition-all ${
+                        className={\`relative w-8 h-8 rounded-lg transition-all \${
                           isFuture
                             ? "cursor-not-allowed"
                             : isCompleted
                             ? "cursor-pointer hover:scale-110"
                             : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
-                        }`}
+                        }\`}
                         style={
                           isCompleted
                             ? { backgroundColor: habit.colorHex }
                             : undefined
                         }
                         title={hoveredCell?.habitId === habit.id && hoveredCell?.date === dateStr
-                          ? `${dateStr}
-${isCompleted ? "Completed" : "Missed"}
-${completion?.time ? "Time: " + completion.time : ""}
-${completion?.notes ? "Notes: " + completion.notes : ""}`
+                          ? \`\${dateStr}\n\${isCompleted ? "Completed" : "Missed"}\n\${completion?.time ? "Time: " + completion.time : ""}\n\${completion?.notes ? "Notes: " + completion.notes : ""}\`
                           : undefined
                         }
                       >
@@ -917,9 +917,9 @@ const HabitModal = ({
                 <button
                   key={c.name}
                   onClick={() => setColorIdx(i)}
-                  className={`w-10 h-10 rounded-full transition-all flex items-center justify-center ${
+                  className={\`w-10 h-10 rounded-full transition-all flex items-center justify-center \${
                     colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B] scale-110" : "hover:scale-105"
-                  }`}
+                  }\`}
                   style={{ backgroundColor: c.hex }}
                 >
                   {colorIdx === i && <Check className="h-5 w-5 text-white" />}
@@ -932,9 +932,9 @@ const HabitModal = ({
             <label className="text-sm font-medium">Icon</label>
             <div className="flex flex-wrap gap-2 mt-1">
               {ICONS.map((ic) => (
-                <button key={ic} onClick={() => setIcon(ic)} className={`text-2xl p-2 rounded-lg transition-all ${
+                <button key={ic} onClick={() => setIcon(ic)} className={\`text-2xl p-2 rounded-lg transition-all \${
                   icon === ic ? "bg-[#EB9E5B]/20 scale-110" : "hover:bg-gray-100"
-                }`}>
+                }\`}>
                   {ic}
                 </button>
               ))}
@@ -1300,4 +1300,9 @@ export function HabitsPage() {
       />
     </div>
   )
-}
+}`;
+
+const filePath = path.join(__dirname, '..', 'src', 'components', 'habits', 'habits-page.tsx');
+fs.writeFileSync(filePath, content, 'utf-8');
+console.log('Habits page with Tracker View written successfully!');
+console.log('File size:', content.length, 'bytes');
