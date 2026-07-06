@@ -1,12 +1,5 @@
-"use client"
-
-import { MainLayout } from "@/components/layout/main-layout"
-import { ProjectsPage } from "@/components/projects/projects-page"
+import { redirect } from "next/navigation"
 
 export default function Projects() {
-  return (
-    <MainLayout>
-      <ProjectsPage />
-    </MainLayout>
-  )
+  redirect("/goals")
 }

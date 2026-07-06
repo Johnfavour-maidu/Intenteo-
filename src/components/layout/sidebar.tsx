@@ -21,7 +21,6 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
-  Folder,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -42,7 +41,6 @@ const mainNav: NavItem[] = [
   { title: "Journal", href: "/journal", icon: BookOpen },
   { title: "Habits", href: "/habits", icon: Repeat },
   { title: "Goals", href: "/goals", icon: Target },
-  { title: "Projects", href: "/projects", icon: Folder },
 ]
 
 const aiNav: NavItem[] = [
