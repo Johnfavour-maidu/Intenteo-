@@ -147,7 +147,9 @@ const ScrollCol = memo(function ScrollCol({
       const idx = items.indexOf(value)
       if (idx >= 0) {
         const itemH = 36
-        ref.current.scrollTo({ top: idx * itemH - ref.current.clientHeight / 2 + itemH / 2, behavior: "smooth" })
+        const containerH = ref.current.clientHeight
+        const top = Math.max(0, idx * itemH - containerH / 2 + itemH / 2)
+        ref.current.scrollTo({ top, behavior: "smooth" })
       }
     }
   }, [value, items])
@@ -156,6 +158,7 @@ const ScrollCol = memo(function ScrollCol({
     <div className="flex flex-col items-center">
       <span className="text-[10px] text-muted-foreground mb-1">{label}</span>
       <div ref={ref} className="h-36 w-16 overflow-y-auto rounded-xl border bg-muted/30 scrollbar-hide" style={{ scrollSnapType: "y mandatory" }}>
+        <div className="h-[54px]" />
         {items.map((item) => (
           <button
             key={item}
@@ -167,6 +170,7 @@ const ScrollCol = memo(function ScrollCol({
             {String(item).padStart(2, "0")}
           </button>
         ))}
+        <div className="h-[54px]" />
       </div>
     </div>
   )
@@ -180,10 +184,14 @@ function TimeRangePicker({
   startTime,
   endTime,
   onChange,
+  anyTime,
+  onToggleAnyTime,
 }: {
   startTime: string
   endTime: string
   onChange: (start: string, end: string) => void
+  anyTime: boolean
+  onToggleAnyTime: (v: boolean) => void
 }) {
   const s = parseTime(startTime) || { hour: 9, minute: 0 }
   const e = parseTime(endTime) || { hour: 9, minute: 30 }
@@ -191,25 +199,43 @@ function TimeRangePicker({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <span className="text-[10px] text-muted-foreground mb-1 block">Start Time</span>
-          <div className="flex items-center gap-1">
-            <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Hr" />
-            <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
-          </div>
-        </div>
-        <div className="flex-1">
-          <span className="text-[10px] text-muted-foreground mb-1 block">End Time</span>
-          <div className="flex items-center gap-1">
-            <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="Hr" />
-            <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
-          </div>
-        </div>
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          type="button"
+          onClick={() => onToggleAnyTime(!anyTime)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors ${
+            anyTime
+              ? "border-primary bg-primary/10 text-primary font-medium"
+              : "border-muted hover:bg-muted/50 text-muted-foreground"
+          }`}
+        >
+          <Clock className="h-3 w-3" />
+          Anytime
+        </button>
       </div>
-      <p className="text-[10px] text-muted-foreground text-center">
-        Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
-      </p>
+      {!anyTime && (
+        <>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <span className="text-[10px] text-muted-foreground mb-1 block">Start Time</span>
+              <div className="flex items-center gap-1">
+                <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Hr" />
+                <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <span className="text-[10px] text-muted-foreground mb-1 block">End Time</span>
+              <div className="flex items-center gap-1">
+                <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="Hr" />
+                <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
+              </div>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center">
+            Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
+          </p>
+        </>
+      )}
     </div>
   )
 }
@@ -497,6 +523,7 @@ export function TasksPage() {
   const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
   const [formSubtasks, setFormSubtasks] = useState<{ id: string; title: string; completed: boolean }[]>([])
   const [formDate, setFormDate] = useState<string>(() => new Date().toISOString().split("T")[0])
+  const [formAnyTime, setFormAnyTime] = useState(false)
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
 
   const taskHistory = useMemo(() => {
@@ -642,11 +669,12 @@ export function TasksPage() {
     const endStr = formatTimeSelection(formEndHour, formEndMin)
     const dur = calcDurationFromRange(startStr, endStr)
     const filteredSubs = formSubtasks.filter((s) => s.title.trim()).map((s) => ({ ...s, id: `sub-${Date.now()}-${s.id}`, completed: false }))
+    const timeRange = formAnyTime ? "Anytime" : `${startStr} \u2013 ${endStr}`
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
       deadline: formDate === todayISO ? "Today" : new Date(formDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
-      date: formDate, dueTime: startStr, timeRange: `${startStr} \u2013 ${endStr}`,
-      estimatedDuration: dur > 0 ? dur : 30, notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
+      date: formDate, dueTime: formAnyTime ? "Anytime" : startStr, timeRange,
+      estimatedDuration: formAnyTime ? 0 : (dur > 0 ? dur : 30), notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
       completed: false, order: tasks.length, createdAt: new Date().toISOString(),
       dailyCompletions: formRecurrence === "daily" ? { [formDate]: false } : undefined,
     }
@@ -654,8 +682,8 @@ export function TasksPage() {
     setFormTitle(""); setFormWhy(""); setFormPriority("progress")
     setFormStartHour(9); setFormStartMin(0)
     setFormEndHour(9); setFormEndMin(30)
-    setFormRecurrence("none"); setFormSubtasks([]); setFormDate(todayISO); setCreateOpen(false)
-  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formSubtasks, formDate, todayISO, tasks.length])
+    setFormRecurrence("none"); setFormSubtasks([]); setFormDate(todayISO); setFormAnyTime(false); setCreateOpen(false)
+  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formSubtasks, formDate, formAnyTime, todayISO, tasks.length])
 
   const handleSaveEdit = useCallback(() => {
     if (!editingTask) return
@@ -1390,15 +1418,23 @@ export function TasksPage() {
                     <label className="text-xs font-medium text-muted-foreground">Time Range</label>
                     <div className="mt-2">
                       <TimeRangePicker
-                        startTime={editingTask ? editingTask.timeRange.split(" \u2013 ")[0] || "09:00" : formatTimeSelection(formStartHour, formStartMin)}
-                        endTime={editingTask ? editingTask.timeRange.split(" \u2013 ")[1] || "09:30" : formatTimeSelection(formEndHour, formEndMin)}
+                        startTime={editingTask ? (editingTask.timeRange === "Anytime" ? "09:00" : editingTask.timeRange.split(" \u2013 ")[0] || "09:00") : formatTimeSelection(formStartHour, formStartMin)}
+                        endTime={editingTask ? (editingTask.timeRange === "Anytime" ? "09:30" : editingTask.timeRange.split(" \u2013 ")[1] || "09:30") : formatTimeSelection(formEndHour, formEndMin)}
                         onChange={(start, end) => {
                           if (editingTask) {
-                            setEditingTask({ ...editingTask, timeRange: `${start} \u2013 ${end}`, estimatedDuration: calcDurationFromRange(start, end) || editingTask.estimatedDuration })
+                            setEditingTask({ ...editingTask, timeRange: `${start} \u2013 ${end}`, dueTime: start, estimatedDuration: calcDurationFromRange(start, end) || editingTask.estimatedDuration })
                           } else {
                             const s = parseTime(start); const en = parseTime(end)
                             if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute) }
                             if (en) { setFormEndHour(en.hour); setFormEndMin(en.minute) }
+                          }
+                        }}
+                        anyTime={editingTask ? editingTask.timeRange === "Anytime" : formAnyTime}
+                        onToggleAnyTime={(v) => {
+                          if (editingTask) {
+                            setEditingTask({ ...editingTask, timeRange: v ? "Anytime" : "09:00 \u2013 09:30", dueTime: v ? "Anytime" : "09:00" })
+                          } else {
+                            setFormAnyTime(v)
                           }
                         }} />
                     </div>
