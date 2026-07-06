@@ -50,7 +50,7 @@ type FilterMode = "all" | "annual" | "quarterly" | "monthly" | "weekly"
 type SortMode = "deadline" | "progress" | "updated" | "priority" | "name" | "newest" | "oldest"
 
 const getTodayISO = () => new Date().toISOString().split("T")[0]
-const formatDateISO = (d: Date) => `\${d.getFullYear()}-\${String(d.getMonth()+1).padStart(2,"0")}-\${String(d.getDate()).padStart(2,"0")}`
+const formatDateISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
 const formatMonthYear = (d: Date) => d.toLocaleDateString("en-US", { month: "long", year: "numeric" })
 const getDaysRemaining = (dl: string) => Math.max(0, Math.ceil((new Date(dl).getTime() - Date.now()) / 86400000))
 const getDaysCompleted = (sd: string) => Math.max(0, Math.ceil((Date.now() - new Date(sd).getTime()) / 86400000))
@@ -156,7 +156,7 @@ const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
               <div className="flex flex-wrap gap-2 mt-2">{data[field].map((item,i) => (
                 <Badge key={i} variant="secondary" className="gap-1">{item}<button onClick={() => setData({...data, [field]: data[field].filter((_,j) => j !== i)})}><X className="h-3 w-3" /></button></Badge>
               ))}</div>
-              <div className="flex gap-2 mt-2"><Input value={newVal} onChange={e => setNewVal(e.target.value)} placeholder={`Add \${field}...`} onKeyDown={e => e.key === "Enter" && addArr(field)} className="text-sm" /><Button size="sm" onClick={() => addArr(field)}>Add</Button></div>
+              <div className="flex gap-2 mt-2"><Input value={newVal} onChange={e => setNewVal(e.target.value)} placeholder={`Add ${field}...`} onKeyDown={e => e.key === "Enter" && addArr(field)} className="text-sm" /><Button size="sm" onClick={() => addArr(field)}>Add</Button></div>
             </div>
           ))}
           <Button onClick={() => { onSave(data); onClose() }} className="w-full bg-[#1E0E6B] text-white">Save Vision</Button>
@@ -206,10 +206,10 @@ const AddGoalModal = ({ isOpen, onClose, onSave }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Icon</label><div className="flex flex-wrap gap-1 mt-1">{GOAL_ICONS.map(ic => (
-              <button key={ic} onClick={() => setIcon(ic)} className={`text-lg p-1.5 rounded-lg \${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
+              <button key={ic} onClick={() => setIcon(ic)} className={`text-lg p-1.5 rounded-lg ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
             ))}</div></div>
             <div><label className="text-sm font-medium">Colour</label><div className="flex gap-2 mt-1">{GOAL_COLORS.map((c,i) => (
-              <button key={c.name} onClick={() => setColorIdx(i)} className={`w-7 h-7 rounded-full \${colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B]" : "hover:scale-105"}`} style={{backgroundColor:c.hex}} />
+              <button key={c.name} onClick={() => setColorIdx(i)} className={`w-7 h-7 rounded-full ${colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B]" : "hover:scale-105"}`} style={{backgroundColor:c.hex}} />
             ))}</div></div>
           </div>
         </div>
@@ -258,10 +258,10 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Icon</label><div className="flex flex-wrap gap-1 mt-1">{GOAL_ICONS.map(ic => (
-              <button key={ic} onClick={() => setIcon(ic)} className={`text-lg p-1.5 rounded-lg \${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
+              <button key={ic} onClick={() => setIcon(ic)} className={`text-lg p-1.5 rounded-lg ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
             ))}</div></div>
             <div><label className="text-sm font-medium">Colour</label><div className="flex gap-2 mt-1">{GOAL_COLORS.map((c,i) => (
-              <button key={c.name} onClick={() => setColorIdx(i)} className={`w-7 h-7 rounded-full \${colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B]" : "hover:scale-105"}`} style={{backgroundColor:c.hex}} />
+              <button key={c.name} onClick={() => setColorIdx(i)} className={`w-7 h-7 rounded-full ${colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B]" : "hover:scale-105"}`} style={{backgroundColor:c.hex}} />
             ))}</div></div>
           </div>
         </div>
@@ -271,7 +271,7 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
             if (name.trim()) {
               const c = GOAL_COLORS[colorIdx]
               const tmpl = PROJECT_TEMPLATES.find(t => t.name === template)
-              const tasks = tmpl ? tmpl.tasks.map((t,i) => ({ id: `pt\${Date.now()}\${i}`, title: t, completed: false, subtasks: [] })) : []
+              const tasks = tmpl ? tmpl.tasks.map((t,i) => ({ id: `pt${Date.now()}${i}`, title: t, completed: false, subtasks: [] })) : []
               onSave({ name, description, status: "planning", progress: 0, priority, startDate, dueDate, tasks, notes: "", color: c.name, colorHex: c.hex, icon, tags: [], goalId })
               onClose()
             }
@@ -342,8 +342,8 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
           <div className="grid grid-cols-5 gap-2">
             {[
               { label: "Projects", value: goalProjects.length, icon: <Folder className="h-4 w-4" /> },
-              { label: "Tasks", value: `\${completedTasks}/\${totalTasks}`, icon: <ListChecks className="h-4 w-4" /> },
-              { label: "Milestones", value: `\${completedMilestones}/\${data.milestones.length}`, icon: <Target className="h-4 w-4" /> },
+              { label: "Tasks", value: `${completedTasks}/${totalTasks}`, icon: <ListChecks className="h-4 w-4" /> },
+              { label: "Milestones", value: `${completedMilestones}/${data.milestones.length}`, icon: <Target className="h-4 w-4" /> },
               { label: "Habits", value: data.linkedHabits.length, icon: <Zap className="h-4 w-4" /> },
               { label: "Days Left", value: daysRemaining, icon: <Clock className="h-4 w-4" /> },
             ].map((s, i) => (
@@ -390,7 +390,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
               {data.milestones.map(m => (
                 <div key={m.id} className="flex items-center gap-2 p-2 bg-white/50 dark:bg-white/5 rounded-lg border border-white/10">
                   <button onClick={() => toggleMilestone(m.id)}>{m.completed ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />}</button>
-                  <span className={`flex-1 text-sm \${m.completed ? "line-through text-muted-foreground" : ""}`}>{m.title}</span>
+                  <span className={`flex-1 text-sm ${m.completed ? "line-through text-muted-foreground" : ""}`}>{m.title}</span>
                   <button onClick={() => setData({...data, milestones: data.milestones.filter(x => x.id !== m.id)})} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
                 </div>
               ))}
@@ -416,7 +416,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className={`text-[10px] \${p.status === "completed" ? "bg-emerald-50 text-emerald-600" : p.status === "active" ? "bg-blue-50 text-blue-600" : "bg-muted"}`}>{p.status}</Badge>
+                      <Badge variant="secondary" className={`text-[10px] ${p.status === "completed" ? "bg-emerald-50 text-emerald-600" : p.status === "active" ? "bg-blue-50 text-blue-600" : "bg-muted"}`}>{p.status}</Badge>
                       <ProgressRing value={calcProjectProgress(p)} size={36} strokeWidth={3} />
                     </div>
                   </div>
@@ -488,7 +488,7 @@ function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-medium">{progress}%</span></div>
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{width: `\${progress}%`, backgroundColor: goal.colorHex}} /></div>
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div>
       </div>
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -496,7 +496,7 @@ function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]
           <span className="flex items-center gap-1"><Folder className="h-3 w-3" />{completedProjects}/{goalProjects.length}</span>
           <span className="flex items-center gap-1"><ListChecks className="h-3 w-3" />{completedTasks}/{totalTasks}</span>
         </div>
-        <Badge variant="secondary" className={`text-[10px] \${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : "text-emerald-500 bg-emerald-50"}`}>{goal.priority}</Badge>
+        <Badge variant="secondary" className={`text-[10px] ${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : "text-emerald-500 bg-emerald-50"}`}>{goal.priority}</Badge>
       </div>
     </div>
   )
@@ -615,7 +615,7 @@ export function GoalsPage() {
           { label: "Monthly Goals", count: monthlyCount, gradient: "from-orange-400 to-amber-500", icon: <Target className="h-5 w-5 text-white" /> },
         ].map((item, i) => (
           <div key={i} className="rounded-xl border border-[#1E0E6B]/15 bg-white dark:bg-gray-950 p-4">
-            <div className="flex items-center gap-3"><div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br \${item.gradient}`}>{item.icon}</div><div><p className="text-sm text-muted-foreground">{item.label}</p><p className="text-2xl font-bold">{item.count}</p></div></div>
+            <div className="flex items-center gap-3"><div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${item.gradient}`}>{item.icon}</div><div><p className="text-sm text-muted-foreground">{item.label}</p><p className="text-2xl font-bold">{item.count}</p></div></div>
           </div>
         ))}
       </div>
@@ -629,7 +629,7 @@ export function GoalsPage() {
           { label: "Upcoming", value: upcomingProjects, color: "text-amber-500" },
         ].map((s, i) => (
           <div key={i} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 text-center">
-            <p className={`text-2xl font-bold \${s.color}`}>{s.value}</p>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             <p className="text-xs text-muted-foreground">{s.label}</p>
           </div>
         ))}
