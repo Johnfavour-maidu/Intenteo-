@@ -461,6 +461,7 @@ export function TasksPage() {
   const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [dayHistory, setDayHistory] = useState<{ date: string; tasks: Task[] } | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isListening, setIsListening] = useState(false)
   const [voiceStatus, setVoiceStatus] = useState("")
   const recognitionRef = useRef<unknown>(null)
@@ -476,11 +477,6 @@ export function TasksPage() {
   const [formEndMin, setFormEndMin] = useState(30)
   const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
 
-  const completedToday = useMemo(() => tasks.filter((t) => t.completed).length, [tasks])
-  const remainingToday = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks])
-  const totalToday = completedToday + remainingToday
-  const productivity = useMemo(() => (totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100)), [completedToday, totalToday])
-
   const taskHistory = useMemo(() => {
     const history: Record<string, Task[]> = {}
     tasks.forEach((t) => {
@@ -490,6 +486,18 @@ export function TasksPage() {
     })
     return history
   }, [tasks])
+
+  const todayISO = useMemo(() => new Date().toISOString().split("T")[0], [])
+  const isViewingPast = useMemo(() => selectedDate !== null && selectedDate < todayISO, [selectedDate, todayISO])
+  const displayTasks = useMemo(() => {
+    if (selectedDate) return tasks.filter((t) => t.createdAt.split("T")[0] === selectedDate)
+    return tasks.filter((t) => t.createdAt.split("T")[0] === todayISO)
+  }, [tasks, selectedDate, todayISO])
+
+  const completedToday = useMemo(() => displayTasks.filter((t) => t.completed).length, [displayTasks])
+  const remainingToday = useMemo(() => displayTasks.filter((t) => !t.completed).length, [displayTasks])
+  const totalToday = completedToday + remainingToday
+  const productivity = useMemo(() => (totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100)), [completedToday, totalToday])
 
   useEffect(() => {
     if (typeof window !== "undefined" && tasks.length > 0) {
@@ -513,6 +521,8 @@ export function TasksPage() {
   useEffect(() => {
     if (expandAll && tasks.length > 0) {
       setExpandedTasks(new Set(tasks.filter((t) => t.subtasks.length > 0).map((t) => t.id)))
+    } else if (!expandAll) {
+      setExpandedTasks(new Set())
     }
   }, [expandAll, tasks])
 
@@ -792,20 +802,20 @@ export function TasksPage() {
   /* ═══════════════════════════════════════════════════════ */
 
   const renderListView = useCallback(() => {
-    if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
+    if (displayTasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-        <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(200px,1fr)_minmax(130px,150px)_minmax(80px,100px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div></div>
           <div className="pl-2">Task</div>
           <div className="hidden sm:block">Time Range</div>
-          <div className="hidden sm:block">Duration</div>
+          <div className="hidden sm:block pl-2">Duration</div>
           <div>Progress</div>
           <div className="text-right">Actions</div>
         </div>
 
         <LayoutGroup>
-          {tasks.map((task, i) => {
+          {displayTasks.map((task, i) => {
             const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
             const isExpanded = expandAll || expandedTasks.has(task.id)
             const isDragging = draggedId === task.id && dragType === "task"
@@ -817,10 +827,11 @@ export function TasksPage() {
                 transition={{ delay: i * 0.015, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
                 <TaskRow tint={pConfig.tint} isDragging={isDragging} isDragOver={isDragOver}>
                   <div
-                    draggable onDragStart={() => handleTaskDragStart(task.id)}
+                    draggable={!isViewingPast}
+                    onDragStart={() => handleTaskDragStart(task.id)}
                     onDragOver={(e) => handleTaskDragOver(e, task.id)}
                     onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
-                    className="grid grid-cols-[24px_minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 pl-5 pr-5 py-3.5 items-center group cursor-default"
+                    className="grid grid-cols-[24px_minmax(200px,1fr)_minmax(130px,150px)_minmax(80px,100px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 pl-5 pr-5 py-3.5 items-center group cursor-default"
                   >
                     {/* Priority Dot */}
                     <div className="flex items-center justify-center">
@@ -829,10 +840,12 @@ export function TasksPage() {
 
                     {/* Task Name */}
                     <div className="flex items-center gap-2.5 min-w-0 pl-2">
-                      <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover:opacity-100">
-                        <GripVertical className="h-4 w-4" />
-                      </div>
-                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0">
+                      {!isViewingPast && (
+                        <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover:opacity-100">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                      )}
+                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0" disabled={isViewingPast}>
                         {task.completed ? (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
                             <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
@@ -845,8 +858,8 @@ export function TasksPage() {
                       </button>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium truncate cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                            onClick={() => setEditingTask({ ...task })}>
+                          <span className={`text-sm font-medium truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                            onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                             {task.title}
                           </span>
                           {task.subtasks.length > 0 && (
@@ -871,8 +884,8 @@ export function TasksPage() {
 
                     {/* Time Range */}
                     <div className="hidden sm:block">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors"
-                        onClick={() => setEditingTask({ ...task })}>
+                      <div className={`flex items-center gap-1.5 text-xs text-muted-foreground px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                        onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         <Clock className="h-3 w-3 shrink-0" />
                         <span>{task.timeRange}</span>
                       </div>
@@ -880,8 +893,8 @@ export function TasksPage() {
 
                     {/* Duration */}
                     <div className="hidden sm:block">
-                      <span className="text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors"
-                        onClick={() => setEditingTask({ ...task })}>
+                      <span className={`text-xs text-muted-foreground px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                        onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         {formatDuration(task.estimatedDuration)}
                       </span>
                     </div>
@@ -899,10 +912,12 @@ export function TasksPage() {
 
                     {/* Actions */}
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                        onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      {!isViewingPast && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
+                          onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <div className="relative">
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id) }}>
@@ -914,10 +929,12 @@ export function TasksPage() {
                           )}
                         </AnimatePresence>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
-                        onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {!isViewingPast && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
+                          onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -929,18 +946,18 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo])
+  }, [displayTasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo, isViewingPast])
 
   /* ═══════════════════════════════════════════════════════ */
   /* BOARD VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
 
   const renderBoardView = useCallback(() => {
-    if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
+    if (displayTasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <LayoutGroup>
-          {tasks.map((task, i) => {
+          {displayTasks.map((task, i) => {
             const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
             const isExpanded = expandAll || expandedTasks.has(task.id)
             const pConfig = priorityConfig[task.priority]
@@ -954,7 +971,7 @@ export function TasksPage() {
                   <div className="pl-10 pr-10 p-4">
                     <div className="flex items-start gap-2.5 mb-3">
                       <PriorityDot priority={task.priority} />
-                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
+                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5" disabled={isViewingPast}>
                         {task.completed ? (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
                             <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
@@ -967,8 +984,8 @@ export function TasksPage() {
                       </button>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h3 className={`text-sm font-semibold truncate cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                            onClick={() => setEditingTask({ ...task })}>{task.title}</h3>
+                          <h3 className={`text-sm font-semibold truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                            onClick={() => !isViewingPast && setEditingTask({ ...task })}>{task.title}</h3>
                           {task.subtasks.length > 0 && (
                             <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">{completedSubs}/{task.subtasks.length}</span>
                           )}
@@ -1017,10 +1034,12 @@ export function TasksPage() {
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
-                        onClick={() => setEditingTask({ ...task })}>
-                        <Pencil className="h-3 w-3" />
-                      </Button>
+                      {!isViewingPast && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
+                          onClick={() => setEditingTask({ ...task })}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
                       <div className="relative">
                         <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
                           onClick={() => setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id)}>
@@ -1032,9 +1051,11 @@ export function TasksPage() {
                           )}
                         </AnimatePresence>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {!isViewingPast && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </TaskRow>
@@ -1044,7 +1065,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, expandAll, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId])
+  }, [displayTasks, expandedTasks, expandAll, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId, isViewingPast])
 
   return (
     <div className="min-h-screen">
@@ -1058,7 +1079,7 @@ export function TasksPage() {
             <p className="text-sm text-foreground mt-0.5 tracking-tight">
               <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
               <span style={{ color: "var(--brand-primary)" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
-              <span style={{ color: "var(--brand-secondary)" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
+              <span style={{ color: "var(--foreground)" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
             </p>
           </div>
           <div className="flex items-center gap-2.5">
@@ -1085,7 +1106,7 @@ export function TasksPage() {
                 {calendarOpen && (
                   <TaskHistoryCalendar
                     taskHistory={taskHistory}
-                    onSelectDate={(date, histTasks) => setDayHistory({ date, tasks: histTasks })}
+                    onSelectDate={(date, histTasks) => { setSelectedDate(date); setDayHistory({ date, tasks: histTasks }); setCalendarOpen(false) }}
                     onClose={() => setCalendarOpen(false)} />
                 )}
               </AnimatePresence>
@@ -1126,8 +1147,22 @@ export function TasksPage() {
           </motion.div>
         )}
 
+        {/* Viewing Past Day Banner */}
+        {isViewingPast && selectedDate && (
+          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-3 px-3 py-2 rounded-lg bg-muted/50 border text-xs flex items-center justify-between">
+            <span className="text-muted-foreground">
+              Viewing tasks for <span className="font-medium text-foreground">{new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
+              {" \u2014 "}{displayTasks.length} tasks, {completedToday} completed. Tasks are read-only.
+            </span>
+            <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => { setSelectedDate(null); setDayHistory(null) }}>
+              Back to Today
+            </Button>
+          </motion.div>
+        )}
+
         {/* Expand/Collapse All */}
-        {tasks.length > 0 && tasks.some((t) => t.subtasks.length > 0) && (
+        {displayTasks.length > 0 && displayTasks.some((t) => t.subtasks.length > 0) && (
           <div className="mb-3">
             <button onClick={() => setExpandAll(!expandAll)}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
