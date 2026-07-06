@@ -1,4 +1,7 @@
-"use client"
+const fs = require('fs');
+const path = require('path');
+
+const content = `"use client"
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo, useLayoutEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -55,7 +58,7 @@ const formatDateISO = (date: Date): string => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
   const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+  return \`\${year}-\${month}-\${day}\`
 }
 
 const formatDayName = (date: Date): string => date.toLocaleDateString("en-US", { weekday: "short" })
@@ -138,9 +141,9 @@ const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: D
   const monthlyRate = monthlyTotal > 0 ? Math.round((monthlyCompleted / monthlyTotal) * 100) : 0
 
   const cards = [
-    { label: "Today", value: `${completedToday}/${totalCount}`, gradient: "from-emerald-400 to-green-500", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
-    { label: "Weekly %", value: `${weeklyRate}%`, gradient: "from-blue-400 to-cyan-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
-    { label: "Monthly %", value: `${monthlyRate}%`, gradient: "from-purple-400 to-pink-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
+    { label: "Today", value: \`\${completedToday}/\${totalCount}\`, gradient: "from-emerald-400 to-green-500", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
+    { label: "Weekly %", value: \`\${weeklyRate}%\`, gradient: "from-blue-400 to-cyan-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
+    { label: "Monthly %", value: \`\${monthlyRate}%\`, gradient: "from-purple-400 to-pink-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
     { label: "Best Streak", value: bestStreak.toString(), gradient: "from-orange-400 to-amber-500", icon: <Flame className="h-5 w-5 text-white" /> },
     { label: "Total Habits", value: totalCount.toString(), gradient: "from-indigo-400 to-blue-500", icon: <Target className="h-5 w-5 text-white" /> },
   ]
@@ -150,7 +153,7 @@ const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: D
       {cards.map((card, i) => (
         <div key={i} className="rounded-xl border border-[#1E0E6B]/15 bg-white dark:bg-gray-950 p-4">
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient}`}>
+            <div className={\`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br \${card.gradient}\`}>
               {card.icon}
             </div>
             <div>
@@ -256,7 +259,7 @@ const TrackerView = ({
               const dateStr = formatDateISO(date)
               const isToday = dateStr === today
               return (
-                <th key={dateStr} className={`p-1.5 text-center font-medium text-xs min-w-[44px] ${isToday ? "text-[#1E0E6B] font-bold bg-[#1E0E6B]/5" : "text-muted-foreground"}`}>
+                <th key={dateStr} className={\`p-1.5 text-center font-medium text-xs min-w-[44px] \${isToday ? "text-[#1E0E6B] font-bold bg-[#1E0E6B]/5" : "text-muted-foreground"}\`}>
                   <div className="flex flex-col items-center gap-0">
                     <span className="text-[10px]">{formatDayName(date)}</span>
                     <span className="text-sm">{formatDayNumber(date)}</span>
@@ -290,7 +293,7 @@ const TrackerView = ({
                 <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{habit.duration}</span>
               </td>
               <td className="sticky left-[390px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
-                <span className={`text-sm font-semibold ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
+                <span className={\`text-sm font-semibold \${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}\`}>
                   {habit.habitScore}
                 </span>
               </td>
@@ -305,9 +308,9 @@ const TrackerView = ({
                       onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateStr })}
                       onMouseLeave={() => setHoveredCell(null)}
                       disabled={isFuture}
-                      className={`w-7 h-7 rounded-md transition-all ${
+                      className={\`w-7 h-7 rounded-md transition-all \${
                         isFuture ? "cursor-not-allowed opacity-30" : isCompleted ? "cursor-pointer hover:scale-110" : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
-                      }`}
+                      }\`}
                       style={isCompleted ? { backgroundColor: habit.colorHex } : undefined}
                     >
                       {isCompleted && <CheckCircle2 className="h-4 w-4 text-white mx-auto" />}
@@ -446,7 +449,7 @@ const HabitModal = ({
                 <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
                   {HABIT_COLORS.map((c, i) => (
                     <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
+                      className={\`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors \${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}\`}>
                       <div className="w-4 h-4 rounded-full" style={{ backgroundColor: c.hex }} />
                       <span>{c.name}</span>
                       {colorIdx === i && <Check className="h-4 w-4 ml-auto text-[#1E0E6B]" />}
@@ -470,7 +473,7 @@ const HabitModal = ({
                   <div className="grid grid-cols-4 gap-1">
                     {ICONS.map((ic) => (
                       <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
-                        className={`text-xl p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>
+                        className={\`text-xl p-2 rounded-lg transition-all text-center \${icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}\`}>
                         {ic}
                       </button>
                     ))}
@@ -625,4 +628,9 @@ export function HabitsPage() {
       <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} habit={editingHabit} />
     </div>
   )
-}
+}`;
+
+const filePath = path.join(__dirname, '..', 'src', 'components', 'habits', 'habits-page.tsx');
+fs.writeFileSync(filePath, content, 'utf-8');
+console.log('Habits page refined successfully!');
+console.log('File size:', content.length, 'bytes');
