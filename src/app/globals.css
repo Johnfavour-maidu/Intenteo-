@@ -287,6 +287,22 @@
     opacity: 0.35;
   }
 
+  /* Editor list styling */
+  [contenteditable] ul,
+  [contenteditable] ol {
+    padding-left: 1.5em;
+    margin: 0.25em 0;
+  }
+  [contenteditable] ul {
+    list-style-type: disc;
+  }
+  [contenteditable] ol {
+    list-style-type: decimal;
+  }
+  [contenteditable] li {
+    margin: 0.1em 0;
+  }
+
   /* Journal Page Styles */
   .journal-page-lined {
     background-image: repeating-linear-gradient(

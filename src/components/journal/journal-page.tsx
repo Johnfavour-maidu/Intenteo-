@@ -1824,6 +1824,7 @@ interface FormattingToolbarProps {
   onFontFamilyChange?: (family: FontFamily) => void
   currentFontSize?: FontSize
   currentFontFamily?: FontFamily
+  activeFormats?: { bold: boolean; italic: boolean; underline: boolean; strikeThrough: boolean; insertUnorderedList: boolean; insertOrderedList: boolean; justifyLeft: boolean; justifyCenter: boolean; justifyRight: boolean }
 }
 
 const FONT_SIZES: FontSize[] = ["12", "14", "16", "18", "24", "32"]
@@ -1929,6 +1930,7 @@ export function FormattingToolbar({
   onHighlight,
   currentFontSize = "14",
   currentFontFamily = "Calibri",
+  activeFormats,
 }: FormattingToolbarProps) {
   const [textColourOpen, setTextColourOpen] = useState(false)
   const [highlightOpen, setHighlightOpen] = useState(false)
@@ -1960,17 +1962,17 @@ export function FormattingToolbar({
         onChange={(v) => onFontSizeChange?.(v as FontSize)}
       />
       <Divider />
-      <ToolbarButton icon={<Bold className="h-3.5 w-3.5" />} onClick={onToggleBold || (() => {})} tooltip="Bold" />
-      <ToolbarButton icon={<Italic className="h-3.5 w-3.5" />} onClick={onToggleItalic || (() => {})} tooltip="Italic" />
-      <ToolbarButton icon={<Underline className="h-3.5 w-3.5" />} onClick={onToggleUnderline || (() => {})} tooltip="Underline" />
-      <ToolbarButton icon={<Strikethrough className="h-3.5 w-3.5" />} onClick={onToggleStrikethrough || (() => {})} tooltip="Strikethrough" />
+      <ToolbarButton icon={<Bold className="h-3.5 w-3.5" />} onClick={onToggleBold || (() => {})} active={activeFormats?.bold} tooltip="Bold" />
+      <ToolbarButton icon={<Italic className="h-3.5 w-3.5" />} onClick={onToggleItalic || (() => {})} active={activeFormats?.italic} tooltip="Italic" />
+      <ToolbarButton icon={<Underline className="h-3.5 w-3.5" />} onClick={onToggleUnderline || (() => {})} active={activeFormats?.underline} tooltip="Underline" />
+      <ToolbarButton icon={<Strikethrough className="h-3.5 w-3.5" />} onClick={onToggleStrikethrough || (() => {})} active={activeFormats?.strikeThrough} tooltip="Strikethrough" />
       <Divider />
-      <ToolbarButton icon={<AlignLeft className="h-3.5 w-3.5" />} onClick={onAlignLeft || (() => {})} tooltip="Align Left" />
-      <ToolbarButton icon={<AlignCenter className="h-3.5 w-3.5" />} onClick={onAlignCenter || (() => {})} tooltip="Align Center" />
-      <ToolbarButton icon={<AlignRight className="h-3.5 w-3.5" />} onClick={onAlignRight || (() => {})} tooltip="Align Right" />
+      <ToolbarButton icon={<AlignLeft className="h-3.5 w-3.5" />} onClick={onAlignLeft || (() => {})} active={activeFormats?.justifyLeft} tooltip="Align Left" />
+      <ToolbarButton icon={<AlignCenter className="h-3.5 w-3.5" />} onClick={onAlignCenter || (() => {})} active={activeFormats?.justifyCenter} tooltip="Align Center" />
+      <ToolbarButton icon={<AlignRight className="h-3.5 w-3.5" />} onClick={onAlignRight || (() => {})} active={activeFormats?.justifyRight} tooltip="Align Right" />
       <Divider />
-      <ToolbarButton icon={<List className="h-3.5 w-3.5" />} onClick={onInsertUnorderedList || (() => {})} tooltip="Bullet List" />
-      <ToolbarButton icon={<ListOrdered className="h-3.5 w-3.5" />} onClick={onInsertOrderedList || (() => {})} tooltip="Numbered List" />
+      <ToolbarButton icon={<List className="h-3.5 w-3.5" />} onClick={onInsertUnorderedList || (() => {})} active={activeFormats?.insertUnorderedList} tooltip="Bullet List" />
+      <ToolbarButton icon={<ListOrdered className="h-3.5 w-3.5" />} onClick={onInsertOrderedList || (() => {})} active={activeFormats?.insertOrderedList} tooltip="Numbered List" />
       <ToolbarButton icon={<Quote className="h-3.5 w-3.5" />} onClick={onInsertBlockquote || (() => {})} tooltip="Quote" />
       <Divider />
 
@@ -2562,7 +2564,7 @@ function WritingArea({
   const [contentText, setContentText] = useState((draft?.contentText as string) || "")
   const [type, setType] = useState<JournalType>((draft?.type as JournalType) || "daily")
   const [tags, setTags] = useState((draft?.tags as string) || "")
-  const [mood, setMood] = useState<string | undefined>(draft?.mood as string | undefined)
+  const [mood, setMood] = useState<string | undefined>(undefined)
   const [customMood, setCustomMood] = useState<{ emoji: string; label: string } | null>(null)
   const [isFocused, setIsFocused] = useState(false)
   const [moodOpen, setMoodOpen] = useState(false)
@@ -2570,6 +2572,7 @@ function WritingArea({
   const [teoOpen, setTeoOpen] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [recordings, setRecordings] = useState<AudioRecording[]>([])
+  const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false, strikeThrough: false, insertUnorderedList: false, insertOrderedList: false, justifyLeft: false, justifyCenter: false, justifyRight: false })
   const [location, setLocation] = useState<string>("")
   const [locationLoading, setLocationLoading] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
@@ -2623,6 +2626,19 @@ function WritingArea({
       }
     }
   }, [editingEntry])
+
+  useEffect(() => {
+    const checkFormats = () => {
+      const commands = ["bold", "italic", "underline", "strikeThrough", "insertUnorderedList", "insertOrderedList", "justifyLeft", "justifyCenter", "justifyRight"] as const
+      const next = { bold: false, italic: false, underline: false, strikeThrough: false, insertUnorderedList: false, insertOrderedList: false, justifyLeft: false, justifyCenter: false, justifyRight: false }
+      for (const cmd of commands) {
+        try { next[cmd] = document.queryCommandState(cmd) } catch {}
+      }
+      setActiveFormats(next)
+    }
+    document.addEventListener("selectionchange", checkFormats)
+    return () => document.removeEventListener("selectionchange", checkFormats)
+  }, [])
 
   useEffect(() => {
     if (!editingEntry) {
@@ -3051,6 +3067,7 @@ function WritingArea({
           }}
           currentFontSize={currentFontSize}
           currentFontFamily={currentFontFamily}
+          activeFormats={activeFormats}
         />
 
         <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
