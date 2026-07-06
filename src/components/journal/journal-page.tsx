@@ -1946,7 +1946,7 @@ export function FormattingToolbar({
   }, [])
 
   return (
-    <div className="flex items-center flex-wrap gap-0.5 py-1.5 border-t border-border/40">
+    <div className="flex items-center flex-wrap gap-0.5 py-0.5 border-t border-border/40">
       <DropdownButton
         label="Font"
         options={FONT_FAMILIES}
