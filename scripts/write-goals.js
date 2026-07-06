@@ -1,4 +1,7 @@
-"use client"
+const fs = require('fs');
+const path = require('path');
+
+const content = `"use client"
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -92,7 +95,7 @@ const formatDateISO = (date: Date): string => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
   const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+  return \`\${year}-\${month}-\${day}\`
 }
 
 const GOAL_CATEGORIES = [
@@ -238,7 +241,7 @@ const LifeVisionDrawer = ({
               </div>
               <div className="flex gap-2 mt-2">
                 <Input value={newValue} onChange={(e) => setNewValue(e.target.value)}
-                  placeholder={`Add ${field.replace(/([A-Z])/g, " $1").toLowerCase()}...`}
+                  placeholder={\`Add \${field.replace(/([A-Z])/g, " $1").toLowerCase()}...\`}
                   onKeyDown={(e) => e.key === "Enter" && addToArray(field)} className="text-sm" />
                 <Button size="sm" onClick={() => addToArray(field)}>Add</Button>
               </div>
@@ -411,7 +414,7 @@ const GoalDetailDrawer = ({
             <div className="flex flex-wrap gap-1 mt-1">
               {GOAL_ICONS.map(ic => (
                 <button key={ic} onClick={() => setData({ ...data, icon: ic, updatedAt: getTodayISO() })}
-                  className={`text-lg p-1.5 rounded-lg transition-all ${data.icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>
+                  className={\`text-lg p-1.5 rounded-lg transition-all \${data.icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}\`}>
                   {ic}
                 </button>
               ))}
@@ -423,7 +426,7 @@ const GoalDetailDrawer = ({
             <div className="flex gap-2 mt-1">
               {GOAL_COLORS.map(c => (
                 <button key={c.name} onClick={() => setData({ ...data, color: c.name, colorHex: c.hex, updatedAt: getTodayISO() })}
-                  className={`w-7 h-7 rounded-full transition-all ${data.color === c.name ? "ring-2 ring-offset-2 ring-[#1E0E6B] scale-110" : "hover:scale-105"}`}
+                  className={\`w-7 h-7 rounded-full transition-all \${data.color === c.name ? "ring-2 ring-offset-2 ring-[#1E0E6B] scale-110" : "hover:scale-105"}\`}
                   style={{ backgroundColor: c.hex }} />
               ))}
             </div>
@@ -437,7 +440,7 @@ const GoalDetailDrawer = ({
                   <button onClick={() => toggleMilestone(m.id)}>
                     {m.completed ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />}
                   </button>
-                  <span className={`flex-1 text-sm ${m.completed ? "line-through text-muted-foreground" : ""}`}>{m.title}</span>
+                  <span className={\`flex-1 text-sm \${m.completed ? "line-through text-muted-foreground" : ""}\`}>{m.title}</span>
                   <button onClick={() => removeMilestone(m.id)} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
                 </div>
               ))}
@@ -591,7 +594,7 @@ const AddGoalModal = ({
               <div className="flex flex-wrap gap-1 mt-1">
                 {GOAL_ICONS.map(ic => (
                   <button key={ic} onClick={() => setIcon(ic)}
-                    className={`text-lg p-1.5 rounded-lg transition-all ${icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>
+                    className={\`text-lg p-1.5 rounded-lg transition-all \${icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}\`}>
                     {ic}
                   </button>
                 ))}
@@ -602,7 +605,7 @@ const AddGoalModal = ({
               <div className="flex gap-2 mt-1">
                 {GOAL_COLORS.map((c, i) => (
                   <button key={c.name} onClick={() => setColorIdx(i)}
-                    className={`w-7 h-7 rounded-full transition-all ${colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B] scale-110" : "hover:scale-105"}`}
+                    className={\`w-7 h-7 rounded-full transition-all \${colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B] scale-110" : "hover:scale-105"}\`}
                     style={{ backgroundColor: c.hex }} />
                 ))}
               </div>
@@ -665,7 +668,7 @@ function GoalCard({ goal, onClick }: { goal: Goal; onClick: () => void }) {
           <span className="font-medium">{goal.progress}%</span>
         </div>
         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${goal.progress}%`, backgroundColor: goal.colorHex }} />
+          <div className="h-full rounded-full transition-all duration-500" style={{ width: \`\${goal.progress}%\`, backgroundColor: goal.colorHex }} />
         </div>
       </div>
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
@@ -673,7 +676,7 @@ function GoalCard({ goal, onClick }: { goal: Goal; onClick: () => void }) {
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{daysRemaining}d left</span>
           <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />{goal.milestones.filter(m => m.completed).length}/{goal.milestones.length}</span>
         </div>
-        <Badge variant="secondary" className={`text-[10px] ${getPriorityColor(goal.priority)}`}>{goal.priority}</Badge>
+        <Badge variant="secondary" className={\`text-[10px] \${getPriorityColor(goal.priority)}\`}>{goal.priority}</Badge>
       </div>
       {goal.milestones.length > 0 && (
         <div className="mt-3 pt-3 border-t border-white/10 space-y-1">
@@ -807,7 +810,7 @@ export function GoalsPage() {
         ].map((item, i) => (
           <div key={i} className="rounded-xl border border-[#1E0E6B]/15 bg-white dark:bg-gray-950 p-4 hover:shadow-md transition-all duration-200">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${item.color}`}>
+              <div className={\`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br \${item.color}\`}>
                 <span className="text-white">{item.icon}</span>
               </div>
               <div>
@@ -869,4 +872,9 @@ export function GoalsPage() {
       <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} onSave={updateGoal} onDelete={deleteGoal} />
     </div>
   )
-}
+}`;
+
+const filePath = path.join(__dirname, '..', 'src', 'components', 'goals', 'goals-page.tsx');
+fs.writeFileSync(filePath, content, 'utf-8');
+console.log('Goals page written successfully!');
+console.log('File size:', content.length, 'bytes');
