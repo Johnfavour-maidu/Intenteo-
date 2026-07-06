@@ -1,28 +1,33 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo, useRef, memo, useLayoutEffect } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Plus,
   CheckCircle2,
-  Circle,
   Flame,
   Target,
   TrendingUp,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   Search,
-  Edit3,
   Trash2,
   X,
   Check,
   Clock,
   ChevronDown,
 } from "lucide-react"
-import { GlassCard } from "@/components/ui/glass-card"
+
+interface HabitScheduleAnytime { type: "anytime" }
+interface HabitSchedulePreferred { type: "preferred"; slot?: "morning" | "afternoon" | "evening" | "night"; time?: string }
+interface HabitScheduleFixed { type: "fixed"; time: string }
+type HabitSchedule = HabitScheduleAnytime | HabitSchedulePreferred | HabitScheduleFixed
+
+interface HabitReminderAnytime { enabled: boolean; timeSlot?: "morning" | "afternoon" | "evening" }
+interface HabitReminderTimed { enabled: boolean; before?: number; after?: number }
+type HabitReminder = HabitReminderAnytime | HabitReminderTimed
 
 interface Habit {
   id: string
@@ -33,12 +38,17 @@ interface Habit {
   frequency: "daily" | "weekly"
   duration: string
   totalDuration: string
-  reminderTime: string
+  difficulty: "easy" | "medium" | "hard"
+  schedule: HabitSchedule
+  reminder: HabitReminder
   goal: string
+  whyItMatters: string
   streak: number
   bestStreak: number
   completedToday: boolean
   completionRate: number
+  consistency: number
+  timeAccuracy: number | null
   habitScore: number
   color: string
   colorHex: string
@@ -94,12 +104,69 @@ const HABIT_COLORS: { name: string; hex: string }[] = [
 ]
 
 const CATEGORIES = ["Mindfulness", "Health", "Learning", "Productivity", "Mental Health", "Social", "Faith", "Custom"]
-
 const ICONS = ["⭐", "📝", "🧘", "💪", "📚", "💧", "📵", "🌙", "📅", "🎯", "🚀", "💡", "🙏", "❤️", "🏃", "🎓"]
-
 const TOTAL_DURATION_OPTIONS = ["Undefined", "30 days", "60 days", "90 days", "365 days", "Indefinite"]
+const DIFFICULTY_OPTIONS: { value: "easy" | "medium" | "hard"; label: string; color: string }[] = [
+  { value: "easy", label: "Easy", color: "text-emerald-500 bg-emerald-50" },
+  { value: "medium", label: "Medium", color: "text-amber-500 bg-amber-50" },
+  { value: "hard", label: "Hard", color: "text-red-500 bg-red-50" },
+]
 
-const calculateStreak = (completions: Record<string, { completed: boolean }>): number => {
+const SCHEDULE_LABELS = {
+  anytime: "Flexible Schedule ✓",
+  preferred: (s?: string) => `Preferred ${s ? `· ${s[0].toUpperCase() + s.slice(1)}` : ""}`,
+  fixed: (t: string) => `Fixed · ${formatTime12(t)}`,
+}
+
+function formatTime12(time24: string): string {
+  if (!time24) return ""
+  const [h, m] = time24.split(":").map(Number)
+  const ampm = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, "0")} ${ampm}`
+}
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number)
+  return h * 60 + m
+}
+
+function minutesDiff(a: string, b: string): number {
+  return Math.abs(timeToMinutes(a) - timeToMinutes(b))
+}
+
+/* ─── Scoring Engine ─── */
+
+const DIFFICULTY_BONUS = { easy: 0, medium: 5, hard: 10 }
+
+function calcTimeAccuracy(completionTime: string | undefined, schedule: HabitSchedule): number | null {
+  if (schedule.type === "anytime") return null
+  if (!completionTime) return 0
+
+  const targetTime = schedule.type === "fixed" ? schedule.time : schedule.time
+  if (!targetTime) return null
+
+  const diff = minutesDiff(completionTime, targetTime)
+
+  if (schedule.type === "fixed") {
+    if (diff <= 5) return 100
+    if (diff <= 15) return 80
+    if (diff <= 30) return 60
+    return 20
+  }
+
+  if (schedule.type === "preferred") {
+    if (diff <= 15) return 100
+    if (diff <= 30) return 90
+    if (diff <= 60) return 75
+    if (diff <= 120) return 50
+    return 25
+  }
+
+  return null
+}
+
+function calcStreak(completions: Record<string, { completed: boolean }>): number {
   let streak = 0
   const today = new Date()
   for (let i = 0; i < 365; i++) {
@@ -111,6 +178,51 @@ const calculateStreak = (completions: Record<string, { completed: boolean }>): n
   return streak
 }
 
+function calcConsistency(completions: Record<string, { completed: boolean }>, createdAt: string): number {
+  const created = new Date(createdAt)
+  const now = new Date()
+  const totalDays = Math.max(1, Math.ceil((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)))
+  const completedDays = Object.keys(completions).filter(k => completions[k].completed).length
+  return Math.min(100, Math.round((completedDays / totalDays) * 100))
+}
+
+function calcCompletionRate(completions: Record<string, { completed: boolean }>, createdAt: string): number {
+  const created = new Date(createdAt)
+  const now = new Date()
+  const totalDays = Math.max(1, Math.ceil((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)))
+  const completedDays = Object.keys(completions).filter(k => completions[k].completed).length
+  return Math.min(100, Math.round((completedDays / totalDays) * 100))
+}
+
+function calcHabitScore(
+  completions: Record<string, { completed: boolean; time?: string }>,
+  schedule: HabitSchedule,
+  difficulty: "easy" | "medium" | "hard",
+  createdAt: string,
+  bestStreak: number,
+): { score: number; completionRate: number; consistency: number; timeAccuracy: number | null } {
+  const completionRate = calcCompletionRate(completions, createdAt)
+  const streak = calcStreak(completions)
+  const consistency = calcConsistency(completions, createdAt)
+
+  const today = getTodayISO()
+  const todayCompletion = completions[today]
+  const timeAccuracy = todayCompletion?.completed ? calcTimeAccuracy(todayCompletion.time, schedule) : null
+
+  const difficultyBonus = DIFFICULTY_BONUS[difficulty]
+
+  if (schedule.type === "anytime") {
+    const raw = completionRate * 0.50 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20 + difficultyBonus * 0.05
+    return { score: Math.round(Math.min(100, raw)), completionRate, consistency, timeAccuracy: null }
+  }
+
+  const ta = timeAccuracy ?? 0
+  const raw = completionRate * 0.40 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20 + ta * 0.10 + difficultyBonus * 0.05
+  return { score: Math.round(Math.min(100, raw)), completionRate, consistency, timeAccuracy: ta }
+}
+
+/* ─── Sample Data ─── */
+
 const createSampleHabits = (): Habit[] => {
   const today = new Date()
   const completions: Record<string, { completed: boolean; time?: string; notes?: string }> = {}
@@ -118,21 +230,22 @@ const createSampleHabits = (): Habit[] => {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
     const dateStr = formatDateISO(d)
-    if (Math.random() > 0.3) completions[dateStr] = { completed: true, time: "08:00" }
+    if (Math.random() > 0.3) completions[dateStr] = { completed: true, time: "08:" + String(Math.floor(Math.random() * 60)).padStart(2, "0") }
   }
-  const rawHabits = [
-    { id: "1", name: "Morning Journal", description: "Write for 10 minutes about intentions and gratitude", category: "Mindfulness", frequency: "daily" as const, duration: "10 mins", totalDuration: "Indefinite", reminderTime: "07:00", goal: "Write daily", completedToday: true, completionRate: 85, habitScore: 92, color: "Purple", colorHex: "#8B5CF6", icon: "📝", completions, createdAt: "2025-01-01" },
-    { id: "2", name: "Meditate", description: "10 minutes of guided meditation", category: "Mental Health", frequency: "daily" as const, duration: "10 mins", totalDuration: "90 days", reminderTime: "06:30", goal: "Daily practice", completedToday: true, completionRate: 70, habitScore: 78, color: "Blue", colorHex: "#3B82F6", icon: "🧘", completions, createdAt: "2025-01-05" },
-    { id: "3", name: "Exercise", description: "30 minutes of physical activity", category: "Health", frequency: "daily" as const, duration: "30 mins", totalDuration: "60 days", reminderTime: "17:00", goal: "Stay fit", completedToday: true, completionRate: 65, habitScore: 72, color: "Green", colorHex: "#22C55E", icon: "💪", completions, createdAt: "2025-01-10" },
-    { id: "4", name: "Read 30 Minutes", description: "Read books on personal growth", category: "Learning", frequency: "daily" as const, duration: "30 mins", totalDuration: "365 days", reminderTime: "20:00", goal: "Read more", completedToday: true, completionRate: 80, habitScore: 88, color: "Orange", colorHex: "#F97316", icon: "📚", completions, createdAt: "2025-01-03" },
-    { id: "5", name: "Drink 8 Glasses", description: "Stay hydrated throughout the day", category: "Health", frequency: "daily" as const, duration: "5 mins", totalDuration: "30 days", reminderTime: "09:00", goal: "Stay hydrated", completedToday: false, completionRate: 55, habitScore: 60, color: "Teal", colorHex: "#14B8A6", icon: "💧", completions, createdAt: "2025-01-15" },
-    { id: "6", name: "No Social Media Before Noon", description: "Protect morning focus time", category: "Productivity", frequency: "daily" as const, duration: "5 mins", totalDuration: "Indefinite", reminderTime: "08:00", goal: "Focus better", completedToday: false, completionRate: 40, habitScore: 45, color: "Red", colorHex: "#EF4444", icon: "📵", completions, createdAt: "2025-01-20" },
-    { id: "7", name: "Evening Reflection", description: "Review the day and set intentions for tomorrow", category: "Mindfulness", frequency: "daily" as const, duration: "15 mins", totalDuration: "90 days", reminderTime: "21:00", goal: "Reflect daily", completedToday: false, completionRate: 75, habitScore: 80, color: "Pink", colorHex: "#EC4899", icon: "🌙", completions, createdAt: "2025-01-08" },
-    { id: "8", name: "Weekly Planning", description: "Review and plan the upcoming week", category: "Productivity", frequency: "weekly" as const, duration: "45 mins", totalDuration: "Indefinite", reminderTime: "09:00", goal: "Stay organized", completedToday: true, completionRate: 85, habitScore: 85, color: "Yellow", colorHex: "#EAB308", icon: "📅", completions, createdAt: "2025-01-02" },
+  const habits: Omit<Habit, "streak" | "bestStreak" | "completionRate" | "consistency" | "timeAccuracy" | "habitScore">[] = [
+    { id: "1", name: "Morning Journal", description: "Write for 10 minutes about intentions and gratitude", category: "Mindfulness", frequency: "daily", duration: "10 mins", totalDuration: "Indefinite", difficulty: "medium", schedule: { type: "preferred", slot: "morning", time: "07:00" }, reminder: { enabled: true, before: 15 }, goal: "Write daily", whyItMatters: "Start each day with intention", completedToday: true, color: "Purple", colorHex: "#8B5CF6", icon: "📝", completions, createdAt: "2025-01-01" },
+    { id: "2", name: "Meditate", description: "10 minutes of guided meditation", category: "Mental Health", frequency: "daily", duration: "10 mins", totalDuration: "90 days", difficulty: "easy", schedule: { type: "preferred", slot: "morning", time: "06:30" }, reminder: { enabled: true, before: 15 }, goal: "Daily practice", whyItMatters: "Inner peace and clarity", completedToday: true, color: "Blue", colorHex: "#3B82F6", icon: "🧘", completions, createdAt: "2025-01-05" },
+    { id: "3", name: "Exercise", description: "30 minutes of physical activity", category: "Health", frequency: "daily", duration: "30 mins", totalDuration: "60 days", difficulty: "hard", schedule: { type: "preferred", slot: "evening", time: "17:00" }, reminder: { enabled: true, before: 15 }, goal: "Stay fit", whyItMatters: "Physical health is foundational", completedToday: true, color: "Green", colorHex: "#22C55E", icon: "💪", completions, createdAt: "2025-01-10" },
+    { id: "4", name: "Read 30 Minutes", description: "Read books on personal growth", category: "Learning", frequency: "daily", duration: "30 mins", totalDuration: "365 days", difficulty: "medium", schedule: { type: "anytime" }, reminder: { enabled: true, timeSlot: "evening" }, goal: "Read more", whyItMatters: "Knowledge compounds", completedToday: true, color: "Orange", colorHex: "#F97316", icon: "📚", completions, createdAt: "2025-01-03" },
+    { id: "5", name: "Drink 8 Glasses", description: "Stay hydrated throughout the day", category: "Health", frequency: "daily", duration: "5 mins", totalDuration: "30 days", difficulty: "easy", schedule: { type: "anytime" }, reminder: { enabled: false }, goal: "Stay hydrated", whyItMatters: "Hydration fuels everything", completedToday: false, color: "Teal", colorHex: "#14B8A6", icon: "💧", completions, createdAt: "2025-01-15" },
+    { id: "6", name: "No Social Media Before Noon", description: "Protect morning focus time", category: "Productivity", frequency: "daily", duration: "5 mins", totalDuration: "Indefinite", difficulty: "hard", schedule: { type: "fixed", time: "12:00" }, reminder: { enabled: true, before: 30 }, goal: "Focus better", whyItMatters: "Deep work requires boundaries", completedToday: false, color: "Red", colorHex: "#EF4444", icon: "📵", completions, createdAt: "2025-01-20" },
+    { id: "7", name: "Evening Reflection", description: "Review the day and set intentions for tomorrow", category: "Mindfulness", frequency: "daily", duration: "15 mins", totalDuration: "90 days", difficulty: "medium", schedule: { type: "preferred", slot: "night", time: "21:00" }, reminder: { enabled: true, before: 15 }, goal: "Reflect daily", whyItMatters: "Growth comes from reflection", completedToday: false, color: "Pink", colorHex: "#EC4899", icon: "🌙", completions, createdAt: "2025-01-08" },
+    { id: "8", name: "Pray", description: "Spend time in prayer and gratitude", category: "Faith", frequency: "daily", duration: "10 mins", totalDuration: "Indefinite", difficulty: "easy", schedule: { type: "preferred", slot: "morning", time: "06:00" }, reminder: { enabled: true, before: 15 }, goal: "Spiritual growth", whyItMatters: "Faith grounds the soul", completedToday: true, color: "Yellow", colorHex: "#EAB308", icon: "🙏", completions, createdAt: "2025-01-02" },
   ]
-  return rawHabits.map(h => {
-    const streak = calculateStreak(h.completions)
-    return { ...h, streak, bestStreak: streak }
+  return habits.map(h => {
+    const result = calcHabitScore(h.completions, h.schedule, h.difficulty, h.createdAt, 0)
+    const streak = calcStreak(h.completions)
+    return { ...h, streak, bestStreak: streak, completionRate: result.completionRate, consistency: result.consistency, timeAccuracy: result.timeAccuracy, habitScore: result.score }
   })
 }
 
@@ -152,6 +265,9 @@ const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: D
     habits.forEach(h => { if (h.completions[dStr]) monthlyCompleted++; monthlyTotal++ })
   }
   const monthlyRate = monthlyTotal > 0 ? Math.round((monthlyCompleted / monthlyTotal) * 100) : 0
+  const avgTimeAccuracy = habits.filter(h => h.timeAccuracy !== null).reduce((sum, h) => sum + (h.timeAccuracy || 0), 0) / Math.max(1, habits.filter(h => h.timeAccuracy !== null).length)
+  const timeAccDisplay = habits.some(h => h.timeAccuracy !== null) ? Math.round(avgTimeAccuracy) : null
+  const avgConsistency = habits.length > 0 ? Math.round(habits.reduce((sum, h) => sum + h.consistency, 0) / habits.length) : 0
 
   const cards = [
     { label: "Today", value: `${completedToday}/${totalCount}`, gradient: "from-emerald-400 to-green-500", borderGrad: "linear-gradient(135deg, #22C55E, #22C55E33)", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
@@ -182,7 +298,7 @@ const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: D
   )
 }
 
-/* ─── Tracker Calendar (compact, icon-style) ─── */
+/* ─── Tracker Calendar ─── */
 
 const TrackerCalendar = ({
   selectedDate,
@@ -262,6 +378,15 @@ const TrackerView = ({
 
   const today = getTodayISO()
 
+  const getScheduleBadge = (schedule: HabitSchedule) => {
+    if (schedule.type === "anytime") return <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">Flexible ✓</span>
+    if (schedule.type === "preferred") {
+      const label = schedule.slot ? schedule.slot[0].toUpperCase() + schedule.slot.slice(1) : formatTime12(schedule.time || "")
+      return <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">Preferred · {label}</span>
+    }
+    return <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Fixed · {formatTime12(schedule.time)}</span>
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse min-w-[900px]">
@@ -298,9 +423,11 @@ const TrackerView = ({
                     <span className="text-lg shrink-0">{habit.icon}</span>
                     <div className="min-w-0">
                       <p className="font-medium text-sm text-[#1E0E6B] hover:underline leading-tight truncate">{habit.name}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Flame className="h-2.5 w-2.5 shrink-0" style={{ color: habit.colorHex }} />{habit.streak} streak
-                      </p>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Flame className="h-2.5 w-2.5 shrink-0" style={{ color: habit.colorHex }} />
+                        <span className="text-[10px] text-muted-foreground">{habit.streak} streak</span>
+                        {getScheduleBadge(habit.schedule)}
+                      </div>
                     </div>
                   </button>
                   <button onClick={() => onDelete(habit.id)} className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Delete habit">
@@ -358,7 +485,7 @@ const HabitModal = ({
 }: {
   isOpen: boolean
   onClose: () => void
-  onSave: (habit: Omit<Habit, "id" | "completions" | "createdAt">) => void
+  onSave: (habit: Omit<Habit, "id" | "completions" | "createdAt" | "streak" | "bestStreak" | "completionRate" | "consistency" | "timeAccuracy" | "habitScore">) => void
   habit?: Habit | null
 }) => {
   const [name, setName] = useState(habit?.name || "")
@@ -368,33 +495,72 @@ const HabitModal = ({
   const [frequency, setFrequency] = useState<"daily" | "weekly">(habit?.frequency || "daily")
   const [duration, setDuration] = useState(habit?.duration || "10 mins")
   const [totalDuration, setTotalDuration] = useState(habit?.totalDuration || "Undefined")
-  const [reminderTime, setReminderTime] = useState(habit?.reminderTime || "08:00")
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(habit?.difficulty || "medium")
+  const [scheduleType, setScheduleType] = useState<"anytime" | "preferred" | "fixed">(habit?.schedule?.type || "anytime")
+  const [preferredSlot, setPreferredSlot] = useState<"morning" | "afternoon" | "evening" | "night">((habit?.schedule?.type === "preferred" ? habit.schedule.slot : undefined) || "morning")
+  const [useSpecificTime, setUseSpecificTime] = useState(habit?.schedule?.type === "preferred" && !!habit.schedule.time)
+  const [preferredTime, setPreferredTime] = useState(habit?.schedule?.type === "preferred" ? (habit.schedule.time || "08:00") : "08:00")
+  const [fixedTime, setFixedTime] = useState(habit?.schedule?.type === "fixed" ? habit.schedule.time : "08:00")
+  const [reminderEnabled, setReminderEnabled] = useState(habit?.reminder?.enabled || false)
+  const [reminderTimeSlot, setReminderTimeSlot] = useState<"morning" | "afternoon" | "evening">((habit?.reminder as HabitReminderAnytime)?.timeSlot || "morning")
+  const [reminderBefore, setReminderBefore] = useState(habit?.reminder && "before" in habit.reminder ? (habit.reminder.before || 15) : 15)
+  const [reminderAfter, setReminderAfter] = useState(habit?.reminder && "after" in habit.reminder ? (habit.reminder.after || 30) : 30)
   const [goal, setGoal] = useState(habit?.goal || "")
+  const [whyItMatters, setWhyItMatters] = useState(habit?.whyItMatters || "")
   const [icon, setIcon] = useState(habit?.icon || "⭐")
   const [colorIdx, setColorIdx] = useState(
     HABIT_COLORS.findIndex(c => c.name === habit?.color) >= 0 ? HABIT_COLORS.findIndex(c => c.name === habit?.color) : 0
   )
   const [showIconDropdown, setShowIconDropdown] = useState(false)
   const [showColorDropdown, setShowColorDropdown] = useState(false)
-  const [habitScore, setHabitScore] = useState(habit?.habitScore || 50)
 
   useEffect(() => {
     if (habit) {
       setName(habit.name); setDescription(habit.description); setCategory(habit.category)
       setCustomCategory(habit.customCategory || ""); setFrequency(habit.frequency)
       setDuration(habit.duration); setTotalDuration(habit.totalDuration)
-      setReminderTime(habit.reminderTime); setGoal(habit.goal); setIcon(habit.icon)
-      setHabitScore(habit.habitScore || 50)
+      setDifficulty(habit.difficulty || "medium"); setGoal(habit.goal); setWhyItMatters(habit.whyItMatters || "")
+      setIcon(habit.icon)
       const idx = HABIT_COLORS.findIndex(c => c.name === habit.color)
       if (idx >= 0) setColorIdx(idx)
+      setScheduleType(habit.schedule.type)
+      if (habit.schedule.type === "preferred") {
+        setPreferredSlot(habit.schedule.slot || "morning")
+        setUseSpecificTime(!!habit.schedule.time)
+        setPreferredTime(habit.schedule.time || "08:00")
+      } else if (habit.schedule.type === "fixed") {
+        setFixedTime(habit.schedule.time)
+      }
+      if (habit.reminder) {
+        setReminderEnabled(habit.reminder.enabled)
+        if ("timeSlot" in habit.reminder) setReminderTimeSlot(habit.reminder.timeSlot || "morning")
+        if ("before" in habit.reminder) setReminderBefore(habit.reminder.before || 15)
+        if ("after" in habit.reminder) setReminderAfter(habit.reminder.after || 30)
+      }
     } else {
       setName(""); setDescription(""); setCategory("Mindfulness"); setCustomCategory("")
       setFrequency("daily"); setDuration("10 mins"); setTotalDuration("Undefined")
-      setReminderTime("08:00"); setGoal(""); setIcon("⭐"); setColorIdx(0); setHabitScore(50)
+      setDifficulty("medium"); setScheduleType("anytime"); setPreferredSlot("morning")
+      setUseSpecificTime(false); setPreferredTime("08:00"); setFixedTime("08:00")
+      setReminderEnabled(false); setReminderTimeSlot("morning"); setReminderBefore(15); setReminderAfter(30)
+      setGoal(""); setWhyItMatters(""); setIcon("⭐"); setColorIdx(0)
     }
   }, [habit])
 
   if (!isOpen) return null
+
+  const buildSchedule = (): HabitSchedule => {
+    if (scheduleType === "anytime") return { type: "anytime" }
+    if (scheduleType === "fixed") return { type: "fixed", time: fixedTime }
+    if (useSpecificTime) return { type: "preferred", time: preferredTime }
+    return { type: "preferred", slot: preferredSlot }
+  }
+
+  const buildReminder = (): HabitReminder => {
+    if (!reminderEnabled) return { enabled: false }
+    if (scheduleType === "anytime") return { enabled: true, timeSlot: reminderTimeSlot }
+    return { enabled: true, before: reminderBefore, after: reminderAfter }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -433,17 +599,72 @@ const HabitModal = ({
               <Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="e.g., 10 mins" className="mt-1" />
             </div>
             <div>
-              <label className="text-sm font-medium">Total Habit Duration</label>
-              <select value={totalDuration} onChange={(e) => setTotalDuration(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm">
-                {TOTAL_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <label className="text-sm font-medium">Difficulty</label>
+              <div className="flex gap-2 mt-1">
+                {DIFFICULTY_OPTIONS.map(d => (
+                  <Button key={d.value} variant={difficulty === d.value ? "default" : "outline"} size="sm"
+                    onClick={() => setDifficulty(d.value)}
+                    className={difficulty === d.value ? `${d.color} border-0` : ""}>
+                    {d.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Schedule */}
           <div>
-            <label className="text-sm font-medium">Reminder Time</label>
-            <Input type="time" value={reminderTime} onChange={(e) => setReminderTime(e.target.value)} className="mt-1" />
+            <label className="text-sm font-medium">Habit Schedule</label>
+            <div className="space-y-2 mt-2">
+              {(["anytime", "preferred", "fixed"] as const).map(type => (
+                <label key={type} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${scheduleType === type ? "border-[#1E0E6B] bg-[#1E0E6B]/5" : "border-white/20 hover:border-white/40"}`}>
+                  <input type="radio" name="scheduleType" checked={scheduleType === type} onChange={() => setScheduleType(type)}
+                    className="accent-[#1E0E6B]" />
+                  <div>
+                    <p className="text-sm font-medium capitalize">{type === "anytime" ? "Anytime" : type === "preferred" ? "Preferred Time" : "Fixed Time"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {type === "anytime" && "Complete whenever it fits your day"}
+                      {type === "preferred" && "Gentle reminder around your preferred time"}
+                      {type === "fixed" && "Strict schedule — must happen at this time"}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
+
+          {scheduleType === "preferred" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Preferred Time</label>
+              <div className="flex flex-wrap gap-2">
+                {(["morning", "afternoon", "evening", "night"] as const).map(slot => (
+                  <Button key={slot} variant={preferredSlot === slot && !useSpecificTime ? "default" : "outline"} size="sm"
+                    onClick={() => { setPreferredSlot(slot); setUseSpecificTime(false) }}
+                    className={!useSpecificTime && preferredSlot === slot ? "bg-[#1E0E6B] text-white" : ""}>
+                    {slot[0].toUpperCase() + slot.slice(1)}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center gap-3 mt-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" checked={useSpecificTime} onChange={() => setUseSpecificTime(true)} className="accent-[#1E0E6B]" />
+                  Specific Time
+                </label>
+                {useSpecificTime && (
+                  <Input type="time" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} className="w-32" />
+                )}
+              </div>
+            </div>
+          )}
+
+          {scheduleType === "fixed" && (
+            <div>
+              <label className="text-sm font-medium">Fixed Time</label>
+              <Input type="time" value={fixedTime} onChange={(e) => setFixedTime(e.target.value)} className="mt-1 w-40" />
+            </div>
+          )}
+
+          {/* Recurrence */}
           <div>
             <label className="text-sm font-medium">Recurrence</label>
             <div className="flex gap-2 mt-1">
@@ -451,11 +672,17 @@ const HabitModal = ({
               <Button variant={frequency === "weekly" ? "default" : "outline"} onClick={() => setFrequency("weekly")} className={frequency === "weekly" ? "bg-[#1E0E6B] text-white" : ""}>Weekly</Button>
             </div>
           </div>
+
+          {/* Duration */}
           <div>
-            <label className="text-sm font-medium">Habit Score ({habitScore})</label>
-            <input type="range" min="0" max="100" value={habitScore} onChange={(e) => setHabitScore(parseInt(e.target.value))} className="mt-1 w-full accent-[#1E0E6B]" />
-            <div className="flex justify-between text-[10px] text-muted-foreground"><span>0</span><span>50</span><span>100</span></div>
+            <label className="text-sm font-medium">Duration</label>
+            <select value={totalDuration} onChange={(e) => setTotalDuration(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm">
+              {TOTAL_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
           </div>
+
+          {/* Colour & Icon */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
               <label className="text-sm font-medium">Colour</label>
@@ -504,9 +731,48 @@ const HabitModal = ({
               )}
             </div>
           </div>
+
+          {/* Reminder Settings */}
+          <div>
+            <label className="text-sm font-medium">Reminder Settings</label>
+            <div className="mt-2 space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} className="accent-[#1E0E6B]" />
+                Enable Reminder
+              </label>
+              {reminderEnabled && scheduleType === "anytime" && (
+                <div className="flex gap-2">
+                  {(["morning", "afternoon", "evening"] as const).map(slot => (
+                    <Button key={slot} variant={reminderTimeSlot === slot ? "default" : "outline"} size="sm"
+                      onClick={() => setReminderTimeSlot(slot)}
+                      className={reminderTimeSlot === slot ? "bg-[#1E0E6B] text-white" : ""}>
+                      {slot[0].toUpperCase() + slot.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {reminderEnabled && scheduleType !== "anytime" && (
+                <div className="flex gap-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Before (min)</label>
+                    <Input type="number" min="5" max="120" value={reminderBefore} onChange={(e) => setReminderBefore(parseInt(e.target.value) || 15)} className="mt-1 w-24 text-sm h-8" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">After (min)</label>
+                    <Input type="number" min="0" max="120" value={reminderAfter} onChange={(e) => setReminderAfter(parseInt(e.target.value) || 30)} className="mt-1 w-24 text-sm h-8" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="text-sm font-medium">Goal</label>
             <Input value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="e.g., Write daily" className="mt-1" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Why This Habit Matters</label>
+            <Input value={whyItMatters} onChange={(e) => setWhyItMatters(e.target.value)} placeholder="e.g., Start each day with intention" className="mt-1" />
           </div>
         </div>
         <div className="flex gap-2 pt-2">
@@ -517,10 +783,12 @@ const HabitModal = ({
               onSave({
                 name, description, category: category === "Custom" ? "Custom" : category,
                 customCategory: category === "Custom" ? customCategory : undefined,
-                frequency, duration, totalDuration, reminderTime, goal,
-                streak: habit?.streak || 0, bestStreak: habit?.bestStreak || 0,
-                completedToday: habit?.completedToday || false, completionRate: habit?.completionRate || 0,
-                habitScore, color: selectedColor.name, colorHex: selectedColor.hex, icon,
+                frequency, duration, totalDuration, difficulty,
+                schedule: buildSchedule(),
+                reminder: buildReminder(),
+                goal, whyItMatters,
+                completedToday: habit?.completedToday || false,
+                color: selectedColor.name, colorHex: selectedColor.hex, icon,
               })
               onClose()
             }
@@ -550,8 +818,9 @@ export function HabitsPage() {
       try {
         const parsed = JSON.parse(saved)
         setHabits(parsed.map((h: Habit) => {
-          const streak = calculateStreak(h.completions)
-          return { ...h, streak, bestStreak: Math.max(h.bestStreak || 0, streak) }
+          const result = calcHabitScore(h.completions, h.schedule, h.difficulty, h.createdAt, h.bestStreak || 0)
+          const streak = calcStreak(h.completions)
+          return { ...h, streak, bestStreak: Math.max(h.bestStreak || 0, streak), completionRate: result.completionRate, consistency: result.consistency, timeAccuracy: result.timeAccuracy, habitScore: result.score }
         }))
       } catch { setHabits(createSampleHabits()) }
     }
@@ -569,20 +838,54 @@ export function HabitsPage() {
       const existing = habit.completions[targetDate]
       const wasCompleted = existing?.completed || false
       const newCompletions = { ...habit.completions }
-      if (wasCompleted) { delete newCompletions[targetDate] }
-      else { newCompletions[targetDate] = { completed: true, time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) } }
-      const streak = calculateStreak(newCompletions)
-      const totalCompletions = Object.keys(newCompletions).length
-      const daysSinceCreation = Math.max(1, Math.ceil((Date.now() - new Date(habit.createdAt).getTime()) / (1000 * 60 * 60 * 24)))
-      const completionRate = Math.min(100, Math.round((totalCompletions / daysSinceCreation) * 100))
-      const habitScore = Math.round((completionRate * 0.5) + (Math.min(streak, 30) / 30 * 100 * 0.3) + (Math.min(habit.bestStreak, 30) / 30 * 100 * 0.2))
-      return { ...habit, completions: newCompletions, completedToday: targetDate === getTodayISO() ? !wasCompleted : habit.completedToday, streak, bestStreak: Math.max(habit.bestStreak, streak), completionRate, habitScore }
+      if (wasCompleted) {
+        delete newCompletions[targetDate]
+      } else {
+        newCompletions[targetDate] = {
+          completed: true,
+          time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        }
+      }
+      const streak = calcStreak(newCompletions)
+      const result = calcHabitScore(newCompletions, habit.schedule, habit.difficulty, habit.createdAt, Math.max(habit.bestStreak, streak))
+      return {
+        ...habit,
+        completions: newCompletions,
+        completedToday: targetDate === getTodayISO() ? !wasCompleted : habit.completedToday,
+        streak,
+        bestStreak: Math.max(habit.bestStreak, streak),
+        completionRate: result.completionRate,
+        consistency: result.consistency,
+        timeAccuracy: result.timeAccuracy,
+        habitScore: result.score,
+      }
     }))
   }, [selectedDate])
 
-  const saveHabit = useCallback((habitData: Omit<Habit, "id" | "completions" | "createdAt">) => {
-    if (editingHabit) { setHabits(prev => prev.map(h => h.id === editingHabit.id ? { ...h, ...habitData } : h)) }
-    else { setHabits(prev => [...prev, { ...habitData, id: Date.now().toString(), completions: {}, createdAt: getTodayISO() }]) }
+  const saveHabit = useCallback((habitData: Omit<Habit, "id" | "completions" | "createdAt" | "streak" | "bestStreak" | "completionRate" | "consistency" | "timeAccuracy" | "habitScore">) => {
+    if (editingHabit) {
+      setHabits(prev => prev.map(h => {
+        if (h.id !== editingHabit.id) return h
+        const updated = { ...h, ...habitData }
+        const result = calcHabitScore(updated.completions, updated.schedule, updated.difficulty, updated.createdAt, updated.bestStreak)
+        const streak = calcStreak(updated.completions)
+        return { ...updated, streak, bestStreak: Math.max(updated.bestStreak, streak), completionRate: result.completionRate, consistency: result.consistency, timeAccuracy: result.timeAccuracy, habitScore: result.score }
+      }))
+    }
+    else {
+      setHabits(prev => [...prev, {
+        ...habitData,
+        id: Date.now().toString(),
+        completions: {},
+        createdAt: getTodayISO(),
+        streak: 0,
+        bestStreak: 0,
+        completionRate: 0,
+        consistency: 0,
+        timeAccuracy: null,
+        habitScore: 0,
+      }])
+    }
     setEditingHabit(null)
   }, [editingHabit])
 
@@ -602,7 +905,6 @@ export function HabitsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -618,7 +920,6 @@ export function HabitsPage() {
 
       <SummaryBar habits={habits} selectedDate={selectedDate} />
 
-      {/* Search bar + Calendar on same row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -633,7 +934,6 @@ export function HabitsPage() {
         />
       </div>
 
-      {/* Tracker table */}
       <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
         {filteredHabits.length > 0 ? (
           <TrackerView habits={filteredHabits} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} onDelete={deleteHabit} />
