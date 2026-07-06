@@ -129,6 +129,11 @@ function calcDurationFromRange(start: string, end: string): number {
 /* Scroll Column for Time Picker                         */
 /* ────────────────────────────────────────────────────── */
 
+const ITEM_H = 36
+const VISIBLE = 4
+const CONTAINER_H = ITEM_H * VISIBLE
+const PAD = (CONTAINER_H - ITEM_H) / 2
+
 const ScrollCol = memo(function ScrollCol({
   items,
   value,
@@ -141,47 +146,79 @@ const ScrollCol = memo(function ScrollCol({
   label: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
-  const mounted = useRef(false)
+  const scrolling = useRef(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const scrollToValue = useCallback((smooth: boolean) => {
+  const scrollToIdx = useCallback((idx: number, smooth: boolean) => {
     if (!ref.current) return
-    const idx = items.indexOf(value)
-    if (idx < 0) return
-    const itemH = 36
-    const containerH = ref.current.clientHeight || 144
-    const top = Math.max(0, idx * itemH + itemH / 2 - containerH / 2)
-    ref.current.scrollTo({ top, behavior: smooth ? "smooth" : "instant" })
-  }, [value, items])
+    ref.current.scrollTo({ top: idx * ITEM_H, behavior: smooth ? "smooth" : "instant" })
+  }, [])
 
   useLayoutEffect(() => {
-    scrollToValue(false)
-  }, [scrollToValue])
+    const idx = items.indexOf(value)
+    if (idx >= 0) scrollToIdx(idx, false)
+  }, [value, items, scrollToIdx])
+
+  const snapToNearest = useCallback(() => {
+    if (!ref.current) return
+    const idx = Math.round(ref.current.scrollTop / ITEM_H)
+    const clamped = Math.max(0, Math.min(items.length - 1, idx))
+    const snapped = items[clamped]
+    if (snapped !== undefined && snapped !== value) {
+      onChange(snapped)
+    }
+    scrollToIdx(clamped, true)
+  }, [items, value, onChange, scrollToIdx])
+
+  const handleScroll = useCallback(() => {
+    scrolling.current = true
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      scrolling.current = false
+      snapToNearest()
+    }, 80)
+  }, [snapToNearest])
 
   useEffect(() => {
-    if (mounted.current) {
-      scrollToValue(true)
-    } else {
-      mounted.current = true
-    }
-  }, [scrollToValue])
+    return () => { if (timer.current) clearTimeout(timer.current) }
+  }, [])
 
   return (
     <div className="flex flex-col items-center">
       <span className="text-[10px] text-muted-foreground mb-1">{label}</span>
-      <div ref={ref} className="h-36 w-16 overflow-y-auto rounded-xl border bg-muted/30 scrollbar-hide">
-        <div className="h-[54px]" />
-        {items.map((item) => (
-          <button
-            key={item}
-            onClick={() => onChange(item)}
-            className={`w-full h-9 flex items-center justify-center text-sm transition-colors ${
-              item === value ? "bg-primary text-primary-foreground font-medium rounded-lg" : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {String(item).padStart(2, "0")}
-          </button>
-        ))}
-        <div className="h-[54px]" />
+      <div className="relative rounded-xl border bg-muted/30 overflow-hidden" style={{ height: CONTAINER_H }}>
+        {/* Selection highlight band */}
+        <div
+          className="absolute left-0 right-0 rounded-xl bg-primary text-primary-foreground pointer-events-none z-10"
+          style={{ top: PAD, height: ITEM_H }}
+        />
+        <div
+          ref={ref}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto scrollbar-hide relative"
+        >
+          {/* Top spacer so first item can center */}
+          <div style={{ height: PAD }} />
+          {items.map((item) => {
+            const isSelected = item === value
+            return (
+              <button
+                key={item}
+                onClick={() => {
+                  const idx = items.indexOf(item)
+                  onChange(item)
+                  scrollToIdx(idx, true)
+                }}
+                className="w-full flex items-center justify-center text-sm transition-colors relative z-20"
+                style={{ height: ITEM_H, color: isSelected ? "transparent" : "var(--muted-foreground)" }}
+              >
+                {String(item).padStart(2, "0")}
+              </button>
+            )
+          })}
+          {/* Bottom spacer so last item can center */}
+          <div style={{ height: PAD }} />
+        </div>
       </div>
     </div>
   )
