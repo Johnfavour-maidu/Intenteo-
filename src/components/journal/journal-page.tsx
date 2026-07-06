@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from "react"
+import React, { useState, useMemo, useCallback, useRef, useEffect, memo, forwardRef, useImperativeHandle } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
@@ -1651,20 +1651,13 @@ function TeoPanel({ contentText, onInsert, onClose }: { contentText: string; onI
 }
 
 
-function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
-  recordings: AudioRecording[]
+function VoiceRecorder({ onAdd }: {
   onAdd: (recording: AudioRecording) => void
-  onDelete: (id: string) => void
-  onRename: (id: string, name: string) => void
 }) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
-  const [playingId, setPlayingId] = useState<string | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const toggleRecording = useCallback(async () => {
     if (isRecording) {
@@ -1684,7 +1677,7 @@ function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
           const url = URL.createObjectURL(blob)
           onAdd({
             id: `audio-${Date.now()}`,
-            name: `Recording ${recordings.length + 1}`,
+            name: `Recording`,
             url,
             duration: recordingTime,
             createdAt: new Date().toISOString(),
@@ -1699,21 +1692,7 @@ function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
         console.log("Microphone access denied")
       }
     }
-  }, [isRecording, onAdd, recordings.length, recordingTime])
-
-  const playRecording = useCallback((recording: AudioRecording) => {
-    if (playingId === recording.id) {
-      audioRef.current?.pause()
-      setPlayingId(null)
-    } else {
-      if (audioRef.current) audioRef.current.pause()
-      const audio = new Audio(recording.url)
-      audio.onended = () => setPlayingId(null)
-      audio.play()
-      audioRef.current = audio
-      setPlayingId(recording.id)
-    }
-  }, [playingId])
+  }, [isRecording, onAdd, recordingTime])
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -1724,68 +1703,62 @@ function VoiceRecorder({ recordings, onAdd, onDelete, onRename }: {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
-      if (audioRef.current) audioRef.current.pause()
     }
   }, [])
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <Tooltip label={isRecording ? "Stop Recording" : "Voice Notes"}>
-          <button
-            className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isRecording ? "animate-pulse" : ""}`}
-            style={{ backgroundColor: isRecording ? "#DC2626" : "var(--brand-primary)", color: "white" }}
-            onClick={toggleRecording}
-          >
-            {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </button>
-        </Tooltip>
-        {isRecording && (
-          <span className="text-xs text-red-500 font-medium tabular-nums">{formatTime(recordingTime)}</span>
-        )}
-      </div>
-
-      {recordings.length > 0 && (
-        <div className="space-y-1.5">
-          {recordings.map((rec) => (
-            <div key={rec.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/30 group">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0"
-                onClick={() => playRecording(rec)}
-              >
-                {playingId === rec.id ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-              </Button>
-              {editingId === rec.id ? (
-                <input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onBlur={() => { onRename(rec.id, editName); setEditingId(null) }}
-                  onKeyDown={(e) => { if (e.key === "Enter") { onRename(rec.id, editName); setEditingId(null) } }}
-                  className="flex-1 text-xs bg-transparent focus:outline-none"
-                  autoFocus
-                />
-              ) : (
-                <span className="flex-1 text-xs truncate">{rec.name}</span>
-              )}
-              <span className="text-[10px] text-muted-foreground tabular-nums">{formatTime(rec.duration)}</span>
-              <button
-                onClick={() => { setEditingId(rec.id); setEditName(rec.name) }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-              </button>
-              <button
-                onClick={() => onDelete(rec.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-              </button>
-            </div>
-          ))}
-        </div>
+    <div className="flex items-center gap-2">
+      <Tooltip label={isRecording ? "Stop Recording" : "Voice Notes"}>
+        <button
+          className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isRecording ? "animate-pulse" : ""}`}
+          style={{ backgroundColor: isRecording ? "#DC2626" : "var(--brand-primary)", color: "white" }}
+          onClick={toggleRecording}
+        >
+          {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </button>
+      </Tooltip>
+      {isRecording && (
+        <span className="text-xs text-red-500 font-medium tabular-nums">{formatTime(recordingTime)}</span>
       )}
+    </div>
+  )
+}
+
+function RecordingItem({ rec, playingId, onPlay, onRename, onDelete }: {
+  rec: AudioRecording
+  playingId: string | null
+  onPlay: (rec: AudioRecording) => void
+  onRename: (id: string, name: string) => void
+  onDelete: (id: string) => void
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState("")
+  const formatTime = (seconds: number) => { const m = Math.floor(seconds / 60); const s = seconds % 60; return `${m}:${String(s).padStart(2, "0")}` }
+
+  return (
+    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/30 group">
+      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onPlay(rec)}>
+        {playingId === rec.id ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+      </Button>
+      {editingId === rec.id ? (
+        <input
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onBlur={() => { onRename(rec.id, editName); setEditingId(null) }}
+          onKeyDown={(e) => { if (e.key === "Enter") { onRename(rec.id, editName); setEditingId(null) } }}
+          className="flex-1 text-xs bg-transparent focus:outline-none"
+          autoFocus
+        />
+      ) : (
+        <span className="flex-1 text-xs truncate">{rec.name}</span>
+      )}
+      <span className="text-[10px] text-muted-foreground tabular-nums">{formatTime(rec.duration)}</span>
+      <button onClick={() => { setEditingId(rec.id); setEditName(rec.name) }} className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+      </button>
+      <button onClick={() => onDelete(rec.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+      </button>
     </div>
   )
 }
@@ -1861,7 +1834,7 @@ function ToolbarButton({ icon, onClick, active, tooltip }: { icon: React.ReactNo
     <button
       onClick={onClick}
       title={tooltip}
-      className={`inline-flex items-center justify-center w-8 h-8 rounded transition-all duration-150 ${
+      className={`inline-flex items-center justify-center w-7 h-7 rounded transition-all duration-150 ${
         active
           ? "bg-violet-100 text-violet-700 shadow-sm"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
@@ -1873,7 +1846,7 @@ function ToolbarButton({ icon, onClick, active, tooltip }: { icon: React.ReactNo
 }
 
 function Divider() {
-  return <div className="w-px h-6 bg-slate-200 mx-1" />
+  return <div className="w-px h-5 bg-slate-200 mx-1" />
 }
 
 function DropdownButton({
@@ -1902,7 +1875,7 @@ function DropdownButton({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 rounded transition-colors"
+        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 rounded transition-colors"
       >
         <span className="truncate max-w-[60px]">{value || label}</span>
         <ChevronDown className="h-3 w-3 opacity-50" />
@@ -1973,7 +1946,7 @@ export function FormattingToolbar({
   }, [])
 
   return (
-    <div className="flex items-center flex-wrap gap-0.5 py-2 border-t border-border/40">
+    <div className="flex items-center flex-wrap gap-0.5 py-1.5 border-t border-border/40">
       <DropdownButton
         label="Font"
         options={FONT_FAMILIES}
@@ -1987,18 +1960,18 @@ export function FormattingToolbar({
         onChange={(v) => onFontSizeChange?.(v as FontSize)}
       />
       <Divider />
-      <ToolbarButton icon={<Bold className="h-4 w-4" />} onClick={onToggleBold || (() => {})} tooltip="Bold" />
-      <ToolbarButton icon={<Italic className="h-4 w-4" />} onClick={onToggleItalic || (() => {})} tooltip="Italic" />
-      <ToolbarButton icon={<Underline className="h-4 w-4" />} onClick={onToggleUnderline || (() => {})} tooltip="Underline" />
-      <ToolbarButton icon={<Strikethrough className="h-4 w-4" />} onClick={onToggleStrikethrough || (() => {})} tooltip="Strikethrough" />
+      <ToolbarButton icon={<Bold className="h-3.5 w-3.5" />} onClick={onToggleBold || (() => {})} tooltip="Bold" />
+      <ToolbarButton icon={<Italic className="h-3.5 w-3.5" />} onClick={onToggleItalic || (() => {})} tooltip="Italic" />
+      <ToolbarButton icon={<Underline className="h-3.5 w-3.5" />} onClick={onToggleUnderline || (() => {})} tooltip="Underline" />
+      <ToolbarButton icon={<Strikethrough className="h-3.5 w-3.5" />} onClick={onToggleStrikethrough || (() => {})} tooltip="Strikethrough" />
       <Divider />
-      <ToolbarButton icon={<AlignLeft className="h-4 w-4" />} onClick={onAlignLeft || (() => {})} tooltip="Align Left" />
-      <ToolbarButton icon={<AlignCenter className="h-4 w-4" />} onClick={onAlignCenter || (() => {})} tooltip="Align Center" />
-      <ToolbarButton icon={<AlignRight className="h-4 w-4" />} onClick={onAlignRight || (() => {})} tooltip="Align Right" />
+      <ToolbarButton icon={<AlignLeft className="h-3.5 w-3.5" />} onClick={onAlignLeft || (() => {})} tooltip="Align Left" />
+      <ToolbarButton icon={<AlignCenter className="h-3.5 w-3.5" />} onClick={onAlignCenter || (() => {})} tooltip="Align Center" />
+      <ToolbarButton icon={<AlignRight className="h-3.5 w-3.5" />} onClick={onAlignRight || (() => {})} tooltip="Align Right" />
       <Divider />
-      <ToolbarButton icon={<List className="h-4 w-4" />} onClick={onInsertUnorderedList || (() => {})} tooltip="Bullet List" />
-      <ToolbarButton icon={<ListOrdered className="h-4 w-4" />} onClick={onInsertOrderedList || (() => {})} tooltip="Numbered List" />
-      <ToolbarButton icon={<Quote className="h-4 w-4" />} onClick={onInsertBlockquote || (() => {})} tooltip="Quote" />
+      <ToolbarButton icon={<List className="h-3.5 w-3.5" />} onClick={onInsertUnorderedList || (() => {})} tooltip="Bullet List" />
+      <ToolbarButton icon={<ListOrdered className="h-3.5 w-3.5" />} onClick={onInsertOrderedList || (() => {})} tooltip="Numbered List" />
+      <ToolbarButton icon={<Quote className="h-3.5 w-3.5" />} onClick={onInsertBlockquote || (() => {})} tooltip="Quote" />
       <Divider />
 
       {/* Text Colour */}
@@ -2008,7 +1981,7 @@ export function FormattingToolbar({
             onClick={() => { setTextColourOpen(!textColourOpen); setHighlightOpen(false) }}
             className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
           >
-            <Palette className="h-4 w-4" />
+            <Palette className="h-3.5 w-3.5" />
           </button>
         </Tooltip>
         <AnimatePresence>
@@ -2025,10 +1998,10 @@ export function FormattingToolbar({
                     key={c.value}
                     onClick={() => { onTextColour?.(c.value); setTextColourOpen(false) }}
                     title={c.name}
-                    className="h-7 w-7 rounded-md border flex items-center justify-center hover:scale-110 transition-transform"
+                    className="h-6 w-6 rounded-md border flex items-center justify-center hover:scale-110 transition-transform"
                     style={{ backgroundColor: c.value }}
                   >
-                    {c.name === "White" && <div className="h-3 w-3 rounded-sm border border-gray-300" />}
+                    {c.name === "White" && <div className="h-2.5 w-2.5 rounded-sm border border-gray-300" />}
                   </button>
                 ))}
               </div>
@@ -2050,7 +2023,7 @@ export function FormattingToolbar({
             onClick={() => { setHighlightOpen(!highlightOpen); setTextColourOpen(false) }}
             className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
           >
-            <Highlighter className="h-4 w-4" />
+            <Highlighter className="h-3.5 w-3.5" />
           </button>
         </Tooltip>
         <AnimatePresence>
@@ -2067,7 +2040,7 @@ export function FormattingToolbar({
                     key={c.value}
                     onClick={() => { onHighlight?.(c.value); setHighlightOpen(false) }}
                     title={c.name}
-                    className="h-7 w-7 rounded-md border border-border/30 flex items-center justify-center hover:scale-110 transition-transform"
+                    className="h-6 w-6 rounded-md border border-border/30 flex items-center justify-center hover:scale-110 transition-transform"
                     style={{ backgroundColor: c.value }}
                   />
                 ))}
@@ -2084,8 +2057,8 @@ export function FormattingToolbar({
       </div>
 
       <Divider />
-      <ToolbarButton icon={<Undo2 className="h-4 w-4" />} onClick={onUndo || (() => {})} tooltip="Undo" />
-      <ToolbarButton icon={<Redo2 className="h-4 w-4" />} onClick={onRedo || (() => {})} tooltip="Redo" />
+      <ToolbarButton icon={<Undo2 className="h-3.5 w-3.5" />} onClick={onUndo || (() => {})} tooltip="Undo" />
+      <ToolbarButton icon={<Redo2 className="h-3.5 w-3.5" />} onClick={onRedo || (() => {})} tooltip="Redo" />
     </div>
   )
 }
@@ -2338,7 +2311,7 @@ interface RichTextEditorProps {
   style?: React.CSSProperties
 }
 
-function RichTextEditor({
+const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function RichTextEditor({
   value = "",
   onChange,
   placeholder = "Start writing...",
@@ -2346,12 +2319,13 @@ function RichTextEditor({
   spellCheck = true,
   className = "",
   style,
-}: RichTextEditorProps) {
+}, ref) {
   const editorRef = useRef<HTMLDivElement>(null)
   const [charCount, setCharCount] = useState(0)
-  const [isFocused, setIsFocused] = useState(false)
   const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
   const [currentFontFamily, setCurrentFontFamily] = useState<"Calibri" | "Arial" | "Times New Roman" | "Georgia" | "Verdana" | "Courier New">("Calibri")
+
+  useImperativeHandle(ref, () => editorRef.current as HTMLDivElement)
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -2392,9 +2366,6 @@ function RichTextEditor({
     execCmd("insertHTML", html)
   }, [execCmd])
 
-  const handleFocus = useCallback(() => setIsFocused(true), [])
-  const handleBlur = useCallback(() => setIsFocused(false), [])
-
   return (
     <div className={`relative ${className}`} style={style}>
       <div
@@ -2403,8 +2374,6 @@ function RichTextEditor({
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
         className="min-h-[120px] focus:outline-none prose prose-slate max-w-none [&_p]:mb-0 [&_p]:mt-0"
         style={{
           fontFamily: currentFontFamily,
@@ -2424,7 +2393,7 @@ function RichTextEditor({
       />
     </div>
   )
-}
+})
 
 function CameraModal({ onClose, onCapture, onChoose }: {
   onClose: () => void
@@ -2572,6 +2541,7 @@ function WritingArea({
   pinnedEntries,
   onOpenPinned,
   onSaveSuccess,
+  resetKey,
 }: {
   editingEntry: JournalEntry | null
   onCreated: (entry: JournalEntry) => void
@@ -2581,6 +2551,7 @@ function WritingArea({
   pinnedEntries: JournalEntry[]
   onOpenPinned: (entry: JournalEntry) => void
   onSaveSuccess: (message: string) => void
+  resetKey: number
 }) {
   const draft = useMemo(() => autosave.load(), [autosave])
   const [title, setTitle] = useState((draft?.title as string) || "")
@@ -2600,6 +2571,8 @@ function WritingArea({
   const [locationLoading, setLocationLoading] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
+  const audioPlaybackRef = useRef<HTMLAudioElement | null>(null)
   const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
   const [currentFontFamily, setCurrentFontFamily] = useState<"Calibri" | "Arial" | "Times New Roman" | "Georgia" | "Verdana" | "Courier New">("Calibri")
   const [pageStyle, setPageStyle] = useState<"plain" | "lined">(() => {
@@ -2619,6 +2592,15 @@ function WritingArea({
   useEffect(() => {
     localStorage.setItem("intenteo-journal-page-style", pageStyle)
   }, [pageStyle])
+
+  useEffect(() => {
+    if (resetKey > 0) {
+      setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
+      setImages([]); setRecordings([]); setLocation(""); setIsFocused(false)
+      if (editorRef.current) editorRef.current.innerHTML = ""
+      autosave.clear()
+    }
+  }, [resetKey, autosave])
 
   useEffect(() => {
     if (editingEntry) {
@@ -2732,9 +2714,6 @@ function WritingArea({
         location: location || undefined,
       }
       onCreated(entry)
-      setTitle(""); setContentHtml(""); setContentText(""); setTags(""); setMood(undefined); setCustomMood(null); setType("daily")
-      setImages([]); setRecordings([]); setLocation("")
-      if (editorRef.current) editorRef.current.innerHTML = ""
       autosave.clear()
       const encouragement = teoEncouragements[Math.floor(Math.random() * teoEncouragements.length)]
       onSaveSuccess(encouragement)
@@ -2799,6 +2778,26 @@ function WritingArea({
 
   const renameRecording = useCallback((id: string, name: string) => {
     setRecordings((prev) => prev.map((r) => r.id === id ? { ...r, name } : r))
+  }, [])
+
+  const playRecording = useCallback((recording: AudioRecording) => {
+    if (playingRecordingId === recording.id) {
+      audioPlaybackRef.current?.pause()
+      setPlayingRecordingId(null)
+    } else {
+      if (audioPlaybackRef.current) audioPlaybackRef.current.pause()
+      const audio = new Audio(recording.url)
+      audio.onended = () => setPlayingRecordingId(null)
+      audio.play()
+      audioPlaybackRef.current = audio
+      setPlayingRecordingId(recording.id)
+    }
+  }, [playingRecordingId])
+
+  useEffect(() => {
+    return () => {
+      if (audioPlaybackRef.current) audioPlaybackRef.current.pause()
+    }
   }, [])
 
   const toggleListening = useCallback(() => {
@@ -2925,6 +2924,7 @@ function WritingArea({
           } : undefined}
         >
           <RichTextEditor
+            ref={editorRef}
             value={contentHtml}
             onChange={handleContentChange}
             placeholder={currentPrompt}
@@ -2961,6 +2961,14 @@ function WritingArea({
                   <X className="h-3 w-3" />
                 </button>
               </div>
+            ))}
+          </div>
+        )}
+
+        {recordings.length > 0 && (
+          <div className="space-y-1.5 py-1">
+            {recordings.map((rec) => (
+              <RecordingItem key={rec.id} rec={rec} playingId={playingRecordingId} onPlay={playRecording} onRename={renameRecording} onDelete={deleteRecording} />
             ))}
           </div>
         )}
@@ -3092,10 +3100,7 @@ function WritingArea({
             </Tooltip>
             <div data-voice-recorder className="flex items-center gap-1">
               <VoiceRecorder
-                recordings={recordings}
                 onAdd={addRecording}
-                onDelete={deleteRecording}
-                onRename={renameRecording}
               />
             </div>
             <Tooltip label="Location">
@@ -3282,13 +3287,36 @@ export function JournalPage() {
   const [calendarPanelOpen, setCalendarPanelOpen] = useState(false)
   const [starredOpen, setStarredOpen] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [resetKey, setResetKey] = useState(0)
 
   const draftAutosave = useAutosave("intenteo-journal-draft", 2000)
 
   const streak = useMemo(() => {
-    const today = entries.filter((e) => e.dateISO === todayISO()).length
-    return today > 0 ? 18 : 17
-  }, [entries])
+    if (typeof window === "undefined") return 0
+    const today = todayISO()
+    const storageKey = "intenteo-visit-dates"
+    let visitDates: string[] = []
+    try {
+      visitDates = JSON.parse(localStorage.getItem(storageKey) || "[]")
+    } catch { visitDates = [] }
+    if (!visitDates.includes(today)) {
+      visitDates.push(today)
+      localStorage.setItem(storageKey, JSON.stringify(visitDates))
+    }
+    const sorted = [...new Set(visitDates)].sort().reverse()
+    let count = 0
+    let checkDate = new Date(today + "T00:00:00")
+    for (const d of sorted) {
+      const diff = Math.floor((checkDate.getTime() - new Date(d + "T00:00:00").getTime()) / (1000 * 60 * 60 * 24))
+      if (diff <= 1) {
+        count++
+        checkDate = new Date(d + "T00:00:00")
+      } else {
+        break
+      }
+    }
+    return count
+  }, [])
 
   const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
 
@@ -3390,10 +3418,11 @@ export function JournalPage() {
                 if (editingEntry) {
                   setEditingEntry(null)
                 }
+                setResetKey((k) => k + 1)
                 const el = document.querySelector("[data-writing-area]")
                 el?.scrollIntoView({ behavior: "smooth" })
               }}>
-                <Plus className="mr-1 h-4 w-4" /> {editingEntry ? "New Entry" : "New Entry"}
+                <Plus className="mr-1 h-4 w-4" /> New Entry
               </Button>
             </div>
           </div>
@@ -3435,6 +3464,7 @@ export function JournalPage() {
             pinnedEntries={pinnedEntries}
             onOpenPinned={handleSelectEntryForEdit}
             onSaveSuccess={(msg) => addToast(msg, "info")}
+            resetKey={resetKey}
           />
         </div>
 
