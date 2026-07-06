@@ -21,8 +21,6 @@ import {
   Check,
   Clock,
   BarChart3,
-  List,
-  Grid3X3,
   ChevronDown,
 } from "lucide-react"
 import { GlassCard } from "@/components/ui/glass-card"
@@ -48,10 +46,7 @@ interface Habit {
   createdAt: string
 }
 
-type ViewType = "list" | "tracker"
 type TrackerPeriod = "week" | "month" | "year"
-type FilterMode = "all" | "completed" | "incomplete" | "morning" | "afternoon" | "evening" | string
-type SortMode = "name" | "streak" | "bestStreak" | "completion" | "color" | "category" | "duration"
 
 const getTodayISO = () => new Date().toISOString().split("T")[0]
 
@@ -128,7 +123,7 @@ const createSampleHabits = (): Habit[] => {
   ]
 }
 
-/* ─── Scroll Picker (like Tasks page) ─── */
+/* ─── Scroll Picker ─── */
 
 const SCROLL_ITEM_H = 36
 const SCROLL_VISIBLE = 5
@@ -165,52 +160,31 @@ const ScrollPicker = memo(function ScrollPicker({
     const idx = Math.round(ref.current.scrollTop / SCROLL_ITEM_H)
     const clamped = Math.max(0, Math.min(items.length - 1, idx))
     const snapped = items[clamped]
-    if (snapped !== undefined && snapped !== value) {
-      onChange(snapped)
-    }
+    if (snapped !== undefined && snapped !== value) onChange(snapped)
     scrollToIdx(clamped, true)
   }, [items, value, onChange, scrollToIdx])
 
   const handleScroll = useCallback(() => {
     scrolling.current = true
     if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => {
-      scrolling.current = false
-      snapToNearest()
-    }, 80)
+    timer.current = setTimeout(() => { scrolling.current = false; snapToNearest() }, 80)
   }, [snapToNearest])
 
-  useEffect(() => {
-    return () => { if (timer.current) clearTimeout(timer.current) }
-  }, [])
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
   return (
     <div className="flex flex-col items-center">
       <span className="text-[10px] text-muted-foreground mb-1">{label}</span>
       <div className="relative rounded-xl border bg-muted/30 overflow-hidden" style={{ height: SCROLL_CONTAINER_H }}>
-        <div
-          className="absolute left-0 right-0 rounded-xl pointer-events-none z-10"
-          style={{ top: SCROLL_PAD, height: SCROLL_ITEM_H, backgroundColor: "var(--primary, #1E0E6B)" }}
-        />
-        <div
-          ref={ref}
-          onScroll={handleScroll}
-          className="h-full overflow-y-auto scrollbar-hide relative"
-        >
+        <div className="absolute left-0 right-0 rounded-xl pointer-events-none z-10" style={{ top: SCROLL_PAD, height: SCROLL_ITEM_H, backgroundColor: "#1E0E6B" }} />
+        <div ref={ref} onScroll={handleScroll} className="h-full overflow-y-auto scrollbar-hide relative">
           <div style={{ height: SCROLL_PAD }} />
           {items.map((item) => {
             const isSelected = item === value
             return (
-              <button
-                key={item}
-                onClick={() => {
-                  const idx = items.indexOf(item)
-                  onChange(item)
-                  scrollToIdx(idx, true)
-                }}
+              <button key={item} onClick={() => { const idx = items.indexOf(item); onChange(item); scrollToIdx(idx, true) }}
                 className="w-full flex items-center justify-center text-sm transition-colors relative z-20"
-                style={{ height: SCROLL_ITEM_H, color: isSelected ? "transparent" : "var(--muted-foreground)" }}
-              >
+                style={{ height: SCROLL_ITEM_H, color: isSelected ? "transparent" : "var(--muted-foreground)" }}>
                 {item}
               </button>
             )
@@ -222,10 +196,9 @@ const ScrollPicker = memo(function ScrollPicker({
   )
 })
 
-/* ─── Summary Bar with gradient borders ─── */
+/* ─── Summary Bar ─── */
 
 const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: Date }) => {
-  const today = getTodayISO()
   const dateStr = formatDateISO(selectedDate)
   const completedToday = habits.filter(h => h.completions[dateStr]?.completed).length
   const totalCount = habits.length
@@ -238,34 +211,29 @@ const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: D
   let monthlyTotal = 0
   for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
     const dStr = formatDateISO(d)
-    habits.forEach(h => {
-      if (h.completions[dStr]) monthlyCompleted++
-      monthlyTotal++
-    })
+    habits.forEach(h => { if (h.completions[dStr]) monthlyCompleted++; monthlyTotal++ })
   }
   const monthlyRate = monthlyTotal > 0 ? Math.round((monthlyCompleted / monthlyTotal) * 100) : 0
 
   const cards = [
-    { label: "Today", value: `${completedToday}/${totalCount}`, gradient: "from-emerald-400 to-green-500", borderGradient: "from-emerald-400 to-green-500", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
-    { label: "Weekly %", value: `${weeklyRate}%`, gradient: "from-blue-400 to-cyan-500", borderGradient: "from-blue-400 to-cyan-500", icon: <BarChart3 className="h-5 w-5 text-white" /> },
-    { label: "Monthly %", value: `${monthlyRate}%`, gradient: "from-purple-400 to-pink-500", borderGradient: "from-purple-400 to-pink-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
-    { label: "Best Streak", value: bestStreak.toString(), gradient: "from-orange-400 to-amber-500", borderGradient: "from-orange-400 to-amber-500", icon: <Flame className="h-5 w-5 text-white" /> },
-    { label: "Total Habits", value: totalCount.toString(), gradient: "from-indigo-400 to-blue-500", borderGradient: "from-indigo-400 to-blue-500", icon: <Target className="h-5 w-5 text-white" /> },
+    { label: "Today", value: `${completedToday}/${totalCount}`, gradient: "from-emerald-400 to-green-500", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
+    { label: "Weekly %", value: `${weeklyRate}%`, gradient: "from-blue-400 to-cyan-500", icon: <BarChart3 className="h-5 w-5 text-white" /> },
+    { label: "Monthly %", value: `${monthlyRate}%`, gradient: "from-purple-400 to-pink-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
+    { label: "Best Streak", value: bestStreak.toString(), gradient: "from-orange-400 to-amber-500", icon: <Flame className="h-5 w-5 text-white" /> },
+    { label: "Total Habits", value: totalCount.toString(), gradient: "from-indigo-400 to-blue-500", icon: <Target className="h-5 w-5 text-white" /> },
   ]
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       {cards.map((card, i) => (
-        <div key={i} className={`relative rounded-2xl p-[2px] bg-gradient-to-br ${card.borderGradient}`}>
-          <div className="bg-white dark:bg-gray-950 rounded-2xl p-4 h-full">
-            <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient}`}>
-                {card.icon}
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{card.value}</p>
-                <p className="text-xs text-muted-foreground">{card.label}</p>
-              </div>
+        <div key={i} className="rounded-xl border border-[#1E0E6B]/15 bg-white dark:bg-gray-950 p-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient}`}>
+              {card.icon}
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{card.value}</p>
+              <p className="text-xs text-muted-foreground">{card.label}</p>
             </div>
           </div>
         </div>
@@ -304,26 +272,17 @@ const WeeklyCalendar = ({
       <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onPrev}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-
       <div className="flex gap-1 flex-1 justify-center">
         {weekDates.map((date) => {
           const dateStr = formatDateISO(date)
           const isToday = dateStr === today
           const isSelected = dateStr === formatDateISO(selectedDate)
           const completedCount = habits.filter(h => h.completions[dateStr]?.completed).length
-
           return (
-            <button
-              key={dateStr}
-              onClick={() => onDateSelect(date)}
+            <button key={dateStr} onClick={() => onDateSelect(date)}
               className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all text-center min-w-[48px] ${
-                isSelected
-                  ? "bg-[#1E0E6B] text-white"
-                  : isToday
-                  ? "bg-[#EB9E5B]/20 text-[#1E0E6B] font-semibold"
-                  : "hover:bg-white/50"
-              }`}
-            >
+                isSelected ? "bg-[#1E0E6B] text-white" : isToday ? "bg-[#EB9E5B]/20 text-[#1E0E6B] font-semibold" : "hover:bg-white/50"
+              }`}>
               <span className="text-[10px] font-medium leading-tight">{formatDayName(date)}</span>
               <span className="text-base font-bold leading-tight">{formatDayNumber(date)}</span>
               {completedCount > 0 && (
@@ -337,7 +296,6 @@ const WeeklyCalendar = ({
           )
         })}
       </div>
-
       <div className="flex gap-1 shrink-0">
         <Button variant="outline" size="sm" onClick={onToday} className="text-xs h-7 px-2">Today</Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
@@ -355,13 +313,11 @@ const TrackerCalendar = ({
   onDateSelect,
   period,
   onPeriodChange,
-  habits,
 }: {
   selectedDate: Date
   onDateSelect: (date: Date) => void
   period: TrackerPeriod
   onPeriodChange: (p: TrackerPeriod) => void
-  habits: Habit[]
 }) => {
   return (
     <div className="flex items-center justify-between gap-2 p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
@@ -374,7 +330,6 @@ const TrackerCalendar = ({
       }}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-1">
           {(["week", "month", "year"] as TrackerPeriod[]).map((p) => (
@@ -385,7 +340,6 @@ const TrackerCalendar = ({
         </div>
         <span className="text-sm font-medium">{formatMonthYear(selectedDate)}</span>
       </div>
-
       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
         const newDate = new Date(selectedDate)
         if (period === "week") newDate.setDate(newDate.getDate() + 7)
@@ -399,129 +353,20 @@ const TrackerCalendar = ({
   )
 }
 
-/* ─── Filters ─── */
-
-const TrackerFilters = ({
-  filter,
-  onFilterChange,
-  searchQuery,
-  onSearchChange,
-  sortBy,
-  onSortChange,
-}: {
-  filter: FilterMode
-  onFilterChange: (f: FilterMode) => void
-  searchQuery: string
-  onSearchChange: (q: string) => void
-  sortBy: SortMode
-  onSortChange: (s: SortMode) => void
-}) => {
-  const filters: { mode: FilterMode; label: string }[] = [
-    { mode: "all", label: "All" },
-    { mode: "completed", label: "Completed" },
-    { mode: "incomplete", label: "Incomplete" },
-    { mode: "morning", label: "Morning" },
-    { mode: "afternoon", label: "Afternoon" },
-    { mode: "evening", label: "Evening" },
-  ]
-
-  return (
-    <div className="flex flex-col sm:flex-row gap-3">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => onSearchChange(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-white/20" />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {filters.map(({ mode, label }) => (
-          <Button key={mode} variant={filter === mode ? "default" : "outline"} size="sm" onClick={() => onFilterChange(mode)} className={filter === mode ? "bg-[#1E0E6B] text-white" : ""}>
-            {label}
-          </Button>
-        ))}
-      </div>
-      <select value={sortBy} onChange={(e) => onSortChange(e.target.value as SortMode)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
-        <option value="name">Sort: Name</option>
-        <option value="streak">Sort: Streak</option>
-        <option value="bestStreak">Sort: Best Streak</option>
-        <option value="completion">Sort: Completion %</option>
-        <option value="category">Sort: Category</option>
-        <option value="duration">Sort: Duration</option>
-      </select>
-    </div>
-  )
-}
-
-/* ─── Habit Row (List View) ─── */
-
-const HabitRow = ({
-  habit,
-  onToggle,
-  onEdit,
-  onDelete,
-  selectedDate,
-}: {
-  habit: Habit
-  onToggle: (id: string) => void
-  onEdit: (habit: Habit) => void
-  onDelete: (id: string) => void
-  selectedDate: Date
-}) => {
-  const dateStr = formatDateISO(selectedDate)
-  const isCompleted = habit.completions[dateStr]?.completed || false
-
-  return (
-    <div className="flex items-center gap-4 p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 hover:shadow-md transition-all">
-      <button onClick={() => onToggle(habit.id)} className="shrink-0">
-        {isCompleted ? (
-          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: habit.colorHex }}>
-            <CheckCircle2 className="h-5 w-5 text-white" />
-          </div>
-        ) : (
-          <Circle className="h-6 w-6 text-muted-foreground hover:text-[#1E0E6B]" />
-        )}
-      </button>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xl">{habit.icon}</span>
-          <h3 className={`font-medium ${isCompleted ? "line-through text-muted-foreground" : ""}`}>{habit.name}</h3>
-          <Badge variant="secondary" className="text-xs">{habit.category}</Badge>
-          <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{habit.duration}</span>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">{habit.description}</p>
-        <div className="flex items-center gap-4 mt-2">
-          <div className="flex items-center gap-1 text-sm">
-            <Flame className="h-4 w-4" style={{ color: habit.colorHex }} />
-            <span className="font-medium">{habit.streak}</span>
-            <span className="text-muted-foreground">day streak</span>
-          </div>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <TrendingUp className="h-3 w-3" />
-            <span>{habit.completionRate}%</span>
-          </div>
-          <span className="text-xs text-muted-foreground">{habit.totalDuration}</span>
-        </div>
-      </div>
-
-      <div className="flex gap-1">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(habit)}><Edit3 className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(habit.id)}><Trash2 className="h-4 w-4" /></Button>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Tracker View ─── */
+/* ─── Tracker View (clickable habit name to edit) ─── */
 
 const TrackerView = ({
   habits,
   selectedDate,
   period,
   onToggleCell,
+  onEdit,
 }: {
   habits: Habit[]
   selectedDate: Date
   period: TrackerPeriod
   onToggleCell: (habitId: string, dateStr: string) => void
+  onEdit: (habit: Habit) => void
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
 
@@ -570,15 +415,15 @@ const TrackerView = ({
           {habits.map((habit) => (
             <tr key={habit.id} className="border-b border-white/10 hover:bg-white/30 dark:hover:bg-white/5">
               <td className="sticky left-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-3">
-                <div className="flex items-center gap-2">
+                <button onClick={() => onEdit(habit)} className="flex items-center gap-2 hover:opacity-70 transition-opacity text-left">
                   <span className="text-lg">{habit.icon}</span>
                   <div>
-                    <p className="font-medium text-sm">{habit.name}</p>
+                    <p className="font-medium text-sm text-[#1E0E6B] hover:underline">{habit.name}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Flame className="h-3 w-3" style={{ color: habit.colorHex }} />{habit.streak} day streak
                     </p>
                   </div>
-                </div>
+                </button>
               </td>
               <td className="p-3"><Badge variant="secondary" className="text-xs">{habit.category}</Badge></td>
               <td className="p-3"><div className="w-4 h-4 rounded-full" style={{ backgroundColor: habit.colorHex }} /></td>
@@ -635,37 +480,22 @@ const HabitModal = ({
   const [goal, setGoal] = useState(habit?.goal || "")
   const [icon, setIcon] = useState(habit?.icon || "⭐")
   const [colorIdx, setColorIdx] = useState(
-    HABIT_COLORS.findIndex(c => c.name === habit?.color) >= 0
-      ? HABIT_COLORS.findIndex(c => c.name === habit?.color)
-      : 0
+    HABIT_COLORS.findIndex(c => c.name === habit?.color) >= 0 ? HABIT_COLORS.findIndex(c => c.name === habit?.color) : 0
   )
   const [showIconDropdown, setShowIconDropdown] = useState(false)
   const [showColorDropdown, setShowColorDropdown] = useState(false)
 
   useEffect(() => {
     if (habit) {
-      setName(habit.name)
-      setDescription(habit.description)
-      setCategory(habit.category)
-      setFrequency(habit.frequency)
-      setDuration(habit.duration)
-      setTotalDuration(habit.totalDuration)
-      setReminderTime(habit.reminderTime)
-      setGoal(habit.goal)
-      setIcon(habit.icon)
+      setName(habit.name); setDescription(habit.description); setCategory(habit.category)
+      setFrequency(habit.frequency); setDuration(habit.duration); setTotalDuration(habit.totalDuration)
+      setReminderTime(habit.reminderTime); setGoal(habit.goal); setIcon(habit.icon)
       const idx = HABIT_COLORS.findIndex(c => c.name === habit.color)
       if (idx >= 0) setColorIdx(idx)
     } else {
-      setName("")
-      setDescription("")
-      setCategory("Mindfulness")
-      setFrequency("daily")
-      setDuration("10 mins")
-      setTotalDuration("Indefinite")
-      setReminderTime("08:00")
-      setGoal("")
-      setIcon("⭐")
-      setColorIdx(0)
+      setName(""); setDescription(""); setCategory("Mindfulness"); setFrequency("daily")
+      setDuration("10 mins"); setTotalDuration("Indefinite"); setReminderTime("08:00")
+      setGoal(""); setIcon("⭐"); setColorIdx(0)
     }
   }, [habit])
 
@@ -678,18 +508,15 @@ const HabitModal = ({
           <h2 className="text-xl font-bold">{habit ? "Edit Habit" : "Add New Habit"}</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
         </div>
-
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium">Habit Name</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Morning Journal" className="mt-1" />
           </div>
-
           <div>
             <label className="text-sm font-medium">Description</label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Write for 10 minutes" className="mt-1" />
           </div>
-
           <div>
             <label className="text-sm font-medium">Category</label>
             <div className="flex flex-wrap gap-2 mt-1">
@@ -700,28 +527,20 @@ const HabitModal = ({
               ))}
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">Duration (per session)</label>
-              <div className="mt-2">
-                <ScrollPicker items={DURATION_OPTIONS} value={duration} onChange={setDuration} label="Duration" />
-              </div>
+              <div className="mt-2"><ScrollPicker items={DURATION_OPTIONS} value={duration} onChange={setDuration} label="Duration" /></div>
             </div>
-
             <div>
               <label className="text-sm font-medium">Total Habit Duration</label>
-              <div className="mt-2">
-                <ScrollPicker items={TOTAL_DURATION_OPTIONS} value={totalDuration} onChange={setTotalDuration} label="Keep for" />
-              </div>
+              <div className="mt-2"><ScrollPicker items={TOTAL_DURATION_OPTIONS} value={totalDuration} onChange={setTotalDuration} label="Keep for" /></div>
             </div>
           </div>
-
           <div>
             <label className="text-sm font-medium">Reminder Time</label>
             <Input type="time" value={reminderTime} onChange={(e) => setReminderTime(e.target.value)} className="mt-1" />
           </div>
-
           <div>
             <label className="text-sm font-medium">Recurrence</label>
             <div className="flex gap-2 mt-1">
@@ -729,15 +548,11 @@ const HabitModal = ({
               <Button variant={frequency === "weekly" ? "default" : "outline"} onClick={() => setFrequency("weekly")} className={frequency === "weekly" ? "bg-[#1E0E6B] text-white" : ""}>Weekly</Button>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
               <label className="text-sm font-medium">Colour</label>
-              <button
-                type="button"
-                onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:bg-white/80 transition-colors"
-              >
+              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:bg-white/80 transition-colors">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full" style={{ backgroundColor: HABIT_COLORS[colorIdx].hex }} />
                   <span className="text-sm">{HABIT_COLORS[colorIdx].name}</span>
@@ -747,13 +562,8 @@ const HabitModal = ({
               {showColorDropdown && (
                 <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
                   {HABIT_COLORS.map((c, i) => (
-                    <button
-                      key={c.name}
-                      onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"
-                      }`}
-                    >
+                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
                       <div className="w-4 h-4 rounded-full" style={{ backgroundColor: c.hex }} />
                       <span>{c.name}</span>
                       {colorIdx === i && <Check className="h-4 w-4 ml-auto text-[#1E0E6B]" />}
@@ -762,14 +572,10 @@ const HabitModal = ({
                 </div>
               )}
             </div>
-
             <div className="relative">
               <label className="text-sm font-medium">Icon</label>
-              <button
-                type="button"
-                onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:bg-white/80 transition-colors"
-              >
+              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:bg-white/80 transition-colors">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{icon}</span>
                   <span className="text-sm">Icon</span>
@@ -780,13 +586,8 @@ const HabitModal = ({
                 <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
                   <div className="grid grid-cols-4 gap-1">
                     {ICONS.map((ic) => (
-                      <button
-                        key={ic}
-                        onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
-                        className={`text-xl p-2 rounded-lg transition-all text-center ${
-                          icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"
-                        }`}
-                      >
+                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
+                        className={`text-xl p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>
                         {ic}
                       </button>
                     ))}
@@ -795,30 +596,23 @@ const HabitModal = ({
               )}
             </div>
           </div>
-
           <div>
             <label className="text-sm font-medium">Goal</label>
             <Input value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="e.g., Write daily" className="mt-1" />
           </div>
         </div>
-
         <div className="flex gap-2 pt-4">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-          <Button
-            onClick={() => {
-              if (name.trim()) {
-                const selectedColor = HABIT_COLORS[colorIdx]
-                onSave({
-                  name, description, category, frequency, duration, totalDuration, reminderTime, goal,
-                  streak: habit?.streak || 0, bestStreak: habit?.bestStreak || 0,
-                  completedToday: habit?.completedToday || false, completionRate: habit?.completionRate || 0,
-                  color: selectedColor.name, colorHex: selectedColor.hex, icon,
-                })
-                onClose()
-              }
-            }}
-            className="flex-1 bg-[#1E0E6B] text-white"
-          >
+          <Button onClick={() => {
+            if (name.trim()) {
+              const selectedColor = HABIT_COLORS[colorIdx]
+              onSave({ name, description, category, frequency, duration, totalDuration, reminderTime, goal,
+                streak: habit?.streak || 0, bestStreak: habit?.bestStreak || 0,
+                completedToday: habit?.completedToday || false, completionRate: habit?.completionRate || 0,
+                color: selectedColor.name, colorHex: selectedColor.hex, icon })
+              onClose()
+            }
+          }} className="flex-1 bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 text-white hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70">
             {habit ? "Save Changes" : "Add Habit"}
           </Button>
         </div>
@@ -832,10 +626,7 @@ const HabitModal = ({
 export function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [viewType, setViewType] = useState<ViewType>("list")
   const [trackerPeriod, setTrackerPeriod] = useState<TrackerPeriod>("week")
-  const [filter, setFilter] = useState<FilterMode>("all")
-  const [sortBy, setSortBy] = useState<SortMode>("name")
   const [searchQuery, setSearchQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
@@ -843,21 +634,13 @@ export function HabitsPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem("intenteo-habits")
-    if (saved) {
-      try { setHabits(JSON.parse(saved)) } catch { setHabits(createSampleHabits()) }
-    } else {
-      setHabits(createSampleHabits())
-    }
+    if (saved) { try { setHabits(JSON.parse(saved)) } catch { setHabits(createSampleHabits()) } }
+    else { setHabits(createSampleHabits()) }
     setIsLoading(false)
   }, [])
 
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem("intenteo-habits", JSON.stringify(habits))
-  }, [habits, isLoading])
-
-  useEffect(() => { localStorage.setItem("intenteo-habits-view", viewType) }, [viewType])
+  useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-habits", JSON.stringify(habits)) }, [habits, isLoading])
   useEffect(() => { localStorage.setItem("intenteo-habits-period", trackerPeriod) }, [trackerPeriod])
-  useEffect(() => { localStorage.setItem("intenteo-habits-sort", sortBy) }, [sortBy])
 
   const toggleHabit = useCallback((id: string, dateStr?: string) => {
     const targetDate = dateStr || formatDateISO(selectedDate)
@@ -866,11 +649,8 @@ export function HabitsPage() {
       const existing = habit.completions[targetDate]
       const wasCompleted = existing?.completed || false
       const newCompletions = { ...habit.completions }
-      if (wasCompleted) {
-        delete newCompletions[targetDate]
-      } else {
-        newCompletions[targetDate] = { completed: true, time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) }
-      }
+      if (wasCompleted) { delete newCompletions[targetDate] }
+      else { newCompletions[targetDate] = { completed: true, time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) } }
       let streak = 0
       const today = new Date()
       for (let i = 0; i < 365; i++) {
@@ -878,77 +658,34 @@ export function HabitsPage() {
         if (newCompletions[formatDateISO(d)]?.completed) streak++
         else break
       }
-      return {
-        ...habit, completions: newCompletions,
-        completedToday: targetDate === getTodayISO() ? !wasCompleted : habit.completedToday,
-        streak, bestStreak: Math.max(habit.bestStreak, streak),
-      }
+      return { ...habit, completions: newCompletions, completedToday: targetDate === getTodayISO() ? !wasCompleted : habit.completedToday, streak, bestStreak: Math.max(habit.bestStreak, streak) }
     }))
   }, [selectedDate])
 
   const saveHabit = useCallback((habitData: Omit<Habit, "id" | "completions" | "createdAt">) => {
-    if (editingHabit) {
-      setHabits(prev => prev.map(h => h.id === editingHabit.id ? { ...h, ...habitData } : h))
-    } else {
-      setHabits(prev => [...prev, { ...habitData, id: Date.now().toString(), completions: {}, createdAt: getTodayISO() }])
-    }
+    if (editingHabit) { setHabits(prev => prev.map(h => h.id === editingHabit.id ? { ...h, ...habitData } : h)) }
+    else { setHabits(prev => [...prev, { ...habitData, id: Date.now().toString(), completions: {}, createdAt: getTodayISO() }]) }
     setEditingHabit(null)
   }, [editingHabit])
 
   const deleteHabit = useCallback((id: string) => {
-    if (confirm("Are you sure you want to delete this habit?")) {
-      setHabits(prev => prev.filter(h => h.id !== id))
-    }
+    if (confirm("Are you sure you want to delete this habit?")) { setHabits(prev => prev.filter(h => h.id !== id)) }
   }, [])
 
-  const filteredAndSortedHabits = useMemo(() => {
-    const dateStr = formatDateISO(selectedDate)
-    let result = habits.filter(habit => {
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase()
-        if (!habit.name.toLowerCase().includes(q) && !habit.category.toLowerCase().includes(q) && !habit.color.toLowerCase().includes(q) && !habit.duration.toLowerCase().includes(q)) return false
-      }
-      const isCompleted = habit.completions[dateStr]?.completed || false
-      const reminderHour = habit.reminderTime ? parseInt(habit.reminderTime.split(":")[0]) : 12
-      const timeOfDay = reminderHour < 12 ? "morning" : reminderHour < 17 ? "afternoon" : "evening"
-      switch (filter) {
-        case "completed": return isCompleted
-        case "incomplete": return !isCompleted
-        case "morning": return timeOfDay === "morning"
-        case "afternoon": return timeOfDay === "afternoon"
-        case "evening": return timeOfDay === "evening"
-        default:
-          if (CATEGORIES.includes(filter) && filter !== "all") return habit.category === filter
-          return true
-      }
-    })
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "name": return a.name.localeCompare(b.name)
-        case "streak": return b.streak - a.streak
-        case "bestStreak": return b.bestStreak - a.bestStreak
-        case "completion": return b.completionRate - a.completionRate
-        case "category": return a.category.localeCompare(b.category)
-        case "duration": return a.duration.localeCompare(b.duration)
-        default: return 0
-      }
-    })
-    return result
-  }, [habits, filter, searchQuery, sortBy, selectedDate])
+  const filteredHabits = useMemo(() => {
+    if (!searchQuery) return habits
+    const q = searchQuery.toLowerCase()
+    return habits.filter(h => h.name.toLowerCase().includes(q) || h.category.toLowerCase().includes(q) || h.color.toLowerCase().includes(q) || h.duration.toLowerCase().includes(q))
+  }, [habits, searchQuery])
 
   const handleToday = useCallback(() => setSelectedDate(new Date()), [])
-  const handlePrev = useCallback(() => {
-    const d = new Date(selectedDate); d.setDate(d.getDate() - 7); setSelectedDate(d)
-  }, [selectedDate])
-  const handleNext = useCallback(() => {
-    const d = new Date(selectedDate); d.setDate(d.getDate() + 7); setSelectedDate(d)
-  }, [selectedDate])
+  const handlePrev = useCallback(() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 7); setSelectedDate(d) }, [selectedDate])
+  const handleNext = useCallback(() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 7); setSelectedDate(d) }, [selectedDate])
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="text-muted-foreground">Loading habits...</div></div>
 
   return (
     <div className="space-y-6">
-      {/* Header with calendar inline */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -956,33 +693,14 @@ export function HabitsPage() {
             <p className="text-muted-foreground">Build your identity through consistent action</p>
           </div>
           <div className="flex gap-2 items-center">
-            <div className="flex bg-white/50 dark:bg-white/5 rounded-lg border border-white/20 p-1">
-              <Button variant={viewType === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewType("list")} className={viewType === "list" ? "bg-[#1E0E6B] text-white" : ""}>
-                <List className="h-4 w-4 mr-1" /> List
-              </Button>
-              <Button variant={viewType === "tracker" ? "default" : "ghost"} size="sm" onClick={() => setViewType("tracker")} className={viewType === "tracker" ? "bg-[#1E0E6B] text-white" : ""}>
-                <Grid3X3 className="h-4 w-4 mr-1" /> Tracker
-              </Button>
-            </div>
-            {viewType === "list" ? (
-              <WeeklyCalendar
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-                habits={habits}
-                onToday={handleToday}
-                onPrev={handlePrev}
-                onNext={handleNext}
-              />
-            ) : (
-              <TrackerCalendar
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-                period={trackerPeriod}
-                onPeriodChange={setTrackerPeriod}
-                habits={habits}
-              />
-            )}
-            <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }} className="bg-[#1E0E6B] text-white hover:bg-[#1E0E6B]/90 shrink-0">
+            <TrackerCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              period={trackerPeriod}
+              onPeriodChange={setTrackerPeriod}
+            />
+            <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }}
+              className="bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 text-white hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70 shrink-0">
               <Plus className="mr-2 h-4 w-4" /> Add Habit
             </Button>
           </div>
@@ -991,49 +709,27 @@ export function HabitsPage() {
 
       <SummaryBar habits={habits} selectedDate={selectedDate} />
 
-      <TrackerFilters
-        filter={filter}
-        onFilterChange={setFilter}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-white/20" />
+      </div>
 
-      {viewType === "list" ? (
-        <>
-          <div className="space-y-3">
-            {filteredAndSortedHabits.map(habit => (
-              <HabitRow key={habit.id} habit={habit} onToggle={(id) => toggleHabit(id)} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} onDelete={deleteHabit} selectedDate={selectedDate} />
-            ))}
+      <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
+        {filteredHabits.length > 0 ? (
+          <TrackerView habits={filteredHabits} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} />
+        ) : (
+          <div className="text-center py-12">
+            <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium">No habits found</h3>
+            <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search term" : "Add your first habit to get started"}</p>
+            {!searchQuery && (
+              <Button onClick={() => setIsModalOpen(true)} className="mt-4 bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 text-white hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70">
+                <Plus className="mr-2 h-4 w-4" /> Add Habit
+              </Button>
+            )}
           </div>
-          {filteredAndSortedHabits.length === 0 && (
-            <div className="text-center py-12">
-              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No habits found</h3>
-              <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search term" : "Add your first habit to get started"}</p>
-              {!searchQuery && (
-                <Button onClick={() => setIsModalOpen(true)} className="mt-4 bg-[#1E0E6B] text-white"><Plus className="mr-2 h-4 w-4" /> Add Habit</Button>
-              )}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
-          {filteredAndSortedHabits.length > 0 ? (
-            <TrackerView habits={filteredAndSortedHabits} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} />
-          ) : (
-            <div className="text-center py-12">
-              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No habits found</h3>
-              <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search term" : "Add your first habit to get started"}</p>
-              {!searchQuery && (
-                <Button onClick={() => setIsModalOpen(true)} className="mt-4 bg-[#1E0E6B] text-white"><Plus className="mr-2 h-4 w-4" /> Add Habit</Button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} habit={editingHabit} />
     </div>
