@@ -1837,7 +1837,7 @@ function ToolbarButton({ icon, onClick, active, tooltip }: { icon: React.ReactNo
       title={tooltip}
       className={`inline-flex items-center justify-center w-6 h-6 rounded transition-all duration-150 ${
         active
-          ? "bg-violet-100 text-violet-700 shadow-sm"
+          ? "bg-primary/15 text-primary shadow-sm"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
       }`}
     >
@@ -3041,7 +3041,7 @@ function WritingArea({
           onAlignRight={() => execFormat("justifyRight")}
           onInsertUnorderedList={() => execFormat("insertUnorderedList")}
           onInsertOrderedList={() => execFormat("insertOrderedList")}
-          onInsertBlockquote={() => execFormat("formatBlock", "blockquote")}
+          onInsertBlockquote={() => execFormat("formatBlock", "<blockquote>")}
           onInsertHorizontalRule={() => execFormat("insertHorizontalRule")}
           onUndo={() => execFormat("undo")}
           onRedo={() => execFormat("redo")}
