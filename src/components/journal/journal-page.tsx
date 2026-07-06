@@ -2326,6 +2326,7 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
 }, ref) {
   const editorRef = useRef<HTMLDivElement>(null)
   const [charCount, setCharCount] = useState(0)
+  const [isEditorEmpty, setIsEditorEmpty] = useState(true)
   const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
   const [currentFontFamily, setCurrentFontFamily] = useState<"Calibri" | "Arial" | "Times New Roman" | "Georgia" | "Verdana" | "Courier New">("Calibri")
 
@@ -2336,6 +2337,7 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value
       setCharCount(editorRef.current.textContent?.length || 0)
+      setIsEditorEmpty((editorRef.current.textContent || "").trim().length === 0)
     }
   }, [value, isDictating])
 
@@ -2348,6 +2350,7 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
     const html = editorRef.current?.innerHTML || ""
     const text = editorRef.current?.textContent || ""
     setCharCount(text.length)
+    setIsEditorEmpty(text.trim().length === 0 || text.trim() === "\n")
     onChange?.(html)
   }, [onChange])
 
@@ -2373,6 +2376,22 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
 
   return (
     <div className={`relative ${className}`} style={style}>
+      {isEditorEmpty && placeholder && (
+        <div
+          className="absolute top-0 left-0 pointer-events-none select-none"
+          style={{
+            fontFamily: currentFontFamily,
+            fontSize: `${currentFontSize}px`,
+            lineHeight: "28px",
+            padding: "0 16px",
+            color: "var(--muted-foreground)",
+            opacity: 0.45,
+            fontStyle: "italic",
+          }}
+        >
+          {placeholder}
+        </div>
+      )}
       <div
         ref={editorRef}
         contentEditable
