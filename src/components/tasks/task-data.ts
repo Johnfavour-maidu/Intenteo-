@@ -9,10 +9,14 @@ const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-US", { w
 const d1 = new Date(Date.now() - 86400000)
 const d2 = new Date(Date.now() - 86400000 * 2)
 const d3 = new Date(Date.now() - 86400000 * 3)
+const d4 = new Date(Date.now() - 86400000 * 4)
+const d5 = new Date(Date.now() - 86400000 * 5)
 const d7 = new Date(Date.now() - 86400000 * 7)
 const yesterday = d1.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 const twoDaysAgo = d2.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 const threeDaysAgo = d3.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
+const fourDaysAgo = d4.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
+const fiveDaysAgo = d5.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 const lastWeek = d7.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 
 export const sampleTasks: Task[] = [
@@ -153,6 +157,105 @@ export const sampleTasks: Task[] = [
     completed: true,
     order: 1,
     createdAt: d3.toISOString(),
+  },
+  {
+    id: "past-d4-1",
+    title: "Prayer journal",
+    whyItMatters: "Spiritual discipline anchors the mind.",
+    priority: "maintenance",
+    deadline: fourDaysAgo,
+    dueTime: "7:00 AM",
+    timeRange: "7:00 AM \u2013 7:30 AM",
+    estimatedDuration: 30,
+    notes: "",
+    subtasks: [],
+    recurrence: "daily",
+    completed: true,
+    order: 0,
+    createdAt: d4.toISOString(),
+  },
+  {
+    id: "past-d4-2",
+    title: "Grocery shopping",
+    whyItMatters: "Healthy meals fuel productive days.",
+    priority: "maintenance",
+    deadline: fourDaysAgo,
+    dueTime: "5:00 PM",
+    timeRange: "5:00 PM \u2013 5:45 PM",
+    estimatedDuration: 45,
+    notes: "",
+    subtasks: [],
+    recurrence: "weekly",
+    completed: true,
+    order: 1,
+    createdAt: d4.toISOString(),
+  },
+  {
+    id: "past-d4-3",
+    title: "Read 30 minutes",
+    whyItMatters: "Reading compounds knowledge over time.",
+    priority: "maintenance",
+    deadline: fourDaysAgo,
+    dueTime: "9:00 PM",
+    timeRange: "9:00 PM \u2013 9:30 PM",
+    estimatedDuration: 30,
+    notes: "",
+    subtasks: [],
+    recurrence: "daily",
+    completed: false,
+    order: 2,
+    createdAt: d4.toISOString(),
+  },
+  {
+    id: "past-d5-1",
+    title: "Review proposal",
+    whyItMatters: "Thorough review prevents costly revisions.",
+    priority: "priority",
+    deadline: fiveDaysAgo,
+    dueTime: "10:00 AM",
+    timeRange: "10:00 AM \u2013 12:00 PM",
+    estimatedDuration: 120,
+    notes: "",
+    subtasks: [
+      { id: "pd5-1", title: "Check budget figures", completed: true },
+      { id: "pd5-2", title: "Verify timeline", completed: true },
+    ],
+    recurrence: "none",
+    completed: true,
+    order: 0,
+    createdAt: d5.toISOString(),
+  },
+  {
+    id: "past-d5-2",
+    title: "Team meeting",
+    whyItMatters: "Alignment keeps the team moving forward.",
+    priority: "progress",
+    deadline: fiveDaysAgo,
+    dueTime: "2:00 PM",
+    timeRange: "2:00 PM \u2013 3:00 PM",
+    estimatedDuration: 60,
+    notes: "",
+    subtasks: [],
+    recurrence: "weekly",
+    completed: true,
+    order: 1,
+    createdAt: d5.toISOString(),
+  },
+  {
+    id: "past-d5-3",
+    title: "Workout session",
+    whyItMatters: "Physical fitness directly impacts cognitive performance.",
+    priority: "maintenance",
+    deadline: fiveDaysAgo,
+    dueTime: "6:00 PM",
+    timeRange: "6:00 PM \u2013 7:00 PM",
+    estimatedDuration: 60,
+    notes: "",
+    subtasks: [],
+    recurrence: "daily",
+    completed: false,
+    order: 2,
+    createdAt: d5.toISOString(),
   },
   {
     id: "past-d7-1",

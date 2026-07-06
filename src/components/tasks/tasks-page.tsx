@@ -823,8 +823,8 @@ export function TasksPage() {
         <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(200px,1fr)_minmax(130px,150px)_minmax(80px,100px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div></div>
           <div className="pl-2">Task</div>
-          <div className="hidden sm:block pl-2">Time Range</div>
-          <div className="hidden sm:block">Duration</div>
+          <div className="hidden sm:block pl-1">Time Range</div>
+          <div className="hidden sm:block pl-1">Duration</div>
           <div>Progress</div>
           <div className="text-right">Actions</div>
         </div>
@@ -899,7 +899,7 @@ export function TasksPage() {
 
                     {/* Time Range */}
                     <div className="hidden sm:block">
-                      <div className={`flex items-center gap-1.5 text-xs text-muted-foreground px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                      <div className={`flex items-center gap-1.5 text-xs text-muted-foreground pl-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
                         onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         <Clock className="h-3 w-3 shrink-0" />
                         <span>{task.timeRange}</span>
@@ -908,7 +908,7 @@ export function TasksPage() {
 
                     {/* Duration */}
                     <div className="hidden sm:block">
-                      <span className={`text-xs text-muted-foreground px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                      <span className={`text-xs text-muted-foreground pl-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
                         onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         {formatDuration(task.estimatedDuration)}
                       </span>
@@ -1366,22 +1366,31 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
 
 function parseTime24(str: string): { hour: number; minute: number } | null {
   const clean = str.trim().toLowerCase()
-  let hour = 0, minute = 0
 
-  const ampmMatch = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/)
+  if (clean === "noon") return { hour: 12, minute: 0 }
+  if (clean === "midnight") return { hour: 0, minute: 0 }
+
+  const ampmMatch = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)/)
   if (ampmMatch) {
-    hour = parseInt(ampmMatch[1])
-    minute = ampmMatch[2] ? parseInt(ampmMatch[2]) : 0
-    if (ampmMatch[3] === "pm" && hour < 12) hour += 12
-    if (ampmMatch[3] === "am" && hour === 12) hour = 0
+    let hour = parseInt(ampmMatch[1])
+    const minute = ampmMatch[2] ? parseInt(ampmMatch[2]) : 0
+    const suffix = ampmMatch[3].replace(/\./g, "")
+    if (suffix === "pm" && hour < 12) hour += 12
+    if (suffix === "am" && hour === 12) hour = 0
     return { hour, minute }
   }
 
-  const twentyFourMatch = clean.match(/(\d{1,2}):(\d{2})/)
+  const twentyFourMatch = clean.match(/(\d{1,2})[:\s](\d{2})/)
   if (twentyFourMatch) {
-    hour = parseInt(twentyFourMatch[1])
-    minute = parseInt(twentyFourMatch[2])
-    return { hour, minute }
+    const hour = parseInt(twentyFourMatch[1])
+    const minute = parseInt(twentyFourMatch[2])
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) return { hour, minute }
+  }
+
+  const bareMatch = clean.match(/^(\d{1,2})\s*(?:o.?clock)?$/)
+  if (bareMatch) {
+    const hour = parseInt(bareMatch[1])
+    if (hour >= 0 && hour <= 23) return { hour, minute: 0 }
   }
 
   return null
@@ -1390,8 +1399,8 @@ function parseTime24(str: string): { hour: number; minute: number } | null {
 function parseDurationText(str: string): number {
   const clean = str.toLowerCase()
   let total = 0
-  const hourMatch = clean.match(/(\d+)\s*h(?:our|rs?)?/)
-  const minMatch = clean.match(/(\d+)\s*m(?:in(?:ute)?)?/)
+  const hourMatch = clean.match(/(\d+)\s*(?:hours?|hrs?)/)
+  const minMatch = clean.match(/(\d+)\s*(?:minutes?|mins?)/)
   if (hourMatch) total += parseInt(hourMatch[1]) * 60
   if (minMatch) total += parseInt(minMatch[1])
   if (total === 0 && clean.includes("half")) total = 30
@@ -1412,8 +1421,8 @@ function parseVoiceTasks(text: string): ParsedVoiceTask[] {
     let timeRange: string | null = null
     let duration: string | null = null
 
-    const timeRangeRegex = /(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|until|till|[-–—])\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i
-    const betweenRegex = /between\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+and\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i
+    const timeRangeRegex = /(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)\s*(?:to|until|till|through|[-–—])\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)/i
+    const betweenRegex = /between\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)\s+and\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)/i
     const timeMatch = clean.match(timeRangeRegex) || clean.match(betweenRegex)
 
     if (timeMatch) {
@@ -1431,8 +1440,8 @@ function parseVoiceTasks(text: string): ParsedVoiceTask[] {
     let titleClean = clean
     if (timeMatch) titleClean = titleClean.replace(timeMatch[0], "")
     if (durMatch) titleClean = titleClean.replace(durMatch[0], "")
-    titleClean = titleClean.replace(/^(i want to|i need to|i should|i will|let me|can i|please)\s*/i, "")
-    titleClean = titleClean.replace(/^(when i wake up|in the morning|today|tomorrow)\s*/i, "")
+    titleClean = titleClean.replace(/^(i want to|i need to|i should|i will|let me|can i|please|i'd like to|i wanna|i gotta|i got to|i have to|i've got)\s*/i, "")
+    titleClean = titleClean.replace(/^(when i wake up|in the morning|today|tomorrow|right now|asap)\s*/i, "")
     titleClean = titleClean.replace(/\s+/g, " ").trim()
 
     if (titleClean.length < 2) titleClean = "New task"
