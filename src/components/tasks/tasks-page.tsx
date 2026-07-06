@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from "react"
+import React, { useState, useMemo, useCallback, useRef, useEffect, useLayoutEffect, memo } from "react"
 import Link from "next/link"
 import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
@@ -141,29 +141,40 @@ const ScrollCol = memo(function ScrollCol({
   label: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const mounted = useRef(false)
+
+  const scrollToValue = useCallback((smooth: boolean) => {
+    if (!ref.current) return
+    const idx = items.indexOf(value)
+    if (idx < 0) return
+    const itemH = 36
+    const containerH = ref.current.clientHeight || 144
+    const top = Math.max(0, idx * itemH + itemH / 2 - containerH / 2)
+    ref.current.scrollTo({ top, behavior: smooth ? "smooth" : "instant" })
+  }, [value, items])
+
+  useLayoutEffect(() => {
+    scrollToValue(false)
+  }, [scrollToValue])
 
   useEffect(() => {
-    if (ref.current) {
-      const idx = items.indexOf(value)
-      if (idx >= 0) {
-        const itemH = 36
-        const containerH = ref.current.clientHeight
-        const top = Math.max(0, idx * itemH - containerH / 2 + itemH / 2)
-        ref.current.scrollTo({ top, behavior: "smooth" })
-      }
+    if (mounted.current) {
+      scrollToValue(true)
+    } else {
+      mounted.current = true
     }
-  }, [value, items])
+  }, [scrollToValue])
 
   return (
     <div className="flex flex-col items-center">
       <span className="text-[10px] text-muted-foreground mb-1">{label}</span>
-      <div ref={ref} className="h-36 w-16 overflow-y-auto rounded-xl border bg-muted/30 scrollbar-hide" style={{ scrollSnapType: "y mandatory" }}>
+      <div ref={ref} className="h-36 w-16 overflow-y-auto rounded-xl border bg-muted/30 scrollbar-hide">
         <div className="h-[54px]" />
         {items.map((item) => (
           <button
             key={item}
             onClick={() => onChange(item)}
-            className={`w-full h-9 flex items-center justify-center text-sm transition-colors scroll-snap-align-none ${
+            className={`w-full h-9 flex items-center justify-center text-sm transition-colors ${
               item === value ? "bg-primary text-primary-foreground font-medium rounded-lg" : "text-muted-foreground hover:bg-muted"
             }`}
           >
