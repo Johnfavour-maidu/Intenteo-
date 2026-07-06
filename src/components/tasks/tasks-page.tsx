@@ -190,21 +190,25 @@ function TimeRangePicker({
   const dur = calcDurationFromRange(startTime, endTime)
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Hr" />
-          <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <span className="text-[10px] text-muted-foreground mb-1 block">Start Time</span>
+          <div className="flex items-center gap-1">
+            <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Hr" />
+            <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="Hr" />
-          <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
+        <div className="flex-1">
+          <span className="text-[10px] text-muted-foreground mb-1 block">End Time</span>
+          <div className="flex items-center gap-1">
+            <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="Hr" />
+            <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
+          </div>
         </div>
       </div>
       <p className="text-[10px] text-muted-foreground text-center">
-        Duration: {dur > 0 ? formatDuration(dur) : "—"}
+        Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
       </p>
     </div>
   )
@@ -485,6 +489,7 @@ export function TasksPage() {
   const [formEndHour, setFormEndHour] = useState(9)
   const [formEndMin, setFormEndMin] = useState(30)
   const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
+  const [formSubtasks, setFormSubtasks] = useState<{ id: string; title: string; completed: boolean }[]>([])
 
   const taskHistory = useMemo(() => {
     const history: Record<string, Task[]> = {}
@@ -593,18 +598,19 @@ export function TasksPage() {
     const startStr = formatTimeSelection(formStartHour, formStartMin)
     const endStr = formatTimeSelection(formEndHour, formEndMin)
     const dur = calcDurationFromRange(startStr, endStr)
+    const filteredSubs = formSubtasks.filter((s) => s.title.trim()).map((s) => ({ ...s, id: `sub-${Date.now()}-${s.id}`, completed: false }))
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
       deadline: "Today", dueTime: startStr, timeRange: `${startStr} \u2013 ${endStr}`,
-      estimatedDuration: dur > 0 ? dur : 30, notes: "", subtasks: [], recurrence: formRecurrence,
+      estimatedDuration: dur > 0 ? dur : 30, notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
       completed: false, order: tasks.length, createdAt: new Date().toISOString(),
     }
     setTasks((prev) => [...prev, newTask])
     setFormTitle(""); setFormWhy(""); setFormPriority("progress")
     setFormStartHour(9); setFormStartMin(0)
     setFormEndHour(9); setFormEndMin(30)
-    setFormRecurrence("none"); setCreateOpen(false)
-  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, tasks.length])
+    setFormRecurrence("none"); setFormSubtasks([]); setCreateOpen(false)
+  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formSubtasks, tasks.length])
 
   const handleSaveEdit = useCallback(() => {
     if (!editingTask) return
@@ -1221,11 +1227,53 @@ export function TasksPage() {
                       className="mt-1" autoFocus />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Why It Matters</label>
-                    <Input placeholder="Optional: Why is this important?"
-                      value={editingTask ? editingTask.whyItMatters : formWhy}
-                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, whyItMatters: e.target.value }) : setFormWhy(e.target.value)}
-                      className="mt-1" />
+                    <label className="text-xs font-medium text-muted-foreground">Subtasks</label>
+                    <div className="mt-1 space-y-1.5">
+                      {(editingTask ? editingTask.subtasks : formSubtasks).map((sub, idx) => (
+                        <div key={sub.id} className="flex items-center gap-2 group">
+                          <GripVertical className="h-3 w-3 text-muted-foreground/40 cursor-grab shrink-0" />
+                          <Input
+                            placeholder="Subtask..."
+                            value={sub.title}
+                            onChange={(e) => {
+                              if (editingTask) {
+                                const newSubs = [...editingTask.subtasks]
+                                newSubs[idx] = { ...newSubs[idx], title: e.target.value }
+                                setEditingTask({ ...editingTask, subtasks: newSubs })
+                              } else {
+                                const newSubs = [...formSubtasks]
+                                newSubs[idx] = { ...newSubs[idx], title: e.target.value }
+                                setFormSubtasks(newSubs)
+                              }
+                            }}
+                            className="h-8 text-xs"
+                          />
+                          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              if (editingTask) {
+                                setEditingTask({ ...editingTask, subtasks: editingTask.subtasks.filter((_, i) => i !== idx) })
+                              } else {
+                                setFormSubtasks(formSubtasks.filter((_, i) => i !== idx))
+                              }
+                            }}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5"
+                        onClick={() => {
+                          const newSub = { id: `sub-${Date.now()}`, title: "", completed: false }
+                          if (editingTask) {
+                            setEditingTask({ ...editingTask, subtasks: [...editingTask.subtasks, newSub] })
+                          } else {
+                            setFormSubtasks([...formSubtasks, newSub])
+                          }
+                        }}>
+                        + Add New Subtask
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Priority</label>
@@ -1268,10 +1316,10 @@ export function TasksPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Notes</label>
-                    <Input placeholder="Optional notes"
-                      value={editingTask ? editingTask.notes : ""}
-                      onChange={(e) => editingTask && setEditingTask({ ...editingTask, notes: e.target.value })}
+                    <label className="text-xs font-medium text-muted-foreground">Why It Matters</label>
+                    <Input placeholder="Optional: Why is this important?"
+                      value={editingTask ? editingTask.whyItMatters : formWhy}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, whyItMatters: e.target.value }) : setFormWhy(e.target.value)}
                       className="mt-1" />
                   </div>
                 </div>
