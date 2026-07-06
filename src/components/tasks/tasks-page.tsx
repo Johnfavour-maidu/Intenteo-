@@ -823,10 +823,10 @@ export function TasksPage() {
         <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(200px,1fr)_minmax(130px,150px)_minmax(80px,100px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div></div>
           <div className="pl-2">Task</div>
-          <div className="hidden sm:block pl-1">Time Range</div>
-          <div className="hidden sm:block pl-1">Duration</div>
-          <div>Progress</div>
-          <div className="text-right">Actions</div>
+          <div className="hidden sm:block pl-2">Time Range</div>
+          <div className="hidden sm:block pl-2">Duration</div>
+          <div className="pl-2">Progress</div>
+          <div className="pl-2">Actions</div>
         </div>
 
         <LayoutGroup>
@@ -899,7 +899,7 @@ export function TasksPage() {
 
                     {/* Time Range */}
                     <div className="hidden sm:block">
-                      <div className={`flex items-center gap-1.5 text-xs text-muted-foreground pl-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                      <div className={`flex items-center gap-1.5 text-xs text-muted-foreground pl-2 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
                         onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         <Clock className="h-3 w-3 shrink-0" />
                         <span>{task.timeRange}</span>
@@ -908,14 +908,14 @@ export function TasksPage() {
 
                     {/* Duration */}
                     <div className="hidden sm:block">
-                      <span className={`text-xs text-muted-foreground pl-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                      <span className={`text-xs text-muted-foreground pl-2 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
                         onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         {formatDuration(task.estimatedDuration)}
                       </span>
                     </div>
 
                     {/* Progress */}
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 pl-2">
                       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                         <motion.div
                           className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
@@ -926,7 +926,7 @@ export function TasksPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center gap-1 pl-2">
                       {!isViewingPast && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
