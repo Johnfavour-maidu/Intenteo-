@@ -816,17 +816,21 @@ export function TasksPage() {
   /* LIST VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
 
+  const COL_TEMPLATE = "24px minmax(200px,1fr) minmax(130px,150px) minmax(80px,100px) minmax(100px,140px) auto"
+
   const renderListView = useCallback(() => {
     if (displayTasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-        <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(200px,1fr)_minmax(130px,150px)_minmax(80px,100px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-          <div></div>
-          <div className="pl-2">Task</div>
-          <div className="hidden sm:block pl-2">Time Range</div>
-          <div className="hidden sm:block pl-2">Duration</div>
-          <div className="pl-2">Progress</div>
-          <div className="pl-2">Actions</div>
+        <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm">
+          <div className="grid gap-y-0 px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider" style={{ gridTemplateColumns: COL_TEMPLATE, columnGap: "1rem" }}>
+            <div></div>
+            <div>Task</div>
+            <div className="hidden sm:block">Time Range</div>
+            <div className="hidden sm:block">Duration</div>
+            <div>Progress</div>
+            <div>Actions</div>
+          </div>
         </div>
 
         <LayoutGroup>
@@ -846,7 +850,8 @@ export function TasksPage() {
                     onDragStart={() => handleTaskDragStart(task.id)}
                     onDragOver={(e) => handleTaskDragOver(e, task.id)}
                     onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
-                    className="grid grid-cols-[24px_minmax(200px,1fr)_minmax(130px,150px)_minmax(80px,100px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 pl-5 pr-5 py-3.5 items-center group cursor-default"
+                    className="grid gap-y-0 pl-5 pr-5 py-3.5 items-center group cursor-default"
+                    style={{ gridTemplateColumns: COL_TEMPLATE, columnGap: "1rem" }}
                   >
                     {/* Priority Dot */}
                     <div className="flex items-center justify-center">
