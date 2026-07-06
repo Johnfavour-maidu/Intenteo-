@@ -14,6 +14,7 @@ export interface Task {
   whyItMatters: string
   priority: TaskPriority
   deadline: string
+  date: string
   dueTime: string
   timeRange: string
   estimatedDuration: number
@@ -23,4 +24,5 @@ export interface Task {
   completed: boolean
   order: number
   createdAt: string
+  dailyCompletions?: Record<string, boolean>
 }

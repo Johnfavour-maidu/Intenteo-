@@ -297,10 +297,11 @@ function toISODate(d: Date) {
   return d.toISOString().split("T")[0]
 }
 
-function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose }: {
+function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose, selectedDate }: {
   taskHistory: Record<string, Task[]>
   onSelectDate: (date: string, tasks: Task[]) => void
   onClose: () => void
+  selectedDate: string | null
 }) {
   const today = new Date()
   const [viewMonth, setViewMonth] = useState(today.getMonth())
@@ -350,10 +351,11 @@ function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose }: {
           const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
           const hasTasks = taskHistory[dateStr] && taskHistory[dateStr].length > 0
           const isToday = dateStr === toISODate(today)
+          const isSelected = dateStr === selectedDate
           return (
             <button key={dateStr}
               className={`relative h-8 w-full rounded-lg text-xs flex flex-col items-center justify-center transition-colors ${
-                isToday ? "bg-primary text-primary-foreground font-semibold" : "hover:bg-muted text-foreground"
+                isSelected ? "bg-primary text-primary-foreground font-semibold ring-2 ring-primary/40" : isToday ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-foreground"
               }`}
               onClick={() => {
                 onSelectDate(dateStr, taskHistory[dateStr] || [])
@@ -384,8 +386,8 @@ function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
   onClose: () => void
   onMoveToToday: (tasks: Task[]) => void
 }) {
-  const incomplete = tasks.filter((t) => !t.completed)
-  const completed = tasks.filter((t) => t.completed)
+  const incomplete = tasks.filter((t) => t.recurrence === "daily" ? !(t.dailyCompletions || {})[date] : !t.completed)
+  const completed = tasks.filter((t) => t.recurrence === "daily" ? !!(t.dailyCompletions || {})[date] : t.completed)
   const displayDate = new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
 
   return (
@@ -401,15 +403,18 @@ function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
         </Button>
       </div>
       <div className="space-y-1.5">
-        {tasks.map((task) => (
-          <div key={task.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${task.completed ? "bg-muted/30" : "bg-muted/50"}`}>
-            <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${task.completed ? "border-primary bg-primary" : "border-muted-foreground/30"}`}>
-              {task.completed && <svg className="h-2 w-2 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+        {tasks.map((task) => {
+          const isCompleted = task.recurrence === "daily" ? !!(task.dailyCompletions || {})[date] : task.completed
+          return (
+            <div key={task.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${isCompleted ? "bg-muted/30" : "bg-muted/50"}`}>
+              <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${isCompleted ? "border-primary bg-primary" : "border-muted-foreground/30"}`}>
+                {isCompleted && <svg className="h-2 w-2 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+              </div>
+              <span className={`flex-1 ${isCompleted ? "line-through text-muted-foreground" : ""}`}>{task.title}</span>
+              <span className="text-muted-foreground">{task.timeRange}</span>
             </div>
-            <span className={`flex-1 ${task.completed ? "line-through text-muted-foreground" : ""}`}>{task.title}</span>
-            <span className="text-muted-foreground">{task.timeRange}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
       {incomplete.length > 0 && (
         <div className="mt-3 pt-3 border-t">
@@ -428,7 +433,8 @@ function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
 /* Empty State                                            */
 /* ────────────────────────────────────────────────────── */
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function EmptyState({ onCreate, viewingDate }: { onCreate: () => void; viewingDate: string }) {
+  const isToday = viewingDate === new Date().toISOString().split("T")[0]
   return (
     <div className="py-20 text-center">
       <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
@@ -438,7 +444,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
           <path d="m9 14 2 2 4-4" />
         </svg>
       </div>
-      <h3 className="text-lg font-semibold mb-1">No tasks planned today.</h3>
+      <h3 className="text-lg font-semibold mb-1">{isToday ? "No tasks planned today." : "No tasks for this day."}</h3>
       <p className="text-sm text-muted-foreground mb-5">Start by adding your first intentional task.</p>
       <Button onClick={onCreate} className="glow"><Plus className="mr-1 h-4 w-4" /> Add Task</Button>
     </div>
@@ -490,26 +496,54 @@ export function TasksPage() {
   const [formEndMin, setFormEndMin] = useState(30)
   const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
   const [formSubtasks, setFormSubtasks] = useState<{ id: string; title: string; completed: boolean }[]>([])
+  const [formDate, setFormDate] = useState<string>(() => new Date().toISOString().split("T")[0])
+  const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
 
   const taskHistory = useMemo(() => {
     const history: Record<string, Task[]> = {}
     tasks.forEach((t) => {
-      const d = t.createdAt.split("T")[0]
+      const d = t.date
       if (!history[d]) history[d] = []
       history[d].push(t)
+      if (t.recurrence === "daily") {
+        const created = new Date(t.createdAt)
+        const today = new Date()
+        const cur = new Date(created)
+        cur.setDate(cur.getDate() + 1)
+        while (cur <= today) {
+          const ds = cur.toISOString().split("T")[0]
+          if (ds !== d) {
+            if (!history[ds]) history[ds] = []
+            history[ds].push({ ...t, date: ds })
+          }
+          cur.setDate(cur.getDate() + 1)
+        }
+      }
     })
     return history
   }, [tasks])
 
   const todayISO = useMemo(() => new Date().toISOString().split("T")[0], [])
-  const isViewingPast = useMemo(() => selectedDate !== null && selectedDate < todayISO, [selectedDate, todayISO])
+  const viewingDate = selectedDate || todayISO
+  const isViewingPast = useMemo(() => viewingDate < todayISO, [viewingDate, todayISO])
   const displayTasks = useMemo(() => {
-    if (selectedDate) return tasks.filter((t) => t.createdAt.split("T")[0] === selectedDate)
-    return tasks.filter((t) => t.createdAt.split("T")[0] === todayISO)
-  }, [tasks, selectedDate, todayISO])
+    const tasksForDate = tasks.filter((t) => {
+      if (t.date === viewingDate) return true
+      if (t.recurrence === "daily") {
+        const created = new Date(t.createdAt)
+        const view = new Date(viewingDate + "T12:00:00")
+        return view > created
+      }
+      return false
+    })
+    return tasksForDate
+  }, [tasks, viewingDate])
 
-  const completedToday = useMemo(() => displayTasks.filter((t) => t.completed).length, [displayTasks])
-  const remainingToday = useMemo(() => displayTasks.filter((t) => !t.completed).length, [displayTasks])
+  const completedToday = useMemo(() => {
+    const viewDate = selectedDate || todayISO
+    return displayTasks.filter((t) => t.recurrence === "daily" ? !!(t.dailyCompletions || {})[viewDate] : t.completed).length
+  }, [displayTasks, selectedDate, todayISO])
+  const remainingToday = useMemo(() => displayTasks.length - completedToday, [displayTasks, completedToday])
   const totalToday = completedToday + remainingToday
   const productivity = useMemo(() => (totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100)), [completedToday, totalToday])
 
@@ -550,8 +584,17 @@ export function TasksPage() {
   }, [])
 
   const toggleTask = useCallback((id: string) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)))
-  }, [])
+    const viewDate = selectedDate || todayISO
+    setTasks((prev) => prev.map((t) => {
+      if (t.id !== id) return t
+      if (t.recurrence === "daily") {
+        const dc = { ...(t.dailyCompletions || {}) }
+        dc[viewDate] = !dc[viewDate]
+        return { ...t, dailyCompletions: dc }
+      }
+      return { ...t, completed: !t.completed }
+    }))
+  }, [selectedDate, todayISO])
 
   const handleToggleTask = useCallback((id: string) => {
     const task = tasks.find((t) => t.id === id)
@@ -601,22 +644,57 @@ export function TasksPage() {
     const filteredSubs = formSubtasks.filter((s) => s.title.trim()).map((s) => ({ ...s, id: `sub-${Date.now()}-${s.id}`, completed: false }))
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
-      deadline: "Today", dueTime: startStr, timeRange: `${startStr} \u2013 ${endStr}`,
+      deadline: formDate === todayISO ? "Today" : new Date(formDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+      date: formDate, dueTime: startStr, timeRange: `${startStr} \u2013 ${endStr}`,
       estimatedDuration: dur > 0 ? dur : 30, notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
       completed: false, order: tasks.length, createdAt: new Date().toISOString(),
+      dailyCompletions: formRecurrence === "daily" ? { [formDate]: false } : undefined,
     }
     setTasks((prev) => [...prev, newTask])
     setFormTitle(""); setFormWhy(""); setFormPriority("progress")
     setFormStartHour(9); setFormStartMin(0)
     setFormEndHour(9); setFormEndMin(30)
-    setFormRecurrence("none"); setFormSubtasks([]); setCreateOpen(false)
-  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formSubtasks, tasks.length])
+    setFormRecurrence("none"); setFormSubtasks([]); setFormDate(todayISO); setCreateOpen(false)
+  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formSubtasks, formDate, todayISO, tasks.length])
 
   const handleSaveEdit = useCallback(() => {
     if (!editingTask) return
-    setTasks((prev) => prev.map((t) => t.id === editingTask.id ? editingTask : t))
-    setEditingTask(null)
-  }, [editingTask])
+    if (editingTask.recurrence === "daily" && !recurringEditPrompt) {
+      setRecurringEditPrompt({ task: editingTask, scope: "this" })
+      return
+    }
+    if (recurringEditPrompt) {
+      const { task: origTask } = recurringEditPrompt
+      const viewDate = selectedDate || todayISO
+      if (recurringEditPrompt.scope === "this") {
+        setTasks((prev) => prev.map((t) => {
+          if (t.id !== editingTask.id) return t
+          const dc = { ...(t.dailyCompletions || {}) }
+          dc[viewDate] = t.completed
+          return { ...t, ...editingTask, dailyCompletions: dc }
+        }))
+      } else if (recurringEditPrompt.scope === "thisAndFuture") {
+        setTasks((prev) => prev.map((t) => {
+          if (t.id !== editingTask.id) return t
+          const dc = { ...(t.dailyCompletions || {}) }
+          const created = new Date(t.createdAt)
+          const view = new Date(viewDate + "T12:00:00")
+          const cur = new Date(view)
+          while (cur >= created) {
+            const ds = cur.toISOString().split("T")[0]
+            if (dc[ds] === undefined) dc[ds] = false
+            cur.setDate(cur.getDate() - 1)
+          }
+          return { ...editingTask, createdAt: new Date(viewDate + "T12:00:00").toISOString(), dailyCompletions: dc }
+        }))
+      } else {
+        setTasks((prev) => prev.map((t) => t.id === editingTask.id ? editingTask : t))
+      }
+    } else {
+      setTasks((prev) => prev.map((t) => t.id === editingTask.id ? editingTask : t))
+    }
+    setEditingTask(null); setRecurringEditPrompt(null)
+  }, [editingTask, recurringEditPrompt, selectedDate, todayISO])
 
   const addSubtaskInline = useCallback((taskId: string) => {
     const newSub: Subtask = { id: `sub-${Date.now()}`, title: "New subtask", completed: false }
@@ -817,7 +895,7 @@ export function TasksPage() {
   /* ═══════════════════════════════════════════════════════ */
 
   const renderListView = useCallback(() => {
-    if (displayTasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
+    if (displayTasks.length === 0) return <EmptyState onCreate={() => { setFormDate(selectedDate || todayISO); setCreateOpen(true) }} viewingDate={viewingDate} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
         <div className="sticky top-0 z-10 flex items-center gap-4 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -832,7 +910,9 @@ export function TasksPage() {
 
         <LayoutGroup>
           {displayTasks.map((task, i) => {
-            const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
+            const viewDate = selectedDate || todayISO
+            const isCompleted = task.recurrence === "daily" ? !!(task.dailyCompletions || {})[viewDate] : task.completed
+            const progress = isCompleted ? 100 : getSubtaskProgress(task.subtasks)
             const isExpanded = expandAll || expandedTasks.has(task.id)
             const isDragging = draggedId === task.id && dragType === "task"
             const isDragOver = dragOverId === task.id && dragOverId !== draggedId && dragType === "task"
@@ -856,8 +936,8 @@ export function TasksPage() {
 
                     {/* Checkbox */}
                     <div className="w-6 shrink-0">
-                      <button onClick={() => handleToggleTask(task.id)} disabled={isViewingPast}>
-                        {task.completed ? (
+                      <button onClick={() => handleToggleTask(task.id)}>
+                        {isCompleted ? (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
                             <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
                               <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -878,7 +958,7 @@ export function TasksPage() {
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                          <span className={`text-sm font-medium truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${isCompleted ? "line-through text-muted-foreground" : ""}`}
                             onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                             {task.title}
                           </span>
@@ -923,7 +1003,7 @@ export function TasksPage() {
                     <div className="w-[140px] shrink-0 flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                         <motion.div
-                          className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
+                          className={`h-full rounded-full ${isCompleted ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
                           initial={{ width: 0 }} animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5, ease: "easeOut" }} />
                       </div>
@@ -973,12 +1053,14 @@ export function TasksPage() {
   /* ═══════════════════════════════════════════════════════ */
 
   const renderBoardView = useCallback(() => {
-    if (displayTasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
+    if (displayTasks.length === 0) return <EmptyState onCreate={() => { setFormDate(selectedDate || todayISO); setCreateOpen(true) }} viewingDate={viewingDate} />
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <LayoutGroup>
           {displayTasks.map((task, i) => {
-            const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
+            const viewDate = selectedDate || todayISO
+            const isCompleted = task.recurrence === "daily" ? !!(task.dailyCompletions || {})[viewDate] : task.completed
+            const progress = isCompleted ? 100 : getSubtaskProgress(task.subtasks)
             const isExpanded = expandAll || expandedTasks.has(task.id)
             const pConfig = priorityConfig[task.priority]
             const completedSubs = task.subtasks.filter((s) => s.completed).length
@@ -991,8 +1073,8 @@ export function TasksPage() {
                   <div className="pl-10 pr-10 p-4">
                     <div className="flex items-start gap-2.5 mb-3">
                       <PriorityDot priority={task.priority} />
-                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5" disabled={isViewingPast}>
-                        {task.completed ? (
+                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
+                        {isCompleted ? (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
                             <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
                               <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -1004,7 +1086,7 @@ export function TasksPage() {
                       </button>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h3 className={`text-sm font-semibold truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                          <h3 className={`text-sm font-semibold truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${isCompleted ? "line-through text-muted-foreground" : ""}`}
                             onClick={() => !isViewingPast && setEditingTask({ ...task })}>{task.title}</h3>
                           {task.subtasks.length > 0 && (
                             <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">{completedSubs}/{task.subtasks.length}</span>
@@ -1046,7 +1128,7 @@ export function TasksPage() {
                     <div className="flex items-center gap-2 mb-3">
                       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                         <motion.div
-                          className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
+                          className={`h-full rounded-full ${isCompleted ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
                           initial={{ width: 0 }} animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5, ease: "easeOut" }} />
                       </div>
@@ -1095,7 +1177,9 @@ export function TasksPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Tasks{selectedDate ? ` \u2014 ${new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}` : " \u2014 Today"}
+            </h1>
             <p className="text-sm text-foreground mt-0.5 tracking-tight">
               <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
               <span style={{ color: "var(--brand-primary)" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
@@ -1127,7 +1211,8 @@ export function TasksPage() {
                   <TaskHistoryCalendar
                     taskHistory={taskHistory}
                     onSelectDate={(date, histTasks) => { setSelectedDate(date); setDayHistory({ date, tasks: histTasks }); setCalendarOpen(false) }}
-                    onClose={() => setCalendarOpen(false)} />
+                    onClose={() => setCalendarOpen(false)}
+                    selectedDate={selectedDate} />
                 )}
               </AnimatePresence>
             </div>
@@ -1153,7 +1238,7 @@ export function TasksPage() {
               </button>
             </Tooltip>
 
-            <Button className="glow h-9" onClick={() => setCreateOpen(true)}>
+            <Button className="glow h-9" onClick={() => { setFormDate(selectedDate || todayISO); setCreateOpen(true) }}>
               <Plus className="mr-1 h-4 w-4" /> Add Task
             </Button>
           </div>
@@ -1230,6 +1315,15 @@ export function TasksPage() {
                       value={editingTask ? editingTask.title : formTitle}
                       onChange={(e) => editingTask ? setEditingTask({ ...editingTask, title: e.target.value }) : setFormTitle(e.target.value)}
                       className="mt-1" autoFocus />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Task Date</label>
+                    <input
+                      type="date"
+                      value={editingTask ? editingTask.date : formDate}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, date: e.target.value }) : setFormDate(e.target.value)}
+                      className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Subtasks</label>
@@ -1334,6 +1428,47 @@ export function TasksPage() {
                     disabled={editingTask ? !editingTask.title.trim() : !formTitle.trim()}>
                     {editingTask ? "Save Changes" : "Add Task"}
                   </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Recurring Task Edit Prompt */}
+      <AnimatePresence>
+        {recurringEditPrompt && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => { setRecurringEditPrompt(null); setEditingTask(null) }} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm bg-background rounded-2xl border shadow-2xl">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-1">Apply changes to:</h3>
+                <p className="text-sm text-muted-foreground mb-4">This is a daily recurring task. How would you like to apply your edits?</p>
+                <div className="space-y-2">
+                  {[
+                    { value: "this" as const, label: "This occurrence only", desc: "Change applies only to this day" },
+                    { value: "thisAndFuture" as const, label: "This and future occurrences", desc: "Change applies from this day forward" },
+                    { value: "all" as const, label: "All occurrences", desc: "Change applies to every day" },
+                  ].map((opt) => (
+                    <button key={opt.value}
+                      className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                        recurringEditPrompt.scope === opt.value
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:bg-muted/50"
+                      }`}
+                      onClick={() => setRecurringEditPrompt({ ...recurringEditPrompt, scope: opt.value })}>
+                      <div className="text-sm font-medium">{opt.label}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-5">
+                  <Button variant="outline" className="flex-1" onClick={() => { setRecurringEditPrompt(null); setEditingTask(null) }}>Cancel</Button>
+                  <Button className="flex-1 glow" onClick={handleSaveEdit}>Apply</Button>
                 </div>
               </div>
             </motion.div>
