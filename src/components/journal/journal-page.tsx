@@ -1834,7 +1834,7 @@ function ToolbarButton({ icon, onClick, active, tooltip }: { icon: React.ReactNo
     <button
       onClick={onClick}
       title={tooltip}
-      className={`inline-flex items-center justify-center w-7 h-7 rounded transition-all duration-150 ${
+      className={`inline-flex items-center justify-center w-6 h-6 rounded transition-all duration-150 ${
         active
           ? "bg-violet-100 text-violet-700 shadow-sm"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
@@ -1846,7 +1846,7 @@ function ToolbarButton({ icon, onClick, active, tooltip }: { icon: React.ReactNo
 }
 
 function Divider() {
-  return <div className="w-px h-5 bg-slate-200 mx-1" />
+  return <div className="w-px h-4 bg-slate-200 mx-1" />
 }
 
 function DropdownButton({
@@ -1875,7 +1875,7 @@ function DropdownButton({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 rounded transition-colors"
+        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100 rounded transition-colors"
       >
         <span className="truncate max-w-[60px]">{value || label}</span>
         <ChevronDown className="h-3 w-3 opacity-50" />
@@ -1979,7 +1979,7 @@ export function FormattingToolbar({
         <Tooltip label="Text Colour">
           <button
             onClick={() => { setTextColourOpen(!textColourOpen); setHighlightOpen(false) }}
-            className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
+            className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
           >
             <Palette className="h-3.5 w-3.5" />
           </button>
@@ -2021,7 +2021,7 @@ export function FormattingToolbar({
         <Tooltip label="Highlight">
           <button
             onClick={() => { setHighlightOpen(!highlightOpen); setTextColourOpen(false) }}
-            className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
+            className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-slate-100 transition-colors"
           >
             <Highlighter className="h-3.5 w-3.5" />
           </button>
@@ -3281,7 +3281,17 @@ function EntryReader({
 /* ────────────────────────────────────────────────────── */
 
 export function JournalPage() {
-  const [entries, setEntries] = useState<JournalEntry[]>(sampleEntries)
+  const [entries, setEntries] = useState<JournalEntry[]>(() => {
+    if (typeof window === "undefined") return sampleEntries
+    try {
+      const saved = localStorage.getItem("intenteo-journal-entries")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {}
+    return sampleEntries
+  })
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
   const [calendarPanelOpen, setCalendarPanelOpen] = useState(false)
@@ -3319,6 +3329,12 @@ export function JournalPage() {
   }, [])
 
   const greeting = useMemo(() => journalGreetings[Math.floor(Math.random() * journalGreetings.length)], [])
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && entries.length > 0) {
+      localStorage.setItem("intenteo-journal-entries", JSON.stringify(entries))
+    }
+  }, [entries])
 
   const pinnedEntries = useMemo(() => entries.filter((e) => e.pinned), [entries])
 
