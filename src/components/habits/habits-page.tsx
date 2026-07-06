@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -208,6 +208,76 @@ function calcHabitScore(
   return { score: Math.round(Math.min(100, raw)), completionRate, consistency, timeAccuracy: ta }
 }
 
+/* ─── Weekly Occurrence Engine ─── */
+
+function getWeeklyOccurrences(recurrence: HabitRecurrence): number {
+  switch (recurrence.type) {
+    case "daily": return 7
+    case "weekdays": return 5
+    case "weekends": return 2
+    case "twice_per_week": return 2
+    case "three_per_week": return 3
+    case "four_per_week": return 4
+    case "five_per_week": return 5
+    case "custom_days": return recurrence.customDays?.length || 0
+    case "every_x_days": return Math.round(7 / Math.max(1, recurrence.interval || 1))
+    case "every_x_weeks": return Math.round(7 / Math.max(1, (recurrence.interval || 1) * 7))
+    case "monthly": return 7
+    default: return 7
+  }
+}
+
+function isHabitScheduledOnDate(habit: Habit, dateStr: string): boolean {
+  const date = new Date(dateStr)
+  const dayOfWeek = date.getDay()
+  const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayOfWeek]
+  const r = habit.recurrence
+  switch (r.type) {
+    case "daily": return true
+    case "weekdays": return dayOfWeek >= 1 && dayOfWeek <= 5
+    case "weekends": return dayOfWeek === 0 || dayOfWeek === 6
+    case "custom_days": return r.customDays?.includes(dayName) || false
+    case "every_x_days": {
+      const created = new Date(habit.createdAt)
+      const diff = Math.floor((date.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+      return diff >= 0 && diff % (r.interval || 1) === 0
+    }
+    case "every_x_weeks": {
+      const created = new Date(habit.createdAt)
+      const weekDiff = Math.floor((date.getTime() - created.getTime()) / (1000 * 60 * 60 * 24 * 7))
+      return weekDiff >= 0 && weekDiff % (r.interval || 1) === 0
+    }
+    case "monthly": return date.getDate() === new Date(habit.createdAt).getDate()
+    default: return true
+  }
+}
+
+/* ─── Animated Number Hook ─── */
+
+function useAnimatedNumber(target: number, duration = 400): number {
+  const [display, setDisplay] = useState(target)
+  const frameRef = useRef<number>(0)
+  const startRef = useRef(0)
+  const fromRef = useRef(target)
+
+  useEffect(() => {
+    if (target === fromRef.current) return
+    fromRef.current = display
+    startRef.current = performance.now()
+    const animate = (now: number) => {
+      const elapsed = now - startRef.current
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(fromRef.current + (target - fromRef.current) * eased))
+      if (progress < 1) frameRef.current = requestAnimationFrame(animate)
+    }
+    frameRef.current = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frameRef.current)
+  }, [target, duration])
+
+  return display
+}
+
 /* ─── Sample Data ─── */
 
 const createSampleHabits = (): Habit[] => {
@@ -238,48 +308,201 @@ const createSampleHabits = (): Habit[] => {
 
 /* ─── Summary Bar ─── */
 
-const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: Date }) => {
-  const dateStr = formatDateISO(selectedDate)
-  const completedToday = habits.filter(h => h.completions[dateStr]?.completed).length
-  const totalCount = habits.length
-  const weeklyRate = totalCount > 0 ? Math.round((completedToday / totalCount) * 100) : 0
-  const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0)
-  const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-  const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
-  let monthlyCompleted = 0, monthlyTotal = 0
-  for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
-    const dStr = formatDateISO(d)
-    habits.forEach(h => { if (h.completions[dStr]) monthlyCompleted++; monthlyTotal++ })
-  }
-  const monthlyRate = monthlyTotal > 0 ? Math.round((monthlyCompleted / monthlyTotal) * 100) : 0
+type CardFilter = "today" | "weekly" | "score" | "streak" | "all" | null
 
-  const sharedBorder = "linear-gradient(135deg, #1E0E6B, #EB9E5B)"
+const AnimatedValue = ({ value, suffix = "" }: { value: number; suffix?: string }) => {
+  const animated = useAnimatedNumber(value)
+  return <span>{animated}{suffix}</span>
+}
 
-  const cards = [
-    { label: "Today", value: `${completedToday}/${totalCount}`, gradient: "from-emerald-400 to-green-500", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
-    { label: "Weekly %", value: `${weeklyRate}%`, gradient: "from-blue-400 to-cyan-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
-    { label: "Monthly %", value: `${monthlyRate}%`, gradient: "from-purple-400 to-pink-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
-    { label: "Highest Streak", value: bestStreak.toString(), gradient: "from-orange-400 to-amber-500", icon: <Flame className="h-5 w-5 text-white" /> },
-    { label: "Total Habits", value: totalCount.toString(), gradient: "from-indigo-400 to-blue-500", icon: <Target className="h-5 w-5 text-white" /> },
-  ]
-
+const SummaryCard = ({
+  label,
+  primary,
+  secondary,
+  gradient,
+  icon,
+  tooltip,
+  onClick,
+  isActive,
+}: {
+  label: string
+  primary: string
+  secondary?: string
+  gradient: string
+  icon: React.ReactNode
+  tooltip: React.ReactNode
+  onClick: () => void
+  isActive?: boolean
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false)
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-      {cards.map((card, i) => (
-        <div key={i} className="rounded-xl p-[1px]" style={{ backgroundImage: sharedBorder }}>
-          <div className="rounded-[11px] bg-white dark:bg-gray-950 p-4 h-full">
-            <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient}`}>
-                {card.icon}
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{card.value}</p>
-                <p className="text-xs text-muted-foreground">{card.label}</p>
-              </div>
+    <div
+      className="relative"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div
+        onClick={onClick}
+        className={`rounded-xl p-[1px] cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
+        style={{ backgroundImage: "linear-gradient(135deg, #1E0E6B, #EB9E5B)" }}
+      >
+        <div className="rounded-[11px] bg-white dark:bg-gray-950 p-4 h-full">
+          <div className="flex items-center gap-3">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${gradient}`}>
+              {icon}
+            </div>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold leading-tight">{primary}</p>
+              <p className="text-xs text-muted-foreground">{label}</p>
+              {secondary && <p className="text-[10px] text-muted-foreground mt-0.5">{secondary}</p>}
             </div>
           </div>
         </div>
-      ))}
+      </div>
+      {showTooltip && (
+        <div className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-56 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs space-y-1.5 pointer-events-none">
+          {tooltip}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSortChange }: {
+  habits: Habit[]
+  selectedDate: Date
+  activeFilter: CardFilter
+  onFilterChange: (f: CardFilter) => void
+  onSortChange: (s: SortMode) => void
+}) => {
+  const today = getTodayISO()
+  const totalCount = habits.length
+
+  /* Card 1: Today's Progress */
+  const todayScheduled = habits.filter(h => isHabitScheduledOnDate(h, today)).length
+  const todayCompleted = habits.filter(h => isHabitScheduledOnDate(h, today) && h.completions[today]?.completed).length
+  const todayPercent = todayScheduled > 0 ? Math.round((todayCompleted / todayScheduled) * 100) : 0
+
+  /* Card 2: Weekly Completion */
+  const weekStart = new Date(selectedDate)
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+  const weekDates: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() + i)
+    weekDates.push(formatDateISO(d))
+  }
+  let weekScheduled = 0, weekCompleted = 0
+  habits.forEach(h => {
+    weekDates.forEach(d => {
+      if (isHabitScheduledOnDate(h, d)) {
+        weekScheduled++
+        if (h.completions[d]?.completed) weekCompleted++
+      }
+    })
+  })
+  const weekPercent = weekScheduled > 0 ? Math.round((weekCompleted / weekScheduled) * 100) : 0
+
+  /* Card 3: Overall Intent Score */
+  const avgScore = totalCount > 0 ? Math.round(habits.reduce((sum, h) => sum + h.habitScore, 0) / totalCount) : 0
+
+  /* Card 4: Highest Streak */
+  const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0)
+  const bestStreakHabit = habits.find(h => h.bestStreak === bestStreak)
+
+  /* Card 5: Active Habits */
+  const activeCount = totalCount
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <SummaryCard
+        label="Today's Progress"
+        primary={totalCount === 0 ? "--" : `${todayCompleted} / ${todayScheduled}`}
+        secondary={totalCount === 0 ? "No habits today" : `${todayPercent}%`}
+        gradient="from-emerald-400 to-green-500"
+        icon={<CheckCircle2 className="h-5 w-5 text-white" />}
+        isActive={activeFilter === "today"}
+        onClick={() => onFilterChange(activeFilter === "today" ? null : "today")}
+        tooltip={
+          <>
+            <p className="font-medium text-foreground">Today's Progress</p>
+            <div className="flex justify-between"><span className="text-muted-foreground">Completed today</span><span className="font-medium">{todayCompleted}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Scheduled today</span><span className="font-medium">{todayScheduled}</span></div>
+            <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Completion</span><span className="font-medium">{todayPercent}%</span></div>
+          </>
+        }
+      />
+
+      <SummaryCard
+        label="Weekly Completion"
+        primary={totalCount === 0 ? "--" : `${weekPercent}%`}
+        secondary={totalCount === 0 ? "Nothing scheduled" : `${weekCompleted}/${weekScheduled} completed`}
+        gradient="from-blue-400 to-cyan-500"
+        icon={<TrendingUp className="h-5 w-5 text-white" />}
+        isActive={activeFilter === "weekly"}
+        onClick={() => onFilterChange(activeFilter === "weekly" ? null : "weekly")}
+        tooltip={
+          <>
+            <p className="font-medium text-foreground">Weekly Completion</p>
+            <div className="flex justify-between"><span className="text-muted-foreground">Scheduled this week</span><span className="font-medium">{weekScheduled}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span className="font-medium">{weekCompleted}</span></div>
+            <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Completion</span><span className="font-medium">{weekPercent}%</span></div>
+          </>
+        }
+      />
+
+      <SummaryCard
+        label="Overall Intent Score"
+        primary={totalCount === 0 ? "--" : `${avgScore}`}
+        secondary={totalCount === 0 ? "No data yet" : "out of 100"}
+        gradient="from-purple-400 to-pink-500"
+        icon={<TrendingUp className="h-5 w-5 text-white" />}
+        isActive={activeFilter === "score"}
+        onClick={() => { onFilterChange(activeFilter === "score" ? null : "score"); onSortChange("highest_score") }}
+        tooltip={
+          <>
+            <p className="font-medium text-foreground">Overall Intent Score</p>
+            <div className="flex justify-between"><span className="text-muted-foreground">Average Intent Score</span><span className="font-medium">{avgScore} / 100</span></div>
+            <p className="text-muted-foreground mt-1">Average of all active habit scores</p>
+          </>
+        }
+      />
+
+      <SummaryCard
+        label="Highest Streak"
+        primary={totalCount === 0 ? "0" : `${bestStreak}`}
+        secondary={totalCount === 0 ? "No streaks yet" : bestStreakHabit?.name}
+        gradient="from-orange-400 to-amber-500"
+        icon={<Flame className="h-5 w-5 text-white" />}
+        isActive={activeFilter === "streak"}
+        onClick={() => { onFilterChange(activeFilter === "streak" ? null : "streak"); onSortChange("longest_streak") }}
+        tooltip={
+          <>
+            <p className="font-medium text-foreground">Highest Streak</p>
+            {bestStreakHabit ? (
+              <div className="flex justify-between"><span className="text-muted-foreground">{bestStreakHabit.name}</span><span className="font-medium">{bestStreak} days</span></div>
+            ) : (
+              <p className="text-muted-foreground">No streaks yet</p>
+            )}
+          </>
+        }
+      />
+
+      <SummaryCard
+        label="Active Habits"
+        primary={totalCount === 0 ? "0" : `${activeCount}`}
+        secondary={totalCount === 0 ? "Create your first habit" : "Currently active"}
+        gradient="from-indigo-400 to-blue-500"
+        icon={<Target className="h-5 w-5 text-white" />}
+        isActive={activeFilter === "all"}
+        onClick={() => onFilterChange(activeFilter === "all" ? null : "all")}
+        tooltip={
+          <>
+            <p className="font-medium text-foreground">Active Habits</p>
+            <div className="flex justify-between"><span className="text-muted-foreground">Currently active</span><span className="font-medium">{activeCount}</span></div>
+          </>
+        }
+      />
     </div>
   )
 }
@@ -841,6 +1064,7 @@ export function HabitsPage() {
   const [trackerPeriod, setTrackerPeriod] = useState<TrackerPeriod>("week")
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortMode>("all")
+  const [activeFilter, setActiveFilter] = useState<CardFilter>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -933,6 +1157,19 @@ export function HabitsPage() {
       result = result.filter(h => h.name.toLowerCase().includes(q) || h.category.toLowerCase().includes(q) || (h.customCategory || "").toLowerCase().includes(q) || h.color.toLowerCase().includes(q))
     }
     const today = getTodayISO()
+    if (activeFilter === "today") {
+      result = result.filter(h => isHabitScheduledOnDate(h, today))
+    } else if (activeFilter === "weekly") {
+      const weekStart = new Date(selectedDate)
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+      const weekDates: string[] = []
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart)
+        d.setDate(d.getDate() + i)
+        weekDates.push(formatDateISO(d))
+      }
+      result = result.filter(h => weekDates.some(d => isHabitScheduledOnDate(h, d)))
+    }
     switch (sortBy) {
       case "completed_today": result = result.filter(h => h.completions[today]?.completed); break
       case "not_completed": result = result.filter(h => !h.completions[today]?.completed); break
@@ -946,7 +1183,7 @@ export function HabitsPage() {
       case "schedule_type": result.sort((a, b) => a.schedule.type.localeCompare(b.schedule.type)); break
     }
     return result
-  }, [habits, searchQuery, sortBy])
+  }, [habits, searchQuery, sortBy, activeFilter, selectedDate])
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="text-muted-foreground">Loading habits...</div></div>
 
@@ -965,7 +1202,7 @@ export function HabitsPage() {
         </div>
       </div>
 
-      <SummaryBar habits={habits} selectedDate={selectedDate} />
+      <SummaryBar habits={habits} selectedDate={selectedDate} activeFilter={activeFilter} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -973,6 +1210,19 @@ export function HabitsPage() {
           <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 bg-white/50 dark:bg-white/5 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" />
         </div>
+        {activeFilter && (
+          <button
+            onClick={() => setActiveFilter(null)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#1E0E6B] bg-[#1E0E6B]/10 rounded-lg hover:bg-[#1E0E6B]/20 transition-colors shrink-0"
+          >
+            <X className="h-3 w-3" />
+            {activeFilter === "today" && "Today's Habits"}
+            {activeFilter === "weekly" && "This Week's Habits"}
+            {activeFilter === "score" && "Sorted by Score"}
+            {activeFilter === "streak" && "Sorted by Streak"}
+            {activeFilter === "all" && "All Habits"}
+          </button>
+        )}
         <div className="relative">
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortMode)}
             className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
