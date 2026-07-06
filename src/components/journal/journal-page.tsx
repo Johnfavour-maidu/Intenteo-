@@ -1846,7 +1846,7 @@ function ToolbarButton({ icon, onClick, active, tooltip }: { icon: React.ReactNo
 }
 
 function Divider() {
-  return <div className="w-px h-4 bg-slate-200 mx-1" />
+  return <div className="w-px h-3.5 bg-slate-200 mx-0.5" />
 }
 
 function DropdownButton({
@@ -1875,7 +1875,7 @@ function DropdownButton({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100 rounded transition-colors"
+        className="inline-flex items-center gap-1 px-1.5 py-px text-xs text-slate-700 hover:bg-slate-100 rounded transition-colors"
       >
         <span className="truncate max-w-[60px]">{value || label}</span>
         <ChevronDown className="h-3 w-3 opacity-50" />
@@ -1946,7 +1946,7 @@ export function FormattingToolbar({
   }, [])
 
   return (
-    <div className="flex items-center flex-wrap gap-0.5 py-0.5 border-t border-border/40">
+    <div className="flex items-center flex-wrap gap-0.5 py-px border-t border-border/40">
       <DropdownButton
         label="Font"
         options={FONT_FAMILIES}
@@ -2309,6 +2309,7 @@ interface RichTextEditorProps {
   spellCheck?: boolean
   className?: string
   style?: React.CSSProperties
+  isDictating?: boolean
 }
 
 const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function RichTextEditor({
@@ -2319,6 +2320,7 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
   spellCheck = true,
   className = "",
   style,
+  isDictating = false,
 }, ref) {
   const editorRef = useRef<HTMLDivElement>(null)
   const [charCount, setCharCount] = useState(0)
@@ -2328,11 +2330,12 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
   useImperativeHandle(ref, () => editorRef.current as HTMLDivElement)
 
   useEffect(() => {
+    if (isDictating) return
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value
       setCharCount(editorRef.current.textContent?.length || 0)
     }
-  }, [value])
+  }, [value, isDictating])
 
   const execCmd = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value)
@@ -2586,6 +2589,7 @@ function WritingArea({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const writingStartTime = useRef<Date>(new Date())
   const recognitionRef = useRef<unknown>(null)
+  const [isDictating, setIsDictating] = useState(false)
 
   const currentPrompt = useMemo(() => journalTypeConfig[type].prompt, [type])
 
@@ -2811,6 +2815,7 @@ function WritingArea({
     if (isListening && recognitionRef.current) {
       (recognitionRef.current as { stop: () => void }).stop()
       setIsListening(false)
+      setIsDictating(false)
       return
     }
 
@@ -2819,6 +2824,7 @@ function WritingArea({
     recognition.continuous = true
     recognition.interimResults = true
     recognitionRef.current = recognition
+    setIsDictating(true)
 
     recognition.onresult = (event: unknown) => {
       const e = event as { resultIndex: number; results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } } }
@@ -2837,8 +2843,18 @@ function WritingArea({
       }
     }
 
-    recognition.onend = () => { setIsListening(false) }
-    recognition.onerror = () => { setIsListening(false) }
+    recognition.onend = () => {
+      setIsListening(false)
+      setIsDictating(false)
+      if (editorRef.current) {
+        setContentHtml(editorRef.current.innerHTML)
+        setContentText(editorRef.current.innerText || "")
+      }
+    }
+    recognition.onerror = () => {
+      setIsListening(false)
+      setIsDictating(false)
+    }
 
     (recognition as { start: () => void }).start()
     setIsListening(true)
@@ -2929,6 +2945,7 @@ function WritingArea({
             onChange={handleContentChange}
             placeholder={currentPrompt}
             spellCheck={true}
+            isDictating={isDictating}
           />
         </div>
 
