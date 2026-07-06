@@ -362,8 +362,8 @@ function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose, selectedDate 
                 onClose()
               }}>
               {day}
-              {hasTasks && !isToday && (
-                <div className="absolute bottom-1 h-1 w-1 rounded-full bg-primary" />
+              {hasTasks && (
+                <div className="absolute bottom-0.5 h-1 w-1 rounded-full bg-primary" />
               )}
             </button>
           )
