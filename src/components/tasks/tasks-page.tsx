@@ -488,7 +488,12 @@ export function TasksPage() {
       const saved = localStorage.getItem("intenteo-tasks")
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const savedIds = new Set(parsed.map((t: Task) => t.id))
+          const missingDemo = sampleTasks.filter((t) => !savedIds.has(t.id))
+          if (missingDemo.length > 0) return [...parsed, ...missingDemo]
+          return parsed
+        }
       }
     } catch {}
     return sampleTasks
