@@ -1,17 +1,14 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { ProgressRing } from "@/components/ui/progress-ring"
 import { GlassCard } from "@/components/ui/glass-card"
 import {
-  Plus, Target, TrendingUp, Calendar, ChevronRight, Sparkles, ArrowUpRight,
-  CheckCircle2, Clock, X, Search, ChevronDown, Edit3, Trash2, Link, Paperclip,
-  FileText, Star, Zap, Briefcase, Folder, ListChecks, AlignLeft, Hash,
-  ChevronLeft, MoreHorizontal, Copy, Archive, Award, RefreshCw,
+  Plus, Target, TrendingUp, Calendar, ChevronRight, Sparkles,
+  CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
 } from "lucide-react"
 
 /* ─── Types ─── */
@@ -517,17 +514,23 @@ export function GoalsPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const sg = localStorage.getItem("intenteo-goals")
-    const sp = localStorage.getItem("intenteo-projects")
-    const sv = localStorage.getItem("intenteo-vision")
-    const sf = localStorage.getItem("intenteo-goals-filter")
-    const ss = localStorage.getItem("intenteo-goals-sort")
-    if (sg) { try { setGoals(JSON.parse(sg)) } catch { setGoals(createSampleGoals()) } } else setGoals(createSampleGoals())
-    if (sp) { try { setProjects(JSON.parse(sp)) } catch { setProjects(createSampleProjects()) } } else setProjects(createSampleProjects())
-    if (sv) { try { setVision(JSON.parse(sv)) } catch {} }
-    if (sf) setFilter(sf as FilterMode)
-    if (ss) setSortBy(ss as SortMode)
-    setIsLoading(false)
+    try {
+      const sg = localStorage.getItem("intenteo-goals")
+      const sp = localStorage.getItem("intenteo-projects")
+      const sv = localStorage.getItem("intenteo-vision")
+      const sf = localStorage.getItem("intenteo-goals-filter")
+      const ss = localStorage.getItem("intenteo-goals-sort")
+      if (sg) { try { setGoals(JSON.parse(sg)) } catch { setGoals(createSampleGoals()) } } else setGoals(createSampleGoals())
+      if (sp) { try { setProjects(JSON.parse(sp)) } catch { setProjects(createSampleProjects()) } } else setProjects(createSampleProjects())
+      if (sv) { try { setVision(JSON.parse(sv)) } catch { /* keep default */ } }
+      if (sf) setFilter(sf as FilterMode)
+      if (ss) setSortBy(ss as SortMode)
+    } catch {
+      setGoals(createSampleGoals())
+      setProjects(createSampleProjects())
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-goals", JSON.stringify(goals)) }, [goals, isLoading])
