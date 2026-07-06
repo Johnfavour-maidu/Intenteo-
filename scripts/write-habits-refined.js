@@ -1,4 +1,7 @@
-"use client"
+const fs = require('fs');
+const path = require('path');
+
+const content = `"use client"
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo, useLayoutEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -59,7 +62,7 @@ const formatDateISO = (date: Date): string => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
   const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+  return \`\${year}-\${month}-\${day}\`
 }
 
 const formatDayName = (date: Date): string => date.toLocaleDateString("en-US", { weekday: "short" })
@@ -246,9 +249,9 @@ const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: D
   const monthlyRate = monthlyTotal > 0 ? Math.round((monthlyCompleted / monthlyTotal) * 100) : 0
 
   const cards = [
-    { label: "Today", value: `${completedToday}/${totalCount}`, gradient: "from-emerald-400 to-green-500", borderGradient: "from-emerald-400 to-green-500", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
-    { label: "Weekly %", value: `${weeklyRate}%`, gradient: "from-blue-400 to-cyan-500", borderGradient: "from-blue-400 to-cyan-500", icon: <BarChart3 className="h-5 w-5 text-white" /> },
-    { label: "Monthly %", value: `${monthlyRate}%`, gradient: "from-purple-400 to-pink-500", borderGradient: "from-purple-400 to-pink-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
+    { label: "Today", value: \`\${completedToday}/\${totalCount}\`, gradient: "from-emerald-400 to-green-500", borderGradient: "from-emerald-400 to-green-500", icon: <CheckCircle2 className="h-5 w-5 text-white" /> },
+    { label: "Weekly %", value: \`\${weeklyRate}%\`, gradient: "from-blue-400 to-cyan-500", borderGradient: "from-blue-400 to-cyan-500", icon: <BarChart3 className="h-5 w-5 text-white" /> },
+    { label: "Monthly %", value: \`\${monthlyRate}%\`, gradient: "from-purple-400 to-pink-500", borderGradient: "from-purple-400 to-pink-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
     { label: "Best Streak", value: bestStreak.toString(), gradient: "from-orange-400 to-amber-500", borderGradient: "from-orange-400 to-amber-500", icon: <Flame className="h-5 w-5 text-white" /> },
     { label: "Total Habits", value: totalCount.toString(), gradient: "from-indigo-400 to-blue-500", borderGradient: "from-indigo-400 to-blue-500", icon: <Target className="h-5 w-5 text-white" /> },
   ]
@@ -256,10 +259,10 @@ const SummaryBar = ({ habits, selectedDate }: { habits: Habit[]; selectedDate: D
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       {cards.map((card, i) => (
-        <div key={i} className={`relative rounded-2xl p-[2px] bg-gradient-to-br ${card.borderGradient}`}>
+        <div key={i} className={\`relative rounded-2xl p-[2px] bg-gradient-to-br \${card.borderGradient}\`}>
           <div className="bg-white dark:bg-gray-950 rounded-2xl p-4 h-full">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient}`}>
+              <div className={\`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br \${card.gradient}\`}>
                 {card.icon}
               </div>
               <div>
@@ -316,20 +319,20 @@ const WeeklyCalendar = ({
             <button
               key={dateStr}
               onClick={() => onDateSelect(date)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all text-center min-w-[48px] ${
+              className={\`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all text-center min-w-[48px] \${
                 isSelected
                   ? "bg-[#1E0E6B] text-white"
                   : isToday
                   ? "bg-[#EB9E5B]/20 text-[#1E0E6B] font-semibold"
                   : "hover:bg-white/50"
-              }`}
+              }\`}
             >
               <span className="text-[10px] font-medium leading-tight">{formatDayName(date)}</span>
               <span className="text-base font-bold leading-tight">{formatDayNumber(date)}</span>
               {completedCount > 0 && (
                 <div className="flex gap-0.5">
                   {[...Array(Math.min(completedCount, 3))].map((_, i) => (
-                    <div key={i} className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-emerald-500"}`} />
+                    <div key={i} className={\`w-1 h-1 rounded-full \${isSelected ? "bg-white" : "bg-emerald-500"}\`} />
                   ))}
                 </div>
               )}
@@ -483,7 +486,7 @@ const HabitRow = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xl">{habit.icon}</span>
-          <h3 className={`font-medium ${isCompleted ? "line-through text-muted-foreground" : ""}`}>{habit.name}</h3>
+          <h3 className={\`font-medium \${isCompleted ? "line-through text-muted-foreground" : ""}\`}>{habit.name}</h3>
           <Badge variant="secondary" className="text-xs">{habit.category}</Badge>
           <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{habit.duration}</span>
         </div>
@@ -556,7 +559,7 @@ const TrackerView = ({
               const dateStr = formatDateISO(date)
               const isToday = dateStr === today
               return (
-                <th key={dateStr} className={`p-1.5 text-center font-medium text-xs min-w-[44px] ${isToday ? "text-[#1E0E6B] font-bold" : "text-muted-foreground"}`}>
+                <th key={dateStr} className={\`p-1.5 text-center font-medium text-xs min-w-[44px] \${isToday ? "text-[#1E0E6B] font-bold" : "text-muted-foreground"}\`}>
                   <div className="flex flex-col items-center gap-0">
                     <span className="text-[10px]">{formatDayName(date)}</span>
                     <span className="text-sm">{formatDayNumber(date)}</span>
@@ -594,9 +597,9 @@ const TrackerView = ({
                       onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateStr })}
                       onMouseLeave={() => setHoveredCell(null)}
                       disabled={isFuture}
-                      className={`w-7 h-7 rounded-md transition-all ${
+                      className={\`w-7 h-7 rounded-md transition-all \${
                         isFuture ? "cursor-not-allowed opacity-30" : isCompleted ? "cursor-pointer hover:scale-110" : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
-                      }`}
+                      }\`}
                       style={isCompleted ? { backgroundColor: habit.colorHex } : undefined}
                     >
                       {isCompleted && <CheckCircle2 className="h-4 w-4 text-white mx-auto" />}
@@ -750,9 +753,9 @@ const HabitModal = ({
                     <button
                       key={c.name}
                       onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      className={\`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors \${
                         colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"
-                      }`}
+                      }\`}
                     >
                       <div className="w-4 h-4 rounded-full" style={{ backgroundColor: c.hex }} />
                       <span>{c.name}</span>
@@ -783,9 +786,9 @@ const HabitModal = ({
                       <button
                         key={ic}
                         onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
-                        className={`text-xl p-2 rounded-lg transition-all text-center ${
+                        className={\`text-xl p-2 rounded-lg transition-all text-center \${
                           icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"
-                        }`}
+                        }\`}
                       >
                         {ic}
                       </button>
@@ -1038,4 +1041,9 @@ export function HabitsPage() {
       <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} habit={editingHabit} />
     </div>
   )
-}
+}`;
+
+const filePath = path.join(__dirname, '..', 'src', 'components', 'habits', 'habits-page.tsx');
+fs.writeFileSync(filePath, content, 'utf-8');
+console.log('Habits page refinements written successfully!');
+console.log('File size:', content.length, 'bytes');
