@@ -1,4 +1,8 @@
-"use client"
+// Helper script to write the new Habits page
+const fs = require('fs');
+const path = require('path');
+
+const content = `"use client"
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -342,13 +346,13 @@ const WeeklyCalendar = ({
             <button
               key={dateStr}
               onClick={() => onDateSelect(date)}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+              className={\`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all \${
                 isSelected
                   ? "bg-[#1E0E6B] text-white"
                   : isToday
                   ? "bg-[#EB9E5B]/20 text-[#1E0E6B] font-semibold"
                   : "hover:bg-white/50"
-              }`}
+              }\`}
             >
               <span className="text-xs font-medium">{formatDayName(date)}</span>
               <span className="text-lg font-bold">{formatDayNumber(date)}</span>
@@ -357,9 +361,9 @@ const WeeklyCalendar = ({
                   {[...Array(Math.min(completedCount, 3))].map((_, i) => (
                     <div
                       key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${
+                      className={\`w-1.5 h-1.5 rounded-full \${
                         isSelected ? "bg-white" : "bg-emerald-500"
-                      }`}
+                      }\`}
                     />
                   ))}
                 </div>
@@ -464,7 +468,7 @@ const HabitRow = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-xl">{habit.icon}</span>
-          <h3 className={`font-medium ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
+          <h3 className={\`font-medium \${isCompleted ? "line-through text-muted-foreground" : ""}\`}>
             {habit.name}
           </h3>
           <Badge variant="secondary" className="text-xs">
@@ -637,9 +641,9 @@ const HabitModal = ({
                 <button
                   key={ic}
                   onClick={() => setIcon(ic)}
-                  className={`text-2xl p-2 rounded-lg transition-all ${
+                  className={\`text-2xl p-2 rounded-lg transition-all \${
                     icon === ic ? "bg-[#EB9E5B]/20 scale-110" : "hover:bg-gray-100"
-                  }`}
+                  }\`}
                 >
                   {ic}
                 </button>
@@ -654,9 +658,9 @@ const HabitModal = ({
                 <button
                   key={c}
                   onClick={() => setColor(c)}
-                  className={`w-8 h-8 rounded-full bg-gradient-to-br ${c} ${
+                  className={\`w-8 h-8 rounded-full bg-gradient-to-br \${c} \${
                     color === c ? "ring-2 ring-offset-2 ring-[#1E0E6B]" : ""
-                  }`}
+                  }\`}
                 />
               ))}
             </div>
@@ -933,4 +937,8 @@ export function HabitsPage() {
       />
     </div>
   )
-}
+}`;
+
+const filePath = path.join(__dirname, '..', 'src', 'components', 'habits', 'habits-page.tsx');
+fs.writeFileSync(filePath, content, 'utf-8');
+console.log('Habits page written successfully!');
