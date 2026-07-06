@@ -9,9 +9,11 @@ const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-US", { w
 const d1 = new Date(Date.now() - 86400000)
 const d2 = new Date(Date.now() - 86400000 * 2)
 const d3 = new Date(Date.now() - 86400000 * 3)
+const d7 = new Date(Date.now() - 86400000 * 7)
 const yesterday = d1.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 const twoDaysAgo = d2.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 const threeDaysAgo = d3.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
+const lastWeek = d7.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 
 export const sampleTasks: Task[] = [
   {
@@ -151,6 +153,58 @@ export const sampleTasks: Task[] = [
     completed: true,
     order: 1,
     createdAt: d3.toISOString(),
+  },
+  {
+    id: "past-d7-1",
+    title: "Client presentation",
+    whyItMatters: "Delivering results builds trust and opens new opportunities.",
+    priority: "priority",
+    deadline: lastWeek,
+    dueTime: "10:00 AM",
+    timeRange: "10:00 AM \u2013 11:30 AM",
+    estimatedDuration: 90,
+    notes: "Use the updated deck with Q2 numbers.",
+    subtasks: [
+      { id: "pd7-1", title: "Finalize slides", completed: true },
+      { id: "pd7-2", title: "Practice delivery", completed: true },
+      { id: "pd7-3", title: "Send follow-up email", completed: true },
+    ],
+    recurrence: "none",
+    completed: true,
+    order: 0,
+    createdAt: d7.toISOString(),
+  },
+  {
+    id: "past-d7-2",
+    title: "Vibecode session",
+    whyItMatters: "Deep work sessions compound into major project progress.",
+    priority: "progress",
+    deadline: lastWeek,
+    dueTime: "2:00 PM",
+    timeRange: "2:00 PM \u2013 4:00 PM",
+    estimatedDuration: 120,
+    notes: "Focus on the new feature branch.",
+    subtasks: [],
+    recurrence: "none",
+    completed: true,
+    order: 1,
+    createdAt: d7.toISOString(),
+  },
+  {
+    id: "past-d7-3",
+    title: "Reflection",
+    whyItMatters: "Weekly reflection keeps you aligned with long-term goals.",
+    priority: "maintenance",
+    deadline: lastWeek,
+    dueTime: "8:00 PM",
+    timeRange: "8:00 PM \u2013 8:30 PM",
+    estimatedDuration: 30,
+    notes: "Review the week's wins and areas to improve.",
+    subtasks: [],
+    recurrence: "none",
+    completed: true,
+    order: 2,
+    createdAt: d7.toISOString(),
   },
   {
     id: "1",

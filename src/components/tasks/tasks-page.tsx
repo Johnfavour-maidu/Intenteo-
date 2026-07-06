@@ -98,7 +98,7 @@ const TaskRow = memo(function TaskRow({
 })
 
 const hours24 = Array.from({ length: 24 }, (_, i) => i)
-const minutes = Array.from({ length: 12 }, (_, i) => i * 5)
+const minutes = Array.from({ length: 60 }, (_, i) => i)
 const deadlineOptions = ["Today", "Tomorrow", "Next Week", "Custom"]
 
 function formatDuration(minutes: number): string {
@@ -187,14 +187,25 @@ function TimeRangePicker({
 }) {
   const s = parseTime(startTime) || { hour: 9, minute: 0 }
   const e = parseTime(endTime) || { hour: 9, minute: 30 }
+  const dur = calcDurationFromRange(startTime, endTime)
 
   return (
-    <div className="flex items-center gap-3">
-      <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Start" />
-      <span className="text-muted-foreground mt-5">\u2013</span>
-      <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="End" />
-      <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
-      <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Hr" />
+          <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="Hr" />
+          <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
+        </div>
+      </div>
+      <p className="text-[10px] text-muted-foreground text-center">
+        Duration: {dur > 0 ? formatDuration(dur) : "—"}
+      </p>
     </div>
   )
 }
@@ -341,10 +352,8 @@ function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose }: {
                 isToday ? "bg-primary text-primary-foreground font-semibold" : "hover:bg-muted text-foreground"
               }`}
               onClick={() => {
-                if (hasTasks) {
-                  onSelectDate(dateStr, taskHistory[dateStr])
-                  onClose()
-                }
+                onSelectDate(dateStr, taskHistory[dateStr] || [])
+                onClose()
               }}>
               {day}
               {hasTasks && !isToday && (
@@ -710,13 +719,13 @@ export function TasksPage() {
           if (parsedTasks[0].timeRange) {
             const parts = parsedTasks[0].timeRange.split(" \u2013 ")
             if (parts.length === 2) {
-              const s = parseTime24(parts[0])
-              const en = parseTime24(parts[1])
+              const s = parseTime(parts[0])
+              const en = parseTime(parts[1])
               if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute) }
               if (en) { setFormEndHour(en.hour); setFormEndMin(en.minute) }
             }
           }
-          if (parsedTasks[0].duration) {
+          if (parsedTasks[0].duration && !parsedTasks[0].timeRange) {
             const dur = parseDurationText(parsedTasks[0].duration)
             if (dur > 0) {
               const endMin = formStartHour * 60 + formStartMin + dur
@@ -808,8 +817,8 @@ export function TasksPage() {
         <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(200px,1fr)_minmax(130px,150px)_minmax(80px,100px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div></div>
           <div className="pl-2">Task</div>
-          <div className="hidden sm:block">Time Range</div>
-          <div className="hidden sm:block pl-2">Duration</div>
+          <div className="hidden sm:block pl-2">Time Range</div>
+          <div className="hidden sm:block">Duration</div>
           <div>Progress</div>
           <div className="text-right">Actions</div>
         </div>
@@ -1245,9 +1254,6 @@ export function TasksPage() {
                             if (en) { setFormEndHour(en.hour); setFormEndMin(en.minute) }
                           }
                         }} />
-                      <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-                        Duration: {formatDuration(editingTask ? editingTask.estimatedDuration : calcDurationFromRange(formatTimeSelection(formStartHour, formStartMin), formatTimeSelection(formEndHour, formEndMin)))}
-                      </p>
                     </div>
                   </div>
                   <div>
@@ -1358,16 +1364,15 @@ function parseVoiceTasks(text: string): ParsedVoiceTask[] {
     let timeRange: string | null = null
     let duration: string | null = null
 
-    const timeMatch = clean.match(/(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|until|till|-)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i)
+    const timeRangeRegex = /(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|until|till|[-–—])\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i
+    const betweenRegex = /between\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+and\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i
+    const timeMatch = clean.match(timeRangeRegex) || clean.match(betweenRegex)
+
     if (timeMatch) {
       const startParsed = parseTime24(timeMatch[1])
       const endParsed = parseTime24(timeMatch[2])
       if (startParsed && endParsed) {
-        const fmt = (h: number, m: number) => {
-          const ampm = h >= 12 ? "PM" : "AM"
-          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-          return `${h12}:${String(m).padStart(2, "0")} ${ampm}`
-        }
+        const fmt = (h: number, m: number) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
         timeRange = `${fmt(startParsed.hour, startParsed.minute)} \u2013 ${fmt(endParsed.hour, endParsed.minute)}`
       }
     }
