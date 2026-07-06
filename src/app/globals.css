@@ -303,6 +303,15 @@
     margin: 0.1em 0;
   }
 
+  /* Editor blockquote styling */
+  [contenteditable] blockquote {
+    border-left: 3px solid var(--brand-primary, #1E0E6B);
+    padding-left: 12px;
+    margin: 4px 0;
+    color: #6b7280;
+    font-style: italic;
+  }
+
   /* Journal Page Styles */
   .journal-page-lined {
     background-image: repeating-linear-gradient(

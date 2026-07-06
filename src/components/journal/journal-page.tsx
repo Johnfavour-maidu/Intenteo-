@@ -3041,7 +3041,23 @@ function WritingArea({
           onAlignRight={() => execFormat("justifyRight")}
           onInsertUnorderedList={() => execFormat("insertUnorderedList")}
           onInsertOrderedList={() => execFormat("insertOrderedList")}
-          onInsertBlockquote={() => execFormat("formatBlock", "<blockquote>")}
+          onInsertBlockquote={() => {
+            if (editorRef.current) editorRef.current.focus()
+            const sel = window.getSelection()
+            if (sel && sel.rangeCount > 0) {
+              const range = sel.getRangeAt(0)
+              const selectedText = range.toString()
+              if (selectedText) {
+                document.execCommand("insertHTML", false, `<blockquote>${selectedText}</blockquote>`)
+              } else {
+                document.execCommand("insertHTML", false, `<blockquote>&nbsp;</blockquote>`)
+              }
+              if (editorRef.current) {
+                setContentHtml(editorRef.current.innerHTML)
+                setContentText(editorRef.current.innerText || "")
+              }
+            }
+          }}
           onInsertHorizontalRule={() => execFormat("insertHorizontalRule")}
           onUndo={() => execFormat("undo")}
           onRedo={() => execFormat("redo")}
