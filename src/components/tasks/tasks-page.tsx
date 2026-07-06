@@ -21,26 +21,26 @@ import {
   Zap,
   ArrowRightLeft,
   Calendar,
+  Volume2,
+  StopCircle,
 } from "lucide-react"
 import { useToast, ToastContainer } from "./task-toast"
 
+const PRIORITY_COLORS: Record<TaskPriority, string> = {
+  priority: "#EF4444",
+  progress: "#3B82F6",
+  maintenance: "#22C55E",
+}
+
 const priorityConfig: Record<
   TaskPriority,
-  {
-    label: string
-    cssColor: string
-    pastelBg: string
-    pastelBorder: string
-    railGradient: string
-    tint: string
-  }
+  { label: string; cssColor: string; pastelBg: string; pastelBorder: string; tint: string }
 > = {
   priority: {
     label: "Priority",
     cssColor: "var(--brand-secondary)",
     pastelBg: "var(--task-tint-priority)",
     pastelBorder: "var(--task-priority)",
-    railGradient: "var(--task-rail-priority)",
     tint: "var(--task-tint-priority)",
   },
   progress: {
@@ -48,7 +48,6 @@ const priorityConfig: Record<
     cssColor: "var(--brand-primary)",
     pastelBg: "var(--task-tint-progress)",
     pastelBorder: "var(--task-progress)",
-    railGradient: "var(--task-rail-progress)",
     tint: "var(--task-tint-progress)",
   },
   maintenance: {
@@ -56,52 +55,27 @@ const priorityConfig: Record<
     cssColor: "var(--task-maintenance)",
     pastelBg: "var(--task-tint-maintenance)",
     pastelBorder: "var(--task-maintenance)",
-    railGradient: "var(--task-rail-maintenance)",
     tint: "var(--task-tint-maintenance)",
   },
 }
 
-/* ────────────────────────────────────────────────────── */
-/* Premium Task Rails — Signature vertical page markers  */
-/* ────────────────────────────────────────────────────── */
-
-const TaskRails = memo(function TaskRails({
-  gradient,
-  height = "calc(100% - 16px)",
-}: {
-  gradient: string
-  height?: string
-}) {
+const PriorityDot = memo(function PriorityDot({ priority }: { priority: TaskPriority }) {
   return (
-    <>
-      {/* Left rail */}
-      <div
-        className="absolute left-0 top-2 bottom-2 w-[6px] rounded-full shrink-0"
-        style={{ background: gradient, height }}
-      />
-      {/* Right rail */}
-      <div
-        className="absolute right-0 top-2 bottom-2 w-[6px] rounded-full shrink-0"
-        style={{ background: gradient, height }}
-      />
-    </>
+    <div
+      className="h-2.5 w-2.5 rounded-full shrink-0"
+      style={{ backgroundColor: PRIORITY_COLORS[priority] }}
+    />
   )
 })
 
-/* ────────────────────────────────────────────────────── */
-/* Premium Task Row Wrapper                              */
-/* ────────────────────────────────────────────────────── */
-
 const TaskRow = memo(function TaskRow({
   children,
-  gradient,
   tint,
   isDragging,
   isDragOver,
   className = "",
 }: {
   children: React.ReactNode
-  gradient: string
   tint: string
   isDragging?: boolean
   isDragOver?: boolean
@@ -118,7 +92,6 @@ const TaskRow = memo(function TaskRow({
         opacity: isDragging ? 0.4 : 1,
       }}
     >
-      <TaskRails gradient={gradient} />
       {children}
     </div>
   )
@@ -126,20 +99,19 @@ const TaskRow = memo(function TaskRow({
 
 const hours24 = Array.from({ length: 24 }, (_, i) => i)
 const minutes = Array.from({ length: 12 }, (_, i) => i * 5)
-
 const deadlineOptions = ["Today", "Tomorrow", "Next Week", "Custom"]
 
-function formatDuration(mins: number): string {
-  if (mins < 60) return `${mins}m`
-  const h = Math.floor(mins / 60)
-  const m = mins % 60
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
 function parseTime(timeStr: string): { hour: number; minute: number } | null {
-  const match = timeStr.match(/(\d{1,2}):(\d{2})/)
-  if (!match) return null
-  return { hour: parseInt(match[1]), minute: parseInt(match[2]) }
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})$/)
+  if (match) return { hour: parseInt(match[1]), minute: parseInt(match[2]) }
+  return null
 }
 
 function formatTimeSelection(hour: number, minute: number): string {
@@ -150,62 +122,58 @@ function calcDurationFromRange(start: string, end: string): number {
   const s = parseTime(start)
   const e = parseTime(end)
   if (!s || !e) return 0
-  const sMin = s.hour * 60 + s.minute
-  let eMin = e.hour * 60 + e.minute
-  if (eMin <= sMin) eMin += 24 * 60
-  return eMin - sMin
+  return (e.hour * 60 + e.minute) - (s.hour * 60 + s.minute)
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Scroll Column (for time picker)                       */
+/* Scroll Column for Time Picker                         */
 /* ────────────────────────────────────────────────────── */
 
 const ScrollCol = memo(function ScrollCol({
-  items, selected, onSelect, label,
+  items,
+  value,
+  onChange,
+  label,
 }: {
-  items: (number | string)[]
-  selected: number | string
-  onSelect: (v: number | string) => void
+  items: number[]
+  value: number
+  onChange: (v: number) => void
   label: string
 }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const itemHeight = 32
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    const idx = items.indexOf(selected)
-    if (idx === -1) return
-    const scrollTo = idx * itemHeight
-    container.scrollTo({ top: scrollTo, behavior: "smooth" })
-  }, [selected, items, itemHeight])
+    if (ref.current) {
+      const idx = items.indexOf(value)
+      if (idx >= 0) {
+        const itemH = 36
+        ref.current.scrollTo({ top: idx * itemH - ref.current.clientHeight / 2 + itemH / 2, behavior: "smooth" })
+      }
+    }
+  }, [value, items])
 
   return (
     <div className="flex flex-col items-center">
-      <span className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
-      <div ref={containerRef} className="h-20 overflow-y-auto scrollbar-hide relative w-12 snap-y snap-mandatory">
-        <div className="py-6">
-          {items.map((item) => (
-            <button
-              key={item}
-              onClick={() => onSelect(item)}
-              className={`w-full h-8 flex items-center justify-center text-xs rounded-md snap-center transition-all duration-150 ${
-                selected === item
-                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {typeof item === "number" && label !== "AM/PM" ? String(item).padStart(2, "0") : item}
-            </button>
-          ))}
-        </div>
+      <span className="text-[10px] text-muted-foreground mb-1">{label}</span>
+      <div ref={ref} className="h-36 w-16 overflow-y-auto rounded-xl border bg-muted/30 scrollbar-hide" style={{ scrollSnapType: "y mandatory" }}>
+        {items.map((item) => (
+          <button
+            key={item}
+            onClick={() => onChange(item)}
+            className={`w-full h-9 flex items-center justify-center text-sm transition-colors scroll-snap-align-none ${
+              item === value ? "bg-primary text-primary-foreground font-medium rounded-lg" : "text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {String(item).padStart(2, "0")}
+          </button>
+        ))}
       </div>
     </div>
   )
 })
 
 /* ────────────────────────────────────────────────────── */
-/* Time Range Picker — Side-by-side 24h scroll           */
+/* Time Range Picker                                     */
 /* ────────────────────────────────────────────────────── */
 
 function TimeRangePicker({
@@ -215,66 +183,36 @@ function TimeRangePicker({
 }: {
   startTime: string
   endTime: string
-  onChange: (start: string, end: string, durationMin: number) => void
+  onChange: (start: string, end: string) => void
 }) {
   const s = parseTime(startTime) || { hour: 9, minute: 0 }
   const e = parseTime(endTime) || { hour: 9, minute: 30 }
 
-  const [startHour, setStartHour] = useState(s.hour)
-  const [startMin, setStartMin] = useState(s.minute)
-  const [endHour, setEndHour] = useState(e.hour)
-  const [endMin, setEndMin] = useState(e.minute)
-
-  useEffect(() => {
-    const sStr = formatTimeSelection(startHour, startMin)
-    const eStr = formatTimeSelection(endHour, endMin)
-    const dur = calcDurationFromRange(sStr, eStr)
-    onChange(sStr, eStr, dur > 0 ? dur : 0)
-  }, [startHour, startMin, endHour, endMin, onChange])
-
   return (
-    <div className="flex items-start gap-4">
-      {/* Start Time */}
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-muted-foreground font-medium mb-1.5">Start Time</p>
-        <div className="flex items-center justify-center gap-1 p-2 rounded-xl bg-muted/30 border">
-          <ScrollCol items={hours24} selected={startHour} onSelect={(v) => setStartHour(v as number)} label="Hr" />
-          <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
-          <ScrollCol items={minutes} selected={startMin} onSelect={(v) => setStartMin(v as number)} label="Min" />
-        </div>
-      </div>
-
-      {/* End Time */}
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-muted-foreground font-medium mb-1.5">End Time</p>
-        <div className="flex items-center justify-center gap-1 p-2 rounded-xl bg-muted/30 border">
-          <ScrollCol items={hours24} selected={endHour} onSelect={(v) => setEndHour(v as number)} label="Hr" />
-          <div className="text-lg font-bold text-muted-foreground/40 mt-3">:</div>
-          <ScrollCol items={minutes} selected={endMin} onSelect={(v) => setEndMin(v as number)} label="Min" />
-        </div>
-      </div>
+    <div className="flex items-center gap-3">
+      <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Start" />
+      <span className="text-muted-foreground mt-5">\u2013</span>
+      <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="End" />
+      <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
+      <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
     </div>
   )
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Compact Productivity Score                            */
+/* Productivity Score                                    */
 /* ────────────────────────────────────────────────────── */
 
 const ProductivityScore = memo(function ProductivityScore({ percentage }: { percentage: number }) {
   return (
-    <div className="flex items-center gap-3 px-3.5 h-9 rounded-xl bg-card border">
-      <Zap className="h-3.5 w-3.5 text-primary shrink-0" />
-      <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">Productivity Score</span>
-      <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-        <motion.div
-          className="h-full rounded-full bg-primary"
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        />
+    <div className="flex items-center gap-2">
+      <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="text-[10px] text-muted-foreground hidden sm:inline">Productivity Score</span>
+      <div className="h-1.5 w-20 bg-muted rounded-full overflow-hidden">
+        <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }} />
       </div>
-      <span className="text-[11px] font-bold tabular-nums">{percentage}%</span>
+      <span className="text-xs font-semibold tabular-nums">{percentage}%</span>
     </div>
   )
 })
@@ -283,34 +221,22 @@ const ProductivityScore = memo(function ProductivityScore({ percentage }: { perc
 /* Move Task Popover                                     */
 /* ────────────────────────────────────────────────────── */
 
-function MoveTaskPopover({
-  taskId,
-  currentDeadline,
-  onMove,
-  onClose,
-}: {
+function MoveTaskPopover({ taskId, currentDeadline, onMove, onClose }: {
   taskId: string
   currentDeadline: string
-  onMove: (taskId: string, newDeadline: string) => void
+  onMove: (taskId: string, deadline: string) => void
   onClose: () => void
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: -4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: -4 }}
-      transition={{ duration: 0.12 }}
-      className="absolute right-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-1 z-30"
-    >
-      <p className="px-2.5 py-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Move to</p>
-      {deadlineOptions.filter((d) => d !== currentDeadline).map((option) => (
-        <button
-          key={option}
-          className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left"
-          onClick={() => { onMove(taskId, option); onClose() }}
-        >
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-          {option}
+    <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -4 }} className="absolute right-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-1 z-30">
+      <p className="text-[10px] text-muted-foreground px-2 py-1 font-medium">Move to</p>
+      {deadlineOptions.map((d) => (
+        <button key={d} disabled={d === currentDeadline}
+          className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-lg transition-colors text-left ${
+            d === currentDeadline ? "text-muted-foreground/40 cursor-default" : "hover:bg-muted"
+          }`} onClick={() => { onMove(taskId, d); onClose() }}>
+          <Calendar className="h-3 w-3" /> {d}
         </button>
       ))}
     </motion.div>
@@ -321,13 +247,7 @@ function MoveTaskPopover({
 /* Move Subtask Popover                                  */
 /* ────────────────────────────────────────────────────── */
 
-function MoveSubtaskPopover({
-  subtaskId,
-  currentTaskId,
-  tasks,
-  onMove,
-  onClose,
-}: {
+function MoveSubtaskPopover({ subtaskId, currentTaskId, tasks, onMove, onClose }: {
   subtaskId: string
   currentTaskId: string
   tasks: Task[]
@@ -336,97 +256,217 @@ function MoveSubtaskPopover({
 }) {
   const otherTasks = tasks.filter((t) => t.id !== currentTaskId)
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: -4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: -4 }}
-      transition={{ duration: 0.12 }}
-      className="absolute left-0 top-full mt-1 w-56 rounded-xl border bg-background shadow-xl p-1 z-30"
-    >
-      <p className="px-2.5 py-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Move to task</p>
-      {otherTasks.map((task) => (
-        <button
-          key={task.id}
-          className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left"
-          onClick={() => { onMove(currentTaskId, subtaskId, task.id); onClose() }}
-        >
-          <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="truncate">{task.title}</span>
+    <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -4 }} className="absolute right-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-30 max-h-40 overflow-y-auto">
+      <p className="text-[10px] text-muted-foreground px-2 py-1 font-medium">Move to task</p>
+      {otherTasks.length === 0 && <p className="text-[10px] text-muted-foreground/60 px-2 py-1">No other tasks</p>}
+      {otherTasks.map((t) => (
+        <button key={t.id} className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left truncate"
+          onClick={() => { onMove(currentTaskId, subtaskId, t.id); onClose() }}>
+          <ArrowRightLeft className="h-3 w-3 shrink-0" /> {t.title}
         </button>
       ))}
-      {otherTasks.length === 0 && (
-        <p className="px-2.5 py-2 text-xs text-muted-foreground">No other tasks available</p>
+    </motion.div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Task History Calendar                                 */
+/* ────────────────────────────────────────────────────── */
+
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+function toISODate(d: Date) {
+  return d.toISOString().split("T")[0]
+}
+
+function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose }: {
+  taskHistory: Record<string, Task[]>
+  onSelectDate: (date: string, tasks: Task[]) => void
+  onClose: () => void
+}) {
+  const today = new Date()
+  const [viewMonth, setViewMonth] = useState(today.getMonth())
+  const [viewYear, setViewYear] = useState(today.getFullYear())
+
+  const daysInMonth = getDaysInMonth(viewYear, viewMonth)
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
+  const monthLabel = new Date(viewYear, viewMonth).toLocaleString("default", { month: "long", year: "numeric" })
+
+  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1) }
+    else setViewMonth((m) => m - 1)
+  }
+
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1) }
+    else setViewMonth((m) => m + 1)
+  }
+
+  const cells: (number | null)[] = []
+  for (let i = 0; i < firstDayOfWeek; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+      className="absolute right-0 top-full mt-2 w-72 rounded-2xl border bg-background shadow-2xl p-4 z-40">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prevMonth} className="h-6 w-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground">
+          <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+        </button>
+        <span className="text-sm font-medium">{monthLabel}</span>
+        <button onClick={nextMonth} className="h-6 w-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground">
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-0.5 mb-1">
+        {dayNames.map((d) => (
+          <div key={d} className="text-center text-[10px] text-muted-foreground font-medium py-1">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {cells.map((day, i) => {
+          if (day === null) return <div key={`empty-${i}`} />
+          const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+          const hasTasks = taskHistory[dateStr] && taskHistory[dateStr].length > 0
+          const isToday = dateStr === toISODate(today)
+          return (
+            <button key={dateStr}
+              className={`relative h-8 w-full rounded-lg text-xs flex flex-col items-center justify-center transition-colors ${
+                isToday ? "bg-primary text-primary-foreground font-semibold" : "hover:bg-muted text-foreground"
+              }`}
+              onClick={() => {
+                if (hasTasks) {
+                  onSelectDate(dateStr, taskHistory[dateStr])
+                  onClose()
+                }
+              }}>
+              {day}
+              {hasTasks && !isToday && (
+                <div className="absolute bottom-1 h-1 w-1 rounded-full bg-primary" />
+              )}
+            </button>
+          )
+        })}
+      </div>
+      <div className="mt-3 pt-2 border-t text-[10px] text-muted-foreground">
+        Click a highlighted day to view task history
+      </div>
+    </motion.div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Day History View                                      */
+/* ────────────────────────────────────────────────────── */
+
+function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
+  date: string
+  tasks: Task[]
+  onClose: () => void
+  onMoveToToday: (tasks: Task[]) => void
+}) {
+  const incomplete = tasks.filter((t) => !t.completed)
+  const completed = tasks.filter((t) => t.completed)
+  const displayDate = new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+      className="rounded-2xl border bg-card p-4 mb-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold">{displayDate}</h3>
+          <p className="text-[10px] text-muted-foreground">{tasks.length} tasks \u00B7 {completed.length} completed</p>
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div className="space-y-1.5">
+        {tasks.map((task) => (
+          <div key={task.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${task.completed ? "bg-muted/30" : "bg-muted/50"}`}>
+            <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${task.completed ? "border-primary bg-primary" : "border-muted-foreground/30"}`}>
+              {task.completed && <svg className="h-2 w-2 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+            </div>
+            <span className={`flex-1 ${task.completed ? "line-through text-muted-foreground" : ""}`}>{task.title}</span>
+            <span className="text-muted-foreground">{task.timeRange}</span>
+          </div>
+        ))}
+      </div>
+      {incomplete.length > 0 && (
+        <div className="mt-3 pt-3 border-t">
+          <p className="text-xs text-muted-foreground mb-2">Move {incomplete.length} unfinished task{incomplete.length !== 1 ? "s" : ""} to today?</p>
+          <div className="flex gap-2">
+            <Button size="sm" className="h-7 text-xs" onClick={() => { onMoveToToday(incomplete); onClose() }}>Move All</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onClose}>Cancel</Button>
+          </div>
+        </div>
       )}
     </motion.div>
   )
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Inline Edit Component                                 */
+/* Empty State                                            */
 /* ────────────────────────────────────────────────────── */
 
-const InlineEdit = memo(function InlineEdit({
-  taskId, field, value, className, editingField, editValue, setEditingField, setEditValue, saveEditing, editInputRef,
-}: {
-  taskId: string; field: string; value: string; className?: string
-  editingField: { taskId: string; field: string } | null; editValue: string
-  setEditingField: (v: { taskId: string; field: string } | null) => void; setEditValue: (v: string) => void
-  saveEditing: () => void; editInputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>
-}) {
-  const isEditing = editingField?.taskId === taskId && editingField?.field === field
-  const startEditing = useCallback(() => {
-    setEditingField({ taskId, field }); setEditValue(value)
-    setTimeout(() => (editInputRef as React.RefObject<HTMLInputElement>)?.current?.focus(), 0)
-  }, [taskId, field, value, setEditingField, setEditValue, editInputRef])
-
-  if (isEditing) {
-    return (
-      <Input
-        ref={editInputRef as React.RefObject<HTMLInputElement>}
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-        onBlur={saveEditing}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") saveEditing()
-          if (e.key === "Escape") setEditingField(null)
-        }}
-        className={`h-7 text-sm px-2 py-0 ${className || ""}`}
-      />
-    )
-  }
-
+function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <span
-      className={`cursor-text rounded-md px-1 -mx-1 hover:bg-muted/50 transition-colors ${className || ""}`}
-      onClick={startEditing}
-    >
-      {value || <span className="text-muted-foreground italic">Click to edit</span>}
-    </span>
+    <div className="py-20 text-center">
+      <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+        <svg className="h-8 w-8 text-primary/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+          <rect x="9" y="3" width="6" height="4" rx="1" />
+          <path d="m9 14 2 2 4-4" />
+        </svg>
+      </div>
+      <h3 className="text-lg font-semibold mb-1">No tasks planned today.</h3>
+      <p className="text-sm text-muted-foreground mb-5">Start by adding your first intentional task.</p>
+      <Button onClick={onCreate} className="glow"><Plus className="mr-1 h-4 w-4" /> Add Task</Button>
+    </div>
   )
-})
+}
 
-/* ────────────────────────────────────────────────────── */
-/* Main Tasks Page                                       */
-/* ────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════ */
+/* MAIN TASKS PAGE                                         */
+/* ═══════════════════════════════════════════════════════ */
 
 export function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks)
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    if (typeof window === "undefined") return sampleTasks
+    try {
+      const saved = localStorage.getItem("intenteo-tasks")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {}
+    return sampleTasks
+  })
   const [activeView, setActiveView] = useState<TaskView>("list")
   const [createOpen, setCreateOpen] = useState(false)
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
-  const [editingField, setEditingField] = useState<{ taskId: string; field: string } | null>(null)
-  const [editValue, setEditValue] = useState("")
-  const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
+  const [expandAll, setExpandAll] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dragType, setDragType] = useState<"task" | "subtask" | null>(null)
   const [dragSourceTaskId, setDragSourceTaskId] = useState<string | null>(null)
   const [movePopoverTaskId, setMovePopoverTaskId] = useState<string | null>(null)
   const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [dayHistory, setDayHistory] = useState<{ date: string; tasks: Task[] } | null>(null)
+  const [isListening, setIsListening] = useState(false)
+  const [voiceStatus, setVoiceStatus] = useState("")
+  const recognitionRef = useRef<unknown>(null)
 
   const { toasts, addToast, removeToast } = useToast()
 
-  // Create form state
   const [formTitle, setFormTitle] = useState("")
   const [formWhy, setFormWhy] = useState("")
   const [formPriority, setFormPriority] = useState<TaskPriority>("progress")
@@ -440,6 +480,41 @@ export function TasksPage() {
   const remainingToday = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks])
   const totalToday = completedToday + remainingToday
   const productivity = useMemo(() => (totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100)), [completedToday, totalToday])
+
+  const taskHistory = useMemo(() => {
+    const history: Record<string, Task[]> = {}
+    tasks.forEach((t) => {
+      const d = t.createdAt.split("T")[0]
+      if (!history[d]) history[d] = []
+      history[d].push(t)
+    })
+    return history
+  }, [tasks])
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && tasks.length > 0) {
+      localStorage.setItem("intenteo-tasks", JSON.stringify(tasks))
+    }
+  }, [tasks])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("intenteo-expand-all", JSON.stringify(expandAll))
+    }
+  }, [expandAll])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("intenteo-expand-all")
+      if (saved === "true") setExpandAll(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (expandAll && tasks.length > 0) {
+      setExpandedTasks(new Set(tasks.filter((t) => t.subtasks.length > 0).map((t) => t.id)))
+    }
+  }, [expandAll, tasks])
 
   const getSubtaskProgress = useCallback((subtasks: Subtask[]) => {
     if (subtasks.length === 0) return 0
@@ -486,6 +561,14 @@ export function TasksPage() {
     })
   }, [])
 
+  const handleMoveToToday = useCallback((movedTasks: Task[]) => {
+    setTasks((prev) => prev.map((t) => {
+      if (movedTasks.some((m) => m.id === t.id)) return { ...t, deadline: "Today" }
+      return t
+    }))
+    addToast(`${movedTasks.length} unfinished task${movedTasks.length !== 1 ? "s" : ""} moved to today.`)
+  }, [addToast])
+
   const handleCreateTask = useCallback(() => {
     if (!formTitle.trim()) return
     const startStr = formatTimeSelection(formStartHour, formStartMin)
@@ -504,23 +587,11 @@ export function TasksPage() {
     setFormRecurrence("none"); setCreateOpen(false)
   }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, tasks.length])
 
-  const saveEditing = useCallback(() => {
-    if (!editingField) return
-    setTasks((prev) => prev.map((t) => {
-      if (t.id !== editingField.taskId) return t
-      switch (editingField.field) {
-        case "title": return { ...t, title: editValue }
-        case "whyItMatters": return { ...t, whyItMatters: editValue }
-        case "timeRange": return { ...t, timeRange: editValue }
-        case "estimatedDuration": return { ...t, estimatedDuration: parseInt(editValue) || t.estimatedDuration }
-        case "notes": return { ...t, notes: editValue }
-        default: return t
-      }
-    }))
-    setEditingField(null); setEditValue("")
-  }, [editingField, editValue])
-
-  const cancelEditing = useCallback(() => { setEditingField(null); setEditValue("") }, [])
+  const handleSaveEdit = useCallback(() => {
+    if (!editingTask) return
+    setTasks((prev) => prev.map((t) => t.id === editingTask.id ? editingTask : t))
+    setEditingTask(null)
+  }, [editingTask])
 
   const addSubtaskInline = useCallback((taskId: string) => {
     const newSub: Subtask = { id: `sub-${Date.now()}`, title: "New subtask", completed: false }
@@ -528,11 +599,8 @@ export function TasksPage() {
     setExpandedTasks((prev) => new Set(prev).add(taskId))
   }, [])
 
-  /* ─── Task drag & drop ─── */
   const handleTaskDragStart = useCallback((id: string) => {
-    setDraggedId(id)
-    setDragType("task")
-    setDragSourceTaskId(null)
+    setDraggedId(id); setDragType("task"); setDragSourceTaskId(null)
   }, [])
 
   const handleTaskDragOver = useCallback((e: React.DragEvent, id: string) => {
@@ -554,29 +622,22 @@ export function TasksPage() {
     setDraggedId(null); setDragOverId(null); setDragType(null)
   }, [draggedId, dragType])
 
-  /* ─── Subtask drag & drop ─── */
   const handleSubtaskDragStart = useCallback((e: React.DragEvent, taskId: string, subtaskId: string) => {
-    e.stopPropagation()
-    setDraggedId(subtaskId)
-    setDragType("subtask")
-    setDragSourceTaskId(taskId)
+    e.stopPropagation(); setDraggedId(subtaskId); setDragType("subtask"); setDragSourceTaskId(taskId)
   }, [])
 
   const handleSubtaskDragOver = useCallback((e: React.DragEvent, taskId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault(); e.stopPropagation()
     if (dragType === "subtask") setDragOverId(taskId)
   }, [dragType])
 
   const handleSubtaskDrop = useCallback((e: React.DragEvent, targetTaskId: string) => {
     e.stopPropagation()
     if (!draggedId || dragType !== "subtask" || !dragSourceTaskId) {
-      setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null)
-      return
+      setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null); return
     }
     if (dragSourceTaskId === targetTaskId) {
-      setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null)
-      return
+      setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null); return
     }
     moveSubtask(dragSourceTaskId, draggedId, targetTaskId)
     setDraggedId(null); setDragOverId(null); setDragType(null); setDragSourceTaskId(null)
@@ -587,18 +648,88 @@ export function TasksPage() {
   }, [])
 
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") { cancelEditing(); setCreateOpen(false); setMovePopoverTaskId(null); setMoveSubtaskInfo(null) } }
-    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
-  }, [cancelEditing])
-
-  useEffect(() => {
-    if (editingField && editInputRef.current) {
-      editInputRef.current.focus()
-      if (["title", "whyItMatters", "notes"].includes(editingField.field)) (editInputRef.current as HTMLInputElement).select?.()
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCreateOpen(false); setMovePopoverTaskId(null); setMoveSubtaskInfo(null)
+        setEditingTask(null); setCalendarOpen(false); setDayHistory(null)
+      }
     }
-  }, [editingField])
+    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
+  }, [])
 
-  /* ─── Subtask renderer ─── */
+  const toggleListening = useCallback(() => {
+    const w = window as unknown as Record<string, unknown>
+    const SpeechRecognitionAPI = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) {
+      alert("Speech recognition is not supported in this browser.")
+      return
+    }
+
+    if (isListening && recognitionRef.current) {
+      (recognitionRef.current as { stop: () => void }).stop()
+      setIsListening(false)
+      setVoiceStatus("")
+      return
+    }
+
+    const recognition = new (SpeechRecognitionAPI as new () => Record<string, unknown>)()
+    recognition.lang = "en-GB"
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognitionRef.current = recognition
+    let finalTranscript = ""
+
+    recognition.onresult = (event: unknown) => {
+      const e = event as { resultIndex: number; results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } } }
+      let interim = ""
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript
+        if (e.results[i].isFinal) { finalTranscript += transcript }
+        else { interim += transcript }
+      }
+      setVoiceStatus(interim || "Listening...")
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      setVoiceStatus("")
+      if (finalTranscript.trim()) {
+        const parsedTasks = parseVoiceTasks(finalTranscript)
+        if (parsedTasks.length > 0) {
+          setFormTitle(parsedTasks[0].title)
+          if (parsedTasks[0].timeRange) {
+            const parts = parsedTasks[0].timeRange.split(" \u2013 ")
+            if (parts.length === 2) {
+              const s = parseTime24(parts[0])
+              const en = parseTime24(parts[1])
+              if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute) }
+              if (en) { setFormEndHour(en.hour); setFormEndMin(en.minute) }
+            }
+          }
+          if (parsedTasks[0].duration) {
+            const dur = parseDurationText(parsedTasks[0].duration)
+            if (dur > 0) {
+              const endMin = formStartHour * 60 + formStartMin + dur
+              setFormEndHour(Math.floor(endMin / 60) % 24)
+              setFormEndMin(endMin % 60)
+            }
+          }
+          setCreateOpen(true)
+          addToast(`Captured: "${parsedTasks[0].title}". Review and save.`)
+        } else {
+          setFormTitle(finalTranscript.trim().slice(0, 100))
+          setCreateOpen(true)
+          addToast("Could not parse tasks. Please review and edit.")
+        }
+      }
+    }
+
+    recognition.onerror = () => { setIsListening(false); setVoiceStatus("") }
+    (recognition as { start: () => void }).start()
+    setIsListening(true)
+    setVoiceStatus("Listening...")
+  }, [isListening, formStartHour, formStartMin, addToast])
+
   const renderSubtasks = useCallback((task: Task, isExpanded: boolean) => (
     <AnimatePresence initial={false}>
       {isExpanded && task.subtasks.length > 0 && (
@@ -609,17 +740,14 @@ export function TasksPage() {
               const isSubDragging = draggedId === sub.id
               const isSubDragOver = dragOverId === task.id && dragType === "subtask" && draggedId !== sub.id
               return (
-                <div
-                  key={sub.id}
-                  draggable
+                <div key={sub.id} draggable
                   onDragStart={(e) => handleSubtaskDragStart(e, task.id, sub.id)}
                   onDragOver={(e) => handleSubtaskDragOver(e, task.id)}
                   onDrop={(e) => handleSubtaskDrop(e, task.id)}
                   onDragEnd={handleDragEnd}
                   className={`flex items-center gap-2.5 py-1.5 pl-4 pr-2 rounded-lg hover:bg-muted/30 transition-colors group/sub relative cursor-grab active:cursor-grabbing ${
                     isSubDragging ? "opacity-40 scale-[0.98]" : ""
-                  } ${isSubDragOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
-                >
+                  } ${isSubDragOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}>
                   <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover/sub:opacity-100">
                     <GripVertical className="h-3 w-3" />
                   </div>
@@ -635,20 +763,15 @@ export function TasksPage() {
                     )}
                   </button>
                   <span className={`text-xs flex-1 ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
-                  {/* Move subtask */}
                   <div className="relative">
-                    <button
-                      className="opacity-0 group-hover/sub:opacity-100 transition-opacity"
-                      onClick={(e) => { e.stopPropagation(); setMoveSubtaskInfo(moveSubtaskInfo?.subtaskId === sub.id ? null : { taskId: task.id, subtaskId: sub.id }) }}
-                    >
+                    <button className="opacity-0 group-hover/sub:opacity-100 transition-opacity"
+                      onClick={(e) => { e.stopPropagation(); setMoveSubtaskInfo(moveSubtaskInfo?.subtaskId === sub.id ? null : { taskId: task.id, subtaskId: sub.id }) }}>
                       <ArrowRightLeft className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
                     </button>
                     <AnimatePresence>
                       {moveSubtaskInfo?.subtaskId === sub.id && (
-                        <MoveSubtaskPopover
-                          subtaskId={sub.id} currentTaskId={task.id} tasks={tasks}
-                          onMove={moveSubtask} onClose={() => setMoveSubtaskInfo(null)}
-                        />
+                        <MoveSubtaskPopover subtaskId={sub.id} currentTaskId={task.id} tasks={tasks}
+                          onMove={moveSubtask} onClose={() => setMoveSubtaskInfo(null)} />
                       )}
                     </AnimatePresence>
                   </div>
@@ -667,12 +790,14 @@ export function TasksPage() {
   /* ═══════════════════════════════════════════════════════ */
   /* LIST VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
+
   const renderListView = useCallback(() => {
     if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-        <div className="sticky top-0 z-10 grid grid-cols-[minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-4 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-          <div>Task</div>
+        <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <div></div>
+          <div className="pl-2">Task</div>
           <div className="hidden sm:block">Time Range</div>
           <div className="hidden sm:block">Duration</div>
           <div>Progress</div>
@@ -682,7 +807,7 @@ export function TasksPage() {
         <LayoutGroup>
           {tasks.map((task, i) => {
             const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
-            const isExpanded = expandedTasks.has(task.id)
+            const isExpanded = expandAll || expandedTasks.has(task.id)
             const isDragging = draggedId === task.id && dragType === "task"
             const isDragOver = dragOverId === task.id && dragOverId !== draggedId && dragType === "task"
             const pConfig = priorityConfig[task.priority]
@@ -690,20 +815,20 @@ export function TasksPage() {
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.015, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
-                <TaskRow
-                  gradient={pConfig.railGradient}
-                  tint={pConfig.tint}
-                  isDragging={isDragging}
-                  isDragOver={isDragOver}
-                >
+                <TaskRow tint={pConfig.tint} isDragging={isDragging} isDragOver={isDragOver}>
                   <div
                     draggable onDragStart={() => handleTaskDragStart(task.id)}
                     onDragOver={(e) => handleTaskDragOver(e, task.id)}
                     onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
-                    className="grid grid-cols-[minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-4 pl-10 pr-10 py-3.5 items-center group cursor-default"
+                    className="grid grid-cols-[24px_minmax(200px,1fr)_minmax(120px,140px)_minmax(70px,90px)_minmax(100px,140px)_auto] gap-x-4 gap-y-0 pl-5 pr-5 py-3.5 items-center group cursor-default"
                   >
+                    {/* Priority Dot */}
+                    <div className="flex items-center justify-center">
+                      <PriorityDot priority={task.priority} />
+                    </div>
+
                     {/* Task Name */}
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 pl-2">
                       <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover:opacity-100">
                         <GripVertical className="h-4 w-4" />
                       </div>
@@ -720,19 +845,21 @@ export function TasksPage() {
                       </button>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <InlineEdit taskId={task.id} field="title" value={task.title}
-                            className={`text-sm font-medium truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                            editingField={editingField} editValue={editValue} setEditingField={setEditingField}
-                            setEditValue={setEditValue} saveEditing={saveEditing} editInputRef={editInputRef} />
+                          <span className={`text-sm font-medium truncate cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                            onClick={() => setEditingTask({ ...task })}>
+                            {task.title}
+                          </span>
                           {task.subtasks.length > 0 && (
                             <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">
                               {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length}
                             </span>
                           )}
-                          <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 transition-opacity"
-                            onClick={() => toggleExpanded(task.id)}>
-                            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                          </Button>
+                          {!expandAll && (
+                            <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 transition-opacity"
+                              onClick={() => toggleExpanded(task.id)}>
+                              {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                            </Button>
+                          )}
                           {task.subtasks.length > 0 && (
                             <span className="text-[10px] text-muted-foreground hidden group-hover:inline">
                               {isExpanded ? "Collapse" : `Show ${task.subtasks.length}`}
@@ -744,17 +871,19 @@ export function TasksPage() {
 
                     {/* Time Range */}
                     <div className="hidden sm:block">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors"
+                        onClick={() => setEditingTask({ ...task })}>
                         <Clock className="h-3 w-3 shrink-0" />
-                        <InlineEdit taskId={task.id} field="timeRange" value={task.timeRange} className="text-xs"
-                          editingField={editingField} editValue={editValue} setEditingField={setEditingField}
-                          setEditValue={setEditValue} saveEditing={saveEditing} editInputRef={editInputRef} />
+                        <span>{task.timeRange}</span>
                       </div>
                     </div>
 
                     {/* Duration */}
                     <div className="hidden sm:block">
-                      <span className="text-xs text-muted-foreground">{formatDuration(task.estimatedDuration)}</span>
+                      <span className="text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors"
+                        onClick={() => setEditingTask({ ...task })}>
+                        {formatDuration(task.estimatedDuration)}
+                      </span>
                     </div>
 
                     {/* Progress */}
@@ -768,10 +897,10 @@ export function TasksPage() {
                       <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                     </div>
 
-                    {/* Actions — always visible: Edit, Move, Delete */}
+                    {/* Actions */}
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                        onClick={(e) => { e.stopPropagation(); setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
+                        onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <div className="relative">
@@ -800,11 +929,12 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, draggedId, dragOverId, dragType, editingField, editValue, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, saveEditing, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo])
+  }, [tasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo])
 
   /* ═══════════════════════════════════════════════════════ */
   /* BOARD VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
+
   const renderBoardView = useCallback(() => {
     if (tasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
@@ -812,7 +942,7 @@ export function TasksPage() {
         <LayoutGroup>
           {tasks.map((task, i) => {
             const progress = task.completed ? 100 : getSubtaskProgress(task.subtasks)
-            const isExpanded = expandedTasks.has(task.id)
+            const isExpanded = expandAll || expandedTasks.has(task.id)
             const pConfig = priorityConfig[task.priority]
             const completedSubs = task.subtasks.filter((s) => s.completed).length
 
@@ -820,13 +950,10 @@ export function TasksPage() {
               <motion.div key={task.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: i * 0.03, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
-                <TaskRow
-                  gradient={pConfig.railGradient}
-                  tint={pConfig.tint}
-                  className="group overflow-hidden"
-                >
+                <TaskRow tint={pConfig.tint} className="group overflow-hidden">
                   <div className="pl-10 pr-10 p-4">
                     <div className="flex items-start gap-2.5 mb-3">
+                      <PriorityDot priority={task.priority} />
                       <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
                         {task.completed ? (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
@@ -840,14 +967,13 @@ export function TasksPage() {
                       </button>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h3 className={`text-sm font-semibold truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}>{task.title}</h3>
+                          <h3 className={`text-sm font-semibold truncate cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                            onClick={() => setEditingTask({ ...task })}>{task.title}</h3>
                           {task.subtasks.length > 0 && (
                             <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">{completedSubs}/{task.subtasks.length}</span>
                           )}
                         </div>
                       </div>
-                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: pConfig.pastelBorder + "20", color: pConfig.pastelBorder }}>{pConfig.label}</span>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
@@ -890,10 +1016,9 @@ export function TasksPage() {
                       <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                     </div>
 
-                    {/* Actions — always visible: Edit, Move, Delete */}
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
-                        onClick={() => { setEditingField({ taskId: task.id, field: "title" }); setEditValue(task.title) }}>
+                        onClick={() => setEditingTask({ ...task })}>
                         <Pencil className="h-3 w-3" />
                       </Button>
                       <div className="relative">
@@ -919,7 +1044,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [tasks, expandedTasks, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId])
+  }, [tasks, expandedTasks, expandAll, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId])
 
   return (
     <div className="min-h-screen">
@@ -930,10 +1055,10 @@ export function TasksPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-            <p className="text-sm font-bold text-foreground mt-0.5 tracking-tight">
+            <p className="text-sm text-foreground mt-0.5 tracking-tight">
               <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
-              <span style={{ color: "var(--color-success)" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
-              <span style={{ color: "var(--color-error)" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
+              <span style={{ color: "var(--brand-primary)" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
+              <span style={{ color: "var(--brand-secondary)" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
             </p>
           </div>
           <div className="flex items-center gap-2.5">
@@ -946,6 +1071,26 @@ export function TasksPage() {
               </Button>
             </Link>
 
+            {/* Calendar History */}
+            <div className="relative">
+              <Tooltip label="Task History">
+                <button
+                  className="h-9 w-9 rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                  onClick={() => { setCalendarOpen(!calendarOpen); setDayHistory(null) }}>
+                  <Calendar className="h-4 w-4" />
+                </button>
+              </Tooltip>
+              <AnimatePresence>
+                {calendarOpen && (
+                  <TaskHistoryCalendar
+                    taskHistory={taskHistory}
+                    onSelectDate={(date, histTasks) => setDayHistory({ date, tasks: histTasks })}
+                    onClose={() => setCalendarOpen(false)} />
+                )}
+              </AnimatePresence>
+            </div>
+
             <div className="flex items-center gap-0.5 p-0.5 bg-muted rounded-xl">
               <Button variant={activeView === "list" ? "default" : "ghost"} size="sm" className="h-8 px-3" onClick={() => setActiveView("list")}>
                 <List className="h-4 w-4" />
@@ -957,11 +1102,47 @@ export function TasksPage() {
               </Button>
             </div>
 
+            {/* Voice Capture */}
+            <Tooltip label={isListening ? "Stop Dictation" : "Voice Task"}>
+              <button
+                className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isListening ? "animate-pulse" : ""}`}
+                style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
+                onClick={toggleListening}>
+                {isListening ? <StopCircle className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            </Tooltip>
+
             <Button className="glow h-9" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-1 h-4 w-4" /> Add Task
             </Button>
           </div>
         </div>
+
+        {voiceStatus && (
+          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-3 px-3 py-1.5 rounded-lg bg-primary/10 text-xs text-primary flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            {voiceStatus}
+          </motion.div>
+        )}
+
+        {/* Expand/Collapse All */}
+        {tasks.length > 0 && tasks.some((t) => t.subtasks.length > 0) && (
+          <div className="mb-3">
+            <button onClick={() => setExpandAll(!expandAll)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              {expandAll ? "\u25BC Collapse All Subtasks" : "\u25B6 Expand All Subtasks"}
+            </button>
+          </div>
+        )}
+
+        {/* Day History View */}
+        <AnimatePresence>
+          {dayHistory && (
+            <DayHistoryView date={dayHistory.date} tasks={dayHistory.tasks}
+              onClose={() => setDayHistory(null)} onMoveToToday={handleMoveToToday} />
+          )}
+        </AnimatePresence>
 
         {activeView === "list" ? renderListView() : renderBoardView()}
 
@@ -972,30 +1153,42 @@ export function TasksPage() {
         </div>
       </div>
 
-      {/* Create Modal */}
+      {/* Create/Edit Modal */}
       <AnimatePresence>
-        {createOpen && (
+        {(createOpen || editingTask) && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setCreateOpen(false)} />
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => { setCreateOpen(false); setEditingTask(null) }} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-background rounded-2xl border shadow-2xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-lg font-semibold">New Task</h2>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCreateOpen(false)}><X className="h-4 w-4" /></Button>
+                  <h2 className="text-lg font-semibold">{editingTask ? "Edit Task" : "New Task"}</h2>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setCreateOpen(false); setEditingTask(null) }}><X className="h-4 w-4" /></Button>
                 </div>
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Task Name</label>
-                    <Input placeholder="What needs to be done?" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} className="mt-1" autoFocus />
+                    <Input placeholder="What needs to be done?"
+                      value={editingTask ? editingTask.title : formTitle}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, title: e.target.value }) : setFormTitle(e.target.value)}
+                      className="mt-1" autoFocus />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Why It Matters</label>
+                    <Input placeholder="Optional: Why is this important?"
+                      value={editingTask ? editingTask.whyItMatters : formWhy}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, whyItMatters: e.target.value }) : setFormWhy(e.target.value)}
+                      className="mt-1" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Priority</label>
                     <div className="flex gap-2 mt-1">
                       {(["priority", "progress", "maintenance"] as TaskPriority[]).map((p) => (
-                        <Button key={p} variant={formPriority === p ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setFormPriority(p)}>
+                        <Button key={p} variant={(editingTask ? editingTask.priority : formPriority) === p ? "default" : "outline"} size="sm" className="flex-1"
+                          onClick={() => editingTask ? setEditingTask({ ...editingTask, priority: p }) : setFormPriority(p)}>
                           <div className="h-2 w-2 rounded-full mr-1.5" style={{ backgroundColor: priorityConfig[p].cssColor }} />
                           {priorityConfig[p].label}
                         </Button>
@@ -1006,15 +1199,19 @@ export function TasksPage() {
                     <label className="text-xs font-medium text-muted-foreground">Time Range</label>
                     <div className="mt-2">
                       <TimeRangePicker
-                        startTime={formatTimeSelection(formStartHour, formStartMin)}
-                        endTime={formatTimeSelection(formEndHour, formEndMin)}
+                        startTime={editingTask ? editingTask.timeRange.split(" \u2013 ")[0] || "09:00" : formatTimeSelection(formStartHour, formStartMin)}
+                        endTime={editingTask ? editingTask.timeRange.split(" \u2013 ")[1] || "09:30" : formatTimeSelection(formEndHour, formEndMin)}
                         onChange={(start, end) => {
-                          const s = parseTime(start); const e = parseTime(end)
-                          if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute) }
-                          if (e) { setFormEndHour(e.hour); setFormEndMin(e.minute) }
+                          if (editingTask) {
+                            setEditingTask({ ...editingTask, timeRange: `${start} \u2013 ${end}`, estimatedDuration: calcDurationFromRange(start, end) || editingTask.estimatedDuration })
+                          } else {
+                            const s = parseTime(start); const en = parseTime(end)
+                            if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute) }
+                            if (en) { setFormEndHour(en.hour); setFormEndMin(en.minute) }
+                          }
                         }} />
                       <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-                        Duration: {formatDuration(calcDurationFromRange(formatTimeSelection(formStartHour, formStartMin), formatTimeSelection(formEndHour, formEndMin)))}
+                        Duration: {formatDuration(editingTask ? editingTask.estimatedDuration : calcDurationFromRange(formatTimeSelection(formStartHour, formStartMin), formatTimeSelection(formEndHour, formEndMin)))}
                       </p>
                     </div>
                   </div>
@@ -1022,16 +1219,27 @@ export function TasksPage() {
                     <label className="text-xs font-medium text-muted-foreground">Recurrence</label>
                     <div className="flex gap-1 mt-1">
                       {(["none", "daily", "weekly", "monthly"] as const).map((r) => (
-                        <Button key={r} variant={formRecurrence === r ? "default" : "outline"} size="sm" className="flex-1 text-[10px] px-1" onClick={() => setFormRecurrence(r)}>
+                        <Button key={r} variant={(editingTask ? editingTask.recurrence : formRecurrence) === r ? "default" : "outline"} size="sm" className="flex-1 text-[10px] px-1"
+                          onClick={() => editingTask ? setEditingTask({ ...editingTask, recurrence: r }) : setFormRecurrence(r)}>
                           {r === "none" ? "None" : r.charAt(0).toUpperCase() + r.slice(1)}
                         </Button>
                       ))}
                     </div>
                   </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Notes</label>
+                    <Input placeholder="Optional notes"
+                      value={editingTask ? editingTask.notes : ""}
+                      onChange={(e) => editingTask && setEditingTask({ ...editingTask, notes: e.target.value })}
+                      className="mt-1" />
+                  </div>
                 </div>
                 <div className="flex gap-2 mt-6">
-                  <Button variant="outline" className="flex-1" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                  <Button className="flex-1 glow" onClick={handleCreateTask} disabled={!formTitle.trim()}>Add Task</Button>
+                  <Button variant="outline" className="flex-1" onClick={() => { setCreateOpen(false); setEditingTask(null) }}>Cancel</Button>
+                  <Button className="flex-1 glow" onClick={editingTask ? handleSaveEdit : handleCreateTask}
+                    disabled={editingTask ? !editingTask.title.trim() : !formTitle.trim()}>
+                    {editingTask ? "Save Changes" : "Add Task"}
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -1043,22 +1251,105 @@ export function TasksPage() {
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Empty State                                            */
+/* Tooltip helper                                         */
 /* ────────────────────────────────────────────────────── */
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function Tooltip({ label, children }: { label: string; children: React.ReactNode }) {
+  const [show, setShow] = useState(false)
   return (
-    <div className="py-20 text-center">
-      <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-        <svg className="h-8 w-8 text-primary/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-          <rect x="9" y="3" width="6" height="4" rx="1" />
-          <path d="m9 14 2 2 4-4" />
-        </svg>
-      </div>
-      <h3 className="text-lg font-semibold mb-1">No tasks planned today.</h3>
-      <p className="text-sm text-muted-foreground mb-5">Start by adding your first intentional task.</p>
-      <Button onClick={onCreate} className="glow"><Plus className="mr-1 h-4 w-4" /> Add Task</Button>
+    <div className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      {children}
+      <AnimatePresence>
+        {show && (
+          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-medium text-foreground bg-background border rounded-lg shadow-lg whitespace-nowrap z-50 pointer-events-none">
+            {label}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Voice parsing helpers                                  */
+/* ────────────────────────────────────────────────────── */
+
+function parseTime24(str: string): { hour: number; minute: number } | null {
+  const clean = str.trim().toLowerCase()
+  let hour = 0, minute = 0
+
+  const ampmMatch = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/)
+  if (ampmMatch) {
+    hour = parseInt(ampmMatch[1])
+    minute = ampmMatch[2] ? parseInt(ampmMatch[2]) : 0
+    if (ampmMatch[3] === "pm" && hour < 12) hour += 12
+    if (ampmMatch[3] === "am" && hour === 12) hour = 0
+    return { hour, minute }
+  }
+
+  const twentyFourMatch = clean.match(/(\d{1,2}):(\d{2})/)
+  if (twentyFourMatch) {
+    hour = parseInt(twentyFourMatch[1])
+    minute = parseInt(twentyFourMatch[2])
+    return { hour, minute }
+  }
+
+  return null
+}
+
+function parseDurationText(str: string): number {
+  const clean = str.toLowerCase()
+  let total = 0
+  const hourMatch = clean.match(/(\d+)\s*h(?:our|rs?)?/)
+  const minMatch = clean.match(/(\d+)\s*m(?:in(?:ute)?)?/)
+  if (hourMatch) total += parseInt(hourMatch[1]) * 60
+  if (minMatch) total += parseInt(minMatch[1])
+  if (total === 0 && clean.includes("half")) total = 30
+  return total
+}
+
+interface ParsedVoiceTask {
+  title: string
+  timeRange: string | null
+  duration: string | null
+}
+
+function parseVoiceTasks(text: string): ParsedVoiceTask[] {
+  const sentences = text.split(/[.;]\s*/).filter((s) => s.trim().length > 3)
+  return sentences.map((sentence) => {
+    const clean = sentence.trim()
+    let title = ""
+    let timeRange: string | null = null
+    let duration: string | null = null
+
+    const timeMatch = clean.match(/(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|until|till|-)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i)
+    if (timeMatch) {
+      const startParsed = parseTime24(timeMatch[1])
+      const endParsed = parseTime24(timeMatch[2])
+      if (startParsed && endParsed) {
+        const fmt = (h: number, m: number) => {
+          const ampm = h >= 12 ? "PM" : "AM"
+          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+          return `${h12}:${String(m).padStart(2, "0")} ${ampm}`
+        }
+        timeRange = `${fmt(startParsed.hour, startParsed.minute)} \u2013 ${fmt(endParsed.hour, endParsed.minute)}`
+      }
+    }
+
+    const durMatch = clean.match(/(?:for\s+)?(\d+)\s*(?:minutes?|mins?|hours?|hrs?)/i)
+    if (durMatch) duration = durMatch[0]
+
+    let titleClean = clean
+    if (timeMatch) titleClean = titleClean.replace(timeMatch[0], "")
+    if (durMatch) titleClean = titleClean.replace(durMatch[0], "")
+    titleClean = titleClean.replace(/^(i want to|i need to|i should|i will|let me|can i|please)\s*/i, "")
+    titleClean = titleClean.replace(/^(when i wake up|in the morning|today|tomorrow)\s*/i, "")
+    titleClean = titleClean.replace(/\s+/g, " ").trim()
+
+    if (titleClean.length < 2) titleClean = "New task"
+    title = titleClean.charAt(0).toUpperCase() + titleClean.slice(1)
+
+    return { title, timeRange, duration }
+  }).filter((t) => t.title.length > 0)
 }
