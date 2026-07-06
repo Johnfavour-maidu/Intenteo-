@@ -11,8 +11,6 @@ import {
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
 } from "lucide-react"
 
-/* ─── Types ─── */
-
 interface Milestone { id: string; title: string; completed: boolean }
 
 interface ProjectTask {
@@ -42,54 +40,58 @@ interface LifeVision {
   lifeAreas: string[]; reviewFrequency: string
 }
 
-type TrackerPeriod = "week" | "month" | "year"
 type FilterMode = "all" | "annual" | "quarterly" | "monthly" | "weekly"
 type SortMode = "deadline" | "progress" | "updated" | "priority" | "name" | "newest" | "oldest"
 
 const getTodayISO = () => new Date().toISOString().split("T")[0]
-const formatDateISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
-const formatMonthYear = (d: Date) => d.toLocaleDateString("en-US", { month: "long", year: "numeric" })
 const getDaysRemaining = (dl: string) => Math.max(0, Math.ceil((new Date(dl).getTime() - Date.now()) / 86400000))
 const getDaysCompleted = (sd: string) => Math.max(0, Math.ceil((Date.now() - new Date(sd).getTime()) / 86400000))
 
 const GOAL_CATEGORIES = [
-  { name: "Health", color: "#22C55E", icon: "💪" }, { name: "Faith", color: "#8B5CF6", icon: "🙏" },
-  { name: "Finance", color: "#EAB308", icon: "💰" }, { name: "Career", color: "#3B82F6", icon: "💼" },
-  { name: "Learning", color: "#F97316", icon: "📚" }, { name: "Relationships", color: "#EC4899", icon: "❤️" },
-  { name: "Business", color: "#14B8A6", icon: "🚀" }, { name: "Personal Growth", color: "#6366F1", icon: "🌱" },
-  { name: "Family", color: "#EF4444", icon: "👨‍👩‍👧" }, { name: "Custom", color: "#6B7280", icon: "⭐" },
+  { name: "Health", color: "#22C55E", icon: "\u{1F4AA}" },
+  { name: "Faith", color: "#8B5CF6", icon: "\u{1F64F}" },
+  { name: "Finance", color: "#EAB308", icon: "\u{1F4B0}" },
+  { name: "Career", color: "#3B82F6", icon: "\u{1F4BC}" },
+  { name: "Learning", color: "#F97316", icon: "\u{1F4DA}" },
+  { name: "Relationships", color: "#EC4899", icon: "\u2764\uFE0F" },
+  { name: "Business", color: "#14B8A6", icon: "\u{1F680}" },
+  { name: "Personal Growth", color: "#6366F1", icon: "\u{1F331}" },
+  { name: "Family", color: "#EF4444", icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}" },
+  { name: "Custom", color: "#6B7280", icon: "\u2B50" },
 ]
+
 const GOAL_COLORS = [
-  { name: "Indigo", hex: "#1E0E6B" }, { name: "Blue", hex: "#3B82F6" }, { name: "Green", hex: "#22C55E" },
-  { name: "Orange", hex: "#F97316" }, { name: "Purple", hex: "#8B5CF6" }, { name: "Pink", hex: "#EC4899" },
+  { name: "Indigo", hex: "#1E0E6B" }, { name: "Blue", hex: "#3B82F6" },
+  { name: "Green", hex: "#22C55E" }, { name: "Orange", hex: "#F97316" },
+  { name: "Purple", hex: "#8B5CF6" }, { name: "Pink", hex: "#EC4899" },
   { name: "Teal", hex: "#14B8A6" }, { name: "Red", hex: "#EF4444" },
 ]
-const GOAL_ICONS = ["🎯","⭐","🚀","💡","🔥","💎","🏆","📈","💪","📚","💰","❤️","🙏","🎓","💼","🌱"]
+
+const GOAL_ICONS = ["\u{1F3AF}","\u2B50","\u{1F680}","\u{1F4A1}","\u{1F525}","\u{1F48E}","\u{1F3C6}","\u{1F4C8}","\u{1F4AA}","\u{1F4DA}","\u{1F4B0}","\u2764\uFE0F","\u{1F64F}","\u{1F393}","\u{1F4BC}","\u{1F331}"]
+
 const PROJECT_TEMPLATES = [
-  { name: "Book Writing", icon: "📚", tasks: ["Outline chapters", "Write first draft", "Edit & revise", "Publish"] },
-  { name: "Website Launch", icon: "🌐", tasks: ["Design mockups", "Build frontend", "Build backend", "Test & launch"] },
-  { name: "Fitness Challenge", icon: "💪", tasks: ["Set goals", "Create plan", "Start training", "Track progress"] },
-  { name: "Business Launch", icon: "🚀", tasks: ["Market research", "Business plan", "Build MVP", "Launch"] },
-  { name: "Research", icon: "🔬", tasks: ["Define scope", "Gather data", "Analyze", "Write report"] },
-  { name: "Course Creation", icon: "🎓", tasks: ["Plan curriculum", "Create content", "Record lessons", "Publish"] },
+  { name: "Book Writing", icon: "\u{1F4DA}", tasks: ["Outline chapters", "Write first draft", "Edit & revise", "Publish"] },
+  { name: "Website Launch", icon: "\u{1F310}", tasks: ["Design mockups", "Build frontend", "Build backend", "Test & launch"] },
+  { name: "Fitness Challenge", icon: "\u{1F4AA}", tasks: ["Set goals", "Create plan", "Start training", "Track progress"] },
+  { name: "Business Launch", icon: "\u{1F680}", tasks: ["Market research", "Business plan", "Build MVP", "Launch"] },
+  { name: "Research", icon: "\u{1F52C}", tasks: ["Define scope", "Gather data", "Analyze", "Write report"] },
+  { name: "Course Creation", icon: "\u{1F393}", tasks: ["Plan curriculum", "Create content", "Record lessons", "Publish"] },
 ]
 
 const createSampleGoals = (): Goal[] => [
-  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], notes:"", color:"Indigo", colorHex:"#1E0E6B", icon:"🚀", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], notes:"", color:"Green", colorHex:"#22C55E", icon:"💪", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-05-15" },
-  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], notes:"", color:"Orange", colorHex:"#F97316", icon:"📚", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"💰", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-04-01" },
+  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], notes:"", color:"Indigo", colorHex:"#1E0E6B", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-06-01" },
+  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-05-15" },
+  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-06-01" },
+  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-04-01" },
 ]
 
 const createSampleProjects = (): Project[] => [
-  { id:"p1", name:"Build Habit Tracker", description:"Design and build the habit tracking feature", status:"active", progress:72, priority:"high", startDate:"2026-03-01", dueDate:"2026-07-31", tasks:[{id:"t1",title:"Design UI",completed:true,subtasks:[]},{id:"t2",title:"Build components",completed:true,subtasks:[]},{id:"t3",title:"Add persistence",completed:false,subtasks:[]},{id:"t4",title:"Test & deploy",completed:false,subtasks:[]}], notes:"", color:"Indigo", colorHex:"#1E0E6B", icon:"📊", tags:["dev","ui"], goalId:"1", createdAt:"2026-03-01", updatedAt:"2026-06-01" },
-  { id:"p2", name:"Launch Website", description:"Deploy intenteo.vercel.app to production", status:"active", progress:100, priority:"high", startDate:"2026-01-01", dueDate:"2026-06-30", tasks:[{id:"t5",title:"Setup domain",completed:true,subtasks:[]},{id:"t6",title:"Configure DNS",completed:true,subtasks:[]},{id:"t7",title:"Deploy",completed:true,subtasks:[]}], notes:"", color:"Green", colorHex:"#22C55E", icon:"🌐", tags:["dev"], goalId:"1", createdAt:"2026-01-01", updatedAt:"2026-06-15" },
-  { id:"p3", name:"Marketing Campaign", description:"Social media and content marketing", status:"active", progress:30, priority:"medium", startDate:"2026-04-01", dueDate:"2026-08-31", tasks:[{id:"t8",title:"Content calendar",completed:true,subtasks:[]},{id:"t9",title:"Create posts",completed:false,subtasks:[]},{id:"t10",title:"Analytics",completed:false,subtasks:[]}], notes:"", color:"Orange", colorHex:"#F97316", icon:"📢", tags:["marketing"], goalId:"1", createdAt:"2026-04-01", updatedAt:"2026-05-01" },
-  { id:"p4", name:"Training Plan", description:"12-week half marathon training", status:"active", progress:40, priority:"medium", startDate:"2026-03-01", dueDate:"2026-06-30", tasks:[{id:"t11",title:"Week 1-4: Base",completed:true,subtasks:[]},{id:"t12",title:"Week 5-8: Build",completed:false,subtasks:[]},{id:"t13",title:"Week 9-12: Peak",completed:false,subtasks:[]}], notes:"", color:"Green", colorHex:"#22C55E", icon:"🏃", tags:["fitness"], goalId:"2", createdAt:"2026-03-01", updatedAt:"2026-05-15" },
-  { id:"p5", name:"Reading List", description:"Curate and track 24 books", status:"active", progress:50, priority:"low", startDate:"2026-01-01", dueDate:"2026-12-31", tasks:[{id:"t14",title:"Jan-Mar books",completed:true,subtasks:[]},{id:"t15",title:"Apr-Jun books",completed:true,subtasks:[]},{id:"t16",title:"Jul-Sep books",completed:false,subtasks:[]}], notes:"", color:"Orange", colorHex:"#F97316", icon:"📖", tags:["learning"], goalId:"3", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
+  { id:"p1", name:"Build Habit Tracker", description:"Design and build the habit tracking feature", status:"active", progress:72, priority:"high", startDate:"2026-03-01", dueDate:"2026-07-31", tasks:[{id:"t1",title:"Design UI",completed:true,subtasks:[]},{id:"t2",title:"Build components",completed:true,subtasks:[]},{id:"t3",title:"Add persistence",completed:false,subtasks:[]},{id:"t4",title:"Test & deploy",completed:false,subtasks:[]}], notes:"", color:"Indigo", colorHex:"#1E0E6B", icon:"\u{1F4CA}", tags:["dev","ui"], goalId:"1", createdAt:"2026-03-01", updatedAt:"2026-06-01" },
+  { id:"p2", name:"Launch Website", description:"Deploy intenteo.vercel.app to production", status:"active", progress:100, priority:"high", startDate:"2026-01-01", dueDate:"2026-06-30", tasks:[{id:"t5",title:"Setup domain",completed:true,subtasks:[]},{id:"t6",title:"Configure DNS",completed:true,subtasks:[]},{id:"t7",title:"Deploy",completed:true,subtasks:[]}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F310}", tags:["dev"], goalId:"1", createdAt:"2026-01-01", updatedAt:"2026-06-15" },
+  { id:"p3", name:"Marketing Campaign", description:"Social media and content marketing", status:"active", progress:30, priority:"medium", startDate:"2026-04-01", dueDate:"2026-08-31", tasks:[{id:"t8",title:"Content calendar",completed:true,subtasks:[]},{id:"t9",title:"Create posts",completed:false,subtasks:[]},{id:"t10",title:"Analytics",completed:false,subtasks:[]}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4E2}", tags:["marketing"], goalId:"1", createdAt:"2026-04-01", updatedAt:"2026-05-01" },
+  { id:"p4", name:"Training Plan", description:"12-week half marathon training", status:"active", progress:40, priority:"medium", startDate:"2026-03-01", dueDate:"2026-06-30", tasks:[{id:"t11",title:"Week 1-4: Base",completed:true,subtasks:[]},{id:"t12",title:"Week 5-8: Build",completed:false,subtasks:[]},{id:"t13",title:"Week 9-12: Peak",completed:false,subtasks:[]}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F3C3}", tags:["fitness"], goalId:"2", createdAt:"2026-03-01", updatedAt:"2026-05-15" },
+  { id:"p5", name:"Reading List", description:"Curate and track 24 books", status:"active", progress:50, priority:"low", startDate:"2026-01-01", dueDate:"2026-12-31", tasks:[{id:"t14",title:"Jan-Mar books",completed:true,subtasks:[]},{id:"t15",title:"Apr-Jun books",completed:true,subtasks:[]},{id:"t16",title:"Jul-Sep books",completed:false,subtasks:[]}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4D6}", tags:["learning"], goalId:"3", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
 ]
-
-/* ─── Progress Calculation ─── */
 
 function calcProjectProgress(p: Project): number {
   if (p.tasks.length === 0) return p.progress
@@ -100,25 +102,19 @@ function calcGoalProgress(g: Goal, projects: Project[]): number {
   const w = g.weighting
   const totalWeight = w.projects + w.habits + w.milestones + w.manual
   if (totalWeight === 0) return g.progress
-
   const goalProjects = projects.filter(p => p.goalId === g.id)
   const projectScore = goalProjects.length > 0
     ? goalProjects.reduce((sum, p) => sum + calcProjectProgress(p), 0) / goalProjects.length
     : 0
-
   const milestoneScore = g.milestones.length > 0
     ? (g.milestones.filter(m => m.completed).length / g.milestones.length) * 100
     : 0
-
   const habitScore = g.linkedHabits.length > 0 ? 70 : 0
   const manualScore = g.progress
-
   return Math.round(
     (projectScore * w.projects + habitScore * w.habits + milestoneScore * w.milestones + manualScore * w.manual) / totalWeight
   )
 }
-
-/* ─── Life Vision Drawer ─── */
 
 const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
   isOpen: boolean; onClose: () => void; vision: LifeVision; onSave: (v: LifeVision) => void
@@ -133,7 +129,7 @@ const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-in slide-in-from-right">
+      <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-white/20 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">Life Vision</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
@@ -163,16 +159,19 @@ const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
   )
 }
 
-/* ─── Add Goal Modal ─── */
-
 const AddGoalModal = ({ isOpen, onClose, onSave }: {
   isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void
 }) => {
-  const [title, setTitle] = useState(""); const [description, setDescription] = useState("")
-  const [category, setCategory] = useState("Personal Growth"); const [customCategory, setCustomCategory] = useState("")
-  const [priority, setPriority] = useState<"low"|"medium"|"high">("medium"); const [type, setType] = useState<Goal["type"]>("annual")
-  const [deadline, setDeadline] = useState(""); const [startDate, setStartDate] = useState(getTodayISO())
-  const [whyItMatters, setWhyItMatters] = useState(""); const [icon, setIcon] = useState("🎯")
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [category, setCategory] = useState("Personal Growth")
+  const [customCategory, setCustomCategory] = useState("")
+  const [priority, setPriority] = useState<"low"|"medium"|"high">("medium")
+  const [type, setType] = useState<Goal["type"]>("annual")
+  const [deadline, setDeadline] = useState("")
+  const [startDate, setStartDate] = useState(getTodayISO())
+  const [whyItMatters, setWhyItMatters] = useState("")
+  const [icon, setIcon] = useState("\u{1F3AF}")
   const [colorIdx, setColorIdx] = useState(0)
   if (!isOpen) return null
   return (
@@ -225,15 +224,16 @@ const AddGoalModal = ({ isOpen, onClose, onSave }: {
   )
 }
 
-/* ─── Add Project Modal ─── */
-
 const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
   isOpen: boolean; onClose: () => void; onSave: (p: Omit<Project,"id"|"createdAt"|"updatedAt">) => void; goalId: string
 }) => {
-  const [name, setName] = useState(""); const [description, setDescription] = useState("")
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
   const [priority, setPriority] = useState<"low"|"medium"|"high">("medium")
-  const [dueDate, setDueDate] = useState(""); const [startDate, setStartDate] = useState(getTodayISO())
-  const [template, setTemplate] = useState(""); const [icon, setIcon] = useState("📋")
+  const [dueDate, setDueDate] = useState("")
+  const [startDate, setStartDate] = useState(getTodayISO())
+  const [template, setTemplate] = useState("")
+  const [icon, setIcon] = useState("\u{1F4CB}")
   const [colorIdx, setColorIdx] = useState(0)
   if (!isOpen) return null
   return (
@@ -279,8 +279,6 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
   )
 }
 
-/* ─── Goal Detail Drawer ─── */
-
 const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveProject, onDeleteGoal }: {
   isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]
   onSaveGoal: (g: Goal) => void; onSaveProject: (p: Project) => void; onDeleteGoal: (id: string) => void
@@ -323,7 +321,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
           </div>
         </div>
         <div className="p-6 space-y-6">
-          {/* Progress */}
           <div className="flex items-center gap-6">
             <ProgressRing value={data.progress} size={90} strokeWidth={6} />
             <div className="flex-1">
@@ -335,7 +332,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
             </div>
           </div>
 
-          {/* Breakdown Stats */}
           <div className="grid grid-cols-5 gap-2">
             {[
               { label: "Projects", value: goalProjects.length, icon: <Folder className="h-4 w-4" /> },
@@ -352,7 +348,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
             ))}
           </div>
 
-          {/* Edit Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Goal Title</label><Input value={data.title} onChange={e => setData({...data, title: e.target.value})} className="mt-1" /></div>
             <div><label className="text-sm font-medium">Category</label>
@@ -367,7 +362,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
             <div><label className="text-sm font-medium">Target Date</label><Input type="date" value={data.deadline} onChange={e => setData({...data, deadline: e.target.value})} className="mt-1" /></div>
           </div>
 
-          {/* Weighting */}
           <div>
             <label className="text-sm font-medium mb-2 block">Progress Weighting</label>
             <div className="grid grid-cols-4 gap-2">
@@ -380,7 +374,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
             </div>
           </div>
 
-          {/* Milestones */}
           <div>
             <label className="text-sm font-medium">Milestones</label>
             <div className="space-y-2 mt-2">
@@ -395,7 +388,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
             <div className="flex gap-2 mt-2"><Input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} placeholder="Add milestone..." onKeyDown={e => e.key === "Enter" && addMilestone()} className="text-sm" /><Button size="sm" onClick={addMilestone}>Add</Button></div>
           </div>
 
-          {/* Projects Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="text-sm font-medium">Projects ({goalProjects.length})</label>
@@ -436,7 +428,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
             </div>
           </div>
 
-          {/* Notes */}
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
         </div>
       </div>
@@ -444,8 +435,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
     </div>
   )
 }
-
-/* ─── Goal Card ─── */
 
 function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]; onClick: () => void }) {
   const goalProjects = projects.filter(p => p.goalId === goal.id)
@@ -465,11 +454,10 @@ function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]
             <h3 className="font-semibold text-sm leading-tight">{goal.title}</h3>
           </div>
         </div>
-        <ProgressRing value={progress} size={52} strokeWidth={4} />
+        <ProgressRing value={progress} size={52} strokeWidth={4} showLabel={false} />
       </div>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
 
-      {/* Projects inside card */}
       {goalProjects.length > 0 && (
         <div className="space-y-1.5 mb-3">
           {goalProjects.slice(0, 3).map(p => (
@@ -498,8 +486,6 @@ function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]
     </div>
   )
 }
-
-/* ─── Main Page ─── */
 
 export function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
@@ -578,7 +564,6 @@ export function GoalsPage() {
     return result
   }, [goals, filter, searchQuery, sortBy, projects])
 
-  // Project dashboard stats
   const activeProjects = projects.filter(p => p.status === "active").length
   const completedProjects = projects.filter(p => p.status === "completed").length
   const overdueProjects = projects.filter(p => p.status !== "completed" && new Date(p.dueDate) < new Date()).length
@@ -597,7 +582,6 @@ export function GoalsPage() {
         <Button onClick={() => setIsAddModalOpen(true)} className="glow h-9"><Plus className="mr-1 h-4 w-4" /> Add Goal</Button>
       </div>
 
-      {/* Life Vision */}
       <div onClick={() => setIsVisionOpen(true)} className="cursor-pointer group">
         <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200">
           <div className="flex items-center gap-4">
@@ -609,7 +593,6 @@ export function GoalsPage() {
         </GlassCard>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         {[
           { label: "10-Year Vision", count: 1, gradient: "from-purple-400 to-pink-500", icon: <Sparkles className="h-5 w-5 text-white" /> },
@@ -623,7 +606,6 @@ export function GoalsPage() {
         ))}
       </div>
 
-      {/* Project Dashboard */}
       <div className="grid gap-4 md:grid-cols-4">
         {[
           { label: "Active Projects", value: activeProjects, color: "text-blue-500" },
@@ -638,7 +620,6 @@ export function GoalsPage() {
         ))}
       </div>
 
-      {/* Search + Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-white/20" /></div>
@@ -651,7 +632,6 @@ export function GoalsPage() {
         </select>
       </div>
 
-      {/* Goal Cards */}
       <div className="grid gap-4 md:grid-cols-2">
         {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} onClick={() => setSelectedGoal(goal)} />)}
       </div>
