@@ -816,21 +816,18 @@ export function TasksPage() {
   /* LIST VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
 
-  const COL_TEMPLATE = "24px minmax(200px,1fr) minmax(130px,150px) minmax(80px,100px) minmax(100px,140px) auto"
-
   const renderListView = useCallback(() => {
     if (displayTasks.length === 0) return <EmptyState onCreate={() => setCreateOpen(true)} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-        <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm">
-          <div className="grid gap-y-0 px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider" style={{ gridTemplateColumns: COL_TEMPLATE, columnGap: "1rem" }}>
-            <div></div>
-            <div>Task</div>
-            <div className="hidden sm:block">Time Range</div>
-            <div className="hidden sm:block">Duration</div>
-            <div>Progress</div>
-            <div>Actions</div>
-          </div>
+        <div className="sticky top-0 z-10 flex items-center gap-4 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="w-6 shrink-0"></div>
+          <div className="w-6 shrink-0"></div>
+          <div className="flex-1 min-w-0">Task</div>
+          <div className="hidden sm:block w-[160px] shrink-0">Time Range</div>
+          <div className="hidden sm:block w-[80px] shrink-0">Duration</div>
+          <div className="w-[140px] shrink-0">Progress</div>
+          <div className="w-[100px] shrink-0">Actions</div>
         </div>
 
         <LayoutGroup>
@@ -850,22 +847,16 @@ export function TasksPage() {
                     onDragStart={() => handleTaskDragStart(task.id)}
                     onDragOver={(e) => handleTaskDragOver(e, task.id)}
                     onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
-                    className="grid gap-y-0 pl-5 pr-5 py-3.5 items-center group cursor-default"
-                    style={{ gridTemplateColumns: COL_TEMPLATE, columnGap: "1rem" }}
+                    className="flex items-center gap-4 pl-5 pr-5 py-3.5 group cursor-default"
                   >
                     {/* Priority Dot */}
-                    <div className="flex items-center justify-center">
+                    <div className="w-6 shrink-0 flex items-center justify-center">
                       <PriorityDot priority={task.priority} />
                     </div>
 
-                    {/* Task Name */}
-                    <div className="flex items-center gap-2.5 min-w-0 pl-2">
-                      {!isViewingPast && (
-                        <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover:opacity-100">
-                          <GripVertical className="h-4 w-4" />
-                        </div>
-                      )}
-                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0" disabled={isViewingPast}>
+                    {/* Checkbox */}
+                    <div className="w-6 shrink-0">
+                      <button onClick={() => handleToggleTask(task.id)} disabled={isViewingPast}>
                         {task.completed ? (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
                             <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
@@ -876,6 +867,15 @@ export function TasksPage() {
                           <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
                         )}
                       </button>
+                    </div>
+
+                    {/* Task Name */}
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      {!isViewingPast && (
+                        <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0 opacity-0 group-hover:opacity-100">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className={`text-sm font-medium truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${task.completed ? "line-through text-muted-foreground" : ""}`}
@@ -903,8 +903,8 @@ export function TasksPage() {
                     </div>
 
                     {/* Time Range */}
-                    <div className="hidden sm:block">
-                      <div className={`flex items-center gap-1.5 text-xs text-muted-foreground pl-2 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                    <div className="hidden sm:block w-[160px] shrink-0">
+                      <div className={`flex items-center gap-1.5 text-xs text-muted-foreground py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
                         onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         <Clock className="h-3 w-3 shrink-0" />
                         <span>{task.timeRange}</span>
@@ -912,15 +912,15 @@ export function TasksPage() {
                     </div>
 
                     {/* Duration */}
-                    <div className="hidden sm:block">
-                      <span className={`text-xs text-muted-foreground pl-2 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                    <div className="hidden sm:block w-[80px] shrink-0">
+                      <span className={`text-xs text-muted-foreground py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"}`}
                         onClick={() => !isViewingPast && setEditingTask({ ...task })}>
                         {formatDuration(task.estimatedDuration)}
                       </span>
                     </div>
 
                     {/* Progress */}
-                    <div className="flex items-center gap-2.5 pl-2">
+                    <div className="w-[140px] shrink-0 flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                         <motion.div
                           className={`h-full rounded-full ${task.completed ? "bg-emerald-500" : progress > 0 ? "bg-primary" : "bg-muted-foreground/20"}`}
@@ -931,7 +931,7 @@ export function TasksPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 pl-2">
+                    <div className="w-[100px] shrink-0 flex items-center gap-1">
                       {!isViewingPast && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
