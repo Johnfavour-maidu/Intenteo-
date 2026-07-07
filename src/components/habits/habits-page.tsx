@@ -1652,6 +1652,7 @@ const TimelineView = ({
   const today = formatDateISO(selectedDate)
   const todayStr = getTodayISO()
   const isToday = today === todayStr
+  const [habitScoreBreakdownHabit, setHabitScoreBreakdownHabit] = useState<Habit | null>(null)
 
   const getTimeSection = (schedule: HabitSchedule | undefined | null): string => {
     if (!schedule || typeof schedule !== "object") return "anytime"
@@ -1812,9 +1813,20 @@ const TimelineView = ({
                               <Flame className="h-3 w-3 text-orange-500" /> {habit.streak}
                             </span>
                             <span className="text-[10px] text-muted-foreground">•</span>
-                            <span className={`text-[10px] font-medium ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
-                              Score: {habit.habitScore}
-                            </span>
+                            <div className="relative">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setHabitScoreBreakdownHabit(habitScoreBreakdownHabit?.id === habit.id ? null : habit) }}
+                                className={`text-[10px] font-medium cursor-pointer hover:opacity-80 ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}
+                              >
+                                Score: {habit.habitScore}
+                              </button>
+                              {habitScoreBreakdownHabit?.id === habit.id && (
+                                <IntentScoreBreakdown
+                                  habit={habit}
+                                  onClose={() => setHabitScoreBreakdownHabit(null)}
+                                />
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2708,7 +2720,7 @@ export function HabitsPage() {
                   <span className="text-xs font-bold text-[#1E0E6B]">{overallIntentScore}</span>
                 </div>
               </button>
-              <span className="text-[9px] text-muted-foreground font-medium">Intent Score</span>
+              <span className="text-[9px] text-muted-foreground font-medium">Overall Intent Score</span>
               {showOverallScoreBreakdown && (
                 <OverallIntentScoreBreakdown
                   habits={habits}
