@@ -731,12 +731,14 @@ const TrackerView = ({
   period,
   onToggleCell,
   onEdit,
+  linkedGoals,
 }: {
   habits: Habit[]
   selectedDate: Date
   period: TrackerPeriod
   onToggleCell: (habitId: string, dateStr: string) => void
   onEdit: (habit: Habit) => void
+  linkedGoals?: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
 
@@ -770,13 +772,14 @@ const TrackerView = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse min-w-[850px]">
+      <table className="w-full border-collapse min-w-[950px]">
         <thead>
           <tr className="border-b border-white/20">
             <th className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[40px] border-r border-white/10"></th>
             <th className="sticky left-[40px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[200px] border-r border-white/10">Habit</th>
             <th className="sticky left-[240px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[100px] border-r border-white/10">Category</th>
-            <th className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[90px] border-r border-white/10">Intent Score</th>
+            <th className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[120px] border-r border-white/10">Linked Goal</th>
+            <th className="sticky left-[460px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[90px] border-r border-white/10">Intent Score</th>
             {dates.map((date) => {
               const dateStr = formatDateISO(date)
               const isToday = dateStr === today
@@ -814,6 +817,20 @@ const TrackerView = ({
                 <Badge variant="secondary" className="text-[10px]">{habit.customCategory || habit.category}</Badge>
               </td>
               <td className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+                {(() => {
+                  const linkedGoal = linkedGoals?.find(g => g.linkedHabits?.includes(habit.id))
+                  if (linkedGoal) {
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: linkedGoal.colorHex }} />
+                        <span className="text-[10px] font-medium text-[#1E0E6B] truncate max-w-[100px]">{linkedGoal.title}</span>
+                      </div>
+                    )
+                  }
+                  return <span className="text-[10px] text-muted-foreground italic">No linked goal</span>
+                })()}
+              </td>
+              <td className="sticky left-[460px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <span className={`text-sm font-semibold ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
                   {habit.habitScore}
                 </span>
@@ -1248,6 +1265,7 @@ const HabitModal = ({
 
 export function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([])
+  const [linkedGoals, setLinkedGoals] = useState<{ id: string; title: string; linkedHabits: string[]; colorHex: string }[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [trackerPeriod, setTrackerPeriod] = useState<TrackerPeriod>("week")
   const [searchQuery, setSearchQuery] = useState("")
@@ -1280,6 +1298,15 @@ export function HabitsPage() {
     } catch {
       setHabits(createSampleHabits())
     }
+    try {
+      const sg = localStorage.getItem("intenteo-goals")
+      if (sg) {
+        const parsed = JSON.parse(sg)
+        if (Array.isArray(parsed)) {
+          setLinkedGoals(parsed.map((g: any) => ({ id: g.id, title: g.title, linkedHabits: g.linkedHabits || [], colorHex: g.colorHex })))
+        }
+      }
+    } catch {}
     setIsLoading(false)
   }, [])
 
@@ -1453,7 +1480,7 @@ export function HabitsPage() {
       <HabitsErrorBoundary fallbackLabel="habit tracker">
         <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
           {filteredAndSorted.length > 0 ? (
-            <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} />
+            <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} />
           ) : (
             <div className="text-center py-12">
               <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

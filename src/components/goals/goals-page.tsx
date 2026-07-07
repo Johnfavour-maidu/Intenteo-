@@ -9,6 +9,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, Sparkles,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
+  Link2, AlertTriangle,
 } from "lucide-react"
 
 interface Milestone { id: string; title: string; completed: boolean }
@@ -25,14 +26,25 @@ interface Project {
   tags: string[]; goalId: string; createdAt: string; updatedAt: string
 }
 
+interface LinkedHabitWeight { habitId: string; habitName: string; weight: number }
+
 interface Goal {
   id: string; title: string; description: string; category: string; customCategory?: string
   priority: "none" | "low" | "medium" | "high"; progress: number; deadline: string; startDate: string
   type: "annual" | "quarterly" | "monthly" | "weekly" | "custom"; whyItMatters: string
-  milestones: Milestone[]; linkedHabits: string[]; notes: string; color: string; colorHex: string
+  milestones: Milestone[]; linkedHabits: string[]; linkedHabitWeights?: LinkedHabitWeight[]
+  notes: string; color: string; colorHex: string
   icon: string; trackingMethod: "manual" | "milestone" | "auto"
   weighting: { projects: number; habits: number; milestones: number; manual: number }
-  timeline?: string; createdAt: string; updatedAt: string
+  timeline?: string; status?: "not-started" | "in-progress" | "completed" | "overdue" | "archived"
+  habitCompletionRate?: number; lastActivity?: string
+  createdAt: string; updatedAt: string
+}
+
+interface Habit {
+  id: string; name: string; color: string; colorHex: string; icon: string
+  completions: Record<string, { completed: boolean; time?: string; notes?: string }>
+  streak: number; habitScore: number; createdAt?: string
 }
 
 interface LifeVision {
@@ -40,7 +52,7 @@ interface LifeVision {
   lifeAreas: string[]; reviewFrequency: string
 }
 
-type FilterMode = "all" | "annual" | "quarterly" | "monthly" | "weekly"
+type GoalFilterMode = "all" | "life-vision" | "10-year" | "5-year" | "annual" | "quarterly" | "monthly" | "weekly" | "daily" | "projects" | "completed" | "in-progress" | "not-started" | "overdue" | "archived"
 type SortMode = "deadline" | "progress" | "updated" | "priority" | "name" | "newest" | "oldest"
 
 const getTodayISO = () => new Date().toISOString().split("T")[0]
@@ -79,10 +91,10 @@ const PROJECT_TEMPLATES = [
 ]
 
 const createSampleGoals = (): Goal[] => [
-  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], notes:"", color:"Purple", colorHex:"#8B5CF6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, timeline:"Quarterly", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Annual", createdAt:"2026-01-01", updatedAt:"2026-05-15" },
-  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Annual", createdAt:"2026-01-01", updatedAt:"2026-04-01" },
+  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Purple", colorHex:"#8B5CF6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
+  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-05-15" },
+  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
+  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-04-01" },
 ]
 
 const createSampleProjects = (): Project[] => [
@@ -98,7 +110,17 @@ function calcProjectProgress(p: Project): number {
   return Math.round((p.tasks.filter(t => t.completed).length / p.tasks.length) * 100)
 }
 
-function calcGoalProgress(g: Goal, projects: Project[]): number {
+function calcHabitScoreForGoal(habit: Habit): number {
+  const today = getTodayISO()
+  const completions = habit.completions || {}
+  const completedDays = Object.keys(completions).filter(k => completions[k]?.completed).length
+  const created = new Date(habit.createdAt || Date.now())
+  const now = new Date()
+  const totalDays = Math.max(1, Math.ceil((now.getTime() - created.getTime()) / 86400000))
+  return Math.min(100, Math.round((completedDays / totalDays) * 100))
+}
+
+function calcGoalProgress(g: Goal, projects: Project[], habits: Habit[]): number {
   const w = g.weighting
   const totalWeight = w.projects + w.habits + w.milestones + w.manual
   if (totalWeight === 0) return g.progress
@@ -109,11 +131,53 @@ function calcGoalProgress(g: Goal, projects: Project[]): number {
   const milestoneScore = g.milestones.length > 0
     ? (g.milestones.filter(m => m.completed).length / g.milestones.length) * 100
     : 0
-  const habitScore = g.linkedHabits.length > 0 ? 70 : 0
+  let habitScore = 0
+  if (g.linkedHabitWeights && g.linkedHabitWeights.length > 0) {
+    const totalHabitWeight = g.linkedHabitWeights.reduce((s, h) => s + h.weight, 0)
+    if (totalHabitWeight > 0) {
+      habitScore = g.linkedHabitWeights.reduce((sum, lh) => {
+        const habit = habits.find(h => h.id === lh.habitId || h.name === lh.habitName)
+        const score = habit ? calcHabitScoreForGoal(habit) : 0
+        return sum + (score * lh.weight / totalHabitWeight)
+      }, 0)
+    }
+  } else if (g.linkedHabits.length > 0) {
+    const linked = habits.filter(h => g.linkedHabits.includes(h.name))
+    if (linked.length > 0) {
+      habitScore = linked.reduce((sum, h) => sum + calcHabitScoreForGoal(h), 0) / linked.length
+    }
+  }
   const manualScore = g.progress
   return Math.round(
     (projectScore * w.projects + habitScore * w.habits + milestoneScore * w.milestones + manualScore * w.manual) / totalWeight
   )
+}
+
+function getGoalBreakdown(g: Goal, projects: Project[], habits: Habit[]) {
+  const w = g.weighting
+  const goalProjects = projects.filter(p => p.goalId === g.id)
+  const projectScore = goalProjects.length > 0
+    ? goalProjects.reduce((sum, p) => sum + calcProjectProgress(p), 0) / goalProjects.length
+    : 0
+  const milestoneScore = g.milestones.length > 0
+    ? (g.milestones.filter(m => m.completed).length / g.milestones.length) * 100
+    : 0
+  const sources: { name: string; score: number; type: "project" | "milestone" | "habit" | "manual" }[] = []
+  goalProjects.forEach(p => sources.push({ name: p.name, score: calcProjectProgress(p), type: "project" }))
+  g.milestones.forEach(m => { if (m.completed) sources.push({ name: m.title, score: 100, type: "milestone" }) })
+  if (g.linkedHabitWeights && g.linkedHabitWeights.length > 0) {
+    g.linkedHabitWeights.forEach(lh => {
+      const habit = habits.find(h => h.id === lh.habitId || h.name === lh.habitName)
+      sources.push({ name: lh.habitName, score: habit ? calcHabitScoreForGoal(habit) : 0, type: "habit" })
+    })
+  } else {
+    g.linkedHabits.forEach(name => {
+      const habit = habits.find(h => h.name === name)
+      sources.push({ name, score: habit ? calcHabitScoreForGoal(habit) : 0, type: "habit" })
+    })
+  }
+  if (g.progress > 0) sources.push({ name: "Manual", score: g.progress, type: "manual" })
+  return sources
 }
 
 const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
@@ -198,8 +262,8 @@ const getAutoDeadline = (startDate: string, type: Goal["type"]): string => {
   return d.toISOString().split("T")[0]
 }
 
-const AddGoalModal = ({ isOpen, onClose, onSave }: {
-  isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void
+const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
+  isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void; habits: Habit[]
 }) => {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -216,6 +280,8 @@ const AddGoalModal = ({ isOpen, onClose, onSave }: {
   const [customDuration, setCustomDuration] = useState("")
   const [showIconDropdown, setShowIconDropdown] = useState(false)
   const [showColorDropdown, setShowColorDropdown] = useState(false)
+  const [selectedHabits, setSelectedHabits] = useState<string[]>([])
+  const [habitWeights, setHabitWeights] = useState<Record<string, number>>({})
 
   useEffect(() => {
     if (type !== "custom") {
@@ -228,6 +294,10 @@ const AddGoalModal = ({ isOpen, onClose, onSave }: {
   if (!isOpen) return null
 
   const minDeadline = getMinDeadline(startDate, type)
+
+  const toggleHabit = (name: string) => {
+    setSelectedHabits(prev => prev.includes(name) ? prev.filter(h => h !== name) : [...prev, name])
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -330,13 +400,38 @@ const AddGoalModal = ({ isOpen, onClose, onSave }: {
               )}
             </div>
           </div>
+          <div>
+            <label className="text-sm font-medium">Linked Habits</label>
+            <p className="text-xs text-muted-foreground mb-2">Select habits that support this goal</p>
+            {habits.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">No habits created yet</p>
+            ) : (
+              <div className="space-y-1 max-h-[150px] overflow-y-auto border border-white/20 rounded-lg p-2">
+                {habits.map(h => (
+                  <label key={h.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted/50 cursor-pointer text-sm">
+                    <input type="checkbox" checked={selectedHabits.includes(h.name)} onChange={() => toggleHabit(h.name)} className="accent-[#1E0E6B]" />
+                    <span>{h.icon}</span>
+                    <span className="flex-1">{h.name}</span>
+                    {selectedHabits.includes(h.name) && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">Weight:</span>
+                        <input type="number" min="1" max="100" value={habitWeights[h.name] || 50} onChange={e => setHabitWeights(prev => ({...prev, [h.name]: parseInt(e.target.value) || 50}))} className="w-14 text-[10px] text-center border border-white/20 rounded px-1 py-0.5" />
+                        <span className="text-[10px] text-muted-foreground">%</span>
+                      </div>
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button onClick={() => {
             if (title.trim() && deadline) {
               const c = GOAL_COLORS[colorIdx]
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: [], notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, timeline })
+              const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 50 }))
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, timeline, status: "not-started" })
               onClose()
             }
           }} className="flex-1 glow text-white">Add Goal</Button>
@@ -401,15 +496,15 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
   )
 }
 
-const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveProject, onDeleteGoal }: {
-  isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]
+const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal, onSaveProject, onDeleteGoal }: {
+  isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]; habits: Habit[]
   onSaveGoal: (g: Goal) => void; onSaveProject: (p: Project) => void; onDeleteGoal: (id: string) => void
 }) => {
   const [data, setData] = useState<Goal | null>(goal)
   const [showAddProject, setShowAddProject] = useState(false)
   const [expandedProject, setExpandedProject] = useState<string | null>(null)
   const [newMilestone, setNewMilestone] = useState("")
-  useEffect(() => { if (goal) { const gp = calcGoalProgress(goal, projects); setData({ ...goal, progress: gp }) } }, [goal, projects])
+  useEffect(() => { if (goal) { const gp = calcGoalProgress(goal, projects, habits); setData({ ...goal, progress: gp }) } }, [goal, projects, habits])
   if (!isOpen || !data) return null
   const goalProjects = projects.filter(p => p.goalId === data.id)
   const daysRemaining = getDaysRemaining(data.deadline)
@@ -417,10 +512,11 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
   const completedMilestones = data.milestones.filter(m => m.completed).length
   const totalTasks = goalProjects.reduce((s, p) => s + p.tasks.length, 0)
   const completedTasks = goalProjects.reduce((s, p) => s + p.tasks.filter(t => t.completed).length, 0)
+  const breakdown = getGoalBreakdown(data, projects, habits)
 
   const toggleMilestone = (id: string) => {
     const updated = { ...data, milestones: data.milestones.map(m => m.id === id ? { ...m, completed: !m.completed } : m), updatedAt: getTodayISO() }
-    updated.progress = calcGoalProgress(updated, projects)
+    updated.progress = calcGoalProgress(updated, projects, habits)
     setData(updated)
   }
   const addMilestone = () => {
@@ -438,7 +534,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
           <div className="flex items-center gap-3"><span className="text-2xl">{data.icon}</span><h2 className="text-xl font-bold">{data.title}</h2></div>
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" onClick={() => { onDeleteGoal(data.id); onClose() }} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={() => { data.progress = calcGoalProgress(data, projects); onSaveGoal(data); onClose() }}><CheckCircle2 className="h-4 w-4 text-emerald-500" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => { data.progress = calcGoalProgress(data, projects, habits); onSaveGoal(data); onClose() }}><CheckCircle2 className="h-4 w-4 text-emerald-500" /></Button>
             <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
           </div>
         </div>
@@ -469,6 +565,45 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
               </div>
             ))}
           </div>
+
+          {breakdown.length > 0 && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Progress Sources</label>
+              <div className="space-y-1.5">
+                {breakdown.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 bg-white/50 dark:bg-white/5 rounded-lg border border-white/10 text-sm">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span className="flex-1">{s.name}</span>
+                    <Badge variant="secondary" className={`text-[10px] ${s.type === "habit" ? "bg-blue-50 text-blue-600" : s.type === "project" ? "bg-purple-50 text-purple-600" : s.type === "milestone" ? "bg-emerald-50 text-emerald-600" : "bg-muted"}`}>{s.type}</Badge>
+                    <span className="font-medium text-xs">{s.score}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.linkedHabits.length === 0 && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Suggestions</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">This goal has no supporting habits. Create or link habits to increase your chances of success.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {data.linkedHabits.length > 0 && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Linked Habits ({data.linkedHabits.length})</label>
+              <div className="flex flex-wrap gap-2">
+                {data.linkedHabits.map(name => (
+                  <Badge key={name} variant="secondary" className="gap-1"><Zap className="h-3 w-3" />{name}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Goal Title</label><Input value={data.title} onChange={e => setData({...data, title: e.target.value})} className="mt-1" /></div>
@@ -558,9 +693,9 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, onSaveGoal, onSaveP
   )
 }
 
-function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]; onClick: () => void }) {
+function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: Project[]; habits: Habit[]; onClick: () => void }) {
   const goalProjects = projects.filter(p => p.goalId === goal.id)
-  const progress = calcGoalProgress(goal, projects)
+  const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
   const completedProjects = goalProjects.filter(p => p.status === "completed").length
   const totalTasks = goalProjects.reduce((s, p) => s + p.tasks.length, 0)
@@ -593,6 +728,15 @@ function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]
         </div>
       )}
 
+      {goal.linkedHabits.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {goal.linkedHabits.slice(0, 3).map(name => (
+            <Badge key={name} variant="secondary" className="text-[10px] gap-0.5"><Zap className="h-2.5 w-2.5" />{name}</Badge>
+          ))}
+          {goal.linkedHabits.length > 3 && <Badge variant="secondary" className="text-[10px]">+{goal.linkedHabits.length - 3}</Badge>}
+        </div>
+      )}
+
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-medium">{progress}%</span></div>
         <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div>
@@ -612,8 +756,10 @@ function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]
 export function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [habits, setHabits] = useState<Habit[]>([])
   const [vision, setVision] = useState<LifeVision>({ vision: "Become a successful entrepreneur who helps millions live with intentionality", notes: "", whyItMatters: "Everyone deserves purpose", values: ["Integrity","Innovation","Impact"], lifeAreas: ["Career","Health","Relationships"], reviewFrequency: "Monthly" })
-  const [filter, setFilter] = useState<FilterMode>("all")
+  const [filter, setFilter] = useState<GoalFilterMode>("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
   const [sortBy, setSortBy] = useState<SortMode>("deadline")
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -625,14 +771,12 @@ export function GoalsPage() {
     try {
       const sg = localStorage.getItem("intenteo-goals")
       const sp = localStorage.getItem("intenteo-projects")
+      const sh = localStorage.getItem("intenteo-habits")
       const sv = localStorage.getItem("intenteo-vision")
-      const sf = localStorage.getItem("intenteo-goals-filter")
-      const ss = localStorage.getItem("intenteo-goals-sort")
       if (sg) { try { setGoals(JSON.parse(sg)) } catch { setGoals(createSampleGoals()) } } else setGoals(createSampleGoals())
       if (sp) { try { setProjects(JSON.parse(sp)) } catch { setProjects(createSampleProjects()) } } else setProjects(createSampleProjects())
+      if (sh) { try { setHabits(JSON.parse(sh)) } catch { /* keep empty */ } }
       if (sv) { try { setVision(JSON.parse(sv)) } catch { /* keep default */ } }
-      if (sf) setFilter(sf as FilterMode)
-      if (ss) setSortBy(ss as SortMode)
     } catch {
       setGoals(createSampleGoals())
       setProjects(createSampleProjects())
@@ -644,8 +788,6 @@ export function GoalsPage() {
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-goals", JSON.stringify(goals)) }, [goals, isLoading])
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-projects", JSON.stringify(projects)) }, [projects, isLoading])
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-vision", JSON.stringify(vision)) }, [vision, isLoading])
-  useEffect(() => { localStorage.setItem("intenteo-goals-filter", filter) }, [filter])
-  useEffect(() => { localStorage.setItem("intenteo-goals-sort", sortBy) }, [sortBy])
 
   const saveGoal = useCallback((g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => {
     const now = getTodayISO()
@@ -663,7 +805,24 @@ export function GoalsPage() {
 
   const filteredAndSorted = useMemo(() => {
     let result = goals.filter(g => {
-      if (filter !== "all" && g.type !== filter) return false
+      if (categoryFilter !== "all" && (g.customCategory || g.category) !== categoryFilter) return false
+      switch (filter) {
+        case "all": break
+        case "life-vision": if (g.timeline !== "Life Vision") return false; break
+        case "10-year": if (g.timeline !== "10-Year") return false; break
+        case "5-year": if (g.timeline !== "5-Year") return false; break
+        case "annual": if (g.type !== "annual") return false; break
+        case "quarterly": if (g.type !== "quarterly") return false; break
+        case "monthly": if (g.type !== "monthly") return false; break
+        case "weekly": if (g.type !== "weekly") return false; break
+        case "daily": if (g.timeline !== "Daily") return false; break
+        case "projects": { const gp = projects.filter(p => p.goalId === g.id); if (gp.length === 0) return false; break }
+        case "completed": { const p = calcGoalProgress(g, projects, habits); if (p < 100) return false; break }
+        case "in-progress": { const p = calcGoalProgress(g, projects, habits); if (p === 0 || p >= 100) return false; break }
+        case "not-started": { const p = calcGoalProgress(g, projects, habits); if (p > 0) return false; break }
+        case "overdue": { if (new Date(g.deadline) < new Date() && calcGoalProgress(g, projects, habits) < 100) break; return false }
+        case "archived": if (g.status !== "archived") return false; break
+      }
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         const goalProjects = projects.filter(p => p.goalId === g.id)
@@ -674,7 +833,7 @@ export function GoalsPage() {
     result.sort((a, b) => {
       switch (sortBy) {
         case "deadline": return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-        case "progress": return calcGoalProgress(b, projects) - calcGoalProgress(a, projects)
+        case "progress": return calcGoalProgress(b, projects, habits) - calcGoalProgress(a, projects, habits)
         case "updated": return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         case "priority": { const p: any = { high: 0, medium: 1, low: 2, none: 3 }; return p[a.priority] - p[b.priority] }
         case "name": return a.title.localeCompare(b.title)
@@ -684,16 +843,11 @@ export function GoalsPage() {
       }
     })
     return result
-  }, [goals, filter, searchQuery, sortBy, projects])
+  }, [goals, filter, categoryFilter, searchQuery, sortBy, projects, habits])
 
+  const totalLinkedHabits = goals.reduce((s, g) => s + g.linkedHabits.length, 0)
   const activeProjects = projects.filter(p => p.status === "active").length
-  const completedProjects = projects.filter(p => p.status === "completed").length
-  const overdueProjects = projects.filter(p => p.status !== "completed" && new Date(p.dueDate) < new Date()).length
-  const upcomingProjects = projects.filter(p => p.status === "planning").length
-
-  const annualCount = goals.filter(g => g.type === "annual").length
-  const quarterlyCount = goals.filter(g => g.type === "quarterly").length
-  const monthlyCount = goals.filter(g => g.type === "monthly").length
+  const avgProgress = goals.length > 0 ? Math.round(goals.reduce((s, g) => s + calcGoalProgress(g, projects, habits), 0) / goals.length) : 0
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="text-muted-foreground">Loading goals...</div></div>
 
@@ -717,23 +871,10 @@ export function GoalsPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          { label: "10-Year Vision", count: 1, gradient: "from-purple-400 to-pink-500", icon: <Sparkles className="h-5 w-5 text-white" /> },
-          { label: "Annual Goals", count: annualCount, gradient: "from-blue-400 to-cyan-500", icon: <Calendar className="h-5 w-5 text-white" /> },
-          { label: "Quarterly Goals", count: quarterlyCount, gradient: "from-emerald-400 to-green-500", icon: <TrendingUp className="h-5 w-5 text-white" /> },
-          { label: "Monthly Goals", count: monthlyCount, gradient: "from-orange-400 to-amber-500", icon: <Target className="h-5 w-5 text-white" /> },
-        ].map((item, i) => (
-          <div key={i} className="rounded-xl border border-[#1E0E6B]/15 bg-white dark:bg-gray-950 p-4">
-            <div className="flex items-center gap-3"><div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${item.gradient}`}>{item.icon}</div><div><p className="text-sm text-muted-foreground">{item.label}</p><p className="text-2xl font-bold">{item.count}</p></div></div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        {[
-          { label: "Active Projects", value: activeProjects, color: "text-blue-500" },
-          { label: "Completed", value: completedProjects, color: "text-emerald-500" },
-          { label: "Overdue", value: overdueProjects, color: "text-red-500" },
-          { label: "Upcoming", value: upcomingProjects, color: "text-amber-500" },
+          { label: "Total Goals", value: goals.length, color: "text-[#1E0E6B]" },
+          { label: "Linked Habits", value: totalLinkedHabits, color: "text-blue-500" },
+          { label: "Active Projects", value: activeProjects, color: "text-emerald-500" },
+          { label: "Avg Progress", value: `${avgProgress}%`, color: "text-orange-500" },
         ].map((s, i) => (
           <div key={i} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 text-center">
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -745,17 +886,40 @@ export function GoalsPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-white/20" /></div>
-        <div className="flex gap-1 flex-wrap">{(["all","annual","quarterly","monthly","weekly"] as FilterMode[]).map(f => (
-          <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" onClick={() => setFilter(f)} className={filter === f ? "bg-[#1E0E6B] text-white" : ""}>{f === "all" ? "All Goals" : f[0].toUpperCase()+f.slice(1)}</Button>
-        ))}</div>
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
+          <option value="all">All Categories</option>
+          {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+        </select>
         <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
           <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
           <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
         </select>
       </div>
 
+      <div className="flex gap-1 flex-wrap">
+        {([
+          { key: "all" as const, label: "All Goals" },
+          { key: "life-vision" as const, label: "Life Vision" },
+          { key: "10-year" as const, label: "10-Year" },
+          { key: "5-year" as const, label: "5-Year" },
+          { key: "annual" as const, label: "Annual" },
+          { key: "quarterly" as const, label: "Quarterly" },
+          { key: "monthly" as const, label: "Monthly" },
+          { key: "weekly" as const, label: "Weekly" },
+          { key: "daily" as const, label: "Daily" },
+          { key: "projects" as const, label: "Projects" },
+          { key: "completed" as const, label: "Completed" },
+          { key: "in-progress" as const, label: "In Progress" },
+          { key: "not-started" as const, label: "Not Started" },
+          { key: "overdue" as const, label: "Overdue" },
+          { key: "archived" as const, label: "Archived" },
+        ]).map(f => (
+          <Button key={f.key} variant={filter === f.key ? "default" : "outline"} size="sm" onClick={() => setFilter(f.key)} className={filter === f.key ? "bg-[#1E0E6B] text-white" : ""}>{f.label}</Button>
+        ))}
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
-        {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} onClick={() => setSelectedGoal(goal)} />)}
+        {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} onClick={() => setSelectedGoal(goal)} />)}
       </div>
       {filteredAndSorted.length === 0 && (
         <div className="text-center py-12"><Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium">No goals found</h3>
@@ -764,9 +928,9 @@ export function GoalsPage() {
         </div>
       )}
 
-      <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} />
+      <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} />
       <LifeVisionDrawer isOpen={isVisionOpen} onClose={() => setIsVisionOpen(false)} vision={vision} onSave={setVision} />
-      <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
+      <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
     </div>
   )
 }
