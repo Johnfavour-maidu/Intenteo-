@@ -459,49 +459,170 @@ const IntentScoreBreakdown = ({
   const timeAccuracy = habit.timeAccuracy ?? null
   const difficulty = habit.difficulty || "medium"
 
-  const completionPoints = Math.round(completionRate * 0.5)
+  const completionPoints = Math.round(completionRate * 0.4)
   const streakPoints = Math.round(Math.min(streak, 30) / 30 * 100 * 0.25)
   const consistencyPoints = Math.round(consistency * 0.2)
   const timeAccuracyPoints = timeAccuracy !== null ? Math.round(timeAccuracy * 0.1) : 0
   const difficultyPoints = difficulty === "easy" ? 0 : difficulty === "medium" ? 5 : 10
 
   const breakdown = [
-    { label: "Completion", points: completionPoints, max: 50, color: "bg-emerald-500" },
+    { label: "Completion", points: completionPoints, max: 40, color: "bg-emerald-500" },
     { label: "Streak", points: streakPoints, max: 25, color: "bg-orange-500" },
     { label: "Consistency", points: consistencyPoints, max: 20, color: "bg-blue-500" },
     ...(timeAccuracy !== null ? [{ label: "Time Accuracy", points: timeAccuracyPoints, max: 10, color: "bg-purple-500" }] : []),
-    { label: "Difficulty", points: difficultyPoints, max: 10, color: "bg-red-500" },
+    { label: "Difficulty", points: difficultyPoints, max: 5, color: "bg-red-500" },
+  ]
+
+  const suggestions = [
+    "Maintain your streak.",
+    "Continue completing around your preferred time.",
+    "Keep consistency above 90%.",
   ]
 
   return (
     <div ref={ref} className="absolute z-50 top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-semibold text-sm">Intent Score Breakdown</h4>
+        <div>
+          <h4 className="font-semibold text-sm">{habit.name}</h4>
+          <p className="text-[10px] text-muted-foreground">Intent Score Breakdown</p>
+        </div>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {breakdown.map((item) => (
           <div key={item.label}>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-0.5">
               <span className="text-xs text-muted-foreground">{item.label}</span>
-              <span className="text-xs font-medium">{item.points} pts</span>
+              <span className="text-xs font-medium">{item.points} / {item.max}</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
               <div
-                className={`h-2 rounded-full ${item.color}`}
+                className={`h-1.5 rounded-full ${item.color}`}
                 style={{ width: `${(item.points / item.max) * 100}%` }}
               />
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-3 border-t border-white/20">
+      <div className="mt-3 pt-3 border-t border-white/20">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">Total Score</span>
-          <span className="text-lg font-bold text-[#1E0E6B]">{habit.habitScore}</span>
+          <span className="text-sm font-semibold">Total</span>
+          <span className="text-lg font-bold text-[#1E0E6B]">{habit.habitScore} / 100</span>
         </div>
+      </div>
+      <div className="mt-3 pt-3 border-t border-white/20">
+        <p className="text-xs font-medium text-muted-foreground mb-1.5">Suggestions</p>
+        <ul className="space-y-1">
+          {suggestions.map((s, i) => (
+            <li key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+              <span className="text-emerald-500 mt-0.5">✔</span>
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Overall Intent Score Breakdown Popover ─── */
+
+const OverallIntentScoreBreakdown = ({
+  habits,
+  overallIntentScore,
+  onClose,
+}: {
+  habits: Habit[]
+  overallIntentScore: number
+  onClose: () => void
+}) => {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [onClose])
+
+  const activeHabits = habits.filter(h => !h.paused)
+  const activeCount = activeHabits.length
+  const avgHabitScore = activeCount > 0 ? Math.round(activeHabits.reduce((sum, h) => sum + h.habitScore, 0) / activeCount) : 0
+
+  const suggestions = [
+    "Complete habits more consistently.",
+    "Maintain longer streaks.",
+    "Complete habits around preferred times.",
+    "Build consistency over time.",
+  ]
+
+  return (
+    <div ref={ref} className="absolute z-50 top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="font-semibold text-sm">Overall Intent Score</h4>
+          <p className="text-[10px] text-muted-foreground">How your score is calculated</p>
+        </div>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="text-center mb-4">
+        <div className="text-3xl font-bold text-[#1E0E6B]">{overallIntentScore}</div>
+        <p className="text-xs text-muted-foreground">Current Score</p>
+      </div>
+      <div className="space-y-2 mb-4">
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Active Habits</span>
+          <span className="font-medium">{activeCount}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Average Habit Intent Score</span>
+          <span className="font-medium">{avgHabitScore} / 100</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Based on</span>
+          <span className="font-medium">Weighted average</span>
+        </div>
+      </div>
+      <div className="pt-3 border-t border-white/20">
+        <p className="text-xs font-medium text-muted-foreground mb-1.5">Based on</p>
+        <ul className="space-y-1">
+          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+            <span className="text-muted-foreground mt-0.5">•</span>
+            <span>Completion</span>
+          </li>
+          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+            <span className="text-muted-foreground mt-0.5">•</span>
+            <span>Consistency</span>
+          </li>
+          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+            <span className="text-muted-foreground mt-0.5">•</span>
+            <span>Streaks</span>
+          </li>
+          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+            <span className="text-muted-foreground mt-0.5">•</span>
+            <span>Time Accuracy (where applicable)</span>
+          </li>
+          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+            <span className="text-muted-foreground mt-0.5">•</span>
+            <span>Difficulty weighting</span>
+          </li>
+        </ul>
+      </div>
+      <div className="mt-3 pt-3 border-t border-white/20">
+        <p className="text-xs font-medium text-muted-foreground mb-1.5">How to improve</p>
+        <ul className="space-y-1">
+          {suggestions.map((s, i) => (
+            <li key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+              <span className="text-emerald-500 mt-0.5">✔</span>
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   )
@@ -551,32 +672,30 @@ const SummaryCard = ({
     >
       <div
         onClick={onClick}
-        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg border-2 ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
-        style={{ borderColor: accentColor }}
+        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg bg-white dark:bg-gray-950 px-4 py-2.5 ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
+        style={{ border: `2px solid ${accentColor}` }}
       >
-        <div className="bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative rounded-[10px]">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shrink-0`}>
-              {icon}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xl font-bold leading-tight">{primary}</p>
-              <p className="text-[11px] text-muted-foreground">{label}</p>
-              {secondary && <p className="text-[10px] text-muted-foreground mt-0.5">{secondary}</p>}
-            </div>
+        <div className="flex items-center gap-3">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shrink-0`}>
+            {icon}
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }}
-            className="absolute bottom-2 right-2 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-          >
-            <ChevronDown className="h-3 w-3" />
-          </button>
-          {showInfo && (
-            <div className="absolute z-50 bottom-full mb-2 right-2 w-64 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs text-muted-foreground leading-relaxed" ref={infoRef}>
-              {infoText}
-            </div>
-          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-xl font-bold leading-tight">{primary}</p>
+            <p className="text-[11px] text-muted-foreground">{label}</p>
+            {secondary && <p className="text-[10px] text-muted-foreground mt-0.5">{secondary}</p>}
+          </div>
         </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }}
+          className="absolute bottom-2 right-2 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        >
+          <ChevronDown className="h-3 w-3" />
+        </button>
+        {showInfo && (
+          <div className="absolute z-50 bottom-full mb-2 right-2 w-64 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs text-muted-foreground leading-relaxed" ref={infoRef}>
+            {infoText}
+          </div>
+        )}
       </div>
       {showTooltip && (
         <div className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-56 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs space-y-1.5 pointer-events-none">
@@ -596,13 +715,15 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
 }) => {
   const today = getTodayISO()
   const totalCount = habits.length
+  const activeHabits = habits.filter(h => !h.paused)
+  const activeCount = activeHabits.length
 
   /* Card 1: Today's Progress */
   const todayScheduled = habits.filter(h => isHabitScheduledOnDate(h, today)).length
   const todayCompleted = habits.filter(h => isHabitScheduledOnDate(h, today) && h.completions[today]?.completed).length
   const todayPercent = todayScheduled > 0 ? Math.round((todayCompleted / todayScheduled) * 100) : 0
 
-  /* Card 2: Weekly Completion */
+  /* Card 2: Weekly Completion - Completed / (Active Habits × 7) */
   const weekStart = new Date(selectedDate)
   weekStart.setDate(weekStart.getDate() - weekStart.getDay())
   const weekDates: string[] = []
@@ -611,41 +732,35 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
     d.setDate(d.getDate() + i)
     weekDates.push(formatDateISO(d))
   }
-  let weekScheduled = 0, weekCompleted = 0
-  habits.forEach(h => {
+  let weekCompleted = 0
+  activeHabits.forEach(h => {
     weekDates.forEach(d => {
-      if (isHabitScheduledOnDate(h, d)) {
-        weekScheduled++
-        if (h.completions[d]?.completed) weekCompleted++
-      }
+      if (h.completions[d]?.completed) weekCompleted++
     })
   })
-  const weekPercent = weekScheduled > 0 ? Math.round((weekCompleted / weekScheduled) * 100) : 0
+  const weekMax = activeCount * 7
+  const weekPercent = weekMax > 0 ? Math.round((weekCompleted / weekMax) * 100) : 0
 
-  /* Card 3: Monthly Completion */
+  /* Card 3: Monthly Completion - Completed / (Active Habits × Days in Month) */
   const now = new Date()
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const monthDates: string[] = []
   for (let d = new Date(monthStart); d <= now; d.setDate(d.getDate() + 1)) {
     monthDates.push(formatDateISO(d))
   }
-  let monthScheduled = 0, monthCompleted = 0
-  habits.forEach(h => {
+  let monthCompleted = 0
+  activeHabits.forEach(h => {
     monthDates.forEach(d => {
-      if (isHabitScheduledOnDate(h, d)) {
-        monthScheduled++
-        if (h.completions[d]?.completed) monthCompleted++
-      }
+      if (h.completions[d]?.completed) monthCompleted++
     })
   })
-  const monthPercent = monthScheduled > 0 ? Math.round((monthCompleted / monthScheduled) * 100) : 0
+  const monthMax = activeCount * daysInMonth
+  const monthPercent = monthMax > 0 ? Math.round((monthCompleted / monthMax) * 100) : 0
 
   /* Card 4: Highest Streak */
   const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0)
   const bestStreakHabit = habits.find(h => h.bestStreak === bestStreak)
-
-  /* Card 5: Active Habits */
-  const activeCount = totalCount
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -672,17 +787,18 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
       <SummaryCard
         label="Weekly Completion"
         primary={totalCount === 0 ? "--" : `${weekPercent}%`}
-        secondary={totalCount === 0 ? "Nothing scheduled" : `${weekCompleted}/${weekScheduled} completed`}
+        secondary={totalCount === 0 ? "Nothing scheduled" : `${weekCompleted}/${weekMax} completed`}
         gradient="from-blue-400 to-cyan-500"
         accentColor="#3B82F6"
         icon={<TrendingUp className="h-5 w-5 text-white" />}
         isActive={activeFilter === "weekly"}
         onClick={() => onFilterChange(activeFilter === "weekly" ? null : "weekly")}
-        infoText="Weekly completion percentage. Calculated using: Completed scheduled habits ÷ Total scheduled habits this week. Excludes future days."
+        infoText={`Weekly completion: Completed habit occurrences this week ÷ (Active habits × 7). Max possible: ${weekMax}.`}
         tooltip={
           <>
             <p className="font-medium text-foreground">Weekly Completion</p>
-            <div className="flex justify-between"><span className="text-muted-foreground">Scheduled this week</span><span className="font-medium">{weekScheduled}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Active habits</span><span className="font-medium">{activeCount}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Max possible</span><span className="font-medium">{weekMax}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span className="font-medium">{weekCompleted}</span></div>
             <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Completion</span><span className="font-medium">{weekPercent}%</span></div>
           </>
@@ -692,18 +808,20 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
       <SummaryCard
         label="Monthly Completion"
         primary={totalCount === 0 ? "--" : `${monthPercent}%`}
-        secondary={totalCount === 0 ? "No data yet" : `${monthCompleted}/${monthScheduled} completed`}
+        secondary={totalCount === 0 ? "No data yet" : `${monthCompleted}/${monthMax} completed`}
         gradient="from-purple-400 to-pink-500"
         accentColor="#8B5CF6"
         icon={<TrendingUp className="h-5 w-5 text-white" />}
         isActive={activeFilter === "score"}
         onClick={() => { onFilterChange(activeFilter === "score" ? null : "score"); onSortChange("highest_score") }}
-        infoText="Monthly completion percentage. Calculated using: Completed scheduled habits ÷ Total scheduled habits for the current month so far. Future dates are excluded."
+        infoText={`Monthly completion: Completed habit occurrences this month ÷ (Active habits × ${daysInMonth} days). Max possible: ${monthMax}.`}
         tooltip={
           <>
             <p className="font-medium text-foreground">Monthly Completion</p>
+            <div className="flex justify-between"><span className="text-muted-foreground">Active habits</span><span className="font-medium">{activeCount}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Days in month</span><span className="font-medium">{daysInMonth}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Max possible</span><span className="font-medium">{monthMax}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span className="font-medium">{monthCompleted}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Scheduled</span><span className="font-medium">{monthScheduled}</span></div>
             <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Completion</span><span className="font-medium">{monthPercent}%</span></div>
           </>
         }
@@ -839,6 +957,8 @@ const TrackerView = ({
   onDragOver,
   onDrop,
   onDragEnd,
+  habitScoreBreakdownHabit,
+  onHabitScoreBreakdown,
 }: {
   habits: Habit[]
   selectedDate: Date
@@ -852,6 +972,8 @@ const TrackerView = ({
   onDragOver?: (e: React.DragEvent, id: string) => void
   onDrop?: (id: string) => void
   onDragEnd?: () => void
+  habitScoreBreakdownHabit?: Habit | null
+  onHabitScoreBreakdown?: (habit: Habit | null) => void
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
 
@@ -961,7 +1083,7 @@ const TrackerView = ({
               <td className="sticky left-[420px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <button onClick={() => onEdit(habit)} className="text-left hover:opacity-70 transition-opacity cursor-pointer w-full">
                 {(() => {
-                  const linkedGoal = linkedGoals?.find(g => g.linkedHabits?.includes(habit.name))
+                  const linkedGoal = linkedGoals?.find(g => g.title === habit.goal)
                   if (linkedGoal) {
                     return (
                       <div className="flex items-center gap-1.5">
@@ -975,9 +1097,20 @@ const TrackerView = ({
                 </button>
               </td>
               <td className="sticky left-[540px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
-                <span className={`text-sm font-semibold ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
-                  {habit.habitScore}
-                </span>
+                <div className="relative">
+                  <button
+                    onClick={() => onHabitScoreBreakdown?.(habitScoreBreakdownHabit?.id === habit.id ? null : habit)}
+                    className={`text-sm font-semibold cursor-pointer hover:opacity-80 transition-opacity ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}
+                  >
+                    {habit.habitScore}
+                  </button>
+                  {habitScoreBreakdownHabit?.id === habit.id && (
+                    <IntentScoreBreakdown
+                      habit={habit}
+                      onClose={() => onHabitScoreBreakdown?.(null)}
+                    />
+                  )}
+                </div>
               </td>
               {dates.map((date) => {
                 const dateStr = formatDateISO(date)
@@ -1500,6 +1633,8 @@ export function HabitsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [showOverallScoreBreakdown, setShowOverallScoreBreakdown] = useState(false)
+  const [habitScoreBreakdownHabit, setHabitScoreBreakdownHabit] = useState<Habit | null>(null)
 
   useEffect(() => {
     try {
@@ -1712,24 +1847,34 @@ export function HabitsPage() {
           </div>
           <div className="flex items-center gap-3">
             {/* Circular Intent Score with Label */}
-            <div className="flex flex-col items-center gap-0.5">
-              <div className="relative h-12 w-12 shrink-0">
-                <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48">
-                  <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
+            <div className="relative flex flex-col items-center gap-0.5">
+              <button
+                onClick={() => setShowOverallScoreBreakdown(!showOverallScoreBreakdown)}
+                className="relative h-9 w-9 shrink-0 cursor-pointer hover:scale-105 transition-transform"
+              >
+                <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5"
                     className="text-[#1E0E6B]/15" />
                   <circle
-                    cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
+                    cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5"
                     className="text-[#1E0E6B]"
                     strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 20}
-                    strokeDashoffset={2 * Math.PI * 20 * (1 - overallIntentScore / 100)}
+                    strokeDasharray={2 * Math.PI * 15}
+                    strokeDashoffset={2 * Math.PI * 15 * (1 - overallIntentScore / 100)}
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-[#1E0E6B]">{overallIntentScore}</span>
+                  <span className="text-xs font-bold text-[#1E0E6B]">{overallIntentScore}</span>
                 </div>
-              </div>
+              </button>
               <span className="text-[9px] text-muted-foreground font-medium">Intent Score</span>
+              {showOverallScoreBreakdown && (
+                <OverallIntentScoreBreakdown
+                  habits={habits}
+                  overallIntentScore={overallIntentScore}
+                  onClose={() => setShowOverallScoreBreakdown(false)}
+                />
+              )}
             </div>
             <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }}
               className="glow h-9 shrink-0">
@@ -1794,7 +1939,7 @@ export function HabitsPage() {
       <HabitsErrorBoundary fallbackLabel="habit tracker">
         <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
           {filteredAndSorted.length > 0 ? (
-            <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} draggedId={draggedId} dragOverId={dragOverId} onDragStart={handleHabitDragStart} onDragOver={handleHabitDragOver} onDrop={handleHabitDrop} onDragEnd={handleHabitDragEnd} />
+            <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} draggedId={draggedId} dragOverId={dragOverId} onDragStart={handleHabitDragStart} onDragOver={handleHabitDragOver} onDrop={handleHabitDrop} onDragEnd={handleHabitDragEnd} habitScoreBreakdownHabit={habitScoreBreakdownHabit} onHabitScoreBreakdown={setHabitScoreBreakdownHabit} />
           ) : (
             <div className="text-center py-12">
               <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
