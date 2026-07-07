@@ -144,10 +144,10 @@ export const ListView: React.FC<ListViewProps> = ({
           return (
             <div
               key={habit.id}
-              className={`relative p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+              className={`relative p-4 rounded-xl border-2 border-[#1E0E6B]/60 transition-all hover:border-[#1E0E6B]/80 ${
                 isCompletedToday
-                  ? "border-green-500/30 bg-green-50/30 dark:bg-green-900/10"
-                  : "border-white/20 bg-white/40 dark:bg-white/5 hover:border-[#1E0E6B]/30"
+                  ? "bg-green-50/30 dark:bg-green-900/10"
+                  : "bg-white/40 dark:bg-white/5"
               }`}
             >
               {/* Header */}
