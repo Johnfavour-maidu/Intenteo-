@@ -93,7 +93,7 @@ interface Habit {
 }
 
 type TrackerPeriod = "week" | "month" | "year"
-type SortMode = "all" | "completed_today" | "not_completed" | "highest_score" | "lowest_score" | "longest_streak" | "newest" | "oldest" | "category" | "colour" | "schedule_type"
+type SortMode = "all" | "completed_today" | "not_completed" | "highest_score" | "lowest_score" | "longest_streak" | "newest" | "oldest" | "category" | "category_az" | "category_za" | "colour" | "schedule_type"
 
 const getTodayISO = () => {
   try { return new Date().toISOString().split("T")[0] }
@@ -464,8 +464,8 @@ const SummaryCard = ({
     >
       <div
         onClick={onClick}
-        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg border-[1.5px] ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
-        style={{ borderColor: accentColor }}
+        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg p-[1.5px] ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
+        style={{ backgroundColor: accentColor }}
       >
         <div className="rounded-[10px] bg-white dark:bg-gray-950 p-4 h-full">
           <div className="flex items-center gap-3">
@@ -732,6 +732,12 @@ const TrackerView = ({
   onToggleCell,
   onEdit,
   linkedGoals,
+  draggedId,
+  dragOverId,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }: {
   habits: Habit[]
   selectedDate: Date
@@ -739,6 +745,12 @@ const TrackerView = ({
   onToggleCell: (habitId: string, dateStr: string) => void
   onEdit: (habit: Habit) => void
   linkedGoals?: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
+  draggedId?: string | null
+  dragOverId?: string | null
+  onDragStart?: (id: string) => void
+  onDragOver?: (e: React.DragEvent, id: string) => void
+  onDrop?: (id: string) => void
+  onDragEnd?: () => void
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
 
@@ -772,14 +784,15 @@ const TrackerView = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse min-w-[950px]">
+      <table className="w-full border-collapse min-w-[1050px]">
         <thead>
           <tr className="border-b border-white/20">
             <th className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[40px] border-r border-white/10"></th>
             <th className="sticky left-[40px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[200px] border-r border-white/10">Habit</th>
             <th className="sticky left-[240px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[100px] border-r border-white/10">Category</th>
-            <th className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[120px] border-r border-white/10">Linked Goal</th>
-            <th className="sticky left-[460px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[90px] border-r border-white/10">Intent Score</th>
+            <th className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[80px] border-r border-white/10">Duration</th>
+            <th className="sticky left-[420px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[120px] border-r border-white/10">Linked Goal</th>
+            <th className="sticky left-[540px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[90px] border-r border-white/10">Intent Score</th>
             {dates.map((date) => {
               const dateStr = formatDateISO(date)
               const isToday = dateStr === today
@@ -795,8 +808,17 @@ const TrackerView = ({
           </tr>
         </thead>
         <tbody>
-          {habits.map((habit) => (
-            <tr key={habit.id} className="border-b border-white/10 hover:bg-white/30 dark:hover:bg-white/5 transition-colors">
+          {habits.map((habit) => {
+            const isDragging = draggedId === habit.id
+            const isDragOver = dragOverId === habit.id && dragOverId !== draggedId
+            return (
+            <tr key={habit.id}
+              draggable
+              onDragStart={() => onDragStart?.(habit.id)}
+              onDragOver={(e) => onDragOver?.(e, habit.id)}
+              onDrop={() => onDrop?.(habit.id)}
+              onDragEnd={onDragEnd}
+              className={`border-b border-white/10 transition-colors cursor-grab active:cursor-grabbing ${isDragging ? "opacity-40" : ""} ${isDragOver ? "border-t-2 border-t-[#1E0E6B]" : ""} hover:bg-white/30 dark:hover:bg-white/5`}>
               <td className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: habit.colorHex }} />
               </td>
@@ -817,6 +839,9 @@ const TrackerView = ({
                 <Badge variant="secondary" className="text-[10px]">{habit.customCategory || habit.category}</Badge>
               </td>
               <td className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+                <span className="text-[10px] text-muted-foreground">{habit.duration || "—"}</span>
+              </td>
+              <td className="sticky left-[420px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 {(() => {
                   const linkedGoal = linkedGoals?.find(g => g.linkedHabits?.includes(habit.id))
                   if (linkedGoal) {
@@ -830,7 +855,7 @@ const TrackerView = ({
                   return <span className="text-[10px] text-muted-foreground italic">No linked goal</span>
                 })()}
               </td>
-              <td className="sticky left-[460px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+              <td className="sticky left-[540px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <span className={`text-sm font-semibold ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
                   {habit.habitScore}
                 </span>
@@ -857,7 +882,7 @@ const TrackerView = ({
                 )
               })}
             </tr>
-          ))}
+          )})}
         </tbody>
       </table>
     </div>
@@ -1274,6 +1299,8 @@ export function HabitsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
   useEffect(() => {
     try {
@@ -1377,6 +1404,33 @@ export function HabitsPage() {
     setHabits(prev => prev.filter(h => h.id !== id))
   }, [])
 
+  const handleHabitDragStart = useCallback((id: string) => {
+    setDraggedId(id)
+  }, [])
+
+  const handleHabitDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault()
+    setDragOverId(id)
+  }, [])
+
+  const handleHabitDrop = useCallback((targetId: string) => {
+    if (!draggedId || draggedId === targetId) { setDraggedId(null); setDragOverId(null); return }
+    setHabits(prev => {
+      const items = [...prev]
+      const d = items.findIndex(t => t.id === draggedId)
+      const r = items.findIndex(t => t.id === targetId)
+      if (d === -1 || r === -1) return prev
+      const [dragged] = items.splice(d, 1)
+      items.splice(r, 0, dragged)
+      return items
+    })
+    setDraggedId(null); setDragOverId(null)
+  }, [draggedId])
+
+  const handleHabitDragEnd = useCallback(() => {
+    setDraggedId(null); setDragOverId(null)
+  }, [])
+
   const filteredAndSorted = useMemo(() => {
     let result = Array.isArray(habits) ? [...habits] : []
     if (searchQuery) {
@@ -1406,6 +1460,8 @@ export function HabitsPage() {
       case "newest": result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()); break
       case "oldest": result.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()); break
       case "category": result.sort((a, b) => (a.category || "").localeCompare(b.category || "")); break
+      case "category_az": result.sort((a, b) => (a.customCategory || a.category || "").localeCompare(b.customCategory || b.category || "")); break
+      case "category_za": result.sort((a, b) => (b.customCategory || b.category || "").localeCompare(a.customCategory || a.category || "")); break
       case "colour": result.sort((a, b) => (a.color || "").localeCompare(b.color || "")); break
       case "schedule_type": result.sort((a, b) => (a.schedule?.type || "anytime").localeCompare(b.schedule?.type || "anytime")); break
     }
@@ -1464,6 +1520,8 @@ export function HabitsPage() {
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
             <option value="category">Category</option>
+            <option value="category_az">Category A-Z</option>
+            <option value="category_za">Category Z-A</option>
             <option value="colour">Colour</option>
             <option value="schedule_type">Schedule Type</option>
           </select>
@@ -1480,7 +1538,7 @@ export function HabitsPage() {
       <HabitsErrorBoundary fallbackLabel="habit tracker">
         <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
           {filteredAndSorted.length > 0 ? (
-            <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} />
+            <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} draggedId={draggedId} dragOverId={dragOverId} onDragStart={handleHabitDragStart} onDragOver={handleHabitDragOver} onDrop={handleHabitDrop} onDragEnd={handleHabitDragEnd} />
           ) : (
             <div className="text-center py-12">
               <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
