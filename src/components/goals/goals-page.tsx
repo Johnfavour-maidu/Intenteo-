@@ -281,6 +281,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
   const [showColorDropdown, setShowColorDropdown] = useState(false)
   const [selectedHabits, setSelectedHabits] = useState<string[]>([])
   const [habitWeights, setHabitWeights] = useState<Record<string, number>>({})
+  const [customizeContributions, setCustomizeContributions] = useState(false)
 
   useEffect(() => {
     if (type !== "custom") {
@@ -289,6 +290,19 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
     }
   }, [type, startDate])
 
+  // Auto-distribute contributions equally when not in customize mode
+  useEffect(() => {
+    if (!customizeContributions && selectedHabits.length > 0) {
+      const equalWeight = Math.floor(100 / selectedHabits.length)
+      const remainder = 100 - (equalWeight * selectedHabits.length)
+      const newWeights: Record<string, number> = {}
+      selectedHabits.forEach((name, i) => {
+        newWeights[name] = equalWeight + (i === 0 ? remainder : 0)
+      })
+      setHabitWeights(newWeights)
+    }
+  }, [selectedHabits, customizeContributions])
+
   if (!isOpen) return null
 
   const minDeadline = getMinDeadline(startDate, type)
@@ -296,6 +310,20 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
   const toggleHabit = (name: string) => {
     setSelectedHabits(prev => prev.includes(name) ? prev.filter(h => h !== name) : [...prev, name])
   }
+
+  const redistributeEvenly = () => {
+    if (selectedHabits.length === 0) return
+    const equalWeight = Math.floor(100 / selectedHabits.length)
+    const remainder = 100 - (equalWeight * selectedHabits.length)
+    const newWeights: Record<string, number> = {}
+    selectedHabits.forEach((name, i) => {
+      newWeights[name] = equalWeight + (i === 0 ? remainder : 0)
+    })
+    setHabitWeights(newWeights)
+  }
+
+  const totalContribution = Object.values(habitWeights).reduce((sum, w) => sum + (w || 0), 0)
+  const isValidContribution = totalContribution === 100
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -394,14 +422,52 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
                     <span>{h.icon}</span>
                     <span className="flex-1">{h.name}</span>
                     {selectedHabits.includes(h.name) && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground">Weight:</span>
-                        <input type="number" min="1" max="100" value={habitWeights[h.name] || 50} onChange={e => setHabitWeights(prev => ({...prev, [h.name]: parseInt(e.target.value) || 50}))} className="w-14 text-[10px] text-center border border-white/20 rounded px-1 py-0.5" />
-                        <span className="text-[10px] text-muted-foreground">%</span>
-                      </div>
+                      <span className="text-[10px] text-muted-foreground font-medium">{habitWeights[h.name] || 0}%</span>
                     )}
                   </label>
                 ))}
+              </div>
+            )}
+            {selectedHabits.length > 0 && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={customizeContributions} onChange={(e) => setCustomizeContributions(e.target.checked)} className="accent-[#1E0E6B]" />
+                    Customize Goal Contributions
+                  </label>
+                  <button type="button" onClick={redistributeEvenly} className="text-[10px] text-[#1E0E6B] hover:underline">Redistribute Evenly</button>
+                </div>
+                {customizeContributions ? (
+                  <div className="space-y-2">
+                    {selectedHabits.map(name => (
+                      <div key={name} className="flex items-center gap-2">
+                        <span className="text-xs flex-1">{name}</span>
+                        <div className="flex items-center gap-1">
+                          <input type="number" min="1" max="100" value={habitWeights[name] || 0}
+                            onChange={(e) => setHabitWeights(prev => ({...prev, [name]: Math.min(100, Math.max(0, parseInt(e.target.value) || 0))}))}
+                            className="w-16 text-xs text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
+                          <span className="text-[10px] text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {selectedHabits.map(name => (
+                      <div key={name} className="flex items-center gap-2 text-xs">
+                        <span className="flex-1">{name}</span>
+                        <span className="font-medium text-muted-foreground">Goal Contribution: {habitWeights[name] || 0}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className={`flex items-center gap-1.5 text-xs ${isValidContribution ? "text-emerald-600" : "text-amber-600"}`}>
+                  {isValidContribution ? (
+                    <><span className="font-medium">✓ Total = 100%</span><span className="text-muted-foreground ml-1">Automatically Distributed</span></>
+                  ) : (
+                    <><span>⚠ Total Goal Contribution must equal 100%.</span><span className="ml-1">Current Total: {totalContribution}%</span></>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -409,13 +475,13 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button onClick={() => {
-            if (title.trim() && deadline) {
+            if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
-              const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 50 }))
+              const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
               onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started" })
               onClose()
             }
-          }} className="flex-1 glow text-white">Add Goal</Button>
+          }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
         </div>
       </div>
     </div>
@@ -578,10 +644,19 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
           {data.linkedHabits.length > 0 && (
             <div>
               <label className="text-sm font-medium mb-2 block">Linked Habits ({data.linkedHabits.length})</label>
-              <div className="flex flex-wrap gap-2">
-                {data.linkedHabits.map(name => (
-                  <Badge key={name} variant="secondary" className="gap-1"><Zap className="h-3 w-3" />{name}</Badge>
-                ))}
+              <div className="space-y-1">
+                {data.linkedHabits.map(name => {
+                  const weight = data.linkedHabitWeights?.find(w => w.habitName === name)
+                  return (
+                    <div key={name} className="flex items-center justify-between p-2 bg-white/50 dark:bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-3 w-3 text-amber-500" />
+                        <span className="text-sm">{name}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-medium">Goal Contribution: {weight?.weight || 0}%</span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -601,7 +676,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Progress Weighting</label>
+            <label className="text-sm font-medium mb-2 block">Goal Progress Weighting</label>
             <div className="grid grid-cols-4 gap-2">
               {(["projects","habits","milestones","manual"] as const).map(k => (
                 <div key={k} className="text-center">

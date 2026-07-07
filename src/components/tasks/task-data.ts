@@ -8,7 +8,7 @@ function isoDate(d: Date) {
   return d.toISOString().split("T")[0]
 }
 function displayDate(d: Date) {
-  return d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
+  return d.toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" })
 }
 
 const todayISO = isoDate(new Date())

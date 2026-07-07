@@ -109,9 +109,9 @@ const formatDateISO = (date: Date): string => {
   } catch { return "" }
 }
 
-const formatDayName = (date: Date): string => { try { return date.toLocaleDateString("en-US", { weekday: "short" }) } catch { return "" } }
+const formatDayName = (date: Date): string => { try { return date.toLocaleDateString("en-GB", { weekday: "short" }) } catch { return "" } }
 const formatDayNumber = (date: Date): string => { try { return date.getDate().toString() } catch { return "" } }
-const formatMonthYear = (date: Date): string => { try { return date.toLocaleDateString("en-US", { month: "long", year: "numeric" }) } catch { return "" } }
+const formatMonthYear = (date: Date): string => { try { return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" }) } catch { return "" } }
 
 /* ─── Habit Normalization (handles old/missing fields) ─── */
 

@@ -130,7 +130,7 @@ export function TodayDashboard() {
     return "Good evening"
   }
 
-  const currentDate = new Date().toLocaleDateString("en-US", {
+  const currentDate = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     month: "long",
     day: "numeric",

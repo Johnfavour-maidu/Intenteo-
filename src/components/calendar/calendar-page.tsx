@@ -399,7 +399,7 @@ export function CalendarPage() {
                     return (
                       <div key={dayOffset}>
                         <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                          {isSameDay(date, today) ? "Today" : date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                          {isSameDay(date, today) ? "Today" : date.toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" })}
                         </h3>
                         <div className="space-y-2">
                           {dayEvents.map((event) => (

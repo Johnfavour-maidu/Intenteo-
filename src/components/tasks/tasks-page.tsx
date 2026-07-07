@@ -462,7 +462,7 @@ function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
 }) {
   const incomplete = tasks.filter((t) => t.recurrence === "daily" ? !(t.dailyCompletions || {})[date] : !t.completed)
   const completed = tasks.filter((t) => t.recurrence === "daily" ? !!(t.dailyCompletions || {})[date] : t.completed)
-  const displayDate = new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+  const displayDate = new Date(date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric" })
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
@@ -725,7 +725,7 @@ export function TasksPage() {
     const timeRange = formAnyTime ? "Anytime" : `${startStr} \u2013 ${endStr}`
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
-      deadline: formDate === todayISO ? "Today" : new Date(formDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+      deadline: formDate === todayISO ? "Today" : new Date(formDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" }),
       date: formDate, dueTime: formAnyTime ? "Anytime" : startStr, timeRange,
       estimatedDuration: formAnyTime ? 0 : (dur > 0 ? dur : 30), notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
       completed: false, order: tasks.length, createdAt: new Date().toISOString(),
@@ -1259,7 +1259,7 @@ export function TasksPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Tasks{selectedDate ? ` \u2014 ${new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}` : " \u2014 Today"}
+              Tasks{selectedDate ? ` \u2014 ${new Date(selectedDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}` : " \u2014 Today"}
             </h1>
             <p className="text-sm text-foreground mt-0.5 tracking-tight">
               <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
@@ -1338,7 +1338,7 @@ export function TasksPage() {
           <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
             className="mb-3 px-3 py-2 rounded-lg bg-muted/50 border text-xs flex items-center justify-between">
             <span className="text-muted-foreground">
-              Viewing tasks for <span className="font-medium text-foreground">{new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
+              Viewing tasks for <span className="font-medium text-foreground">{new Date(selectedDate + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric" })}</span>
               {" \u2014 "}{displayTasks.length} tasks, {completedToday} completed. Tasks are read-only.
             </span>
             <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => { setSelectedDate(null); setDayHistory(null) }}>
