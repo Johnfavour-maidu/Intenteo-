@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { SidebarProvider } from "@/components/layout/sidebar-context"
+import { UndoRedoProvider } from "@/components/providers/undo-redo-provider"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,7 +51,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
-            {children}
+            <UndoRedoProvider>
+              {children}
+            </UndoRedoProvider>
           </SidebarProvider>
         </ThemeProvider>
       </body>

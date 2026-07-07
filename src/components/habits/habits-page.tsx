@@ -90,6 +90,9 @@ interface Habit {
   icon: string
   completions: Record<string, { completed: boolean; time?: string; notes?: string }>
   createdAt: string
+  difficulty?: "easy" | "medium" | "hard"
+  streakFreeze?: number
+  paused?: boolean
 }
 
 type TrackerPeriod = "week" | "month" | "year"
@@ -150,6 +153,9 @@ function normalizeHabit(h: Record<string, unknown>): Habit {
     icon: (h.icon as string) || "",
     completions: (h.completions && typeof h.completions === "object") ? h.completions as Record<string, { completed: boolean; time?: string; notes?: string }> : {},
     createdAt: (h.createdAt as string) || getTodayISO(),
+    difficulty: (h.difficulty as "easy" | "medium" | "hard") || "medium",
+    streakFreeze: typeof h.streakFreeze === "number" ? h.streakFreeze : 0,
+    paused: typeof h.paused === "boolean" ? h.paused : false,
   }
 }
 
@@ -464,10 +470,10 @@ const SummaryCard = ({
     >
       <div
         onClick={onClick}
-        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg p-[2px] ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
-        style={{ backgroundColor: accentColor }}
+        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg border-2 ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
+        style={{ borderColor: accentColor }}
       >
-        <div className="rounded-[10px] bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative">
+        <div className="rounded-[9px] bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative">
           <div className="flex items-center gap-3">
             <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shrink-0`}>
               {icon}
@@ -828,13 +834,20 @@ const TrackerView = ({
                     <div className="flex items-center gap-1 flex-wrap">
                       <Flame className="h-2.5 w-2.5 shrink-0" style={{ color: habit.colorHex }} />
                       <span className="text-[10px] text-muted-foreground">{habit.streak} streak</span>
+                      {(habit.streakFreeze || 0) > 0 && <span className="text-[10px]">❄️{habit.streakFreeze}</span>}
+                      {habit.paused && <span className="text-[10px] text-amber-500 font-medium">⏸ Paused</span>}
                       {getScheduleBadge(habit.schedule)}
                     </div>
                   </div>
                 </button>
               </td>
               <td className="sticky left-[240px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
-                <Badge variant="secondary" className="text-[10px]">{habit.customCategory || habit.category}</Badge>
+                <div className="flex items-center gap-1">
+                  <Badge variant="secondary" className="text-[10px]">{habit.customCategory || habit.category}</Badge>
+                  {habit.difficulty && (
+                    <span className="text-[10px]">{habit.difficulty === "easy" ? "🟢" : habit.difficulty === "medium" ? "🟡" : "🔴"}</span>
+                  )}
+                </div>
               </td>
               <td className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 {(() => {
@@ -854,7 +867,7 @@ const TrackerView = ({
               <td className="sticky left-[420px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <button onClick={() => onEdit(habit)} className="text-left hover:opacity-70 transition-opacity cursor-pointer w-full">
                 {(() => {
-                  const linkedGoal = linkedGoals?.find(g => g.linkedHabits?.includes(habit.id))
+                  const linkedGoal = linkedGoals?.find(g => g.linkedHabits?.includes(habit.name))
                   if (linkedGoal) {
                     return (
                       <div className="flex items-center gap-1.5">
@@ -879,12 +892,12 @@ const TrackerView = ({
                 return (
                   <td key={dateStr} className="p-1 text-center">
                     <button
-                      onClick={() => !isFuture && onToggleCell(habit.id, dateStr)}
+                      onClick={() => !isFuture && !habit.paused && onToggleCell(habit.id, dateStr)}
                       onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateStr })}
                       onMouseLeave={() => setHoveredCell(null)}
-                      disabled={isFuture}
+                      disabled={isFuture || habit.paused}
                       className={`w-7 h-7 rounded-md transition-all ${
-                        isFuture ? "cursor-not-allowed opacity-30" : isCompleted ? "cursor-pointer hover:scale-110" : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
+                        isFuture || habit.paused ? "cursor-not-allowed opacity-30" : isCompleted ? "cursor-pointer hover:scale-110" : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
                       }`}
                       style={isCompleted ? { backgroundColor: habit.colorHex } : undefined}
                     >
@@ -947,6 +960,9 @@ const HabitModal = ({
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(habit?.recurrence?.type || "daily")
   const [customDays, setCustomDays] = useState<string[]>(habit?.recurrence?.customDays || [])
   const [interval, setInterval] = useState(habit?.recurrence?.interval || 2)
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(habit?.difficulty || "medium")
+  const [streakFreeze, setStreakFreeze] = useState(habit?.streakFreeze || 0)
+  const [paused, setPaused] = useState(habit?.paused || false)
 
   useEffect(() => {
     if (habit) {
@@ -975,6 +991,9 @@ const HabitModal = ({
         setRecurrenceType(habit.recurrence?.type || "daily")
         setCustomDays(habit.recurrence?.customDays || [])
         setInterval(habit.recurrence?.interval || 2)
+        setDifficulty(habit.difficulty || "medium")
+        setStreakFreeze(habit.streakFreeze || 0)
+        setPaused(habit.paused || false)
         const td = habit.totalDuration || "No end date"
         if (!TOTAL_DURATION_PRESETS.includes(td) && td !== "No end date") {
           setTotalDuration("custom")
@@ -1124,6 +1143,40 @@ const HabitModal = ({
               <span className="text-sm">{recurrenceType === "every_x_days" ? "days" : "weeks"}</span>
             </div>
           )}
+
+          {/* Difficulty Level */}
+          <div>
+            <label className="text-sm font-medium">Difficulty Level</label>
+            <div className="flex gap-2 mt-1">
+              {(["easy", "medium", "hard"] as const).map(d => (
+                <Button key={d} variant={difficulty === d ? "default" : "outline"} size="sm"
+                  onClick={() => setDifficulty(d)}
+                  className={`flex-1 text-xs ${difficulty === d ? "bg-[#1E0E6B] text-white" : ""}`}>
+                  {d === "easy" ? "🟢 Easy" : d === "medium" ? "🟡 Medium" : "🔴 Hard"}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Streak Freeze & Pause */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium">Streak Freeze</label>
+              <p className="text-[10px] text-muted-foreground mb-1">Earned at 21-day streak</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-lg">❄️</span>
+                <span className="text-sm font-medium">{streakFreeze} freeze{streakFreeze !== 1 ? "s" : ""} remaining</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Pause Habit</label>
+              <p className="text-[10px] text-muted-foreground mb-1">Temporarily stop tracking</p>
+              <label className="flex items-center gap-2 mt-1 cursor-pointer">
+                <input type="checkbox" checked={paused} onChange={(e) => setPaused(e.target.checked)} className="accent-[#1E0E6B] w-4 h-4" />
+                <span className="text-sm">{paused ? "Paused" : "Active"}</span>
+              </label>
+            </div>
+          </div>
 
           {/* Schedule */}
           <div>
@@ -1323,6 +1376,7 @@ const HabitModal = ({
                   goal: linkedGoalId || goal, whyItMatters,
                   completedToday: habit?.completedToday || false,
                   color: selectedColor.name, colorHex: selectedColor.hex, icon,
+                  difficulty, streakFreeze, paused,
                 })
                 onClose()
               }
@@ -1394,6 +1448,7 @@ export function HabitsPage() {
     const targetDate = dateStr || formatDateISO(selectedDate)
     setHabits(prev => prev.map(habit => {
       if (habit.id !== id) return habit
+      if (habit.paused) return habit
       const existing = habit.completions[targetDate]
       const wasCompleted = existing?.completed || false
       const newCompletions = { ...habit.completions }
@@ -1407,6 +1462,11 @@ export function HabitsPage() {
       }
       const streak = calcStreak(newCompletions)
       const result = calcHabitScore(newCompletions, habit.schedule, habit.createdAt, Math.max(habit.bestStreak, streak))
+      // Award streak freeze at 21 days
+      let newFreezes = habit.streakFreeze || 0
+      if (streak >= 21 && streak % 21 === 0 && !wasCompleted) {
+        newFreezes = newFreezes + 1
+      }
       return {
         ...habit,
         completions: newCompletions,
@@ -1417,6 +1477,7 @@ export function HabitsPage() {
         consistency: result.consistency,
         timeAccuracy: result.timeAccuracy,
         habitScore: result.score,
+        streakFreeze: newFreezes,
       }
     }))
   }, [selectedDate])
@@ -1522,6 +1583,24 @@ export function HabitsPage() {
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="text-muted-foreground">Loading habits...</div></div>
 
+  // Monthly completion for circular badge
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const monthDates: string[] = []
+  for (let d = new Date(monthStart); d <= now; d.setDate(d.getDate() + 1)) {
+    monthDates.push(formatDateISO(d))
+  }
+  let monthScheduled = 0, monthCompleted = 0
+  habits.forEach(h => {
+    monthDates.forEach(d => {
+      if (isHabitScheduledOnDate(h, d)) {
+        monthScheduled++
+        if (h.completions[d]?.completed) monthCompleted++
+      }
+    })
+  })
+  const monthlyPercent = monthScheduled > 0 ? Math.round((monthCompleted / monthScheduled) * 100) : 0
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3">
@@ -1530,10 +1609,29 @@ export function HabitsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Habits</h1>
             <p className="text-muted-foreground">Build your identity through consistent action</p>
           </div>
-          <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }}
-            className="glow h-9 shrink-0">
-            <Plus className="mr-1 h-4 w-4" /> Add Habit
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* Circular Intent Score */}
+            <div className="relative h-12 w-12 shrink-0">
+              <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
+                  className="text-[#1E0E6B]/15" />
+                <circle
+                  cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
+                  className="text-[#1E0E6B]"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 20}
+                  strokeDashoffset={2 * Math.PI * 20 * (1 - monthlyPercent / 100)}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-[#1E0E6B]">{monthlyPercent}%</span>
+              </div>
+            </div>
+            <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }}
+              className="glow h-9 shrink-0">
+              <Plus className="mr-1 h-4 w-4" /> Add Habit
+            </Button>
+          </div>
         </div>
       </div>
 
