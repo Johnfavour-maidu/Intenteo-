@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef, Component, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -13,12 +13,41 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Trash2,
   X,
   Check,
   ChevronDown,
   ArrowUpDown,
 } from "lucide-react"
+
+/* ─── Error Boundary ─── */
+
+interface ErrorBoundaryState { hasError: boolean; error: Error | null }
+interface ErrorBoundaryProps { children: ReactNode; fallbackLabel?: string }
+
+class HabitsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Target className="h-10 w-10 text-muted-foreground mb-3" />
+          <h3 className="text-lg font-medium">Unable to load {this.props.fallbackLabel || "this section"}</h3>
+          <p className="text-sm text-muted-foreground mt-1">Something went wrong. Please try again.</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => this.setState({ hasError: false, error: null })}>
+            Retry
+          </Button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 interface HabitScheduleAnytime { type: "anytime" }
 interface HabitSchedulePreferred { type: "preferred"; slot?: "morning" | "afternoon" | "evening" | "night"; time?: string }
@@ -66,18 +95,63 @@ interface Habit {
 type TrackerPeriod = "week" | "month" | "year"
 type SortMode = "all" | "completed_today" | "not_completed" | "highest_score" | "lowest_score" | "longest_streak" | "newest" | "oldest" | "category" | "colour" | "schedule_type"
 
-const getTodayISO = () => new Date().toISOString().split("T")[0]
-
-const formatDateISO = (date: Date): string => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+const getTodayISO = () => {
+  try { return new Date().toISOString().split("T")[0] }
+  catch { return "" }
 }
 
-const formatDayName = (date: Date): string => date.toLocaleDateString("en-US", { weekday: "short" })
-const formatDayNumber = (date: Date): string => date.getDate().toString()
-const formatMonthYear = (date: Date): string => date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+const formatDateISO = (date: Date): string => {
+  try {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  } catch { return "" }
+}
+
+const formatDayName = (date: Date): string => { try { return date.toLocaleDateString("en-US", { weekday: "short" }) } catch { return "" } }
+const formatDayNumber = (date: Date): string => { try { return date.getDate().toString() } catch { return "" } }
+const formatMonthYear = (date: Date): string => { try { return date.toLocaleDateString("en-US", { month: "long", year: "numeric" }) } catch { return "" } }
+
+/* ─── Habit Normalization (handles old/missing fields) ─── */
+
+function normalizeHabit(h: Record<string, unknown>): Habit {
+  const schedule = (h.schedule && typeof h.schedule === "object" && "type" in (h.schedule as Record<string, unknown>))
+    ? h.schedule as HabitSchedule
+    : { type: "anytime" } as HabitSchedule
+  const recurrence = (h.recurrence && typeof h.recurrence === "object" && "type" in (h.recurrence as Record<string, unknown>))
+    ? h.recurrence as HabitRecurrence
+    : { type: "daily" } as HabitRecurrence
+  const reminder = (h.reminder && typeof h.reminder === "object" && "enabled" in (h.reminder as Record<string, unknown>))
+    ? h.reminder as HabitReminder
+    : { enabled: false } as HabitReminder
+  return {
+    id: (h.id as string) || String(Date.now()),
+    name: (h.name as string) || "Untitled Habit",
+    description: (h.description as string) || "",
+    category: (h.category as string) || "General",
+    customCategory: (h.customCategory as string) || undefined,
+    recurrence,
+    duration: (h.duration as string) || "10 mins",
+    totalDuration: (h.totalDuration as string) || "No end date",
+    schedule,
+    reminder,
+    goal: (h.goal as string) || "",
+    whyItMatters: (h.whyItMatters as string) || "",
+    streak: typeof h.streak === "number" ? h.streak : 0,
+    bestStreak: typeof h.bestStreak === "number" ? h.bestStreak : 0,
+    completedToday: typeof h.completedToday === "boolean" ? h.completedToday : false,
+    completionRate: typeof h.completionRate === "number" ? h.completionRate : 0,
+    consistency: typeof h.consistency === "number" ? h.consistency : 0,
+    timeAccuracy: typeof h.timeAccuracy === "number" || h.timeAccuracy === null ? (h.timeAccuracy as number | null) : null,
+    habitScore: typeof h.habitScore === "number" ? h.habitScore : 0,
+    color: (h.color as string) || "Purple",
+    colorHex: (h.colorHex as string) || "#8B5CF6",
+    icon: (h.icon as string) || "⭐",
+    completions: (h.completions && typeof h.completions === "object") ? h.completions as Record<string, { completed: boolean; time?: string; notes?: string }> : {},
+    createdAt: (h.createdAt as string) || getTodayISO(),
+  }
+}
 
 const getWeekDates = (startDate: Date): Date[] => {
   const dates: Date[] = []
@@ -115,17 +189,24 @@ const ICONS = ["⭐", "📝", "🧘", "💪", "📚", "💧", "📵", "🌙", "�
 const TOTAL_DURATION_PRESETS = ["30 days", "60 days", "90 days", "180 days", "365 days", "No end date"]
 const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-function formatTime12(time24: string): string {
-  if (!time24) return ""
-  const [h, m] = time24.split(":").map(Number)
-  const ampm = h >= 12 ? "PM" : "AM"
-  const hour = h % 12 || 12
-  return `${hour}:${String(m).padStart(2, "0")} ${ampm}`
+function formatTime12(time24: string | undefined | null): string {
+  if (!time24 || typeof time24 !== "string") return ""
+  try {
+    const [h, m] = time24.split(":").map(Number)
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return ""
+    const ampm = h >= 12 ? "PM" : "AM"
+    const hour = h % 12 || 12
+    return `${hour}:${String(m).padStart(2, "0")} ${ampm}`
+  } catch { return "" }
 }
 
 function timeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number)
-  return h * 60 + m
+  if (!time || typeof time !== "string") return 0
+  try {
+    const [h, m] = time.split(":").map(Number)
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return 0
+    return h * 60 + m
+  } catch { return 0 }
 }
 
 function minutesDiff(a: string, b: string): number {
@@ -136,120 +217,142 @@ function minutesDiff(a: string, b: string): number {
 
 const DIFFICULTY_BONUS = { easy: 0, medium: 5, hard: 10 }
 
-function calcTimeAccuracy(completionTime: string | undefined, schedule: HabitSchedule): number | null {
-  if (schedule.type === "anytime") return null
+function calcTimeAccuracy(completionTime: string | undefined, schedule: HabitSchedule | undefined | null): number | null {
+  if (!schedule || schedule.type === "anytime") return null
   if (!completionTime) return 0
   const targetTime = schedule.time
   if (!targetTime) return null
-  const diff = minutesDiff(completionTime, targetTime)
-  if (schedule.type === "fixed") {
-    if (diff <= 5) return 100
-    if (diff <= 15) return 80
-    if (diff <= 30) return 60
-    return 20
-  }
-  if (schedule.type === "preferred") {
-    if (diff <= 15) return 100
-    if (diff <= 30) return 90
-    if (diff <= 60) return 75
-    if (diff <= 120) return 50
-    return 25
-  }
+  try {
+    const diff = minutesDiff(completionTime, targetTime)
+    if (!Number.isFinite(diff)) return null
+    if (schedule.type === "fixed") {
+      if (diff <= 5) return 100
+      if (diff <= 15) return 80
+      if (diff <= 30) return 60
+      return 20
+    }
+    if (schedule.type === "preferred") {
+      if (diff <= 15) return 100
+      if (diff <= 30) return 90
+      if (diff <= 60) return 75
+      if (diff <= 120) return 50
+      return 25
+    }
+  } catch { return null }
   return null
 }
 
-function calcStreak(completions: Record<string, { completed: boolean }>): number {
+function calcStreak(completions: Record<string, { completed: boolean }> | undefined | null): number {
+  if (!completions || typeof completions !== "object") return 0
   let streak = 0
-  const today = new Date()
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
-    if (completions[formatDateISO(d)]?.completed) streak++
-    else break
-  }
+  try {
+    const today = new Date()
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      const key = formatDateISO(d)
+      if (key && completions[key]?.completed) streak++
+      else break
+    }
+  } catch { return 0 }
   return streak
 }
 
-function calcConsistency(completions: Record<string, { completed: boolean }>, createdAt: string): number {
-  const created = new Date(createdAt)
-  const now = new Date()
-  const totalDays = Math.max(1, Math.ceil((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)))
-  const completedDays = Object.keys(completions).filter(k => completions[k].completed).length
-  return Math.min(100, Math.round((completedDays / totalDays) * 100))
+function calcConsistency(completions: Record<string, { completed: boolean }> | undefined | null, createdAt: string | undefined | null): number {
+  if (!completions || typeof completions !== "object") return 0
+  try {
+    const created = new Date(createdAt || Date.now())
+    const now = new Date()
+    const totalDays = Math.max(1, Math.ceil((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)))
+    const completedDays = Object.keys(completions).filter(k => completions[k]?.completed).length
+    return Math.min(100, Math.round((completedDays / totalDays) * 100))
+  } catch { return 0 }
 }
 
-function calcCompletionRate(completions: Record<string, { completed: boolean }>, createdAt: string): number {
-  const created = new Date(createdAt)
-  const now = new Date()
-  const totalDays = Math.max(1, Math.ceil((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)))
-  const completedDays = Object.keys(completions).filter(k => completions[k].completed).length
-  return Math.min(100, Math.round((completedDays / totalDays) * 100))
+function calcCompletionRate(completions: Record<string, { completed: boolean }> | undefined | null, createdAt: string | undefined | null): number {
+  return calcConsistency(completions, createdAt)
 }
 
 function calcHabitScore(
-  completions: Record<string, { completed: boolean; time?: string }>,
-  schedule: HabitSchedule,
-  createdAt: string,
+  completions: Record<string, { completed: boolean; time?: string }> | undefined | null,
+  schedule: HabitSchedule | undefined | null,
+  createdAt: string | undefined | null,
   bestStreak: number,
 ): { score: number; completionRate: number; consistency: number; timeAccuracy: number | null } {
-  const completionRate = calcCompletionRate(completions, createdAt)
-  const streak = calcStreak(completions)
-  const consistency = calcConsistency(completions, createdAt)
-  const today = getTodayISO()
-  const todayCompletion = completions[today]
-  const timeAccuracy = todayCompletion?.completed ? calcTimeAccuracy(todayCompletion.time, schedule) : null
+  try {
+    const safeSchedule = schedule || { type: "anytime" } as HabitSchedule
+    const safeCompletions = (completions && typeof completions === "object") ? completions : {}
+    const safeCreatedAt = createdAt || getTodayISO()
+    const completionRate = calcCompletionRate(safeCompletions, safeCreatedAt)
+    const streak = calcStreak(safeCompletions)
+    const consistency = calcConsistency(safeCompletions, safeCreatedAt)
+    const today = getTodayISO()
+    const todayCompletion = today ? safeCompletions[today] : undefined
+    const timeAccuracy = todayCompletion?.completed ? calcTimeAccuracy(todayCompletion.time, safeSchedule) : null
 
-  if (schedule.type === "anytime") {
-    const raw = completionRate * 0.50 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20
-    return { score: Math.round(Math.min(100, raw)), completionRate, consistency, timeAccuracy: null }
+    if (safeSchedule.type === "anytime") {
+      const raw = completionRate * 0.50 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20
+      return { score: Math.round(Math.min(100, Math.max(0, raw))), completionRate, consistency, timeAccuracy: null }
+    }
+    const ta = timeAccuracy ?? 0
+    const raw = completionRate * 0.40 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20 + ta * 0.10 + DIFFICULTY_BONUS.medium * 0.05
+    return { score: Math.round(Math.min(100, Math.max(0, raw))), completionRate, consistency, timeAccuracy: ta }
+  } catch {
+    return { score: 0, completionRate: 0, consistency: 0, timeAccuracy: null }
   }
-  const ta = timeAccuracy ?? 0
-  const raw = completionRate * 0.40 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20 + ta * 0.10 + DIFFICULTY_BONUS.medium * 0.05
-  return { score: Math.round(Math.min(100, raw)), completionRate, consistency, timeAccuracy: ta }
 }
 
 /* ─── Weekly Occurrence Engine ─── */
 
-function getWeeklyOccurrences(recurrence: HabitRecurrence): number {
-  switch (recurrence.type) {
-    case "daily": return 7
-    case "weekdays": return 5
-    case "weekends": return 2
-    case "twice_per_week": return 2
-    case "three_per_week": return 3
-    case "four_per_week": return 4
-    case "five_per_week": return 5
-    case "custom_days": return recurrence.customDays?.length || 0
-    case "every_x_days": return Math.round(7 / Math.max(1, recurrence.interval || 1))
-    case "every_x_weeks": return Math.round(7 / Math.max(1, (recurrence.interval || 1) * 7))
-    case "monthly": return 7
-    default: return 7
-  }
+function getWeeklyOccurrences(recurrence: HabitRecurrence | undefined | null): number {
+  if (!recurrence || typeof recurrence !== "object") return 7
+  try {
+    switch (recurrence.type) {
+      case "daily": return 7
+      case "weekdays": return 5
+      case "weekends": return 2
+      case "twice_per_week": return 2
+      case "three_per_week": return 3
+      case "four_per_week": return 4
+      case "five_per_week": return 5
+      case "custom_days": return recurrence.customDays?.length || 0
+      case "every_x_days": return Math.round(7 / Math.max(1, recurrence.interval || 1))
+      case "every_x_weeks": return Math.round(7 / Math.max(1, (recurrence.interval || 1) * 7))
+      case "monthly": return 7
+      default: return 7
+    }
+  } catch { return 7 }
 }
 
-function isHabitScheduledOnDate(habit: Habit, dateStr: string): boolean {
-  const date = new Date(dateStr)
-  const dayOfWeek = date.getDay()
-  const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayOfWeek]
+function isHabitScheduledOnDate(habit: Habit | undefined | null, dateStr: string): boolean {
+  if (!habit || !dateStr) return true
   const r = habit.recurrence
-  switch (r.type) {
-    case "daily": return true
-    case "weekdays": return dayOfWeek >= 1 && dayOfWeek <= 5
-    case "weekends": return dayOfWeek === 0 || dayOfWeek === 6
-    case "custom_days": return r.customDays?.includes(dayName) || false
-    case "every_x_days": {
-      const created = new Date(habit.createdAt)
-      const diff = Math.floor((date.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
-      return diff >= 0 && diff % (r.interval || 1) === 0
+  if (!r || typeof r !== "object") return true
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return true
+    const dayOfWeek = date.getDay()
+    const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayOfWeek]
+    switch (r.type) {
+      case "daily": return true
+      case "weekdays": return dayOfWeek >= 1 && dayOfWeek <= 5
+      case "weekends": return dayOfWeek === 0 || dayOfWeek === 6
+      case "twice_per_week": case "three_per_week": case "four_per_week": case "five_per_week": return true
+      case "custom_days": return r.customDays?.includes(dayName) || false
+      case "every_x_days": {
+        const created = new Date(habit.createdAt || Date.now())
+        const diff = Math.floor((date.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+        return diff >= 0 && diff % (r.interval || 1) === 0
+      }
+      case "every_x_weeks": {
+        const created = new Date(habit.createdAt || Date.now())
+        const weekDiff = Math.floor((date.getTime() - created.getTime()) / (1000 * 60 * 60 * 24 * 7))
+        return weekDiff >= 0 && weekDiff % (r.interval || 1) === 0
+      }
+      case "monthly": return date.getDate() === new Date(habit.createdAt || Date.now()).getDate()
+      default: return true
     }
-    case "every_x_weeks": {
-      const created = new Date(habit.createdAt)
-      const weekDiff = Math.floor((date.getTime() - created.getTime()) / (1000 * 60 * 60 * 24 * 7))
-      return weekDiff >= 0 && weekDiff % (r.interval || 1) === 0
-    }
-    case "monthly": return date.getDate() === new Date(habit.createdAt).getDate()
-    default: return true
-  }
+  } catch { return true }
 }
 
 /* ─── Animated Number Hook ─── */
@@ -261,6 +364,7 @@ function useAnimatedNumber(target: number, duration = 400): number {
   const fromRef = useRef(target)
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof requestAnimationFrame === "undefined") return
     if (target === fromRef.current) return
     fromRef.current = display
     startRef.current = performance.now()
@@ -585,7 +689,8 @@ const TrackerView = ({
 
   const today = getTodayISO()
 
-  const getScheduleBadge = (schedule: HabitSchedule) => {
+  const getScheduleBadge = (schedule: HabitSchedule | undefined | null) => {
+    if (!schedule || typeof schedule !== "object") return <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">Flexible ✓</span>
     if (schedule.type === "anytime") return <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">Flexible ✓</span>
     if (schedule.type === "preferred") {
       const label = schedule.slot ? schedule.slot[0].toUpperCase() + schedule.slot.slice(1) : formatTime12(schedule.time || "")
@@ -717,32 +822,44 @@ const HabitModal = ({
 
   useEffect(() => {
     if (habit) {
-      setName(habit.name); setDescription(habit.description); setCategory(habit.category)
-      setCustomCategory(habit.customCategory || ""); setDuration(habit.duration)
-      setTotalDuration(habit.totalDuration); setGoal(habit.goal); setWhyItMatters(habit.whyItMatters || "")
-      setIcon(habit.icon)
-      const idx = HABIT_COLORS.findIndex(c => c.name === habit.color)
-      if (idx >= 0) setColorIdx(idx)
-      setScheduleType(habit.schedule.type)
-      if (habit.schedule.type === "preferred") {
-        setPreferredSlot(habit.schedule.slot || "morning")
-        setUseSpecificTime(!!habit.schedule.time)
-        setPreferredTime(habit.schedule.time || "08:00")
-      } else if (habit.schedule.type === "fixed") {
-        setFixedTime(habit.schedule.time)
-      }
-      setReminderEnabled(habit.reminder.enabled)
-      if (habit.reminder.enabled && "before" in habit.reminder) {
-        setReminderBefore(habit.reminder.before || 15)
-        setReminderAfter(habit.reminder.after || 30)
-      }
-      setRecurrenceType(habit.recurrence?.type || "daily")
-      setCustomDays(habit.recurrence?.customDays || [])
-      setInterval(habit.recurrence?.interval || 2)
-      const td = habit.totalDuration
-      if (!TOTAL_DURATION_PRESETS.includes(td) && td !== "No end date") {
-        setTotalDuration("custom")
-        setTotalDurationCustom(td)
+      try {
+        setName(habit.name || ""); setDescription(habit.description || ""); setCategory(habit.category || "Mindfulness")
+        setCustomCategory(habit.customCategory || ""); setDuration(habit.duration || "10 mins")
+        setTotalDuration(habit.totalDuration || "No end date"); setGoal(habit.goal || ""); setWhyItMatters(habit.whyItMatters || "")
+        setIcon(habit.icon || "⭐")
+        const idx = HABIT_COLORS.findIndex(c => c.name === habit.color)
+        if (idx >= 0) setColorIdx(idx)
+        const sch = habit.schedule || { type: "anytime" }
+        setScheduleType(sch.type || "anytime")
+        if (sch.type === "preferred") {
+          setPreferredSlot(sch.slot || "morning")
+          setUseSpecificTime(!!sch.time)
+          setPreferredTime(sch.time || "08:00")
+        } else if (sch.type === "fixed") {
+          setFixedTime(sch.time || "08:00")
+        }
+        const rem = habit.reminder || { enabled: false }
+        setReminderEnabled(rem.enabled || false)
+        if (rem.enabled && "before" in rem) {
+          setReminderBefore(rem.before || 15)
+          setReminderAfter(rem.after || 30)
+        }
+        setRecurrenceType(habit.recurrence?.type || "daily")
+        setCustomDays(habit.recurrence?.customDays || [])
+        setInterval(habit.recurrence?.interval || 2)
+        const td = habit.totalDuration || "No end date"
+        if (!TOTAL_DURATION_PRESETS.includes(td) && td !== "No end date") {
+          setTotalDuration("custom")
+          setTotalDurationCustom(td)
+        }
+      } catch {
+        setName(""); setDescription(""); setCategory("Mindfulness"); setCustomCategory("")
+        setDuration("10 mins"); setTotalDuration("No end date"); setTotalDurationCustom("")
+        setScheduleType("anytime"); setPreferredSlot("morning")
+        setUseSpecificTime(false); setPreferredTime("08:00"); setFixedTime("08:00")
+        setReminderEnabled(false); setReminderBefore(15); setReminderAfter(30)
+        setGoal(""); setWhyItMatters(""); setIcon("⭐"); setColorIdx(0)
+        setRecurrenceType("daily"); setCustomDays([]); setInterval(2)
       }
     } else {
       setName(""); setDescription(""); setCategory("Mindfulness"); setCustomCategory("")
@@ -1070,23 +1187,33 @@ export function HabitsPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const saved = localStorage.getItem("intenteo-habits")
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setHabits(parsed.map((h: Habit) => {
-          const result = calcHabitScore(h.completions, h.schedule, h.createdAt, h.bestStreak || 0)
-          const streak = calcStreak(h.completions)
-          return { ...h, streak, bestStreak: Math.max(h.bestStreak || 0, streak), completionRate: result.completionRate, consistency: result.consistency, timeAccuracy: result.timeAccuracy, habitScore: result.score }
-        }))
-      } catch { setHabits(createSampleHabits()) }
+    try {
+      const saved = localStorage.getItem("intenteo-habits")
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed)) {
+            setHabits(parsed.map((h: Record<string, unknown>) => {
+              const normalized = normalizeHabit(h)
+              const result = calcHabitScore(normalized.completions, normalized.schedule, normalized.createdAt, normalized.bestStreak)
+              const streak = calcStreak(normalized.completions)
+              return { ...normalized, streak, bestStreak: Math.max(normalized.bestStreak, streak), completionRate: result.completionRate, consistency: result.consistency, timeAccuracy: result.timeAccuracy, habitScore: result.score }
+            }))
+          } else {
+            setHabits(createSampleHabits())
+          }
+        } catch { setHabits(createSampleHabits()) }
+      } else {
+        setHabits(createSampleHabits())
+      }
+    } catch {
+      setHabits(createSampleHabits())
     }
-    else { setHabits(createSampleHabits()) }
     setIsLoading(false)
   }, [])
 
-  useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-habits", JSON.stringify(habits)) }, [habits, isLoading])
-  useEffect(() => { localStorage.setItem("intenteo-habits-period", trackerPeriod) }, [trackerPeriod])
+  useEffect(() => { try { if (!isLoading) localStorage.setItem("intenteo-habits", JSON.stringify(habits)) } catch {} }, [habits, isLoading])
+  useEffect(() => { try { localStorage.setItem("intenteo-habits-period", trackerPeriod) } catch {} }, [trackerPeriod])
 
   const toggleHabit = useCallback((id: string, dateStr?: string) => {
     const targetDate = dateStr || formatDateISO(selectedDate)
@@ -1124,9 +1251,11 @@ export function HabitsPage() {
       setHabits(prev => prev.map(h => {
         if (h.id !== editingHabit.id) return h
         const updated = { ...h, ...habitData }
-        const result = calcHabitScore(updated.completions, updated.schedule, updated.createdAt, updated.bestStreak)
-        const streak = calcStreak(updated.completions)
-        return { ...updated, streak, bestStreak: Math.max(updated.bestStreak, streak), completionRate: result.completionRate, consistency: result.consistency, timeAccuracy: result.timeAccuracy, habitScore: result.score }
+        try {
+          const result = calcHabitScore(updated.completions, updated.schedule, updated.createdAt, updated.bestStreak)
+          const streak = calcStreak(updated.completions)
+          return { ...updated, streak, bestStreak: Math.max(updated.bestStreak, streak), completionRate: result.completionRate, consistency: result.consistency, timeAccuracy: result.timeAccuracy, habitScore: result.score }
+        } catch { return updated }
       }))
     }
     else {
@@ -1151,10 +1280,10 @@ export function HabitsPage() {
   }, [])
 
   const filteredAndSorted = useMemo(() => {
-    let result = [...habits]
+    let result = Array.isArray(habits) ? [...habits] : []
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
-      result = result.filter(h => h.name.toLowerCase().includes(q) || h.category.toLowerCase().includes(q) || (h.customCategory || "").toLowerCase().includes(q) || h.color.toLowerCase().includes(q))
+      result = result.filter(h => (h.name || "").toLowerCase().includes(q) || (h.category || "").toLowerCase().includes(q) || (h.customCategory || "").toLowerCase().includes(q) || (h.color || "").toLowerCase().includes(q))
     }
     const today = getTodayISO()
     if (activeFilter === "today") {
@@ -1176,11 +1305,11 @@ export function HabitsPage() {
       case "highest_score": result.sort((a, b) => b.habitScore - a.habitScore); break
       case "lowest_score": result.sort((a, b) => a.habitScore - b.habitScore); break
       case "longest_streak": result.sort((a, b) => b.streak - a.streak); break
-      case "newest": result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break
-      case "oldest": result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break
-      case "category": result.sort((a, b) => a.category.localeCompare(b.category)); break
-      case "colour": result.sort((a, b) => a.color.localeCompare(b.color)); break
-      case "schedule_type": result.sort((a, b) => a.schedule.type.localeCompare(b.schedule.type)); break
+      case "newest": result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()); break
+      case "oldest": result.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()); break
+      case "category": result.sort((a, b) => (a.category || "").localeCompare(b.category || "")); break
+      case "colour": result.sort((a, b) => (a.color || "").localeCompare(b.color || "")); break
+      case "schedule_type": result.sort((a, b) => (a.schedule?.type || "anytime").localeCompare(b.schedule?.type || "anytime")); break
     }
     return result
   }, [habits, searchQuery, sortBy, activeFilter, selectedDate])
@@ -1202,7 +1331,9 @@ export function HabitsPage() {
         </div>
       </div>
 
-      <SummaryBar habits={habits} selectedDate={selectedDate} activeFilter={activeFilter} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
+      <HabitsErrorBoundary fallbackLabel="summary cards">
+        <SummaryBar habits={habits} selectedDate={selectedDate} activeFilter={activeFilter} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
+      </HabitsErrorBoundary>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -1248,24 +1379,28 @@ export function HabitsPage() {
         />
       </div>
 
-      <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
-        {filteredAndSorted.length > 0 ? (
-          <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} />
-        ) : (
-          <div className="text-center py-12">
-            <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium">No habits found</h3>
-            <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search term" : "Add your first habit to get started"}</p>
-            {!searchQuery && (
-              <Button onClick={() => setIsModalOpen(true)} className="mt-4 glow text-white">
-                <Plus className="mr-2 h-4 w-4" /> Add Habit
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
+      <HabitsErrorBoundary fallbackLabel="habit tracker">
+        <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
+          {filteredAndSorted.length > 0 ? (
+            <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} />
+          ) : (
+            <div className="text-center py-12">
+              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium">No habits found</h3>
+              <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search term" : "Add your first habit to get started"}</p>
+              {!searchQuery && (
+                <Button onClick={() => setIsModalOpen(true)} className="mt-4 glow text-white">
+                  <Plus className="mr-2 h-4 w-4" /> Add Habit
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </HabitsErrorBoundary>
 
-      <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} onDelete={deleteHabit} habit={editingHabit} />
+      <HabitsErrorBoundary fallbackLabel="habit form">
+        <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} onDelete={deleteHabit} habit={editingHabit} />
+      </HabitsErrorBoundary>
     </div>
   )
 }
