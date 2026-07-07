@@ -27,12 +27,12 @@ interface Project {
 
 interface Goal {
   id: string; title: string; description: string; category: string; customCategory?: string
-  priority: "low" | "medium" | "high"; progress: number; deadline: string; startDate: string
-  type: "annual" | "quarterly" | "monthly" | "weekly"; whyItMatters: string
+  priority: "none" | "low" | "medium" | "high"; progress: number; deadline: string; startDate: string
+  type: "annual" | "quarterly" | "monthly" | "weekly" | "custom"; whyItMatters: string
   milestones: Milestone[]; linkedHabits: string[]; notes: string; color: string; colorHex: string
   icon: string; trackingMethod: "manual" | "milestone" | "auto"
   weighting: { projects: number; habits: number; milestones: number; manual: number }
-  createdAt: string; updatedAt: string
+  timeline?: string; createdAt: string; updatedAt: string
 }
 
 interface LifeVision {
@@ -48,23 +48,23 @@ const getDaysRemaining = (dl: string) => Math.max(0, Math.ceil((new Date(dl).get
 const getDaysCompleted = (sd: string) => Math.max(0, Math.ceil((Date.now() - new Date(sd).getTime()) / 86400000))
 
 const GOAL_CATEGORIES = [
-  { name: "Health", color: "#22C55E", icon: "\u{1F4AA}" },
-  { name: "Faith", color: "#8B5CF6", icon: "\u{1F64F}" },
-  { name: "Finance", color: "#EAB308", icon: "\u{1F4B0}" },
-  { name: "Career", color: "#3B82F6", icon: "\u{1F4BC}" },
-  { name: "Learning", color: "#F97316", icon: "\u{1F4DA}" },
-  { name: "Relationships", color: "#EC4899", icon: "\u2764\uFE0F" },
-  { name: "Business", color: "#14B8A6", icon: "\u{1F680}" },
-  { name: "Personal Growth", color: "#6366F1", icon: "\u{1F331}" },
-  { name: "Family", color: "#EF4444", icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}" },
-  { name: "Custom", color: "#6B7280", icon: "\u2B50" },
+  { name: "Personal Growth", color: "#6366F1" },
+  { name: "Health", color: "#22C55E" },
+  { name: "Career", color: "#3B82F6" },
+  { name: "Finance", color: "#EAB308" },
+  { name: "Learning", color: "#F97316" },
+  { name: "Relationships", color: "#EC4899" },
+  { name: "Faith", color: "#8B5CF6" },
+  { name: "Business", color: "#14B8A6" },
+  { name: "Family", color: "#EF4444" },
+  { name: "Custom", color: "#6B7280" },
 ]
 
 const GOAL_COLORS = [
-  { name: "Indigo", hex: "#1E0E6B" }, { name: "Blue", hex: "#3B82F6" },
+  { name: "Purple", hex: "#8B5CF6" }, { name: "Blue", hex: "#3B82F6" },
   { name: "Green", hex: "#22C55E" }, { name: "Orange", hex: "#F97316" },
-  { name: "Purple", hex: "#8B5CF6" }, { name: "Pink", hex: "#EC4899" },
-  { name: "Teal", hex: "#14B8A6" }, { name: "Red", hex: "#EF4444" },
+  { name: "Red", hex: "#EF4444" }, { name: "Pink", hex: "#EC4899" },
+  { name: "Teal", hex: "#14B8A6" }, { name: "Black", hex: "#000000" },
 ]
 
 const GOAL_ICONS = ["\u{1F3AF}","\u2B50","\u{1F680}","\u{1F4A1}","\u{1F525}","\u{1F48E}","\u{1F3C6}","\u{1F4C8}","\u{1F4AA}","\u{1F4DA}","\u{1F4B0}","\u2764\uFE0F","\u{1F64F}","\u{1F393}","\u{1F4BC}","\u{1F331}"]
@@ -79,10 +79,10 @@ const PROJECT_TEMPLATES = [
 ]
 
 const createSampleGoals = (): Goal[] => [
-  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], notes:"", color:"Indigo", colorHex:"#1E0E6B", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-05-15" },
-  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, createdAt:"2026-01-01", updatedAt:"2026-04-01" },
+  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], notes:"", color:"Purple", colorHex:"#8B5CF6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, timeline:"Quarterly", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
+  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Annual", createdAt:"2026-01-01", updatedAt:"2026-05-15" },
+  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
+  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Annual", createdAt:"2026-01-01", updatedAt:"2026-04-01" },
 ]
 
 const createSampleProjects = (): Project[] => [
@@ -159,6 +159,45 @@ const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
   )
 }
 
+const GOAL_TIMELINES = ["Life Vision", "10-Year", "5-Year", "Annual", "Quarterly", "Monthly", "Weekly", "Daily"]
+
+const getTimelineDefault = (type: Goal["type"]): string => {
+  switch (type) {
+    case "annual": return "Annual"
+    case "quarterly": return "Quarterly"
+    case "monthly": return "Monthly"
+    case "weekly": return "Weekly"
+    case "custom": return "Annual"
+    default: return "Annual"
+  }
+}
+
+const getMinDeadline = (startDate: string, type: Goal["type"]): string => {
+  if (!startDate) return ""
+  const d = new Date(startDate)
+  switch (type) {
+    case "annual": d.setDate(d.getDate() + 365); break
+    case "quarterly": d.setDate(d.getDate() + 90); break
+    case "monthly": d.setDate(d.getDate() + 30); break
+    case "weekly": d.setDate(d.getDate() + 7); break
+    default: return ""
+  }
+  return d.toISOString().split("T")[0]
+}
+
+const getAutoDeadline = (startDate: string, type: Goal["type"]): string => {
+  if (!startDate) return ""
+  const d = new Date(startDate)
+  switch (type) {
+    case "annual": d.setDate(d.getDate() + 365); break
+    case "quarterly": d.setDate(d.getDate() + 90); break
+    case "monthly": d.setDate(d.getDate() + 30); break
+    case "weekly": d.setDate(d.getDate() + 7); break
+    default: return ""
+  }
+  return d.toISOString().split("T")[0]
+}
+
 const AddGoalModal = ({ isOpen, onClose, onSave }: {
   isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void
 }) => {
@@ -166,47 +205,130 @@ const AddGoalModal = ({ isOpen, onClose, onSave }: {
   const [description, setDescription] = useState("")
   const [category, setCategory] = useState("Personal Growth")
   const [customCategory, setCustomCategory] = useState("")
-  const [priority, setPriority] = useState<"low"|"medium"|"high">("medium")
+  const [priority, setPriority] = useState<"none"|"low"|"medium"|"high">("none")
   const [type, setType] = useState<Goal["type"]>("annual")
   const [deadline, setDeadline] = useState("")
   const [startDate, setStartDate] = useState(getTodayISO())
   const [whyItMatters, setWhyItMatters] = useState("")
-  const [icon, setIcon] = useState("\u{1F3AF}")
+  const [icon, setIcon] = useState("")
   const [colorIdx, setColorIdx] = useState(0)
+  const [timeline, setTimeline] = useState("Annual")
+  const [customDuration, setCustomDuration] = useState("")
+  const [showIconDropdown, setShowIconDropdown] = useState(false)
+  const [showColorDropdown, setShowColorDropdown] = useState(false)
+
+  useEffect(() => {
+    if (type !== "custom") {
+      const auto = getAutoDeadline(startDate, type)
+      if (auto) setDeadline(auto)
+      setTimeline(getTimelineDefault(type))
+    }
+  }, [type, startDate])
+
   if (!isOpen) return null
+
+  const minDeadline = getMinDeadline(startDate, type)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 space-y-4">
         <div className="flex items-center justify-between"><h2 className="text-xl font-bold">Add New Goal</h2><Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button></div>
         <div className="space-y-4">
           <div><label className="text-sm font-medium">Goal Name</label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Read 24 Books" className="mt-1" /></div>
-          <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
-          <div><label className="text-sm font-medium">Why It Matters</label><textarea value={whyItMatters} onChange={e => setWhyItMatters(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
+          <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
+          <div><label className="text-sm font-medium">Why It Matters</label><textarea value={whyItMatters} onChange={e => setWhyItMatters(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Category</label>
-              <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm">
-                {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}</select>
+              <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
+                {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
               {category === "Custom" && <Input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Custom category" className="mt-2" />}
             </div>
             <div><label className="text-sm font-medium">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm">
-                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
+                <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
           </div>
           <div><label className="text-sm font-medium">Goal Type</label><div className="flex gap-2 mt-1">
-            {(["annual","quarterly","monthly","weekly"] as const).map(t => (
+            {(["annual","quarterly","monthly","weekly","custom"] as const).map(t => (
               <Button key={t} variant={type === t ? "default" : "outline"} size="sm" onClick={() => setType(t)} className={type === t ? "bg-[#1E0E6B] text-white" : ""}>{t[0].toUpperCase()+t.slice(1)}</Button>
             ))}</div></div>
+          {type === "custom" && (
+            <div><label className="text-sm font-medium">Custom Duration</label>
+              <select value={customDuration} onChange={e => {
+                setCustomDuration(e.target.value)
+                const num = parseInt(e.target.value)
+                if (num && startDate) {
+                  const d = new Date(startDate)
+                  d.setDate(d.getDate() + num)
+                  setDeadline(d.toISOString().split("T")[0])
+                }
+              }} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
+                <option value="">Select duration...</option>
+                <option value="7">7 Days</option><option value="14">14 Days</option><option value="30">30 Days</option>
+                <option value="60">60 Days</option><option value="90">90 Days</option><option value="180">180 Days</option>
+                <option value="365">1 Year</option><option value="730">2 Years</option>
+                <option value="custom">Custom...</option>
+              </select>
+              {customDuration === "custom" && <Input type="number" min="1" value="" onChange={e => {
+                const num = parseInt(e.target.value)
+                if (num && startDate) {
+                  const d = new Date(startDate)
+                  d.setDate(d.getDate() + num)
+                  setDeadline(d.toISOString().split("T")[0])
+                }
+              }} placeholder="Enter days..." className="mt-2" />}
+            </div>
+          )}
+          <div><label className="text-sm font-medium">Timeline</label>
+            <select value={timeline} onChange={e => setTimeline(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
+              {GOAL_TIMELINES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1" /></div>
-            <div><label className="text-sm font-medium">Target Date</label><Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1" /></div>
+            <div><label className="text-sm font-medium">Target Date</label><Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={minDeadline || undefined} className="mt-1" /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Icon</label><div className="flex flex-wrap gap-1 mt-1">{GOAL_ICONS.map(ic => (
-              <button key={ic} onClick={() => setIcon(ic)} className={`text-lg p-1.5 rounded-lg ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
-            ))}</div></div>
-            <div><label className="text-sm font-medium">Colour</label><div className="flex gap-2 mt-1">{GOAL_COLORS.map((c,i) => (
-              <button key={c.name} onClick={() => setColorIdx(i)} className={`w-7 h-7 rounded-full ${colorIdx === i ? "ring-2 ring-offset-2 ring-[#1E0E6B]" : "hover:scale-105"}`} style={{backgroundColor:c.hex}} />
-            ))}</div></div>
+            <div className="relative"><label className="text-sm font-medium">Icon</label>
+              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-muted-foreground">None</span>}
+                  <span>Icon</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showIconDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
+                  <div className="grid grid-cols-4 gap-1">
+                    <button onClick={() => { setIcon(""); setShowIconDropdown(false) }}
+                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>None</button>
+                    {GOAL_ICONS.map(ic => (
+                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
+                        className={`text-lg p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="relative"><label className="text-sm font-medium">Colour</label>
+              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{backgroundColor: GOAL_COLORS[colorIdx].hex}} />
+                  <span>{GOAL_COLORS[colorIdx].name}</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showColorDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
+                  {GOAL_COLORS.map((c, i) => (
+                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
+                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{backgroundColor: c.hex}} />
+                      <span>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2 pt-2">
@@ -214,7 +336,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave }: {
           <Button onClick={() => {
             if (title.trim() && deadline) {
               const c = GOAL_COLORS[colorIdx]
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: [], notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 } })
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: [], notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, timeline })
               onClose()
             }
           }} className="flex-1 glow text-white">Add Goal</Button>
@@ -249,7 +371,7 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
           <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm">
+              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
             <div><label className="text-sm font-medium">Due Date</label><Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="mt-1" /></div>
           </div>
@@ -481,7 +603,7 @@ function GoalCard({ goal, projects, onClick }: { goal: Goal; projects: Project[]
           <span className="flex items-center gap-1"><Folder className="h-3 w-3" />{completedProjects}/{goalProjects.length}</span>
           <span className="flex items-center gap-1"><ListChecks className="h-3 w-3" />{completedTasks}/{totalTasks}</span>
         </div>
-        <Badge variant="secondary" className={`text-[10px] ${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : "text-emerald-500 bg-emerald-50"}`}>{goal.priority}</Badge>
+        <Badge variant="secondary" className={`text-[10px] ${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : goal.priority === "low" ? "text-emerald-500 bg-emerald-50" : "text-muted-foreground bg-muted"}`}>{goal.priority === "none" ? "No priority" : goal.priority}</Badge>
       </div>
     </div>
   )
@@ -554,7 +676,7 @@ export function GoalsPage() {
         case "deadline": return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
         case "progress": return calcGoalProgress(b, projects) - calcGoalProgress(a, projects)
         case "updated": return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        case "priority": { const p: any = { high: 0, medium: 1, low: 2 }; return p[a.priority] - p[b.priority] }
+        case "priority": { const p: any = { high: 0, medium: 1, low: 2, none: 3 }; return p[a.priority] - p[b.priority] }
         case "name": return a.title.localeCompare(b.title)
         case "newest": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
