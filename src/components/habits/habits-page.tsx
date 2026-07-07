@@ -554,7 +554,7 @@ const SummaryCard = ({
         className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg border-2 ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
         style={{ borderColor: accentColor }}
       >
-        <div className="bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative">
+        <div className="bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative rounded-[10px]">
           <div className="flex items-center gap-3">
             <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shrink-0`}>
               {icon}
