@@ -93,7 +93,7 @@ interface Habit {
 }
 
 type TrackerPeriod = "week" | "month" | "year"
-type SortMode = "all" | "completed_today" | "not_completed" | "highest_score" | "lowest_score" | "longest_streak" | "newest" | "oldest" | "category" | "category_az" | "category_za" | "colour" | "schedule_type"
+type SortMode = "all" | "completed_today" | "not_completed" | "highest_score" | "lowest_score" | "longest_streak" | "newest" | "oldest" | "category" | "category_az" | "category_za" | "habits_az" | "habits_za" | "colour" | "schedule_type"
 
 const getTodayISO = () => {
   try { return new Date().toISOString().split("T")[0] }
@@ -464,33 +464,31 @@ const SummaryCard = ({
     >
       <div
         onClick={onClick}
-        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg p-[1.5px] ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
+        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg p-[2px] ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
         style={{ backgroundColor: accentColor }}
       >
-        <div className="rounded-[10px] bg-white dark:bg-gray-950 p-4 h-full">
+        <div className="rounded-[10px] bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative">
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${gradient}`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shrink-0`}>
               {icon}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-2xl font-bold leading-tight">{primary}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xl font-bold leading-tight">{primary}</p>
+              <p className="text-[11px] text-muted-foreground">{label}</p>
               {secondary && <p className="text-[10px] text-muted-foreground mt-0.5">{secondary}</p>}
             </div>
           </div>
-          <div className="flex justify-end mt-1" ref={infoRef}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }}
-              className="text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-            >
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            {showInfo && (
-              <div className="absolute z-50 bottom-full mb-2 right-2 w-64 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs text-muted-foreground leading-relaxed">
-                {infoText}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }}
+            className="absolute bottom-2 right-2 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          >
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showInfo && (
+            <div className="absolute z-50 bottom-full mb-2 right-2 w-64 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs text-muted-foreground leading-relaxed" ref={infoRef}>
+              {infoText}
+            </div>
+          )}
         </div>
       </div>
       {showTooltip && (
@@ -839,9 +837,22 @@ const TrackerView = ({
                 <Badge variant="secondary" className="text-[10px]">{habit.customCategory || habit.category}</Badge>
               </td>
               <td className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
-                <span className="text-[10px] text-muted-foreground">{habit.duration || "—"}</span>
+                {(() => {
+                  const completedCount = Object.keys(habit.completions || {}).filter(k => habit.completions[k]?.completed).length
+                  const totalStr = habit.totalDuration || "No end date"
+                  if (totalStr === "No end date" || totalStr.toLowerCase() === "indefinite") {
+                    return <span className="text-[10px] text-muted-foreground font-medium">{completedCount} / ∞</span>
+                  }
+                  const numMatch = totalStr.match(/(\d+)/)
+                  const totalDays = numMatch ? parseInt(numMatch[1]) : null
+                  if (totalDays) {
+                    return <span className="text-[10px] text-muted-foreground font-medium">{completedCount} / {totalDays}</span>
+                  }
+                  return <span className="text-[10px] text-muted-foreground font-medium">{completedCount} / ∞</span>
+                })()}
               </td>
               <td className="sticky left-[420px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+                <button onClick={() => onEdit(habit)} className="text-left hover:opacity-70 transition-opacity cursor-pointer w-full">
                 {(() => {
                   const linkedGoal = linkedGoals?.find(g => g.linkedHabits?.includes(habit.id))
                   if (linkedGoal) {
@@ -854,6 +865,7 @@ const TrackerView = ({
                   }
                   return <span className="text-[10px] text-muted-foreground italic">No linked goal</span>
                 })()}
+                </button>
               </td>
               <td className="sticky left-[540px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <span className={`text-sm font-semibold ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
@@ -897,12 +909,16 @@ const HabitModal = ({
   onSave,
   onDelete,
   habit,
+  goals,
+  onCreateGoal,
 }: {
   isOpen: boolean
   onClose: () => void
   onSave: (habit: Omit<Habit, "id" | "completions" | "createdAt" | "streak" | "bestStreak" | "completionRate" | "consistency" | "timeAccuracy" | "habitScore">) => void
   onDelete: (id: string) => void
   habit?: Habit | null
+  goals?: { id: string; title: string }[]
+  onCreateGoal?: () => void
 }) => {
   const [name, setName] = useState(habit?.name || "")
   const [description, setDescription] = useState(habit?.description || "")
@@ -920,6 +936,7 @@ const HabitModal = ({
   const [reminderBefore, setReminderBefore] = useState(habit?.reminder && "before" in habit.reminder ? (habit.reminder.before || 15) : 15)
   const [reminderAfter, setReminderAfter] = useState(habit?.reminder && "after" in habit.reminder ? (habit.reminder.after || 30) : 30)
   const [goal, setGoal] = useState(habit?.goal || "")
+  const [linkedGoalId, setLinkedGoalId] = useState("")
   const [whyItMatters, setWhyItMatters] = useState(habit?.whyItMatters || "")
   const [icon, setIcon] = useState(habit?.icon || "")
   const [colorIdx, setColorIdx] = useState(
@@ -1194,6 +1211,39 @@ const HabitModal = ({
             <Input value={whyItMatters} onChange={(e) => setWhyItMatters(e.target.value)} placeholder="e.g., Start each day with intention" className="mt-1" />
           </div>
 
+          {/* Linked Goal */}
+          <div>
+            <label className="text-sm font-medium">Linked Goal</label>
+            {!goals || goals.length === 0 ? (
+              <div className="mt-2 p-3 rounded-lg border border-dashed border-white/30 bg-white/30 dark:bg-white/5 text-center">
+                <p className="text-xs text-muted-foreground mb-2">No goals found.</p>
+                <p className="text-xs text-muted-foreground mb-3">Habits become more meaningful when connected to a goal.</p>
+                <div className="flex gap-2 justify-center">
+                  <Button size="sm" className="glow text-white text-xs h-7" onClick={onCreateGoal}>Create Goal</Button>
+                  <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setLinkedGoalId("")}>Skip for now</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-1">
+                <select
+                  value={linkedGoalId}
+                  onChange={(e) => setLinkedGoalId(e.target.value)}
+                  className="w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
+                  style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}
+                >
+                  <option value="">Select Goal</option>
+                  {goals.map(g => (
+                    <option key={g.id} value={g.id}>{g.title}</option>
+                  ))}
+                </select>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" className="glow text-white text-xs h-7" onClick={onCreateGoal}>Create Goal</Button>
+                  <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setLinkedGoalId("")}>Skip for now</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Colour & Icon */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
@@ -1270,7 +1320,7 @@ const HabitModal = ({
                   recurrence: buildRecurrence(),
                   schedule: buildSchedule(),
                   reminder: buildReminder(),
-                  goal, whyItMatters,
+                  goal: linkedGoalId || goal, whyItMatters,
                   completedToday: habit?.completedToday || false,
                   color: selectedColor.name, colorHex: selectedColor.hex, icon,
                 })
@@ -1292,7 +1342,7 @@ export function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [linkedGoals, setLinkedGoals] = useState<{ id: string; title: string; linkedHabits: string[]; colorHex: string }[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [trackerPeriod, setTrackerPeriod] = useState<TrackerPeriod>("week")
+  const [trackerPeriod, setTrackerPeriod] = useState<TrackerPeriod>("month")
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortMode>("all")
   const [activeFilter, setActiveFilter] = useState<CardFilter>(null)
@@ -1462,6 +1512,8 @@ export function HabitsPage() {
       case "category": result.sort((a, b) => (a.category || "").localeCompare(b.category || "")); break
       case "category_az": result.sort((a, b) => (a.customCategory || a.category || "").localeCompare(b.customCategory || b.category || "")); break
       case "category_za": result.sort((a, b) => (b.customCategory || b.category || "").localeCompare(a.customCategory || a.category || "")); break
+      case "habits_az": result.sort((a, b) => (a.name || "").localeCompare(b.name || "")); break
+      case "habits_za": result.sort((a, b) => (b.name || "").localeCompare(a.name || "")); break
       case "colour": result.sort((a, b) => (a.color || "").localeCompare(b.color || "")); break
       case "schedule_type": result.sort((a, b) => (a.schedule?.type || "anytime").localeCompare(b.schedule?.type || "anytime")); break
     }
@@ -1522,6 +1574,8 @@ export function HabitsPage() {
             <option value="category">Category</option>
             <option value="category_az">Category A-Z</option>
             <option value="category_za">Category Z-A</option>
+            <option value="habits_az">Habits A-Z</option>
+            <option value="habits_za">Habits Z-A</option>
             <option value="colour">Colour</option>
             <option value="schedule_type">Schedule Type</option>
           </select>
@@ -1555,7 +1609,7 @@ export function HabitsPage() {
       </HabitsErrorBoundary>
 
       <HabitsErrorBoundary fallbackLabel="habit form">
-        <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} onDelete={deleteHabit} habit={editingHabit} />
+        <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} onDelete={deleteHabit} habit={editingHabit} goals={linkedGoals} onCreateGoal={() => { window.location.href = "/goals?openAdd=true" }} />
       </HabitsErrorBoundary>
     </div>
   )
