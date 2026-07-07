@@ -17,6 +17,7 @@ import {
   Check,
   ChevronDown,
   ArrowUpDown,
+  Info,
 } from "lucide-react"
 
 /* ─── Error Boundary ─── */
@@ -254,13 +255,20 @@ function calcStreak(completions: Record<string, { completed: boolean }> | undefi
   let streak = 0
   try {
     const today = new Date()
-    for (let i = 0; i < 365; i++) {
+    const todayStr = formatDateISO(today)
+    const todayCompleted = todayStr && completions[todayStr]?.completed
+
+    // Start from yesterday and go backwards
+    for (let i = 1; i < 365; i++) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
       const key = formatDateISO(d)
       if (key && completions[key]?.completed) streak++
       else break
     }
+
+    // Add today if completed
+    if (todayCompleted) streak++
   } catch { return 0 }
   return streak
 }
@@ -426,6 +434,79 @@ const AnimatedValue = ({ value, suffix = "" }: { value: number; suffix?: string 
   return <span>{animated}{suffix}</span>
 }
 
+/* ─── Intent Score Breakdown Popover ─── */
+
+const IntentScoreBreakdown = ({
+  habit,
+  onClose,
+}: {
+  habit: Habit
+  onClose: () => void
+}) => {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [onClose])
+
+  const completionRate = habit.completionRate || 0
+  const streak = habit.streak || 0
+  const consistency = habit.consistency || 0
+  const timeAccuracy = habit.timeAccuracy ?? null
+  const difficulty = habit.difficulty || "medium"
+
+  const completionPoints = Math.round(completionRate * 0.5)
+  const streakPoints = Math.round(Math.min(streak, 30) / 30 * 100 * 0.25)
+  const consistencyPoints = Math.round(consistency * 0.2)
+  const timeAccuracyPoints = timeAccuracy !== null ? Math.round(timeAccuracy * 0.1) : 0
+  const difficultyPoints = difficulty === "easy" ? 0 : difficulty === "medium" ? 5 : 10
+
+  const breakdown = [
+    { label: "Completion", points: completionPoints, max: 50, color: "bg-emerald-500" },
+    { label: "Streak", points: streakPoints, max: 25, color: "bg-orange-500" },
+    { label: "Consistency", points: consistencyPoints, max: 20, color: "bg-blue-500" },
+    ...(timeAccuracy !== null ? [{ label: "Time Accuracy", points: timeAccuracyPoints, max: 10, color: "bg-purple-500" }] : []),
+    { label: "Difficulty", points: difficultyPoints, max: 10, color: "bg-red-500" },
+  ]
+
+  return (
+    <div ref={ref} className="absolute z-50 top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-semibold text-sm">Intent Score Breakdown</h4>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="space-y-3">
+        {breakdown.map((item) => (
+          <div key={item.label}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">{item.label}</span>
+              <span className="text-xs font-medium">{item.points} pts</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full ${item.color}`}
+                style={{ width: `${(item.points / item.max) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 pt-3 border-t border-white/20">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold">Total Score</span>
+          <span className="text-lg font-bold text-[#1E0E6B]">{habit.habitScore}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const SummaryCard = ({
   label,
   primary,
@@ -473,7 +554,7 @@ const SummaryCard = ({
         className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg border-2 ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
         style={{ borderColor: accentColor }}
       >
-        <div className="rounded-[9px] bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative">
+        <div className="bg-white dark:bg-gray-950 px-4 py-2.5 h-full relative">
           <div className="flex items-center gap-3">
             <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shrink-0`}>
               {icon}
@@ -541,8 +622,23 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
   })
   const weekPercent = weekScheduled > 0 ? Math.round((weekCompleted / weekScheduled) * 100) : 0
 
-  /* Card 3: Overall Intent Score */
-  const avgScore = totalCount > 0 ? Math.round(habits.reduce((sum, h) => sum + h.habitScore, 0) / totalCount) : 0
+  /* Card 3: Monthly Completion */
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const monthDates: string[] = []
+  for (let d = new Date(monthStart); d <= now; d.setDate(d.getDate() + 1)) {
+    monthDates.push(formatDateISO(d))
+  }
+  let monthScheduled = 0, monthCompleted = 0
+  habits.forEach(h => {
+    monthDates.forEach(d => {
+      if (isHabitScheduledOnDate(h, d)) {
+        monthScheduled++
+        if (h.completions[d]?.completed) monthCompleted++
+      }
+    })
+  })
+  const monthPercent = monthScheduled > 0 ? Math.round((monthCompleted / monthScheduled) * 100) : 0
 
   /* Card 4: Highest Streak */
   const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0)
@@ -594,9 +690,9 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
       />
 
       <SummaryCard
-        label="Overall Intent Score"
-        primary={totalCount === 0 ? "--" : `${avgScore}`}
-        secondary={totalCount === 0 ? "No data yet" : "out of 100"}
+        label="Monthly Completion"
+        primary={totalCount === 0 ? "--" : `${monthPercent}%`}
+        secondary={totalCount === 0 ? "No data yet" : `${monthCompleted}/${monthScheduled} completed`}
         gradient="from-purple-400 to-pink-500"
         accentColor="#8B5CF6"
         icon={<TrendingUp className="h-5 w-5 text-white" />}
@@ -605,9 +701,10 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         infoText="Monthly completion percentage. Calculated using: Completed scheduled habits ÷ Total scheduled habits for the current month so far. Future dates are excluded."
         tooltip={
           <>
-            <p className="font-medium text-foreground">Overall Intent Score</p>
-            <div className="flex justify-between"><span className="text-muted-foreground">Average Intent Score</span><span className="font-medium">{avgScore} / 100</span></div>
-            <p className="text-muted-foreground mt-1">Average of all active habit scores</p>
+            <p className="font-medium text-foreground">Monthly Completion</p>
+            <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span className="font-medium">{monthCompleted}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Scheduled</span><span className="font-medium">{monthScheduled}</span></div>
+            <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Completion</span><span className="font-medium">{monthPercent}%</span></div>
           </>
         }
       />
@@ -844,9 +941,6 @@ const TrackerView = ({
               <td className="sticky left-[240px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <div className="flex items-center gap-1">
                   <Badge variant="secondary" className="text-[10px]">{habit.customCategory || habit.category}</Badge>
-                  {habit.difficulty && (
-                    <span className="text-[10px]">{habit.difficulty === "easy" ? "🟢" : habit.difficulty === "medium" ? "🟡" : "🔴"}</span>
-                  )}
                 </div>
               </td>
               <td className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
@@ -949,7 +1043,7 @@ const HabitModal = ({
   const [reminderBefore, setReminderBefore] = useState(habit?.reminder && "before" in habit.reminder ? (habit.reminder.before || 15) : 15)
   const [reminderAfter, setReminderAfter] = useState(habit?.reminder && "after" in habit.reminder ? (habit.reminder.after || 30) : 30)
   const [goal, setGoal] = useState(habit?.goal || "")
-  const [linkedGoalId, setLinkedGoalId] = useState("")
+  const [linkedGoalId, setLinkedGoalId] = useState(habit?.goal || "")
   const [whyItMatters, setWhyItMatters] = useState(habit?.whyItMatters || "")
   const [icon, setIcon] = useState(habit?.icon || "")
   const [colorIdx, setColorIdx] = useState(
@@ -970,6 +1064,7 @@ const HabitModal = ({
         setName(habit.name || ""); setDescription(habit.description || ""); setCategory(habit.category || "Mindfulness")
         setCustomCategory(habit.customCategory || ""); setDuration(habit.duration || "10 mins")
         setTotalDuration(habit.totalDuration || "No end date"); setGoal(habit.goal || ""); setWhyItMatters(habit.whyItMatters || "")
+        setLinkedGoalId(habit.goal || "")
         setIcon(habit.icon || "")
         const idx = HABIT_COLORS.findIndex(c => c.name === habit.color)
         if (idx >= 0) setColorIdx(idx)
@@ -1152,7 +1247,7 @@ const HabitModal = ({
                 <Button key={d} variant={difficulty === d ? "default" : "outline"} size="sm"
                   onClick={() => setDifficulty(d)}
                   className={`flex-1 text-xs ${difficulty === d ? "bg-[#1E0E6B] text-white" : ""}`}>
-                  {d === "easy" ? "🟢 Easy" : d === "medium" ? "🟡 Medium" : "🔴 Hard"}
+                  {d.charAt(0).toUpperCase() + d.slice(1)}
                 </Button>
               ))}
             </div>
@@ -1286,7 +1381,7 @@ const HabitModal = ({
                 >
                   <option value="">Select Goal</option>
                   {goals.map(g => (
-                    <option key={g.id} value={g.id}>{g.title}</option>
+                    <option key={g.id} value={g.title}>{g.title}</option>
                   ))}
                 </select>
                 <div className="flex gap-2 mt-2">
@@ -1601,6 +1696,12 @@ export function HabitsPage() {
   })
   const monthlyPercent = monthScheduled > 0 ? Math.round((monthCompleted / monthScheduled) * 100) : 0
 
+  // Overall Intent Score (weighted average excluding paused/archived/future habits)
+  const activeHabits = habits.filter(h => !h.paused)
+  const overallIntentScore = activeHabits.length > 0
+    ? Math.round(activeHabits.reduce((sum, h) => sum + h.habitScore, 0) / activeHabits.length)
+    : 0
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3">
@@ -1610,22 +1711,25 @@ export function HabitsPage() {
             <p className="text-muted-foreground">Build your identity through consistent action</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Circular Intent Score */}
-            <div className="relative h-12 w-12 shrink-0">
-              <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48">
-                <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
-                  className="text-[#1E0E6B]/15" />
-                <circle
-                  cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
-                  className="text-[#1E0E6B]"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 20}
-                  strokeDashoffset={2 * Math.PI * 20 * (1 - monthlyPercent / 100)}
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-[#1E0E6B]">{monthlyPercent}%</span>
+            {/* Circular Intent Score with Label */}
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="relative h-12 w-12 shrink-0">
+                <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48">
+                  <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
+                    className="text-[#1E0E6B]/15" />
+                  <circle
+                    cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
+                    className="text-[#1E0E6B]"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 20}
+                    strokeDashoffset={2 * Math.PI * 20 * (1 - overallIntentScore / 100)}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-[#1E0E6B]">{overallIntentScore}</span>
+                </div>
               </div>
+              <span className="text-[9px] text-muted-foreground font-medium">Intent Score</span>
             </div>
             <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }}
               className="glow h-9 shrink-0">
