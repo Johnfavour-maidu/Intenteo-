@@ -33,7 +33,13 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
+  List,
+  LayoutList,
+  Circle,
 } from "lucide-react"
+import { VerticalView } from "./vertical-view"
+import { CircularView } from "./circular-view"
+import { ListView } from "./list-view"
 
 /* ─── Error Boundary ─── */
 
@@ -113,7 +119,7 @@ interface Habit {
 
 type TrackerPeriod = "week" | "month" | "year"
 type SortMode = "all" | "completed_today" | "not_completed" | "highest_score" | "lowest_score" | "longest_streak" | "newest" | "oldest" | "category" | "category_az" | "category_za" | "habits_az" | "habits_za" | "colour" | "schedule_type"
-type ViewMode = "table" | "timeline" | "analytics" | "journey"
+type ViewMode = "table" | "vertical" | "circular" | "list"
 
 const getTodayISO = () => {
   try { return new Date().toISOString().split("T")[0] }
@@ -1634,835 +1640,6 @@ const HabitModal = ({
   )
 }
 
-/* ─── Timeline View ─── */
-
-const TimelineView = ({
-  habits,
-  selectedDate,
-  onToggleCell,
-  onEdit,
-  linkedGoals,
-}: {
-  habits: Habit[]
-  selectedDate: Date
-  onToggleCell: (habitId: string, dateStr: string) => void
-  onEdit: (habit: Habit) => void
-  linkedGoals?: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
-}) => {
-  const today = formatDateISO(selectedDate)
-  const todayStr = getTodayISO()
-  const isToday = today === todayStr
-  const [habitScoreBreakdownHabit, setHabitScoreBreakdownHabit] = useState<Habit | null>(null)
-
-  const getTimeSection = (schedule: HabitSchedule | undefined | null): string => {
-    if (!schedule || typeof schedule !== "object") return "anytime"
-    if (schedule.type === "anytime") return "anytime"
-    if (schedule.type === "fixed") {
-      const hour = schedule.time ? parseInt(schedule.time.split(":")[0]) : 8
-      if (hour < 12) return "morning"
-      if (hour < 17) return "afternoon"
-      if (hour < 21) return "evening"
-      return "night"
-    }
-    if (schedule.type === "preferred") {
-      if (schedule.slot) return schedule.slot
-      const hour = schedule.time ? parseInt(schedule.time.split(":")[0]) : 8
-      if (hour < 12) return "morning"
-      if (hour < 17) return "afternoon"
-      if (hour < 21) return "evening"
-      return "night"
-    }
-    return "anytime"
-  }
-
-  const sections = [
-    { id: "morning", label: "Morning", icon: Sun, color: "text-amber-500", bg: "bg-amber-50" },
-    { id: "afternoon", label: "Afternoon", icon: CloudSun, color: "text-orange-500", bg: "bg-orange-50" },
-    { id: "evening", label: "Evening", icon: Sunset, color: "text-purple-500", bg: "bg-purple-50" },
-    { id: "night", label: "Night", icon: Moon, color: "text-indigo-500", bg: "bg-indigo-50" },
-    { id: "anytime", label: "Anytime", icon: Clock, color: "text-emerald-500", bg: "bg-emerald-50" },
-  ]
-
-  const groupedHabits = useMemo(() => {
-    const grouped: Record<string, Habit[]> = {
-      morning: [], afternoon: [], evening: [], night: [], anytime: [],
-    }
-    habits.forEach(h => {
-      if (h.paused) return
-      const section = getTimeSection(h.schedule)
-      grouped[section]?.push(h)
-    })
-    return grouped
-  }, [habits])
-
-  // Find next habit
-  const nextHabit = useMemo(() => {
-    if (!isToday) return null
-    const now = new Date()
-    const currentHour = now.getHours()
-    const currentMinute = now.getMinutes()
-    const currentTimeMinutes = currentHour * 60 + currentMinute
-
-    for (const section of ["morning", "afternoon", "evening", "night", "anytime"]) {
-      for (const h of groupedHabits[section]) {
-        if (h.completions[today]?.completed) continue
-        if (h.schedule?.type === "fixed" && h.schedule.time) {
-          const [sh, sm] = h.schedule.time.split(":").map(Number)
-          const habitTimeMinutes = sh * 60 + sm
-          if (habitTimeMinutes > currentTimeMinutes) {
-            return { habit: h, time: h.schedule.time, minutesUntil: habitTimeMinutes - currentTimeMinutes }
-          }
-        }
-        if (h.schedule?.type === "preferred" && h.schedule.time) {
-          const [sh, sm] = h.schedule.time.split(":").map(Number)
-          const habitTimeMinutes = sh * 60 + sm
-          if (habitTimeMinutes > currentTimeMinutes) {
-            return { habit: h, time: h.schedule.time, minutesUntil: habitTimeMinutes - currentTimeMinutes }
-          }
-        }
-      }
-    }
-    return null
-  }, [groupedHabits, today, isToday])
-
-  const allCompletedToday = habits.filter(h => !h.paused).every(h => !isHabitScheduledOnDate(h, today) || h.completions[today]?.completed)
-
-  return (
-    <div className="space-y-4">
-      {/* Next Habit Card */}
-      {isToday && (
-        <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-          {nextHabit ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Next Habit</p>
-                <p className="font-semibold text-[#1E0E6B]">{nextHabit.habit.name}</p>
-                <p className="text-sm text-muted-foreground">{formatTime12(nextHabit.time)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground mb-1">Starts in</p>
-                <p className="text-lg font-bold text-[#1E0E6B]">
-                  {nextHabit.minutesUntil >= 60
-                    ? `${Math.floor(nextHabit.minutesUntil / 60)} hr ${nextHabit.minutesUntil % 60} min`
-                    : `${nextHabit.minutesUntil} min`
-                  }
-                </p>
-              </div>
-            </div>
-          ) : allCompletedToday ? (
-            <div className="text-center py-2">
-              <p className="text-lg font-medium">You&apos;ve completed today&apos;s scheduled habits 🎉</p>
-            </div>
-          ) : (
-            <div className="text-center py-2">
-              <p className="text-sm text-muted-foreground">No more scheduled habits today</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Time Sections */}
-      {sections.map(section => {
-        const sectionHabits = groupedHabits[section.id]
-        if (!sectionHabits || sectionHabits.length === 0) return null
-        const SectionIcon = section.icon
-        return (
-          <div key={section.id}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`p-1.5 rounded-lg ${section.bg}`}>
-                <SectionIcon className={`h-4 w-4 ${section.color}`} />
-              </div>
-              <h3 className="font-semibold text-sm">{section.label}</h3>
-              <span className="text-xs text-muted-foreground">({sectionHabits.length})</span>
-            </div>
-            <div className="space-y-2">
-              {sectionHabits.map(habit => {
-                const isCompleted = habit.completions[today]?.completed || false
-                const linkedGoal = linkedGoals?.find(g => g.title === habit.goal)
-                return (
-                  <div
-                    key={habit.id}
-                    className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => onEdit(habit)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0"
-                          style={{ backgroundColor: habit.colorHex + "20" }}
-                        >
-                          {habit.icon || "🎯"}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{habit.name}</p>
-                            {linkedGoal && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B]">
-                                {linkedGoal.title}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-muted-foreground">
-                              {habit.schedule?.type === "fixed" ? `Fixed • ${formatTime12(habit.schedule.time)}` :
-                               habit.schedule?.type === "preferred" ? `Preferred • ${habit.schedule.slot || formatTime12(habit.schedule.time)}` :
-                               "Flexible"}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">•</span>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <Flame className="h-3 w-3 text-orange-500" /> {habit.streak}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">•</span>
-                            <div className="relative">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setHabitScoreBreakdownHabit(habitScoreBreakdownHabit?.id === habit.id ? null : habit) }}
-                                className={`text-[10px] font-medium cursor-pointer hover:opacity-80 ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}
-                              >
-                                Score: {habit.habitScore}
-                              </button>
-                              {habitScoreBreakdownHabit?.id === habit.id && (
-                                <IntentScoreBreakdown
-                                  habit={habit}
-                                  onClose={() => setHabitScoreBreakdownHabit(null)}
-                                />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onToggleCell(habit.id, today) }}
-                          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                            isCompleted
-                              ? "border-emerald-500 bg-emerald-500 text-white"
-                              : "border-gray-300 hover:border-emerald-500 hover:bg-emerald-50"
-                          }`}
-                        >
-                          {isCompleted && <Check className="h-4 w-4" />}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onEdit(habit) }}
-                          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-                        >
-                          <Edit3 className="h-4 w-4 text-muted-foreground" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
-
-      {habits.filter(h => !h.paused).length === 0 && (
-        <div className="text-center py-12">
-          <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium">No active habits</h3>
-          <p className="text-muted-foreground mt-1">Add habits to see your daily timeline</p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* ─── Analytics View ─── */
-
-const AnalyticsView = ({
-  habits,
-  selectedDate,
-}: {
-  habits: Habit[]
-  selectedDate: Date
-}) => {
-  const today = getTodayISO()
-  const activeHabits = habits.filter(h => !h.paused)
-  const activeCount = activeHabits.length
-
-  // Today's Progress
-  const todayScheduled = habits.filter(h => isHabitScheduledOnDate(h, today)).length
-  const todayCompleted = habits.filter(h => isHabitScheduledOnDate(h, today) && h.completions[today]?.completed).length
-  const todayPercent = todayScheduled > 0 ? Math.round((todayCompleted / todayScheduled) * 100) : 0
-
-  // Weekly Completion
-  const weekStart = new Date(selectedDate)
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-  const weekDates: string[] = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart)
-    d.setDate(d.getDate() + i)
-    weekDates.push(formatDateISO(d))
-  }
-  let weekCompleted = 0
-  activeHabits.forEach(h => {
-    weekDates.forEach(d => {
-      if (h.completions[d]?.completed) weekCompleted++
-    })
-  })
-  const weekMax = activeCount * 7
-  const weekPercent = weekMax > 0 ? Math.round((weekCompleted / weekMax) * 100) : 0
-
-  // Monthly Completion
-  const now = new Date()
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const monthDates: string[] = []
-  for (let d = new Date(monthStart); d <= now; d.setDate(d.getDate() + 1)) {
-    monthDates.push(formatDateISO(d))
-  }
-  let monthCompleted = 0
-  activeHabits.forEach(h => {
-    monthDates.forEach(d => {
-      if (h.completions[d]?.completed) monthCompleted++
-    })
-  })
-  const monthMax = activeCount * daysInMonth
-  const monthPercent = monthMax > 0 ? Math.round((monthCompleted / monthMax) * 100) : 0
-
-  // Overall Intent Score
-  const overallIntentScore = activeCount > 0
-    ? Math.round(activeHabits.reduce((sum, h) => sum + h.habitScore, 0) / activeCount)
-    : 0
-
-  // Highest Streak
-  const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0)
-  const bestStreakHabit = habits.find(h => h.bestStreak === bestStreak)
-
-  // Average Habit Completion
-  const avgCompletion = activeCount > 0
-    ? Math.round(activeHabits.reduce((sum, h) => sum + h.completionRate, 0) / activeCount)
-    : 0
-
-  // Best Performing Habits (top 5 by score)
-  const bestPerforming = [...activeHabits].sort((a, b) => b.habitScore - a.habitScore).slice(0, 5)
-
-  // Needs Attention (low completion or broken streaks)
-  const needsAttention = activeHabits.filter(h => h.completionRate < 50 || (h.streak === 0 && h.bestStreak > 5)).slice(0, 5)
-
-  // Category Breakdown
-  const categoryBreakdown = useMemo(() => {
-    const categories: Record<string, { completed: number; total: number }> = {}
-    activeHabits.forEach(h => {
-      const cat = h.customCategory || h.category || "Other"
-      if (!categories[cat]) categories[cat] = { completed: 0, total: 0 }
-      monthDates.forEach(d => {
-        if (isHabitScheduledOnDate(h, d)) {
-          categories[cat].total++
-          if (h.completions[d]?.completed) categories[cat].completed++
-        }
-      })
-    })
-    return Object.entries(categories).map(([name, data]) => ({
-      name,
-      percent: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
-    })).sort((a, b) => b.percent - a.percent)
-  }, [activeHabits, monthDates])
-
-  // Scheduling Insights
-  const schedulingInsights = useMemo(() => {
-    const timeSlots = { morning: { completed: 0, total: 0 }, afternoon: { completed: 0, total: 0 }, evening: { completed: 0, total: 0 }, night: { completed: 0, total: 0 } }
-    const scheduleTypes = { preferred: { completed: 0, total: 0 }, flexible: { completed: 0, total: 0 }, fixed: { completed: 0, total: 0 } }
-
-    activeHabits.forEach(h => {
-      const slot = h.schedule?.type === "preferred" ? (h.schedule.slot || "morning") :
-                   h.schedule?.type === "fixed" ? (parseInt(h.schedule.time?.split(":")[0] || "8") < 12 ? "morning" : parseInt(h.schedule.time?.split(":")[0] || "8") < 17 ? "afternoon" : "evening") :
-                   "morning"
-      if (timeSlots[slot as keyof typeof timeSlots]) {
-        monthDates.forEach(d => {
-          if (isHabitScheduledOnDate(h, d)) {
-            timeSlots[slot as keyof typeof timeSlots].total++
-            if (h.completions[d]?.completed) timeSlots[slot as keyof typeof timeSlots].completed++
-          }
-        })
-      }
-
-      const scheduleType = h.schedule?.type === "preferred" ? "preferred" : h.schedule?.type === "fixed" ? "fixed" : "flexible"
-      if (scheduleTypes[scheduleType as keyof typeof scheduleTypes]) {
-        monthDates.forEach(d => {
-          if (isHabitScheduledOnDate(h, d)) {
-            scheduleTypes[scheduleType as keyof typeof scheduleTypes].total++
-            if (h.completions[d]?.completed) scheduleTypes[scheduleType as keyof typeof scheduleTypes].completed++
-          }
-        })
-      }
-    })
-
-    const mostProductiveTime = Object.entries(timeSlots).sort((a, b) => {
-      const aPercent = a[1].total > 0 ? (a[1].completed / a[1].total) * 100 : 0
-      const bPercent = b[1].total > 0 ? (b[1].completed / b[1].total) * 100 : 0
-      return bPercent - aPercent
-    })[0]
-
-    const mostMissedTime = Object.entries(timeSlots).sort((a, b) => {
-      const aPercent = a[1].total > 0 ? (a[1].completed / a[1].total) * 100 : 100
-      const bPercent = b[1].total > 0 ? (b[1].completed / b[1].total) * 100 : 100
-      return aPercent - bPercent
-    })[0]
-
-    return {
-      mostProductiveTime: { name: mostProductiveTime[0], percent: mostProductiveTime[1].total > 0 ? Math.round((mostProductiveTime[1].completed / mostProductiveTime[1].total) * 100) : 0 },
-      mostMissedTime: { name: mostMissedTime[0], percent: mostMissedTime[1].total > 0 ? Math.round((mostMissedTime[1].completed / mostMissedTime[1].total) * 100) : 0 },
-      scheduleTypes: Object.entries(scheduleTypes).map(([name, data]) => ({
-        name,
-        percent: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
-      })),
-    }
-  }, [activeHabits, monthDates])
-
-  return (
-    <div className="space-y-6">
-      {/* Section 1: Overall Statistics */}
-      <div>
-        <h3 className="font-semibold text-lg mb-3">Overall Statistics</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Today&apos;s Progress</p>
-            <p className="text-2xl font-bold text-[#1E0E6B]">{todayPercent}%</p>
-            <p className="text-[10px] text-muted-foreground">{todayCompleted}/{todayScheduled}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Weekly Completion</p>
-            <p className="text-2xl font-bold text-[#1E0E6B]">{weekPercent}%</p>
-            <p className="text-[10px] text-muted-foreground">{weekCompleted}/{weekMax}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Monthly Completion</p>
-            <p className="text-2xl font-bold text-[#1E0E6B]">{monthPercent}%</p>
-            <p className="text-[10px] text-muted-foreground">{monthCompleted}/{monthMax}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Overall Intent Score</p>
-            <p className="text-2xl font-bold text-[#1E0E6B]">{overallIntentScore}</p>
-            <p className="text-[10px] text-muted-foreground">out of 100</p>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Highest Streak</p>
-            <p className="text-2xl font-bold text-[#1E0E6B]">{bestStreak}</p>
-            <p className="text-[10px] text-muted-foreground">{bestStreakHabit?.name || "N/A"}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Avg Completion</p>
-            <p className="text-2xl font-bold text-[#1E0E6B]">{avgCompletion}%</p>
-            <p className="text-[10px] text-muted-foreground">{activeCount} habits</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Section 2: Best Performing Habits */}
-      <div>
-        <h3 className="font-semibold text-lg mb-3">Best Performing Habits</h3>
-        <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 overflow-hidden">
-          {bestPerforming.length > 0 ? (
-            <div className="divide-y divide-white/10">
-              {bestPerforming.map((h, i) => (
-                <div key={h.id} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-muted-foreground w-6">#{i + 1}</span>
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-                      style={{ backgroundColor: h.colorHex + "20" }}
-                    >
-                      {h.icon || "🎯"}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{h.name}</p>
-                      <p className="text-[10px] text-muted-foreground">Streak: {h.streak} days</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-bold ${h.habitScore >= 80 ? "text-emerald-500" : h.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
-                      {h.habitScore}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">{Math.round(h.completionRate)}% completion</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="p-4 text-sm text-muted-foreground text-center">No active habits yet</p>
-          )}
-        </div>
-      </div>
-
-      {/* Section 3: Needs Attention */}
-      {needsAttention.length > 0 && (
-        <div>
-          <h3 className="font-semibold text-lg mb-3">Needs Attention</h3>
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 overflow-hidden">
-            <div className="divide-y divide-white/10">
-              {needsAttention.map(h => (
-                <div key={h.id} className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      <p className="font-medium text-sm">{h.name}</p>
-                    </div>
-                    <p className="text-sm font-medium">{Math.round(h.completionRate)}% completion</p>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2">
-                    <div
-                      className={`h-1.5 rounded-full ${h.completionRate >= 70 ? "bg-emerald-500" : h.completionRate >= 50 ? "bg-amber-500" : "bg-red-500"}`}
-                      style={{ width: `${h.completionRate}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {h.streak === 0 && h.bestStreak > 5
-                      ? `Streak broken. Was ${h.bestStreak} days. Try setting a reminder.`
-                      : h.completionRate < 30
-                      ? "Try changing this to Flexible Schedule."
-                      : "Consider adjusting the schedule to fit your routine better."
-                    }
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Section 4: Category Breakdown */}
-      <div>
-        <h3 className="font-semibold text-lg mb-3">Category Breakdown</h3>
-        <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-          {categoryBreakdown.length > 0 ? (
-            <div className="space-y-3">
-              {categoryBreakdown.map(cat => (
-                <div key={cat.name}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">{cat.name}</span>
-                    <span className="text-sm text-muted-foreground">{cat.percent}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-[#1E0E6B]"
-                      style={{ width: `${cat.percent}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center">No category data</p>
-          )}
-        </div>
-      </div>
-
-      {/* Section 5: Scheduling Insights */}
-      <div>
-        <h3 className="font-semibold text-lg mb-3">Scheduling Insights</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Most Productive Time</span>
-                <span className="text-sm font-medium">{schedulingInsights.mostProductiveTime.name.charAt(0).toUpperCase() + schedulingInsights.mostProductiveTime.name.slice(1)} — {schedulingInsights.mostProductiveTime.percent}%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Most Missed Time</span>
-                <span className="text-sm font-medium">{schedulingInsights.mostMissedTime.name.charAt(0).toUpperCase() + schedulingInsights.mostMissedTime.name.slice(1)} — {schedulingInsights.mostMissedTime.percent}%</span>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-            <p className="text-sm font-medium mb-3">Schedule Success Rate</p>
-            <div className="space-y-2">
-              {schedulingInsights.scheduleTypes.map(s => (
-                <div key={s.name} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground capitalize">{s.name}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                      <div
-                        className="h-1.5 rounded-full bg-[#1E0E6B]"
-                        style={{ width: `${s.percent}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium w-10 text-right">{s.percent}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Journey View ─── */
-
-const JourneyView = ({
-  habits,
-  selectedDate,
-  onDateSelect,
-}: {
-  habits: Habit[]
-  selectedDate: Date
-  onDateSelect: (date: Date) => void
-}) => {
-  const [selectedDay, setSelectedDay] = useState<string | null>(null)
-  const today = getTodayISO()
-  const activeHabits = habits.filter(h => !h.paused)
-
-  const getDayScore = useCallback((dateStr: string): number => {
-    let scheduled = 0
-    let completed = 0
-    activeHabits.forEach(h => {
-      if (isHabitScheduledOnDate(h, dateStr)) {
-        scheduled++
-        if (h.completions[dateStr]?.completed) completed++
-      }
-    })
-    if (scheduled === 0) return 0
-    return Math.round((completed / scheduled) * 100)
-  }, [activeHabits])
-
-  const getDayColor = (score: number): string => {
-    if (score === 0) return "bg-gray-100 dark:bg-gray-800"
-    if (score >= 90) return "bg-emerald-500"
-    if (score >= 70) return "bg-emerald-300"
-    if (score >= 50) return "bg-yellow-400"
-    if (score >= 30) return "bg-orange-400"
-    return "bg-red-400"
-  }
-
-  const getDayTextColor = (score: number): string => {
-    if (score === 0) return "text-muted-foreground"
-    if (score >= 70) return "text-white"
-    return "text-white"
-  }
-
-  // Generate calendar days for the selected month
-  const calendarDays = useMemo(() => {
-    const year = selectedDate.getFullYear()
-    const month = selectedDate.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const startOffset = firstDay.getDay()
-    const days: { date: Date; dateStr: string; isCurrentMonth: boolean; isToday: boolean }[] = []
-
-    // Previous month days
-    for (let i = startOffset - 1; i >= 0; i--) {
-      const d = new Date(year, month, -i)
-      days.push({ date: d, dateStr: formatDateISO(d), isCurrentMonth: false, isToday: formatDateISO(d) === today })
-    }
-
-    // Current month days
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      const d = new Date(year, month, i)
-      days.push({ date: d, dateStr: formatDateISO(d), isCurrentMonth: true, isToday: formatDateISO(d) === today })
-    }
-
-    // Next month days
-    const remaining = 42 - days.length
-    for (let i = 1; i <= remaining; i++) {
-      const d = new Date(year, month + 1, i)
-      days.push({ date: d, dateStr: formatDateISO(d), isCurrentMonth: false, isToday: formatDateISO(d) === today })
-    }
-
-    return days
-  }, [selectedDate, today])
-
-  // Monthly summary
-  const monthlySummary = useMemo(() => {
-    const year = selectedDate.getFullYear()
-    const month = selectedDate.getMonth()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    let bestDay = { date: "", score: 0 }
-    let totalCompleted = 0
-    let totalScheduled = 0
-    const habitStreaks: Record<string, number> = {}
-
-    for (let i = 1; i <= daysInMonth; i++) {
-      const d = new Date(year, month, i)
-      const dateStr = formatDateISO(d)
-      if (dateStr > today) break
-
-      const score = getDayScore(dateStr)
-      if (score > bestDay.score) {
-        bestDay = { date: dateStr, score }
-      }
-
-      activeHabits.forEach(h => {
-        if (isHabitScheduledOnDate(h, dateStr)) {
-          totalScheduled++
-          if (h.completions[dateStr]?.completed) {
-            totalCompleted++
-            habitStreaks[h.id] = (habitStreaks[h.id] || 0) + 1
-          } else {
-            habitStreaks[h.id] = 0
-          }
-        }
-      })
-    }
-
-    const bestStreakHabit = Object.entries(habitStreaks).sort((a, b) => b[1] - a[1])[0]
-    const bestStreakHabitObj = bestStreakHabit ? habits.find(h => h.id === bestStreakHabit[0]) : null
-
-    return {
-      bestDay,
-      completion: totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : 0,
-      longestStreak: bestStreakHabit ? { habit: bestStreakHabitObj?.name || "N/A", days: bestStreakHabit[1] } : null,
-    }
-  }, [selectedDate, today, getDayScore, activeHabits, habits])
-
-  // Selected day details
-  const selectedDayDetails = useMemo(() => {
-    if (!selectedDay) return null
-    const score = getDayScore(selectedDay)
-    let completed = 0
-    let scheduled = 0
-    const habitDetails: { name: string; completed: boolean; icon: string; color: string }[] = []
-
-    activeHabits.forEach(h => {
-      if (isHabitScheduledOnDate(h, selectedDay)) {
-        scheduled++
-        const isCompleted = h.completions[selectedDay]?.completed || false
-        if (isCompleted) completed++
-        habitDetails.push({ name: h.name, completed: isCompleted, icon: h.icon || "🎯", color: h.colorHex })
-      }
-    })
-
-    return {
-      date: selectedDay,
-      score,
-      completed,
-      scheduled,
-      habits: habitDetails,
-    }
-  }, [selectedDay, getDayScore, activeHabits])
-
-  return (
-    <div className="space-y-6">
-      {/* Calendar Grid */}
-      <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-1">
-              {day}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDays.map((day, i) => {
-            const score = getDayScore(day.dateStr)
-            return (
-              <button
-                key={i}
-                onClick={() => setSelectedDay(selectedDay === day.dateStr ? null : day.dateStr)}
-                className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
-                  getDayColor(score)
-                } ${getDayTextColor(score)} ${
-                  !day.isCurrentMonth ? "opacity-30" : ""
-                } ${selectedDay === day.dateStr ? "ring-2 ring-[#1E0E6B] ring-offset-1" : ""} ${
-                  day.isToday ? "ring-2 ring-[#1E0E6B]" : ""
-                } hover:scale-110`}
-              >
-                {day.date.getDate()}
-              </button>
-            )
-          })}
-        </div>
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-muted-foreground">
-          <span>Less</span>
-          <div className="w-3 h-3 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="w-3 h-3 rounded bg-red-400" />
-          <div className="w-3 h-3 rounded bg-orange-400" />
-          <div className="w-3 h-3 rounded bg-yellow-400" />
-          <div className="w-3 h-3 rounded bg-emerald-300" />
-          <div className="w-3 h-3 rounded bg-emerald-500" />
-          <span>More</span>
-        </div>
-      </div>
-
-      {/* Selected Day Details */}
-      {selectedDayDetails && (
-        <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">
-              {new Date(selectedDayDetails.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-            </h3>
-            <button onClick={() => setSelectedDay(null)} className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Overall Intent Score</p>
-              <p className={`text-2xl font-bold ${selectedDayDetails.score >= 80 ? "text-emerald-500" : selectedDayDetails.score >= 50 ? "text-amber-500" : "text-red-500"}`}>
-                {selectedDayDetails.score}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Habits Completed</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">
-                {selectedDayDetails.completed}/{selectedDayDetails.scheduled}
-              </p>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-medium mb-2">Habits</p>
-            <div className="space-y-2">
-              {selectedDayDetails.habits.map((h, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-white/50 dark:bg-white/5">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded flex items-center justify-center text-xs"
-                      style={{ backgroundColor: h.color + "20" }}
-                    >
-                      {h.icon}
-                    </div>
-                    <span className="text-sm">{h.name}</span>
-                  </div>
-                  {h.completed ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Monthly Journey Summary */}
-      <div className="bg-white dark:bg-gray-950 rounded-xl border border-white/20 p-4">
-        <h3 className="font-semibold mb-4">
-          {selectedDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" })} Journey Summary
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Best Day</p>
-            <p className="font-medium text-sm">
-              {monthlySummary.bestDay.date
-                ? new Date(monthlySummary.bestDay.date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })
-                : "N/A"
-              }
-            </p>
-            <p className="text-[10px] text-muted-foreground">Score: {monthlySummary.bestDay.score}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Longest Streak</p>
-            <p className="font-medium text-sm">{monthlySummary.longestStreak?.habit || "N/A"}</p>
-            <p className="text-[10px] text-muted-foreground">{monthlySummary.longestStreak?.days || 0} days</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Completion</p>
-            <p className="font-medium text-sm">{monthlySummary.completion}%</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Active Habits</p>
-            <p className="font-medium text-sm">{activeHabits.length}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ─── Main Page ─── */
 
 export function HabitsPage() {
@@ -2516,7 +1693,7 @@ export function HabitsPage() {
     } catch {}
     try {
       const savedView = localStorage.getItem("intenteo-habits-view") as ViewMode | null
-      if (savedView && ["table", "timeline", "analytics", "journey"].includes(savedView)) {
+      if (savedView && ["table", "vertical", "circular", "list"].includes(savedView)) {
         setActiveView(savedView)
       }
     } catch {}
@@ -2737,29 +1914,6 @@ export function HabitsPage() {
         </div>
       </div>
 
-      {/* View Switcher */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 w-fit">
-        {([
-          { id: "table" as ViewMode, label: "Table", icon: LayoutGrid },
-          { id: "timeline" as ViewMode, label: "Timeline", icon: Clock },
-          { id: "analytics" as ViewMode, label: "Analytics", icon: BarChart3 },
-          { id: "journey" as ViewMode, label: "Journey", icon: Map },
-        ]).map(view => (
-          <button
-            key={view.id}
-            onClick={() => setActiveView(view.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
-              activeView === view.id
-                ? "bg-[#1E0E6B] text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/80"
-            }`}
-          >
-            <view.icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{view.label}</span>
-          </button>
-        ))}
-      </div>
-
       <HabitsErrorBoundary fallbackLabel="summary cards">
         <SummaryBar habits={habits} selectedDate={selectedDate} activeFilter={activeFilter} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
       </HabitsErrorBoundary>
@@ -2769,6 +1923,19 @@ export function HabitsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" />
+        </div>
+        <div className="relative">
+          <select
+            value={activeView}
+            onChange={(e) => setActiveView(e.target.value as ViewMode)}
+            className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer"
+          >
+            <option value="table">Table View</option>
+            <option value="vertical">Vertical View</option>
+            <option value="circular">Circular View</option>
+            <option value="list">List View</option>
+          </select>
+          <LayoutList className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         </div>
         {activeFilter && (
           <button
@@ -2834,33 +2001,39 @@ export function HabitsPage() {
         </HabitsErrorBoundary>
       )}
 
-      {activeView === "timeline" && (
-        <HabitsErrorBoundary fallbackLabel="timeline view">
-          <TimelineView
+      {activeView === "vertical" && (
+        <HabitsErrorBoundary fallbackLabel="vertical view">
+          <VerticalView
             habits={filteredAndSorted}
             selectedDate={selectedDate}
             onToggleCell={toggleHabit}
-            onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }}
+            onEdit={(h) => { setEditingHabit(h as any); setIsModalOpen(true) }}
             linkedGoals={linkedGoals}
           />
         </HabitsErrorBoundary>
       )}
 
-      {activeView === "analytics" && (
-        <HabitsErrorBoundary fallbackLabel="analytics view">
-          <AnalyticsView
-            habits={habits}
+      {activeView === "circular" && (
+        <HabitsErrorBoundary fallbackLabel="circular view">
+          <CircularView
+            habits={filteredAndSorted}
             selectedDate={selectedDate}
+            onToggleCell={toggleHabit}
+            onEdit={(h) => { setEditingHabit(h as any); setIsModalOpen(true) }}
+            linkedGoals={linkedGoals}
           />
         </HabitsErrorBoundary>
       )}
 
-      {activeView === "journey" && (
-        <HabitsErrorBoundary fallbackLabel="journey view">
-          <JourneyView
-            habits={habits}
+      {activeView === "list" && (
+        <HabitsErrorBoundary fallbackLabel="list view">
+          <ListView
+            habits={filteredAndSorted}
             selectedDate={selectedDate}
-            onDateSelect={setSelectedDate}
+            onToggleCell={toggleHabit}
+            onEdit={(h) => { setEditingHabit(h as any); setIsModalOpen(true) }}
+            onDelete={deleteHabit}
+            linkedGoals={linkedGoals}
           />
         </HabitsErrorBoundary>
       )}
