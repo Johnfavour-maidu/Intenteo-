@@ -488,36 +488,71 @@ const IntentScoreBreakdown = ({
   const difficultyPoints = difficulty === "easy" ? 0 : difficulty === "medium" ? 5 : 10
 
   const breakdown = [
-    { label: "Completion", points: completionPoints, max: 40, color: "bg-emerald-500" },
-    { label: "Streak", points: streakPoints, max: 25, color: "bg-orange-500" },
-    { label: "Consistency", points: consistencyPoints, max: 20, color: "bg-blue-500" },
-    ...(timeAccuracy !== null ? [{ label: "Time Accuracy", points: timeAccuracyPoints, max: 10, color: "bg-purple-500" }] : []),
-    { label: "Difficulty", points: difficultyPoints, max: 5, color: "bg-red-500" },
+    { label: "Completion Rate", points: completionPoints, max: 40, raw: `${Math.round(completionRate)}%`, color: "bg-emerald-500" },
+    { label: "Streak", points: streakPoints, max: 25, raw: `${streak} / 25`, color: "bg-orange-500" },
+    { label: "Consistency", points: consistencyPoints, max: 20, raw: `${Math.round(consistency)} / 20`, color: "bg-blue-500" },
+    ...(timeAccuracy !== null ? [{ label: "Time Accuracy", points: timeAccuracyPoints, max: 10, raw: `${Math.round(timeAccuracy)} / 10`, color: "bg-purple-500" }] : []),
+    { label: "Difficulty", points: difficultyPoints, max: 5, raw: `${difficultyPoints} / 5`, color: "bg-red-500" },
   ]
 
-  const suggestions = [
-    "Maintain your streak.",
-    "Continue completing around your preferred time.",
-    "Keep consistency above 90%.",
-  ]
+  /* ── Dynamic Recommendations ── */
+  const suggestions: string[] = []
+  const flexSchedule = habit.schedule?.type === "anytime"
+  const totalScheduled = Object.keys(habit.completions || {}).filter(k => habit.completions[k]?.completed).length
+  const missed = Math.max(0, Math.round((100 - completionRate) / 100 * 40))
+
+  if (completionRate < 80) {
+    suggestions.push("Complete this habit every scheduled day to improve Completion Rate.")
+  }
+  if (streak > 0 && streak < 10) {
+    suggestions.push(`Your current streak is ${streak} days. Complete tomorrow to increase it.`)
+  } else if (streak === 0) {
+    suggestions.push("Start a new streak today by completing this habit.")
+  }
+  if (!flexSchedule) {
+    const scheduledTimes = Object.values(habit.completions || {}).map(c => c.time).filter(Boolean) as string[]
+    if (scheduledTimes.length >= 2) {
+      const mins = scheduledTimes.map(timeToMinutes)
+      const spread = Math.max(...mins) - Math.min(...mins)
+      if (spread > 120) {
+        suggestions.push("Try to perform this habit at a similar time each day.")
+      } else if (timeAccuracy !== null && timeAccuracy < 80) {
+        const target = (habit.schedule.type !== "anytime" ? habit.schedule.time : undefined)
+        if (target) {
+          suggestions.push(`You completed this habit later than your preferred time of ${formatTime12(target)}.`)
+        }
+      }
+    }
+  } else {
+    suggestions.push("Flexible schedule — timing advice does not apply. Focus on consistency.")
+  }
+  if (completionRate < 100) {
+    suggestions.push(`You can increase your Intent Score by approximately ${Math.max(2, Math.min(15, missed))} points if you complete this habit consistently for the next week.`)
+  }
+  if (completionRate >= 90 && streak >= 10 && (flexSchedule || (timeAccuracy ?? 100) >= 80)) {
+    suggestions.push("Excellent performance — keep it up!")
+  }
 
   return (
     <div ref={ref} className="absolute z-50 top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h4 className="font-semibold text-sm">{habit.name}</h4>
-          <p className="text-[10px] text-muted-foreground">Intent Score Breakdown</p>
+          <p className="text-[10px] text-muted-foreground">Intent Score</p>
         </div>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
+      </div>
+      <div className="text-center mb-3">
+        <div className="text-2xl font-bold text-[#1E0E6B]">{habit.habitScore} / 100</div>
       </div>
       <div className="space-y-2">
         {breakdown.map((item) => (
           <div key={item.label}>
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-xs text-muted-foreground">{item.label}</span>
-              <span className="text-xs font-medium">{item.points} / {item.max}</span>
+              <span className="text-xs font-medium">{item.raw}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
               <div
@@ -530,12 +565,12 @@ const IntentScoreBreakdown = ({
       </div>
       <div className="mt-3 pt-3 border-t border-white/20">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">Total</span>
+          <span className="text-sm font-semibold">TOTAL</span>
           <span className="text-lg font-bold text-[#1E0E6B]">{habit.habitScore} / 100</span>
         </div>
       </div>
       <div className="mt-3 pt-3 border-t border-white/20">
-        <p className="text-xs font-medium text-muted-foreground mb-1.5">Suggestions</p>
+        <p className="text-xs font-medium text-muted-foreground mb-1.5">Recommendations</p>
         <ul className="space-y-1">
           {suggestions.map((s, i) => (
             <li key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
@@ -1187,7 +1222,7 @@ const HabitModal = ({
   const [category, setCategory] = useState(habit?.category || "Mindfulness")
   const [customCategory, setCustomCategory] = useState(habit?.customCategory || "")
   const [duration, setDuration] = useState(habit?.duration || "10 mins")
-  const [totalDuration, setTotalDuration] = useState(habit?.totalDuration || "No end date")
+  const [totalDuration, setTotalDuration] = useState(habit?.totalDuration || "365 days")
   const [totalDurationCustom, setTotalDurationCustom] = useState("")
   const [scheduleType, setScheduleType] = useState<"anytime" | "preferred" | "fixed">(habit?.schedule?.type || "anytime")
   const [preferredSlot, setPreferredSlot] = useState<"morning" | "afternoon" | "evening" | "night">((habit?.schedule?.type === "preferred" ? habit.schedule.slot : undefined) || "morning")
@@ -1251,7 +1286,7 @@ const HabitModal = ({
         }
       } catch {
         setName(""); setDescription(""); setCategory("Mindfulness"); setCustomCategory("")
-        setDuration("10 mins"); setTotalDuration("No end date"); setTotalDurationCustom("")
+        setDuration("10 mins"); setTotalDuration("365 days"); setTotalDurationCustom("")
         setScheduleType("anytime"); setPreferredSlot("morning")
         setUseSpecificTime(false); setPreferredTime("08:00"); setFixedTime("08:00")
         setReminderEnabled(false); setReminderBefore(15); setReminderAfter(30)
@@ -1334,7 +1369,7 @@ const HabitModal = ({
               <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as RecurrenceType)}
                 className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
                 style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}>
-                <option value="daily">Daily</option>
+                <option value="daily">Daily (Recommended)</option>
                 <option value="weekdays">Weekdays</option>
                 <option value="weekends">Weekends</option>
                 <option value="twice_per_week">Twice per Week</option>
@@ -1364,7 +1399,7 @@ const HabitModal = ({
                 <option value="60 days">60 Days</option>
                 <option value="90 days">90 Days</option>
                 <option value="180 days">180 Days</option>
-                <option value="365 days">365 Days</option>
+                <option value="365 days">365 Days (Recommended)</option>
                 <option value="indefinite">Indefinite</option>
                 <option value="custom">Custom...</option>
               </select>
