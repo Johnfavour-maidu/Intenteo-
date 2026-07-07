@@ -147,7 +147,7 @@ function normalizeHabit(h: Record<string, unknown>): Habit {
     habitScore: typeof h.habitScore === "number" ? h.habitScore : 0,
     color: (h.color as string) || "Purple",
     colorHex: (h.colorHex as string) || "#8B5CF6",
-    icon: (h.icon as string) || "⭐",
+    icon: (h.icon as string) || "",
     completions: (h.completions && typeof h.completions === "object") ? h.completions as Record<string, { completed: boolean; time?: string; notes?: string }> : {},
     createdAt: (h.createdAt as string) || getTodayISO(),
   }
@@ -182,6 +182,7 @@ const HABIT_COLORS: { name: string; hex: string }[] = [
   { name: "Yellow", hex: "#EAB308" },
   { name: "Red", hex: "#EF4444" },
   { name: "Teal", hex: "#14B8A6" },
+  { name: "Black", hex: "#000000" },
 ]
 
 const CATEGORIES = ["Mindfulness", "Health", "Learning", "Productivity", "Mental Health", "Social", "Faith", "Custom"]
@@ -424,8 +425,10 @@ const SummaryCard = ({
   primary,
   secondary,
   gradient,
+  accentColor,
   icon,
   tooltip,
+  infoText,
   onClick,
   isActive,
 }: {
@@ -433,12 +436,26 @@ const SummaryCard = ({
   primary: string
   secondary?: string
   gradient: string
+  accentColor: string
   icon: React.ReactNode
   tooltip: React.ReactNode
+  infoText: string
   onClick: () => void
   isActive?: boolean
 }) => {
   const [showTooltip, setShowTooltip] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showInfo) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (infoRef.current && !infoRef.current.contains(e.target as Node)) setShowInfo(false)
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showInfo])
+
   return (
     <div
       className="relative"
@@ -447,19 +464,32 @@ const SummaryCard = ({
     >
       <div
         onClick={onClick}
-        className={`rounded-xl p-[1px] cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
-        style={{ backgroundImage: "linear-gradient(135deg, #1E0E6B, #EB9E5B)" }}
+        className={`rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg border-[1.5px] ${isActive ? "ring-2 ring-[#1E0E6B] ring-offset-2" : ""}`}
+        style={{ borderColor: accentColor }}
       >
-        <div className="rounded-[11px] bg-white dark:bg-gray-950 p-4 h-full">
+        <div className="rounded-[10px] bg-white dark:bg-gray-950 p-4 h-full">
           <div className="flex items-center gap-3">
             <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${gradient}`}>
               {icon}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-2xl font-bold leading-tight">{primary}</p>
               <p className="text-xs text-muted-foreground">{label}</p>
               {secondary && <p className="text-[10px] text-muted-foreground mt-0.5">{secondary}</p>}
             </div>
+          </div>
+          <div className="flex justify-end mt-1" ref={infoRef}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }}
+              className="text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {showInfo && (
+              <div className="absolute z-50 bottom-full mb-2 right-2 w-64 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs text-muted-foreground leading-relaxed">
+                {infoText}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -524,9 +554,11 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         primary={totalCount === 0 ? "--" : `${todayCompleted} / ${todayScheduled}`}
         secondary={totalCount === 0 ? "No habits today" : `${todayPercent}%`}
         gradient="from-emerald-400 to-green-500"
+        accentColor="#22C55E"
         icon={<CheckCircle2 className="h-5 w-5 text-white" />}
         isActive={activeFilter === "today"}
         onClick={() => onFilterChange(activeFilter === "today" ? null : "today")}
+        infoText="Completed habits today out of today's scheduled habits. Example: 8 of 9 habits completed."
         tooltip={
           <>
             <p className="font-medium text-foreground">Today's Progress</p>
@@ -542,9 +574,11 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         primary={totalCount === 0 ? "--" : `${weekPercent}%`}
         secondary={totalCount === 0 ? "Nothing scheduled" : `${weekCompleted}/${weekScheduled} completed`}
         gradient="from-blue-400 to-cyan-500"
+        accentColor="#3B82F6"
         icon={<TrendingUp className="h-5 w-5 text-white" />}
         isActive={activeFilter === "weekly"}
         onClick={() => onFilterChange(activeFilter === "weekly" ? null : "weekly")}
+        infoText="Weekly completion percentage. Calculated using: Completed scheduled habits ÷ Total scheduled habits this week. Excludes future days."
         tooltip={
           <>
             <p className="font-medium text-foreground">Weekly Completion</p>
@@ -560,9 +594,11 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         primary={totalCount === 0 ? "--" : `${avgScore}`}
         secondary={totalCount === 0 ? "No data yet" : "out of 100"}
         gradient="from-purple-400 to-pink-500"
+        accentColor="#8B5CF6"
         icon={<TrendingUp className="h-5 w-5 text-white" />}
         isActive={activeFilter === "score"}
         onClick={() => { onFilterChange(activeFilter === "score" ? null : "score"); onSortChange("highest_score") }}
+        infoText="Monthly completion percentage. Calculated using: Completed scheduled habits ÷ Total scheduled habits for the current month so far. Future dates are excluded."
         tooltip={
           <>
             <p className="font-medium text-foreground">Overall Intent Score</p>
@@ -577,9 +613,11 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         primary={totalCount === 0 ? "0" : `${bestStreak}`}
         secondary={totalCount === 0 ? "No streaks yet" : bestStreakHabit?.name}
         gradient="from-orange-400 to-amber-500"
+        accentColor="#F97316"
         icon={<Flame className="h-5 w-5 text-white" />}
         isActive={activeFilter === "streak"}
         onClick={() => { onFilterChange(activeFilter === "streak" ? null : "streak"); onSortChange("longest_streak") }}
+        infoText="Your longest uninterrupted streak among all habits."
         tooltip={
           <>
             <p className="font-medium text-foreground">Highest Streak</p>
@@ -597,9 +635,11 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         primary={totalCount === 0 ? "0" : `${activeCount}`}
         secondary={totalCount === 0 ? "Create your first habit" : "Currently active"}
         gradient="from-indigo-400 to-blue-500"
+        accentColor="#1E0E6B"
         icon={<Target className="h-5 w-5 text-white" />}
         isActive={activeFilter === "all"}
         onClick={() => onFilterChange(activeFilter === "all" ? null : "all")}
+        infoText="The total number of active habits currently being tracked."
         tooltip={
           <>
             <p className="font-medium text-foreground">Active Habits</p>
@@ -613,6 +653,8 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
 
 /* ─── Tracker Calendar ─── */
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
 const TrackerCalendar = ({
   selectedDate,
   onDateSelect,
@@ -624,6 +666,11 @@ const TrackerCalendar = ({
   period: TrackerPeriod
   onPeriodChange: (p: TrackerPeriod) => void
 }) => {
+  const currentMonth = selectedDate.getMonth()
+  const currentYear = selectedDate.getFullYear()
+  const currentYearNum = new Date().getFullYear()
+  const years = Array.from({ length: 7 }, (_, i) => currentYearNum - 2 + i)
+
   return (
     <div className="flex items-center gap-2">
       <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
@@ -636,10 +683,32 @@ const TrackerCalendar = ({
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <div className="flex items-center gap-1">
-        <Button variant={period === "week" ? "default" : "ghost"} size="sm" onClick={() => onPeriodChange("week")} className={period === "week" ? "bg-[#1E0E6B] text-white h-8 px-2 text-xs" : "h-8 px-2 text-xs"}>W</Button>
-        <Button variant={period === "month" ? "default" : "ghost"} size="sm" onClick={() => onPeriodChange("month")} className={period === "month" ? "bg-[#1E0E6B] text-white h-8 px-2 text-xs" : "h-8 px-2 text-xs"}>M</Button>
-        <Button variant={period === "year" ? "default" : "ghost"} size="sm" onClick={() => onPeriodChange("year")} className={period === "year" ? "bg-[#1E0E6B] text-white h-8 px-2 text-xs" : "h-8 px-2 text-xs"}>Y</Button>
+        <Button variant={period === "week" ? "default" : "ghost"} size="sm" onClick={() => onPeriodChange("week")} className={period === "week" ? "bg-[#1E0E6B] text-white h-8 px-2 text-xs" : "h-8 px-2 text-xs"}>Week</Button>
+        <Button variant={period === "month" ? "default" : "ghost"} size="sm" onClick={() => onPeriodChange("month")} className={period === "month" ? "bg-[#1E0E6B] text-white h-8 px-2 text-xs" : "h-8 px-2 text-xs"}>Month</Button>
+        <Button variant={period === "year" ? "default" : "ghost"} size="sm" onClick={() => onPeriodChange("year")} className={period === "year" ? "bg-[#1E0E6B] text-white h-8 px-2 text-xs" : "h-8 px-2 text-xs"}>Year</Button>
       </div>
+      {period === "month" && (
+        <select value={currentMonth} onChange={(e) => {
+          const newDate = new Date(selectedDate)
+          newDate.setMonth(parseInt(e.target.value))
+          onDateSelect(newDate)
+        }}
+          className="appearance-none px-2 py-1 text-xs border border-[#1E0E6B]/40 rounded-lg bg-white/50 dark:bg-white/5 cursor-pointer pr-6"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.375rem center" }}>
+          {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+        </select>
+      )}
+      {period === "year" && (
+        <select value={currentYear} onChange={(e) => {
+          const newDate = new Date(selectedDate)
+          newDate.setFullYear(parseInt(e.target.value))
+          onDateSelect(newDate)
+        }}
+          className="appearance-none px-2 py-1 text-xs border border-[#1E0E6B]/40 rounded-lg bg-white/50 dark:bg-white/5 cursor-pointer pr-6"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.375rem center" }}>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      )}
       <span className="text-sm font-medium min-w-[120px] text-center">{formatMonthYear(selectedDate)}</span>
       <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
         const newDate = new Date(selectedDate)
@@ -730,7 +799,7 @@ const TrackerView = ({
               </td>
               <td className="sticky left-[40px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <button onClick={() => onEdit(habit)} className="flex items-center gap-2 hover:opacity-70 transition-opacity text-left">
-                  <span className="text-lg shrink-0">{habit.icon}</span>
+                  {habit.icon ? <span className="text-lg shrink-0">{habit.icon}</span> : <span className="w-5 shrink-0" />}
                   <div className="min-w-0">
                     <p className="font-medium text-sm text-[#1E0E6B] hover:underline leading-tight truncate">{habit.name}</p>
                     <div className="flex items-center gap-1 flex-wrap">
@@ -810,7 +879,7 @@ const HabitModal = ({
   const [reminderAfter, setReminderAfter] = useState(habit?.reminder && "after" in habit.reminder ? (habit.reminder.after || 30) : 30)
   const [goal, setGoal] = useState(habit?.goal || "")
   const [whyItMatters, setWhyItMatters] = useState(habit?.whyItMatters || "")
-  const [icon, setIcon] = useState(habit?.icon || "⭐")
+  const [icon, setIcon] = useState(habit?.icon || "")
   const [colorIdx, setColorIdx] = useState(
     HABIT_COLORS.findIndex(c => c.name === habit?.color) >= 0 ? HABIT_COLORS.findIndex(c => c.name === habit?.color) : 0
   )
@@ -826,7 +895,7 @@ const HabitModal = ({
         setName(habit.name || ""); setDescription(habit.description || ""); setCategory(habit.category || "Mindfulness")
         setCustomCategory(habit.customCategory || ""); setDuration(habit.duration || "10 mins")
         setTotalDuration(habit.totalDuration || "No end date"); setGoal(habit.goal || ""); setWhyItMatters(habit.whyItMatters || "")
-        setIcon(habit.icon || "⭐")
+        setIcon(habit.icon || "")
         const idx = HABIT_COLORS.findIndex(c => c.name === habit.color)
         if (idx >= 0) setColorIdx(idx)
         const sch = habit.schedule || { type: "anytime" }
@@ -858,7 +927,7 @@ const HabitModal = ({
         setScheduleType("anytime"); setPreferredSlot("morning")
         setUseSpecificTime(false); setPreferredTime("08:00"); setFixedTime("08:00")
         setReminderEnabled(false); setReminderBefore(15); setReminderAfter(30)
-        setGoal(""); setWhyItMatters(""); setIcon("⭐"); setColorIdx(0)
+        setGoal(""); setWhyItMatters(""); setIcon(""); setColorIdx(0)
         setRecurrenceType("daily"); setCustomDays([]); setInterval(2)
       }
     } else {
@@ -867,7 +936,7 @@ const HabitModal = ({
       setScheduleType("anytime"); setPreferredSlot("morning")
       setUseSpecificTime(false); setPreferredTime("08:00"); setFixedTime("08:00")
       setReminderEnabled(false); setReminderBefore(15); setReminderAfter(30)
-      setGoal(""); setWhyItMatters(""); setIcon("⭐"); setColorIdx(0)
+      setGoal(""); setWhyItMatters(""); setIcon(""); setColorIdx(0)
       setRecurrenceType("daily"); setCustomDays([]); setInterval(2)
     }
   }, [habit])
@@ -930,29 +999,72 @@ const HabitModal = ({
             <Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="e.g., 10 mins" className="mt-1" />
           </div>
 
-          {/* Habit Duration */}
-          <div>
-            <label className="text-sm font-medium">Habit Duration</label>
-            <p className="text-xs text-muted-foreground mb-1">How long this habit should last</p>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {TOTAL_DURATION_PRESETS.map(d => (
-                <Button key={d} variant={totalDuration === d ? "default" : "outline"} size="sm"
-                  onClick={() => setTotalDuration(d)}
-                  className={totalDuration === d ? "bg-[#1E0E6B] text-white" : ""}>
-                  {d}
+          {/* Habit Duration & Recurrence - Compact Dropdowns */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium">Recurrence</label>
+              <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as RecurrenceType)}
+                className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}>
+                <option value="daily">Daily</option>
+                <option value="weekdays">Weekdays</option>
+                <option value="weekends">Weekends</option>
+                <option value="twice_per_week">Twice per Week</option>
+                <option value="three_per_week">Three Times per Week</option>
+                <option value="four_per_week">Four Times per Week</option>
+                <option value="five_per_week">Five Times per Week</option>
+                <option value="custom_days">Custom Days</option>
+                <option value="every_x_days">Every X Days</option>
+                <option value="every_x_weeks">Every X Weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Habit Duration</label>
+              <select value={totalDuration === "No end date" ? "indefinite" : totalDuration} onChange={(e) => {
+                const val = e.target.value
+                if (val === "indefinite") setTotalDuration("No end date")
+                else if (val === "custom") setTotalDuration("custom")
+                else setTotalDuration(val)
+              }}
+                className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}>
+                <option value="7 days">7 Days</option>
+                <option value="14 days">14 Days</option>
+                <option value="21 days">21 Days</option>
+                <option value="30 days">30 Days</option>
+                <option value="60 days">60 Days</option>
+                <option value="90 days">90 Days</option>
+                <option value="180 days">180 Days</option>
+                <option value="365 days">365 Days</option>
+                <option value="indefinite">Indefinite</option>
+                <option value="custom">Custom...</option>
+              </select>
+              {totalDuration === "custom" && (
+                <Input value={totalDurationCustom} onChange={(e) => setTotalDurationCustom(e.target.value)}
+                  placeholder="e.g., 50 days, 73 days" className="mt-2" />
+              )}
+            </div>
+          </div>
+          {recurrenceType === "custom_days" && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {WEEK_DAYS.map(day => (
+                <Button key={day} variant={customDays.includes(day) ? "default" : "outline"} size="sm"
+                  onClick={() => setCustomDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])}
+                  className={`text-xs ${customDays.includes(day) ? "bg-[#1E0E6B] text-white" : ""}`}>
+                  {day.slice(0, 3)}
                 </Button>
               ))}
-              <Button variant={totalDuration === "custom" ? "default" : "outline"} size="sm"
-                onClick={() => setTotalDuration("custom")}
-                className={totalDuration === "custom" ? "bg-[#1E0E6B] text-white" : ""}>
-                Custom
-              </Button>
             </div>
-            {totalDuration === "custom" && (
-              <Input value={totalDurationCustom} onChange={(e) => setTotalDurationCustom(e.target.value)}
-                placeholder="e.g., 45 days, 120 days, 730 days" className="mt-2" />
-            )}
-          </div>
+          )}
+          {(recurrenceType === "every_x_days" || recurrenceType === "every_x_weeks") && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm">Every</span>
+              <Input type="number" min="2" max="365" value={interval}
+                onChange={(e) => setInterval(parseInt(e.target.value) || 2)} className="w-20 text-sm h-8" />
+              <span className="text-sm">{recurrenceType === "every_x_days" ? "days" : "weeks"}</span>
+            </div>
+          )}
 
           {/* Schedule */}
           <div>
@@ -1006,51 +1118,6 @@ const HabitModal = ({
             </div>
           )}
 
-          {/* Recurrence */}
-          <div>
-            <label className="text-sm font-medium">Recurrence</label>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {([
-                { value: "daily", label: "Daily" },
-                { value: "weekdays", label: "Weekdays" },
-                { value: "weekends", label: "Weekends" },
-                { value: "twice_per_week", label: "2x / week" },
-                { value: "three_per_week", label: "3x / week" },
-                { value: "four_per_week", label: "4x / week" },
-                { value: "five_per_week", label: "5x / week" },
-                { value: "custom_days", label: "Custom Days" },
-                { value: "every_x_days", label: "Every X days" },
-                { value: "every_x_weeks", label: "Every X weeks" },
-                { value: "monthly", label: "Monthly" },
-              ] as const).map(opt => (
-                <Button key={opt.value} variant={recurrenceType === opt.value ? "default" : "outline"} size="sm"
-                  onClick={() => setRecurrenceType(opt.value)}
-                  className={`text-xs ${recurrenceType === opt.value ? "bg-[#1E0E6B] text-white" : ""}`}>
-                  {opt.label}
-                </Button>
-              ))}
-            </div>
-            {recurrenceType === "custom_days" && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {WEEK_DAYS.map(day => (
-                  <Button key={day} variant={customDays.includes(day) ? "default" : "outline"} size="sm"
-                    onClick={() => setCustomDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])}
-                    className={`text-xs ${customDays.includes(day) ? "bg-[#1E0E6B] text-white" : ""}`}>
-                    {day.slice(0, 3)}
-                  </Button>
-                ))}
-              </div>
-            )}
-            {(recurrenceType === "every_x_days" || recurrenceType === "every_x_weeks") && (
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm">Every</span>
-                <Input type="number" min="2" max="365" value={interval}
-                  onChange={(e) => setInterval(parseInt(e.target.value) || 2)} className="w-20 text-sm h-8" />
-                <span className="text-sm">{recurrenceType === "every_x_days" ? "days" : "weeks"}</span>
-              </div>
-            )}
-          </div>
-
           {/* Reminder Settings - Only for Fixed Time */}
           {scheduleType === "fixed" && (
             <div>
@@ -1092,7 +1159,7 @@ const HabitModal = ({
               <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
                 className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:bg-white/80 transition-colors">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full" style={{ backgroundColor: HABIT_COLORS[colorIdx].hex }} />
+                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{ backgroundColor: HABIT_COLORS[colorIdx].hex }} />
                   <span className="text-sm">{HABIT_COLORS[colorIdx].name}</span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -1102,7 +1169,7 @@ const HabitModal = ({
                   {HABIT_COLORS.map((c, i) => (
                     <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
                       className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: c.hex }} />
+                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: c.hex }} />
                       <span>{c.name}</span>
                       {colorIdx === i && <Check className="h-4 w-4 ml-auto text-[#1E0E6B]" />}
                     </button>
@@ -1115,7 +1182,7 @@ const HabitModal = ({
               <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
                 className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:bg-white/80 transition-colors">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{icon}</span>
+                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-sm text-muted-foreground">None</span>}
                   <span className="text-sm">Icon</span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -1123,6 +1190,10 @@ const HabitModal = ({
               {showIconDropdown && (
                 <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
                   <div className="grid grid-cols-4 gap-1">
+                    <button onClick={() => { setIcon(""); setShowIconDropdown(false) }}
+                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>
+                      None
+                    </button>
                     {ICONS.map((ic) => (
                       <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
                         className={`text-xl p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 scale-110 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>
@@ -1339,7 +1410,7 @@ export function HabitsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-white/50 dark:bg-white/5 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" />
+            className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" />
         </div>
         {activeFilter && (
           <button
