@@ -276,7 +276,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
   const [whyItMatters, setWhyItMatters] = useState("")
   const [icon, setIcon] = useState("")
   const [colorIdx, setColorIdx] = useState(0)
-  const [timeline, setTimeline] = useState("Annual")
   const [customDuration, setCustomDuration] = useState("")
   const [showIconDropdown, setShowIconDropdown] = useState(false)
   const [showColorDropdown, setShowColorDropdown] = useState(false)
@@ -287,7 +286,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
     if (type !== "custom") {
       const auto = getAutoDeadline(startDate, type)
       if (auto) setDeadline(auto)
-      setTimeline(getTimelineDefault(type))
     }
   }, [type, startDate])
 
@@ -305,16 +303,16 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
         <div className="flex items-center justify-between"><h2 className="text-xl font-bold">Add New Goal</h2><Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button></div>
         <div className="space-y-4">
           <div><label className="text-sm font-medium">Goal Name</label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Read 24 Books" className="mt-1" /></div>
-          <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
-          <div><label className="text-sm font-medium">Why It Matters</label><textarea value={whyItMatters} onChange={e => setWhyItMatters(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
+          <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
+          <div><label className="text-sm font-medium">Why It Matters</label><textarea value={whyItMatters} onChange={e => setWhyItMatters(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Category</label>
-              <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
+              <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
                 {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
               {category === "Custom" && <Input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Custom category" className="mt-2" />}
             </div>
             <div><label className="text-sm font-medium">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
+              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
                 <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
           </div>
           <div><label className="text-sm font-medium">Goal Type</label><div className="flex gap-2 mt-1">
@@ -322,8 +320,8 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
               <Button key={t} variant={type === t ? "default" : "outline"} size="sm" onClick={() => setType(t)} className={type === t ? "bg-[#1E0E6B] text-white" : ""}>{t[0].toUpperCase()+t.slice(1)}</Button>
             ))}</div></div>
           {type === "custom" && (
-            <div><label className="text-sm font-medium">Custom Duration</label>
-              <select value={customDuration} onChange={e => {
+            <div><label className="text-sm font-medium">Custom Duration (days)</label>
+              <Input type="number" min="1" value={customDuration} onChange={e => {
                 setCustomDuration(e.target.value)
                 const num = parseInt(e.target.value)
                 if (num && startDate) {
@@ -331,29 +329,12 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
                   d.setDate(d.getDate() + num)
                   setDeadline(d.toISOString().split("T")[0])
                 }
-              }} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
-                <option value="">Select duration...</option>
-                <option value="7">7 Days</option><option value="14">14 Days</option><option value="30">30 Days</option>
-                <option value="60">60 Days</option><option value="90">90 Days</option><option value="180">180 Days</option>
-                <option value="365">1 Year</option><option value="730">2 Years</option>
-                <option value="custom">Custom...</option>
-              </select>
-              {customDuration === "custom" && <Input type="number" min="1" value="" onChange={e => {
-                const num = parseInt(e.target.value)
-                if (num && startDate) {
-                  const d = new Date(startDate)
-                  d.setDate(d.getDate() + num)
-                  setDeadline(d.toISOString().split("T")[0])
-                }
-              }} placeholder="Enter days..." className="mt-2" />}
+              }} placeholder="Enter number of days..." className="mt-1" />
             </div>
           )}
-          <div><label className="text-sm font-medium">Timeline</label>
-            <select value={timeline} onChange={e => setTimeline(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
-              {GOAL_TIMELINES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1" /></div>
-            <div><label className="text-sm font-medium">Target Date</label><Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={minDeadline || undefined} className="mt-1" /></div>
+            <div><label className="text-sm font-medium">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1" style={{ colorScheme: "light" }} /></div>
+            <div><label className="text-sm font-medium">Target Date</label><Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={minDeadline || undefined} className="mt-1" style={{ colorScheme: "light" }} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="relative"><label className="text-sm font-medium">Icon</label>
@@ -431,7 +412,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
             if (title.trim() && deadline) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 50 }))
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, timeline, status: "not-started" })
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started" })
               onClose()
             }
           }} className="flex-1 glow text-white">Add Goal</Button>
