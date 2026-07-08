@@ -97,8 +97,6 @@ const TaskRow = memo(function TaskRow({
   )
 })
 
-const hours24 = Array.from({ length: 24 }, (_, i) => i)
-const minutes = Array.from({ length: 60 }, (_, i) => i)
 const deadlineOptions = ["Today", "Tomorrow", "Next Week", "Custom"]
 
 function formatDuration(minutes: number): string {
@@ -126,105 +124,6 @@ function calcDurationFromRange(start: string, end: string): number {
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Scroll Column for Time Picker                         */
-/* ────────────────────────────────────────────────────── */
-
-const ITEM_H = 36
-const VISIBLE = 4
-const CONTAINER_H = ITEM_H * VISIBLE
-const PAD = (CONTAINER_H - ITEM_H) / 2
-
-const ScrollCol = memo(function ScrollCol({
-  items,
-  value,
-  onChange,
-  label,
-}: {
-  items: number[]
-  value: number
-  onChange: (v: number) => void
-  label: string
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const scrolling = useRef(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const scrollToIdx = useCallback((idx: number, smooth: boolean) => {
-    if (!ref.current) return
-    ref.current.scrollTo({ top: idx * ITEM_H, behavior: smooth ? "smooth" : "instant" })
-  }, [])
-
-  useLayoutEffect(() => {
-    const idx = items.indexOf(value)
-    if (idx >= 0) scrollToIdx(idx, false)
-  }, [value, items, scrollToIdx])
-
-  const snapToNearest = useCallback(() => {
-    if (!ref.current) return
-    const idx = Math.round(ref.current.scrollTop / ITEM_H)
-    const clamped = Math.max(0, Math.min(items.length - 1, idx))
-    const snapped = items[clamped]
-    if (snapped !== undefined && snapped !== value) {
-      onChange(snapped)
-    }
-    scrollToIdx(clamped, true)
-  }, [items, value, onChange, scrollToIdx])
-
-  const handleScroll = useCallback(() => {
-    scrolling.current = true
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => {
-      scrolling.current = false
-      snapToNearest()
-    }, 80)
-  }, [snapToNearest])
-
-  useEffect(() => {
-    return () => { if (timer.current) clearTimeout(timer.current) }
-  }, [])
-
-  return (
-    <div className="flex flex-col items-center">
-      <span className="text-[10px] text-muted-foreground mb-1">{label}</span>
-      <div className="relative rounded-xl border bg-muted/30 overflow-hidden" style={{ height: CONTAINER_H }}>
-        {/* Selection highlight band */}
-        <div
-          className="absolute left-0 right-0 rounded-xl bg-primary text-primary-foreground pointer-events-none z-10"
-          style={{ top: PAD, height: ITEM_H }}
-        />
-        <div
-          ref={ref}
-          onScroll={handleScroll}
-          className="h-full overflow-y-auto scrollbar-hide relative"
-        >
-          {/* Top spacer so first item can center */}
-          <div style={{ height: PAD }} />
-          {items.map((item) => {
-            const isSelected = item === value
-            return (
-              <button
-                key={item}
-                onClick={() => {
-                  const idx = items.indexOf(item)
-                  onChange(item)
-                  scrollToIdx(idx, true)
-                }}
-                className="w-full flex items-center justify-center text-sm transition-colors relative z-20"
-                style={{ height: ITEM_H, color: isSelected ? "transparent" : "var(--muted-foreground)" }}
-              >
-                {String(item).padStart(2, "0")}
-              </button>
-            )
-          })}
-          {/* Bottom spacer so last item can center */}
-          <div style={{ height: PAD }} />
-        </div>
-      </div>
-    </div>
-  )
-})
-
-/* ────────────────────────────────────────────────────── */
 /* Time Range Picker                                     */
 /* ────────────────────────────────────────────────────── */
 
@@ -241,12 +140,10 @@ function TimeRangePicker({
   anyTime: boolean
   onToggleAnyTime: (v: boolean) => void
 }) {
-  const s = parseTime(startTime) || { hour: 9, minute: 0 }
-  const e = parseTime(endTime) || { hour: 9, minute: 30 }
   const dur = calcDurationFromRange(startTime, endTime)
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center gap-2 mb-2">
         <button
           type="button"
@@ -265,22 +162,26 @@ function TimeRangePicker({
         <>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <span className="text-[10px] text-muted-foreground mb-1 block">Start Time</span>
-              <div className="flex items-center gap-1">
-                <ScrollCol items={hours24} value={s.hour} onChange={(h) => onChange(formatTimeSelection(h, s.minute), endTime)} label="Hr" />
-                <ScrollCol items={minutes} value={s.minute} onChange={(m) => onChange(formatTimeSelection(s.hour, m), endTime)} label="Min" />
-              </div>
+              <span className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Start Time</span>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => onChange(e.target.value, endTime)}
+                className="w-full px-3 py-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
             </div>
             <div className="flex-1">
-              <span className="text-[10px] text-muted-foreground mb-1 block">End Time</span>
-              <div className="flex items-center gap-1">
-                <ScrollCol items={hours24} value={e.hour} onChange={(h) => onChange(startTime, formatTimeSelection(h, e.minute))} label="Hr" />
-                <ScrollCol items={minutes} value={e.minute} onChange={(m) => onChange(startTime, formatTimeSelection(e.hour, m))} label="Min" />
-              </div>
+              <span className="text-[11px] font-medium text-muted-foreground mb-1.5 block">End Time</span>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => onChange(startTime, e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
             </div>
           </div>
           <p className="text-[10px] text-muted-foreground text-center">
-            Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
+            Duration: {dur > 0 ? formatDuration(dur) : "—"}
           </p>
         </>
       )}
