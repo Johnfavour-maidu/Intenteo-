@@ -289,11 +289,19 @@ const ProductivityScore = memo(function ProductivityScore({ percentage }: { perc
     <div className="flex items-center gap-2">
       <Zap className="h-3.5 w-3.5 text-muted-foreground" />
       <span className="text-[10px] text-muted-foreground hidden sm:inline">Productivity Score</span>
-      <div className="h-1.5 w-20 bg-muted rounded-full overflow-hidden">
-        <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${percentage}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }} />
+      <div className="relative h-9 w-9 shrink-0">
+        <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5"
+            className="text-[#1E0E6B]/15" />
+          <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5"
+            className="text-[#1E0E6B]" strokeLinecap="round"
+            strokeDasharray={2 * Math.PI * 15}
+            strokeDashoffset={2 * Math.PI * 15 * (1 - percentage / 100)} />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-bold text-[#1E0E6B]">{percentage}</span>
+        </div>
       </div>
-      <span className="text-xs font-semibold tabular-nums">{percentage}%</span>
     </div>
   )
 })
@@ -580,6 +588,7 @@ export function TasksPage() {
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
   const [carryOverOpen, setCarryOverOpen] = useState(false)
   const [selectedCarryOverIds, setSelectedCarryOverIds] = useState<Set<string>>(new Set())
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ task: Task } | null>(null)
 
   // Route change cleanup: clear all temporary UI state when leaving Tasks page
   useEffect(() => {
@@ -634,6 +643,10 @@ export function TasksPage() {
   }, [tasks])
 
   const todayISO = useMemo(() => new Date().toISOString().split("T")[0], [])
+
+  const isFutureTask = useCallback((task: Task) => {
+    return todayISO < task.date
+  }, [todayISO])
   const viewingDate = selectedDate || todayISO
   const isViewingPast = useMemo(() => viewingDate < todayISO, [viewingDate, todayISO])
 
@@ -649,6 +662,7 @@ export function TasksPage() {
 
   const displayTasks = useMemo(() => {
     const tasksForDate = tasks.filter((t) => {
+      if ((t.deletedDates || []).includes(viewingDate)) return false
       if (t.date === viewingDate) return true
       if (t.recurrence === "daily") {
         const created = new Date(t.createdAt)
@@ -673,19 +687,6 @@ export function TasksPage() {
       localStorage.setItem("intenteo-tasks", JSON.stringify(tasks))
     }
   }, [tasks])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("intenteo-expand-all", JSON.stringify(expandAll))
-    }
-  }, [expandAll])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("intenteo-expand-all")
-      if (saved === "true") setExpandAll(true)
-    }
-  }, [])
 
   useEffect(() => {
     if (expandAll && tasks.length > 0) {
@@ -719,19 +720,57 @@ export function TasksPage() {
 
   const handleToggleTask = useCallback((id: string) => {
     const task = tasks.find((t) => t.id === id)
-    if (task && !task.completed) addToast()
+    if (!task || isFutureTask(task)) return
+    if (!task.completed) addToast()
     toggleTask(id)
-  }, [tasks, toggleTask, addToast])
+  }, [tasks, toggleTask, addToast, isFutureTask])
 
   const toggleSubtask = useCallback((taskId: string, subtaskId: string) => {
+    const task = tasks.find((t) => t.id === taskId)
+    if (task && isFutureTask(task)) return
     setTasks((prev) => prev.map((t) =>
       t.id === taskId ? { ...t, subtasks: t.subtasks.map((s) => (s.id === subtaskId ? { ...s, completed: !s.completed } : s)) } : t
     ))
-  }, [])
+  }, [tasks, isFutureTask])
 
   const deleteTask = useCallback((id: string) => {
+    const task = tasks.find((t) => t.id === id)
+    if (!task) return
+    if (task.recurrence === "daily" || task.recurrence === "weekly" || task.recurrence === "monthly") {
+      setDeleteConfirmModal({ task })
+      return
+    }
     setTasks((prev) => prev.filter((t) => t.id !== id))
-  }, [])
+  }, [tasks])
+
+  const handleConfirmDelete = useCallback((scope: "today" | "series") => {
+    if (!deleteConfirmModal) return
+    const { task } = deleteConfirmModal
+    const viewDate = selectedDate || todayISO
+
+    if (scope === "today") {
+      if (task.recurrence === "daily") {
+        setTasks((prev) => prev.map((t) => {
+          if (t.id !== task.id) return t
+          const dc = { ...(t.dailyCompletions || {}) }
+          delete dc[viewDate]
+          const dd = [...(t.deletedDates || []), viewDate]
+          return { ...t, dailyCompletions: dc, deletedDates: dd }
+        }))
+      } else {
+        setTasks((prev) => prev.map((t) => {
+          if (t.id !== task.id) return t
+          const dd = [...(t.deletedDates || []), viewDate]
+          return { ...t, deletedDates: dd }
+        }))
+      }
+      addToast(`Deleted "${task.title}" for today only.`)
+    } else {
+      setTasks((prev) => prev.filter((t) => t.id !== task.id))
+      addToast(`Deleted entire series: "${task.title}".`)
+    }
+    setDeleteConfirmModal(null)
+  }, [deleteConfirmModal, selectedDate, todayISO, addToast])
 
   const duplicateTask = useCallback((task: Task) => {
     const newTask: Task = {
@@ -1062,13 +1101,14 @@ export function TasksPage() {
             const isDragging = draggedId === task.id && dragType === "task"
             const isDragOver = dragOverId === task.id && dragOverId !== draggedId && dragType === "task"
             const pConfig = priorityConfig[task.priority]
+            const future = isFutureTask(task)
 
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.015, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
                 <TaskRow tint={pConfig.tint} isDragging={isDragging} isDragOver={isDragOver}>
                   <div
-                    draggable={!isViewingPast}
+                    draggable={!isViewingPast && !future}
                     onDragStart={() => handleTaskDragStart(task.id)}
                     onDragOver={(e) => handleTaskDragOver(e, task.id)}
                     onDrop={() => handleTaskDrop(task.id)} onDragEnd={handleDragEnd}
@@ -1081,17 +1121,23 @@ export function TasksPage() {
 
                     {/* Checkbox */}
                     <div className="w-6 shrink-0">
-                      <button onClick={() => handleToggleTask(task.id)}>
-                        {isCompleted ? (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
-                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                            </div>
-                          </motion.div>
-                        ) : (
-                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
-                        )}
-                      </button>
+                      {future ? (
+                        <Tooltip label="This task becomes available on its scheduled date.">
+                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20 bg-muted/30 cursor-not-allowed" />
+                        </Tooltip>
+                      ) : (
+                        <button onClick={() => handleToggleTask(task.id)}>
+                          {isCompleted ? (
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+                              <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                              </div>
+                            </motion.div>
+                          ) : (
+                            <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
+                          )}
+                        </button>
+                      )}
                     </div>
 
                     {/* Task Name */}
@@ -1103,8 +1149,8 @@ export function TasksPage() {
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${isCompleted ? "line-through text-muted-foreground" : ""}`}
-                            onClick={() => !isViewingPast && setEditingTask({ ...task })}>
+                          <span className={`text-sm font-medium truncate px-1 py-0.5 rounded transition-colors ${isViewingPast || future ? "" : "cursor-pointer hover:bg-muted/50"} ${isCompleted ? "line-through text-muted-foreground" : ""} ${future ? "text-muted-foreground" : ""}`}
+                            onClick={() => !isViewingPast && !future && setEditingTask({ ...task })}>
                             {task.title}
                           </span>
                           {task.subtasks.length > 0 && (
@@ -1157,13 +1203,13 @@ export function TasksPage() {
 
                     {/* Actions */}
                     <div className="w-[120px] shrink-0 flex items-center gap-1">
-                      {!isViewingPast && (
+                      {!isViewingPast && !future && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      {!isViewingPast && (
+                      {!isViewingPast && !future && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); duplicateTask(task) }}>
                           <Copy className="h-3.5 w-3.5" />
@@ -1180,7 +1226,7 @@ export function TasksPage() {
                           )}
                         </AnimatePresence>
                       </div>
-                      {!isViewingPast && (
+                      {!isViewingPast && !future && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
                           onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1197,7 +1243,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [displayTasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo, isViewingPast])
+  }, [displayTasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo, isViewingPast, isFutureTask])
 
   /* ═══════════════════════════════════════════════════════ */
   /* BOARD VIEW                                              */
@@ -1215,6 +1261,7 @@ export function TasksPage() {
             const isExpanded = expandAll || expandedTasks.has(task.id)
             const pConfig = priorityConfig[task.priority]
             const completedSubs = task.subtasks.filter((s) => s.completed).length
+            const future = isFutureTask(task)
 
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -1224,21 +1271,27 @@ export function TasksPage() {
                   <div className="pl-10 pr-10 p-4">
                     <div className="flex items-start gap-2.5 mb-3">
                       <PriorityDot priority={task.priority} />
-                      <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
-                        {isCompleted ? (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
-                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                            </div>
-                          </motion.div>
-                        ) : (
-                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
-                        )}
-                      </button>
+                      {future ? (
+                        <Tooltip label="This task becomes available on its scheduled date.">
+                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20 bg-muted/30 cursor-not-allowed mt-0.5 shrink-0" />
+                        </Tooltip>
+                      ) : (
+                        <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
+                          {isCompleted ? (
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+                              <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                              </div>
+                            </motion.div>
+                          ) : (
+                            <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
+                          )}
+                        </button>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h3 className={`text-sm font-semibold truncate px-1 py-0.5 rounded transition-colors ${isViewingPast ? "" : "cursor-pointer hover:bg-muted/50"} ${isCompleted ? "line-through text-muted-foreground" : ""}`}
-                            onClick={() => !isViewingPast && setEditingTask({ ...task })}>{task.title}</h3>
+                          <h3 className={`text-sm font-semibold truncate px-1 py-0.5 rounded transition-colors ${isViewingPast || future ? "" : "cursor-pointer hover:bg-muted/50"} ${isCompleted ? "line-through text-muted-foreground" : ""} ${future ? "text-muted-foreground" : ""}`}
+                            onClick={() => !isViewingPast && !future && setEditingTask({ ...task })}>{task.title}</h3>
                           {task.subtasks.length > 0 && (
                             <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 shrink-0">{completedSubs}/{task.subtasks.length}</span>
                           )}
@@ -1287,13 +1340,13 @@ export function TasksPage() {
                     </div>
 
                     <div className="flex items-center gap-1">
-                      {!isViewingPast && (
+                      {!isViewingPast && !future && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
                           onClick={() => setEditingTask({ ...task })}>
                           <Pencil className="h-3 w-3" />
                         </Button>
                       )}
-                      {!isViewingPast && (
+                      {!isViewingPast && !future && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
                           onClick={() => duplicateTask(task)}>
                           <Copy className="h-3 w-3" />
@@ -1310,7 +1363,7 @@ export function TasksPage() {
                           )}
                         </AnimatePresence>
                       </div>
-                      {!isViewingPast && (
+                      {!isViewingPast && !future && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10 text-destructive" onClick={() => deleteTask(task.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -1324,7 +1377,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [displayTasks, expandedTasks, expandAll, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId, isViewingPast])
+  }, [displayTasks, expandedTasks, expandAll, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId, isViewingPast, isFutureTask])
 
   return (
     <div className="min-h-screen">
@@ -1811,6 +1864,46 @@ export function TasksPage() {
                     disabled={editingTask ? !editingTask.title.trim() : !formTitle.trim()}>
                     {editingTask ? "Save Changes" : "Add Task"}
                   </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Recurring Task Delete Confirmation */}
+      <AnimatePresence>
+        {deleteConfirmModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => setDeleteConfirmModal(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm bg-background rounded-2xl border shadow-2xl">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-1">Delete Recurring Task</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This task repeats {deleteConfirmModal.task.recurrence === "daily" ? "every day" : deleteConfirmModal.task.recurrence === "weekly" ? "every week" : "every month"}. What would you like to delete?
+                </p>
+                <div className="space-y-2">
+                  <button
+                    className="w-full text-left px-4 py-3 rounded-xl border border-muted hover:bg-muted/50 transition-colors"
+                    onClick={() => handleConfirmDelete("today")}>
+                    <div className="text-sm font-medium">
+                      {deleteConfirmModal.task.recurrence === "daily" ? "Delete Today Only" : deleteConfirmModal.task.recurrence === "weekly" ? "Delete This Week Only" : "Delete This Month Only"}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">Task will still appear on other days</div>
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors"
+                    onClick={() => handleConfirmDelete("series")}>
+                    <div className="text-sm font-medium text-destructive">Delete Entire Series</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">Permanently remove this task and all its occurrences</div>
+                  </button>
+                </div>
+                <div className="flex gap-2 mt-5">
+                  <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirmModal(null)}>Cancel</Button>
                 </div>
               </div>
             </motion.div>

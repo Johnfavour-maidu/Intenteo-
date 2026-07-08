@@ -29,6 +29,7 @@ export interface Task {
   order: number
   createdAt: string
   dailyCompletions?: Record<string, boolean>
+  deletedDates?: string[]
   linkedHabitId?: string
   linkedGoalId?: string
   todayIntention?: string
