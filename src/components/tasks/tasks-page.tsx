@@ -134,10 +134,10 @@ function calcDurationFromRange(start: string, end: string): number {
 
 const TIME_PRESETS = [
   { value: "anytime" as const, label: "Anytime", desc: "" },
-  { value: "morning" as const, label: "Morning", desc: "6:00 AM – 11:59 AM" },
-  { value: "afternoon" as const, label: "Afternoon", desc: "12:00 PM – 4:59 PM" },
-  { value: "evening" as const, label: "Evening", desc: "5:00 PM – 8:59 PM" },
-  { value: "night" as const, label: "Night", desc: "9:00 PM – 5:59 AM" },
+  { value: "morning" as const, label: "Morning", desc: "06:00 – 11:59" },
+  { value: "afternoon" as const, label: "Afternoon", desc: "12:00 – 16:59" },
+  { value: "evening" as const, label: "Evening", desc: "17:00 – 20:59" },
+  { value: "night" as const, label: "Night", desc: "21:00 – 05:59" },
   { value: "custom" as const, label: "Custom Time", desc: "Set start & end" },
 ]
 
@@ -164,34 +164,18 @@ function CustomTimeInput({
   label: string
 }) {
   const parsed = parseTime(value) || { hour: 9, minute: 0 }
-  const isPM = parsed.hour >= 12
-  const h12 = parsed.hour === 0 ? 12 : parsed.hour > 12 ? parsed.hour - 12 : parsed.hour
 
-  const setHour = (h: number) => {
-    let full = h
-    if (isPM && h !== 12) full = h + 12
-    if (!isPM && h === 12) full = 0
-    onChange(formatTimeSelection(full, parsed.minute))
-  }
+  const setHour = (h: number) => onChange(formatTimeSelection(h, parsed.minute))
   const setMin = (m: number) => onChange(formatTimeSelection(parsed.hour, m))
-  const toggleAmPm = () => {
-    if (isPM) {
-      const h = parsed.hour === 12 ? 0 : parsed.hour - 12
-      onChange(formatTimeSelection(h, parsed.minute))
-    } else {
-      const h = parsed.hour === 12 ? 12 : parsed.hour + 12
-      onChange(formatTimeSelection(h, parsed.minute))
-    }
-  }
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1)
+  const hours = Array.from({ length: 24 }, (_, i) => i)
   const mins = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
   return (
     <div className="flex-1">
       <span className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{label}</span>
       <div className="flex items-center gap-1.5">
-        <select value={h12} onChange={(e) => setHour(Number(e.target.value))}
+        <select value={parsed.hour} onChange={(e) => setHour(Number(e.target.value))}
           className="flex-1 h-10 px-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
           {hours.map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}</option>)}
         </select>
@@ -200,10 +184,6 @@ function CustomTimeInput({
           className="flex-1 h-10 px-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
           {mins.map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
         </select>
-        <button type="button" onClick={toggleAmPm}
-          className="h-10 px-3 rounded-lg border border-input bg-background text-sm font-medium hover:bg-muted/50 transition-colors cursor-pointer">
-          {isPM ? "PM" : "AM"}
-        </button>
       </div>
     </div>
   )
