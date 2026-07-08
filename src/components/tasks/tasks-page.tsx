@@ -7,6 +7,7 @@ import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AutosuggestInput } from "@/components/ui/autosuggest-input"
+import { TeoAssistant } from "@/components/teo/teo-assistant"
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion"
 import {
   Plus,
@@ -23,7 +24,6 @@ import {
   ArrowRightLeft,
   Calendar,
   Volume2,
-  StopCircle,
   Copy,
   Target,
   Crosshair,
@@ -501,6 +501,7 @@ export function TasksPage() {
   })
   const [activeView, setActiveView] = useState<TaskView>("list")
   const [createOpen, setCreateOpen] = useState(false)
+  const [teoOpen, setTeoOpen] = useState(false)
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
   const [expandAll, setExpandAll] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -512,9 +513,6 @@ export function TasksPage() {
   const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [isListening, setIsListening] = useState(false)
-  const [voiceStatus, setVoiceStatus] = useState("")
-  const recognitionRef = useRef<unknown>(null)
 
   const { toasts, addToast, removeToast } = useToast()
 
@@ -1040,79 +1038,6 @@ export function TasksPage() {
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
   }, [])
 
-  const toggleListening = useCallback(() => {
-    const w = window as unknown as Record<string, unknown>
-    const SpeechRecognitionAPI = w.SpeechRecognition || w.webkitSpeechRecognition
-    if (!SpeechRecognitionAPI) {
-      alert("Speech recognition is not supported in this browser.")
-      return
-    }
-
-    if (isListening && recognitionRef.current) {
-      (recognitionRef.current as { stop: () => void }).stop()
-      setIsListening(false)
-      setVoiceStatus("")
-      return
-    }
-
-    const recognition = new (SpeechRecognitionAPI as new () => Record<string, unknown>)()
-    recognition.lang = "en-GB"
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognitionRef.current = recognition
-    let finalTranscript = ""
-
-    recognition.onresult = (event: unknown) => {
-      const e = event as { resultIndex: number; results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } } }
-      let interim = ""
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const transcript = e.results[i][0].transcript
-        if (e.results[i].isFinal) { finalTranscript += transcript }
-        else { interim += transcript }
-      }
-      setVoiceStatus(interim || "Listening...")
-    }
-
-    recognition.onend = () => {
-      setIsListening(false)
-      setVoiceStatus("")
-      if (finalTranscript.trim()) {
-        const parsedTasks = parseVoiceTasks(finalTranscript)
-        if (parsedTasks.length > 0) {
-          setFormTitle(parsedTasks[0].title)
-          if (parsedTasks[0].timeRange) {
-            const parts = parsedTasks[0].timeRange.split(" \u2013 ")
-            if (parts.length === 2) {
-              const s = parseTime(parts[0])
-              const en = parseTime(parts[1])
-              if (s) { setFormStartHour(s.hour); setFormStartMin(s.minute) }
-              if (en) { setFormEndHour(en.hour); setFormEndMin(en.minute) }
-            }
-          }
-          if (parsedTasks[0].duration && !parsedTasks[0].timeRange) {
-            const dur = parseDurationText(parsedTasks[0].duration)
-            if (dur > 0) {
-              const endMin = formStartHour * 60 + formStartMin + dur
-              setFormEndHour(Math.floor(endMin / 60) % 24)
-              setFormEndMin(endMin % 60)
-            }
-          }
-          setCreateOpen(true)
-          addToast(`Captured: "${parsedTasks[0].title}". Review and save.`)
-        } else {
-          setFormTitle(finalTranscript.trim().slice(0, 100))
-          setCreateOpen(true)
-          addToast("Could not parse tasks. Please review and edit.")
-        }
-      }
-    }
-
-    recognition.onerror = () => { setIsListening(false); setVoiceStatus("") }
-    (recognition as { start: () => void }).start()
-    setIsListening(true)
-    setVoiceStatus("Listening...")
-  }, [isListening, formStartHour, formStartMin, addToast])
-
   const renderSubtasks = useCallback((task: Task, isExpanded: boolean) => (
     <AnimatePresence initial={false}>
       {isExpanded && task.subtasks.length > 0 && (
@@ -1557,13 +1482,13 @@ export function TasksPage() {
               </Button>
             </div>
 
-            {/* Voice Capture */}
-            <Tooltip label={isListening ? "Stop Dictation" : "Voice Task"}>
+            {/* Talk with Téo */}
+            <Tooltip label="Talk with Téo">
               <button
-                className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${isListening ? "animate-pulse" : ""}`}
-                style={{ backgroundColor: isListening ? "#DC2626" : "var(--brand-primary)", color: "white" }}
-                onClick={toggleListening}>
-                {isListening ? <StopCircle className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
+                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                onClick={() => setTeoOpen(true)}>
+                <Volume2 className="h-4 w-4" />
               </button>
             </Tooltip>
 
@@ -1572,14 +1497,6 @@ export function TasksPage() {
             </Button>
           </div>
         </div>
-
-        {voiceStatus && (
-          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-            className="mb-3 px-3 py-1.5 rounded-lg bg-primary/10 text-xs text-primary flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-            {voiceStatus}
-          </motion.div>
-        )}
 
         {/* Carry-Over Notification Badge */}
         {carryOverTasks.length > 0 && !selectedDate && (
@@ -2143,6 +2060,21 @@ export function TasksPage() {
           }}
         />
       )}
+
+      <TeoAssistant
+        open={teoOpen}
+        onOpenChange={setTeoOpen}
+        tasks={tasks}
+        onAddTask={(title, date) => {
+          if (title) setFormTitle(title)
+          if (date) setFormDate(date)
+          setCreateOpen(true)
+        }}
+        onStartFocus={() => {
+          const focusTarget = tasks.find((x) => !x.completed && !isFutureTask(x))
+          if (focusTarget) setFocusTask(focusTarget)
+        }}
+      />
     </div>
   )
 }
@@ -2483,95 +2415,4 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
       </AnimatePresence>
     </div>
   )
-}
-
-/* ────────────────────────────────────────────────────── */
-/* Voice parsing helpers                                  */
-/* ────────────────────────────────────────────────────── */
-
-function parseTime24(str: string): { hour: number; minute: number } | null {
-  const clean = str.trim().toLowerCase()
-
-  if (clean === "noon") return { hour: 12, minute: 0 }
-  if (clean === "midnight") return { hour: 0, minute: 0 }
-
-  const ampmMatch = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)/)
-  if (ampmMatch) {
-    let hour = parseInt(ampmMatch[1])
-    const minute = ampmMatch[2] ? parseInt(ampmMatch[2]) : 0
-    const suffix = ampmMatch[3].replace(/\./g, "")
-    if (suffix === "pm" && hour < 12) hour += 12
-    if (suffix === "am" && hour === 12) hour = 0
-    return { hour, minute }
-  }
-
-  const twentyFourMatch = clean.match(/(\d{1,2})[:\s](\d{2})/)
-  if (twentyFourMatch) {
-    const hour = parseInt(twentyFourMatch[1])
-    const minute = parseInt(twentyFourMatch[2])
-    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) return { hour, minute }
-  }
-
-  const bareMatch = clean.match(/^(\d{1,2})\s*(?:o.?clock)?$/)
-  if (bareMatch) {
-    const hour = parseInt(bareMatch[1])
-    if (hour >= 0 && hour <= 23) return { hour, minute: 0 }
-  }
-
-  return null
-}
-
-function parseDurationText(str: string): number {
-  const clean = str.toLowerCase()
-  let total = 0
-  const hourMatch = clean.match(/(\d+)\s*(?:hours?|hrs?)/)
-  const minMatch = clean.match(/(\d+)\s*(?:minutes?|mins?)/)
-  if (hourMatch) total += parseInt(hourMatch[1]) * 60
-  if (minMatch) total += parseInt(minMatch[1])
-  if (total === 0 && clean.includes("half")) total = 30
-  return total
-}
-
-interface ParsedVoiceTask {
-  title: string
-  timeRange: string | null
-  duration: string | null
-}
-
-function parseVoiceTasks(text: string): ParsedVoiceTask[] {
-  const sentences = text.split(/[.;]\s*/).filter((s) => s.trim().length > 3)
-  return sentences.map((sentence) => {
-    const clean = sentence.trim()
-    let title = ""
-    let timeRange: string | null = null
-    let duration: string | null = null
-
-    const timeRangeRegex = /(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)\s*(?:to|until|till|through|[-–—])\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)/i
-    const betweenRegex = /between\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)\s+and\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?)/i
-    const timeMatch = clean.match(timeRangeRegex) || clean.match(betweenRegex)
-
-    if (timeMatch) {
-      const startParsed = parseTime24(timeMatch[1])
-      const endParsed = parseTime24(timeMatch[2])
-      if (startParsed && endParsed) {
-        const fmt = (h: number, m: number) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
-        timeRange = `${fmt(startParsed.hour, startParsed.minute)} \u2013 ${fmt(endParsed.hour, endParsed.minute)}`
-      }
-    }
-
-    const durMatch = clean.match(/(?:for\s+)?(\d+)\s*(?:minutes?|mins?|hours?|hrs?)/i)
-    if (durMatch) duration = durMatch[0]
-
-    let titleClean = clean
-    if (timeMatch) titleClean = titleClean.replace(timeMatch[0], "")
-    if (durMatch) titleClean = titleClean.replace(durMatch[0], "")
-    titleClean = titleClean.replace(/^(i want to|i need to|i should|i will|let me|can i|please|i'd like to|i wanna|i gotta|i got to|i have to|i've got)\s*/i, "")
-    titleClean = titleClean.replace(/^(when i wake up|in the morning|today|tomorrow|right now|asap)\s*/i, "")
-    titleClean = titleClean.replace(/\s+/g, " ").trim()
-
-    if (titleClean.length < 2) titleClean = "New task"
-    title = titleClean.charAt(0).toUpperCase() + titleClean.slice(1)
-
-    return { title, timeRange, duration }
-  }).filter((t) => t.title.length > 0)
 }
