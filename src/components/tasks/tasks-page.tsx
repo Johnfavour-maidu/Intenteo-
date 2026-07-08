@@ -733,6 +733,18 @@ export function TasksPage() {
   const totalToday = completedToday + remainingToday
   const productivity = useMemo(() => (totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100)), [completedToday, totalToday])
 
+  // Auto-trigger Daily Completion Review when all of today's tasks are completed
+  useEffect(() => {
+    if (selectedDate) return
+    if (totalToday === 0) return
+    if (completedToday !== totalToday) return
+    try {
+      const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
+      const already = reviews.some((r: { date: string }) => r.date === todayISO)
+      if (!already) setReviewOpen(true)
+    } catch {}
+  }, [completedToday, totalToday, selectedDate, todayISO])
+
   useEffect(() => {
     if (typeof window !== "undefined" && tasks.length > 0) {
       localStorage.setItem("intenteo-tasks", JSON.stringify(tasks))
@@ -1498,8 +1510,8 @@ export function TasksPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight whitespace-nowrap">
-              Tasks{selectedDate ? ` \u2014 ${formatDateDDMMYYYY(selectedDate)}` : " \u2014 Today"}
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight whitespace-nowrap">
+              Tasks{` \u2014 ${formatDateDDMMYYYY(selectedDate || todayISO)}`}
             </h1>
             <p className="text-sm text-foreground mt-0.5 tracking-tight">
               <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>
@@ -1511,6 +1523,11 @@ export function TasksPage() {
           </div>
           <div className="flex items-center gap-2.5">
             <ProductivityScore percentage={productivity} />
+
+            <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setReviewOpen(true)}>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Review Day</span>
+            </Button>
 
             <Link href="/journal">
               <Button variant="outline" size="sm" className="h-9 gap-1.5">
@@ -2107,6 +2124,36 @@ export function TasksPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Focus Mode Overlay */}
+      {focusTask && (
+        <FocusMode
+          task={focusTask}
+          onExit={() => setFocusTask(null)}
+          onComplete={() => { handleToggleTask(focusTask.id); setFocusTask(null); addToast("Focus session complete") }}
+        />
+      )}
+
+      {/* Daily Completion Review Modal */}
+      {reviewOpen && (
+        <DailyReviewModal
+          date={selectedDate || todayISO}
+          tasksCompleted={completedToday}
+          totalTasks={totalToday}
+          productivity={productivity}
+          router={router}
+          onClose={() => setReviewOpen(false)}
+          onSave={(data) => {
+            try {
+              const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
+              reviews.push({ date: selectedDate || todayISO, ...data, productivity, tasksCompleted: completedToday, createdAt: new Date().toISOString() })
+              localStorage.setItem("intenteo-reviews", JSON.stringify(reviews))
+            } catch {}
+            addToast("Daily review saved")
+            setReviewOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -2316,6 +2363,40 @@ function FocusMode({ task, onExit, onComplete }: {
           <p className="text-[10px] text-muted-foreground/60 mt-3">Interruptions logged: {interceptions}</p>
         )}
       </div>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Focus Mode Overlay                                     */
+      {focusTask && (
+        <FocusMode
+          task={focusTask}
+          onExit={() => setFocusTask(null)}
+          onComplete={() => { handleToggleTask(focusTask.id); setFocusTask(null); addToast("Focus session complete") }}
+        />
+      )}
+
+      {/* Daily Completion Review Modal */}
+      {reviewOpen && (
+        <DailyReviewModal
+          date={selectedDate || todayISO}
+          tasksCompleted={completedToday}
+          totalTasks={totalToday}
+          productivity={productivity}
+          router={router}
+          onClose={() => setReviewOpen(false)}
+          onSave={(data) => {
+            try {
+              const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
+              reviews.push({ date: selectedDate || todayISO, ...data, productivity, tasksCompleted: completedToday, createdAt: new Date().toISOString() })
+              localStorage.setItem("intenteo-reviews", JSON.stringify(reviews))
+            } catch {}
+            addToast("Daily review saved")
+            setReviewOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }
