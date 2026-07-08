@@ -9,8 +9,17 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, Sparkles,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle,
+  Link2, AlertTriangle, Info, Circle,
 } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import type { GoalData, GoalProject, GoalHabit } from "./goal-utils"
+import {
+  calcGoalHealth, GOAL_HEALTH_CONFIG, calcLifecycleStage, GOAL_LIFECYCLE_CONFIG,
+  calcTrend, GOAL_TREND_CONFIG, generateSmartNextAction, generateCoaching,
+  getGoalHealthScore, detectCelebration, getGoalScoreBreakdown,
+} from "./goal-utils"
+import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 
 interface Milestone { id: string; title: string; completed: boolean }
 
@@ -756,6 +765,11 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
   const completedProjects = goalProjects.filter(p => p.status === "completed").length
   const totalTasks = goalProjects.reduce((s, p) => s + p.tasks.length, 0)
   const completedTasks = goalProjects.reduce((s, p) => s + p.tasks.filter(t => t.completed).length, 0)
+  const health = calcGoalHealth(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+  const healthCfg = GOAL_HEALTH_CONFIG[health]
+  const trend = calcTrend(goal as unknown as GoalData, projects as unknown as GoalProject[])
+  const trendCfg = GOAL_TREND_CONFIG[trend]
+  const nextAction = generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
 
   return (
     <div onClick={onClick} className="group p-5 bg-white dark:bg-gray-950 rounded-2xl border border-white/20 hover:shadow-lg hover:shadow-black/5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
@@ -763,7 +777,11 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
         <div className="flex items-center gap-2">
           <span className="text-xl">{goal.icon}</span>
           <div>
-            <Badge variant="outline" className="text-[10px] mb-1" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Badge variant="outline" className="text-[10px]" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge>
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon} {healthCfg.label}</span>
+              <span className={`text-[10px] font-medium ${trendCfg.color}`}>{trendCfg.icon}</span>
+            </div>
             <h3 className="font-semibold text-sm leading-tight">{goal.title}</h3>
           </div>
         </div>
@@ -771,6 +789,16 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
       </div>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
 
+      {/* Smart Next Action */}
+      <div className="mb-3 p-2 rounded-lg bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
+        <div className="flex items-center gap-1 mb-0.5">
+          <Info className="h-3 w-3 text-[#1E0E6B]" />
+          <span className="text-[10px] font-medium text-[#1E0E6B]">Next Action</span>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{nextAction}</p>
+      </div>
+
+      {/* Projects */}
       {goalProjects.length > 0 && (
         <div className="space-y-1.5 mb-3">
           {goalProjects.slice(0, 3).map(p => (
@@ -784,6 +812,7 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
         </div>
       )}
 
+      {/* Linked Habits */}
       {goal.linkedHabits.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {goal.linkedHabits.slice(0, 3).map(name => (
@@ -793,10 +822,12 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
         </div>
       )}
 
+      {/* Progress bar */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-medium">{progress}%</span></div>
         <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div>
       </div>
+      {/* Footer */}
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{daysRemaining}d</span>
@@ -816,12 +847,33 @@ export function GoalsPage() {
   const [vision, setVision] = useState<LifeVision>({ vision: "Become a successful entrepreneur who helps millions live with intentionality", notes: "", whyItMatters: "Everyone deserves purpose", values: ["Integrity","Innovation","Impact"], lifeAreas: ["Career","Health","Relationships"], reviewFrequency: "Monthly" })
   const [filter, setFilter] = useState<GoalFilterMode>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [healthFilter, setHealthFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<SortMode>("deadline")
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [goalsTab, setGoalsTab] = useState<"overview" | "vision">("overview")
   const [isVisionOpen, setIsVisionOpen] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
+  const [analyticsGoal, setAnalyticsGoal] = useState<Goal | null>(null)
+  const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const lifeDimensions = [
+    { name: "Health", score: 75, icon: "💪", color: "from-emerald-400 to-green-500" },
+    { name: "Career", score: 85, icon: "💼", color: "from-blue-400 to-cyan-500" },
+    { name: "Finance", score: 60, icon: "💰", color: "from-amber-400 to-orange-500" },
+    { name: "Relationships", score: 80, icon: "❤️", color: "from-rose-400 to-red-500" },
+    { name: "Faith", score: 70, icon: "🙏", color: "from-violet-400 to-purple-500" },
+    { name: "Learning", score: 90, icon: "📚", color: "from-indigo-400 to-blue-500" },
+    { name: "Mental Wellbeing", score: 75, icon: "🧠", color: "from-cyan-400 to-blue-500" },
+    { name: "Fun", score: 65, icon: "🎮", color: "from-pink-400 to-rose-500" },
+  ]
+
+  const roadmap = [
+    { year: "2026", title: "Foundation Year", goals: ["Launch Intenteo MVP", "Build consistent habits", "Save $10,000"], progress: 45 },
+    { year: "2027", title: "Growth Year", goals: ["Scale Intenteo to 10k users", "Run a half marathon", "Expand to new markets"], progress: 0 },
+    { year: "2028", title: "Impact Year", goals: ["Help 100k people live intentionally", "Publish a book", "Speak at conferences"], progress: 0 },
+  ]
 
   useEffect(() => {
     try {
@@ -847,9 +899,17 @@ export function GoalsPage() {
 
   const saveGoal = useCallback((g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => {
     const now = getTodayISO()
-    setGoals(prev => [...prev, { ...g, id: Date.now().toString(), createdAt: now, updatedAt: now }])
+    setGoals(prev => [...prev, { ...g, id: Date.now().toString(), createdAt: now, updatedAt: now, lastActivity: now }])
   }, [])
-  const updateGoal = useCallback((g: Goal) => { setGoals(prev => prev.map(x => x.id === g.id ? { ...g, updatedAt: getTodayISO() } : g)) }, [])
+  const updateGoal = useCallback((g: Goal) => {
+    setGoals(prev => prev.map(x => x.id === g.id ? { ...g, updatedAt: getTodayISO(), lastActivity: getTodayISO() } : x))
+    const progress = calcGoalProgress(g, projects, habits)
+    const det = detectCelebration(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+    if (det?.show) {
+      setCelebration({ show: true, milestone: det.milestone, progress: det.progress, goalId: g.id })
+      setTimeout(() => setCelebration(null), 3000)
+    }
+  }, [projects, habits])
   const deleteGoal = useCallback((id: string) => { if (confirm("Delete this goal?")) setGoals(prev => prev.filter(g => g.id !== id)) }, [])
   const saveProject = useCallback((p: Project) => {
     setProjects(prev => {
@@ -862,6 +922,10 @@ export function GoalsPage() {
   const filteredAndSorted = useMemo(() => {
     let result = goals.filter(g => {
       if (categoryFilter !== "all" && (g.customCategory || g.category) !== categoryFilter) return false
+      if (healthFilter !== "all") {
+        const h = calcGoalHealth(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+        if (h !== healthFilter) return false
+      }
       switch (filter) {
         case "all": break
         case "life-vision": if (g.timeline !== "Life Vision") return false; break
@@ -904,6 +968,11 @@ export function GoalsPage() {
   const totalLinkedHabits = goals.reduce((s, g) => s + g.linkedHabits.length, 0)
   const activeProjects = projects.filter(p => p.status === "active").length
   const avgProgress = goals.length > 0 ? Math.round(goals.reduce((s, g) => s + calcGoalProgress(g, projects, habits), 0) / goals.length) : 0
+  const avgHealth = goals.length > 0 ? Math.round(goals.reduce((s, g) => s + getGoalHealthScore(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]), 0) / goals.length) : 0
+  const excellentCount = goals.filter(g => calcGoalHealth(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "excellent").length
+  const atRiskCount = goals.filter(g => calcGoalHealth(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "at_risk").length
+  const overdueCount = goals.filter(g => new Date(g.deadline) < new Date() && calcGoalProgress(g, projects, habits) < 100).length
+  const nearestDeadline = goals.length > 0 ? goals.reduce((a, b) => new Date(a.deadline).getTime() < new Date(b.deadline).getTime() ? a : b).title : "—"
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="text-muted-foreground">Loading goals...</div></div>
 
@@ -911,82 +980,231 @@ export function GoalsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div><h1 className="text-3xl font-bold tracking-tight">Goals</h1><p className="text-muted-foreground">Your life vision in action</p></div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="glow h-9"><Plus className="mr-1 h-4 w-4" /> Add Goal</Button>
+        <div className="flex items-center gap-2">
+          <Button variant={goalsTab === "overview" ? "default" : "outline"} size="sm" onClick={() => setGoalsTab("overview")} className={goalsTab === "overview" ? "bg-[#1E0E6B] text-white" : ""}>Overview</Button>
+          <Button variant={goalsTab === "vision" ? "default" : "outline"} size="sm" onClick={() => setGoalsTab("vision")} className={goalsTab === "vision" ? "bg-[#1E0E6B] text-white" : ""}>Vision</Button>
+          <Button onClick={() => setIsAddModalOpen(true)} className="glow h-9"><Plus className="mr-1 h-4 w-4" /> Add Goal</Button>
+        </div>
       </div>
 
-      <div onClick={() => setIsVisionOpen(true)} className="cursor-pointer group">
-        <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-purple-600 shrink-0"><Target className="h-8 w-8 text-white" /></div>
-            <div className="flex-1 min-w-0"><h2 className="text-xl font-bold">Life Vision</h2><p className="text-muted-foreground text-sm line-clamp-2">{vision.vision}</p>
-              {vision.values.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{vision.values.slice(0,4).map((v,i) => <Badge key={i} variant="secondary" className="text-[10px]">{v}</Badge>)}</div>}</div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-[#1E0E6B] transition-colors shrink-0" />
+      {goalsTab === "overview" ? (
+        <>
+          <div onClick={() => setIsVisionOpen(true)} className="cursor-pointer group">
+            <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-purple-600 shrink-0"><Target className="h-8 w-8 text-white" /></div>
+                <div className="flex-1 min-w-0"><h2 className="text-xl font-bold">Life Vision</h2><p className="text-muted-foreground text-sm line-clamp-2">{vision.vision}</p>
+                  {vision.values.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{vision.values.slice(0,4).map((v,i) => <Badge key={i} variant="secondary" className="text-[10px]">{v}</Badge>)}</div>}</div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-[#1E0E6B] transition-colors shrink-0" />
+              </div>
+            </GlassCard>
           </div>
-        </GlassCard>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        {[
-          { label: "Total Goals", value: goals.length, color: "text-[#1E0E6B]" },
-          { label: "Linked Habits", value: totalLinkedHabits, color: "text-blue-500" },
-          { label: "Active Projects", value: activeProjects, color: "text-emerald-500" },
-          { label: "Avg Progress", value: `${avgProgress}%`, color: "text-orange-500" },
-        ].map((s, i) => (
-          <div key={i} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.label}</p>
+          <div className="grid gap-4 md:grid-cols-5">
+            {[
+              { label: "Total Goals", value: goals.length, color: "text-[#1E0E6B]" },
+              { label: "Avg Health", value: `${avgHealth}`, color: avgHealth >= 80 ? "text-emerald-500" : avgHealth >= 60 ? "text-blue-500" : avgHealth >= 35 ? "text-amber-500" : "text-red-500" },
+              { label: "Avg Progress", value: `${avgProgress}%`, color: "text-orange-500" },
+              { label: "Excellent", value: excellentCount, color: "text-emerald-500" },
+              { label: "Overdue", value: overdueCount, color: "text-red-500" },
+            ].map((s, i) => (
+              <div key={i} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 text-center">
+                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-white/20" /></div>
-        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
-          <option value="all">All Categories</option>
-          {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-        </select>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
-          <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
-          <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
-        </select>
-      </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-white/20" /></div>
+            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
+              <option value="all">All Categories</option>
+              {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+            </select>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
+              <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
+              <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
+            </select>
+          </div>
 
-      <div className="flex gap-1 flex-wrap">
-        {([
-          { key: "all" as const, label: "All Goals" },
-          { key: "life-vision" as const, label: "Life Vision" },
-          { key: "10-year" as const, label: "10-Year" },
-          { key: "5-year" as const, label: "5-Year" },
-          { key: "annual" as const, label: "Annual" },
-          { key: "quarterly" as const, label: "Quarterly" },
-          { key: "monthly" as const, label: "Monthly" },
-          { key: "weekly" as const, label: "Weekly" },
-          { key: "daily" as const, label: "Daily" },
-          { key: "projects" as const, label: "Projects" },
-          { key: "completed" as const, label: "Completed" },
-          { key: "in-progress" as const, label: "In Progress" },
-          { key: "not-started" as const, label: "Not Started" },
-          { key: "overdue" as const, label: "Overdue" },
-          { key: "archived" as const, label: "Archived" },
-        ]).map(f => (
-          <Button key={f.key} variant={filter === f.key ? "default" : "outline"} size="sm" onClick={() => setFilter(f.key)} className={filter === f.key ? "bg-[#1E0E6B] text-white" : ""}>{f.label}</Button>
-        ))}
-      </div>
+          <div className="flex gap-1 flex-wrap">
+            {([
+              { key: "all" as const, label: "All Goals" },
+              { key: "life-vision" as const, label: "Life Vision" },
+              { key: "10-year" as const, label: "10-Year" },
+              { key: "5-year" as const, label: "5-Year" },
+              { key: "annual" as const, label: "Annual" },
+              { key: "quarterly" as const, label: "Quarterly" },
+              { key: "monthly" as const, label: "Monthly" },
+              { key: "weekly" as const, label: "Weekly" },
+              { key: "daily" as const, label: "Daily" },
+              { key: "projects" as const, label: "Projects" },
+              { key: "completed" as const, label: "Completed" },
+              { key: "in-progress" as const, label: "In Progress" },
+              { key: "not-started" as const, label: "Not Started" },
+              { key: "overdue" as const, label: "Overdue" },
+              { key: "archived" as const, label: "Archived" },
+            ]).map(f => (
+              <Button key={f.key} variant={filter === f.key ? "default" : "outline"} size="sm" onClick={() => setFilter(f.key)} className={filter === f.key ? "bg-[#1E0E6B] text-white" : ""}>{f.label}</Button>
+            ))}
+          </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} onClick={() => setSelectedGoal(goal)} />)}
-      </div>
-      {filteredAndSorted.length === 0 && (
-        <div className="text-center py-12"><Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium">No goals found</h3>
-          <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search" : "Add your first goal"}</p>
-          {!searchQuery && <Button onClick={() => setIsAddModalOpen(true)} className="mt-4 glow text-white"><Plus className="mr-2 h-4 w-4" /> Add Goal</Button>}
+          <div className="flex gap-1 flex-wrap">
+            {(["all", "excellent", "on_track", "needs_attention", "at_risk"] as const).map(h => (
+              <Button key={h} variant={healthFilter === h ? "default" : "outline"} size="sm" onClick={() => setHealthFilter(h)}
+                className={healthFilter === h ? "bg-[#1E0E6B] text-white" : ""}>
+                {h === "all" ? "All Health" : h === "excellent" ? "🟢 Excellent" : h === "on_track" ? "🔵 On Track" : h === "needs_attention" ? "🟡 Needs Attention" : "🔴 At Risk"}
+              </Button>
+            ))}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} onClick={() => setAnalyticsGoal(goal)} />)}
+          </div>
+          {filteredAndSorted.length === 0 && (
+            <div className="text-center py-12"><Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium">No goals found</h3>
+              <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search" : "Add your first goal"}</p>
+              {!searchQuery && <Button onClick={() => setIsAddModalOpen(true)} className="mt-4 glow text-white"><Plus className="mr-2 h-4 w-4" /> Add Goal</Button>}
+            </div>
+          )}
+        </>
+      ) : (
+        /* ── Vision Tab ── */
+        <div className="space-y-6">
+          <GlassCard variant="primary" className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 shrink-0">
+                <Target className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">Future Self Vision</h2>
+                <p className="text-muted-foreground mt-2">{vision.vision}</p>
+                <div className="flex gap-2 mt-4 flex-wrap">
+                  {vision.values.length > 0 ? vision.values.map((v, i) => <Badge key={i} variant="outline">{v}</Badge>) : <Badge variant="outline">Growth</Badge>}
+                </div>
+                <Button variant="outline" size="sm" className="mt-4" onClick={() => setIsVisionOpen(true)}>
+                  <Target className="mr-2 h-4 w-4" /> Edit Vision
+                </Button>
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Life Dimensions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Life Dimensions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {lifeDimensions.map((d) => (
+                  <div key={d.name} className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">{d.icon}</span>
+                      <div>
+                        <p className="font-medium">{d.name}</p>
+                        <p className="text-sm text-muted-foreground">Score: {d.score}/100</p>
+                      </div>
+                    </div>
+                    <Progress value={d.score} className="h-2" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Life Roadmap */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Life Roadmap</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {roadmap.map((year) => (
+                  <div key={year.year} className="relative">
+                    <div className="flex items-start gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${year.progress > 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                          <span className="text-sm font-bold">{year.year.slice(2)}</span>
+                        </div>
+                        {year !== roadmap[roadmap.length - 1] && <div className="w-0.5 h-16 bg-muted" />}
+                      </div>
+                      <div className="flex-1 pb-6">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">{year.title}</h3>
+                          <span className="text-sm text-muted-foreground">{year.year}</span>
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          {year.goals.map((g, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                              {year.progress > 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                              <span className={year.progress > 0 ? "" : "text-muted-foreground"}>{g}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {year.progress > 0 && (
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                              <span>Progress</span><span>{year.progress}%</span>
+                            </div>
+                            <Progress value={year.progress} className="h-2" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Insight */}
+          <GlassCard variant="info" className="p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="font-semibold text-blue-600 dark:text-blue-400">Téo&apos;s Navigation Insight</p>
+                <p className="text-sm mt-1">
+                  You&apos;re making great progress on your career and learning dimensions. To improve your overall
+                  life score, consider focusing more on your finance and fun dimensions. Small consistent
+                  actions in these areas can create significant balance.
+                </p>
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Celebration Overlay */}
+      {celebration && (
+        <div className="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center">
+          <div className="text-center animate-bounce">
+            <div className="text-6xl mb-2">🎉</div>
+            <div className="text-3xl font-bold text-[#1E0E6B]">{celebration.milestone} Complete!</div>
+            <div className="text-sm text-muted-foreground mt-1">Keep the momentum going</div>
+          </div>
         </div>
       )}
 
       <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} />
       <LifeVisionDrawer isOpen={isVisionOpen} onClose={() => setIsVisionOpen(false)} vision={vision} onSave={setVision} />
       <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
+
+      {/* Analytics Drawer */}
+      {analyticsGoal && (
+        <GoalAnalyticsDrawer
+          goal={analyticsGoal as unknown as GoalData}
+          projects={projects as unknown as GoalProject[]}
+          habits={habits as unknown as GoalHabit[]}
+          onClose={() => setAnalyticsGoal(null)}
+          onEdit={(g) => {
+            setAnalyticsGoal(null)
+            setSelectedGoal(analyticsGoal)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -11,15 +11,8 @@ import {
   BookOpen,
   Repeat,
   Map,
-  BarChart3,
   Sparkles,
   Settings,
-  User,
-  Compass,
-  Brain,
-  Clock,
-  Trophy,
-  Bell,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -38,29 +31,16 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { title: "Today", href: "/", icon: LayoutDashboard },
-  { title: "Tasks", href: "/tasks", icon: CheckSquare },
-  { title: "Journal", href: "/journal", icon: BookOpen },
   { title: "Habits", href: "/habits", icon: Repeat },
   { title: "Goals", href: "/goals", icon: Target },
+  { title: "Tasks", href: "/tasks", icon: CheckSquare },
+  { title: "Journal", href: "/journal", icon: BookOpen },
   { title: "My Journey", href: "/journey", icon: Map },
-]
-
-const aiNav: NavItem[] = [
   { title: "AI Coach", href: "/coach", icon: Sparkles, badge: "Téo" },
-  { title: "Life GPS", href: "/life-gps", icon: Compass },
-  { title: "Decision Journal", href: "/decisions", icon: Brain },
-]
-
-const analyticsNav: NavItem[] = [
-  { title: "Memory Timeline", href: "/timeline", icon: Clock },
-  { title: "Challenges", href: "/challenges", icon: Trophy },
-  { title: "Analytics", href: "/analytics", icon: BarChart3 },
 ]
 
 const bottomNav: NavItem[] = [
-  { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Settings", href: "/settings", icon: Settings },
-  { title: "Profile", href: "/profile", icon: User },
 ]
 
 export function Sidebar() {
@@ -118,8 +98,8 @@ export function Sidebar() {
 
         <Separator />
 
-        {/* User Profile */}
-        <div className={cn("flex items-center gap-3 p-4", collapsed && "justify-center")}>
+        {/* User Profile — links to Settings Profile */}
+        <Link href="/settings?tab=profile" className={cn("flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors", collapsed && "justify-center")}>
           <UserAvatar size="md" fallback="JD" status="online" />
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
@@ -127,43 +107,19 @@ export function Sidebar() {
               <p className="text-xs text-muted-foreground truncate">Live with Intentionality</p>
             </div>
           )}
-        </div>
+        </Link>
 
         <Separator />
 
-        {/* Navigation */}
+        {/* Main Navigation */}
         <ScrollArea className="flex-1 px-3 py-4">
-          <nav className="space-y-1">
-            {!collapsed && (
-              <p className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Main
-              </p>
-            )}
-            {mainNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  pathname === item.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                  collapsed && "justify-center px-2"
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.title}</span>}
-              </Link>
-            ))}
-          </nav>
-
           {!collapsed && (
-            <p className="mb-2 mt-6 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              AI & Insights
+            <p className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Main
             </p>
           )}
           <nav className="space-y-1">
-            {aiNav.map((item) => (
+            {mainNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -189,33 +145,9 @@ export function Sidebar() {
               </Link>
             ))}
           </nav>
-
-          {!collapsed && (
-            <p className="mb-2 mt-6 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Analytics
-            </p>
-          )}
-          <nav className="space-y-1">
-            {analyticsNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  pathname === item.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                  collapsed && "justify-center px-2"
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.title}</span>}
-              </Link>
-            ))}
-          </nav>
         </ScrollArea>
 
-        {/* Bottom Navigation */}
+        {/* Bottom — Settings only */}
         <div className="border-t p-3">
           <nav className="space-y-1">
             {bottomNav.map((item) => (

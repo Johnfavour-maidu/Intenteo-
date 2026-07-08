@@ -69,14 +69,14 @@ export function Header() {
           </Button>
         </Link>
 
-        <Link href="/notifications">
+        <Link href="/settings?tab=notifications">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
           </Button>
         </Link>
 
-        <Link href="/profile">
+        <Link href="/settings?tab=profile">
           <UserAvatar size="sm" fallback="JD" />
         </Link>
       </div>
