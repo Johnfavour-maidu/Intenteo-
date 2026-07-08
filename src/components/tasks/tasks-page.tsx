@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, useLayoutEffect, memo } from "react"
-import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
@@ -539,8 +538,9 @@ export function TasksPage() {
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
   const [carryOverOpen, setCarryOverOpen] = useState(false)
   const [selectedCarryOverIds, setSelectedCarryOverIds] = useState<Set<string>>(new Set())
+  const [ignoredCarryOverIds, setIgnoredCarryOverIds] = useState<Set<string>>(new Set())
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ task: Task } | null>(null)
-  const [sortMode, setSortMode] = useState<import("./types").SortMode>("manual")
+  const [sortMode, setSortMode] = useState<import("./types").SortMode>("time-asc")
   const [formMonthlyRepeatMode, setFormMonthlyRepeatMode] = useState<import("./types").MonthlyRepeatMode>("dayOfMonth")
   const [formMonthlyWeekdayIndex, setFormMonthlyWeekdayIndex] = useState(0)
   const [formMonthlyWeekdayOrdinal, setFormMonthlyWeekdayOrdinal] = useState(1)
@@ -625,9 +625,10 @@ export function TasksPage() {
       if (t.date >= todayISO) return false
       if (t.recurrence === "daily") return false
       if (t.completed) return false
+      if (ignoredCarryOverIds.has(t.id)) return false
       return true
     })
-  }, [tasks, todayISO])
+  }, [tasks, todayISO, ignoredCarryOverIds])
 
   const viewingDate = selectedDate || todayISO
   const isViewingPast = useMemo(() => viewingDate < todayISO, [viewingDate, todayISO])
@@ -1524,18 +1525,6 @@ export function TasksPage() {
           <div className="flex items-center gap-2.5">
             <ProductivityScore percentage={productivity} />
 
-            <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setReviewOpen(true)}>
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Review Day</span>
-            </Button>
-
-            <Link href="/journal">
-              <Button variant="outline" size="sm" className="h-9 gap-1.5">
-                <Pencil className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Write</span>
-              </Button>
-            </Link>
-
             {/* Calendar History */}
             <div className="relative">
               <Tooltip label="Task History">
@@ -1674,7 +1663,7 @@ export function TasksPage() {
                       onClick={() => { handleMoveToToday(carryOverTasks); setCarryOverOpen(false); setSelectedCarryOverIds(new Set()) }}>
                       Move All
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setCarryOverOpen(false); setSelectedCarryOverIds(new Set()) }}>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setIgnoredCarryOverIds(new Set(carryOverTasks.map((t) => t.id))); setCarryOverOpen(false); setSelectedCarryOverIds(new Set()) }}>
                       Ignore Today
                     </Button>
                   </div>
@@ -2372,7 +2361,7 @@ function FocusMode({ task, onExit, onComplete }: {
 /* Daily Completion Review Modal                         */
 /* ────────────────────────────────────────────────────── */
 
-function DailyReviewModal({ date, tasksCompleted, totalTasks, productivity, onClose, onSave, router }: {
+export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivity, onClose, onSave, router }: {
   date: string
   tasksCompleted: number
   totalTasks: number

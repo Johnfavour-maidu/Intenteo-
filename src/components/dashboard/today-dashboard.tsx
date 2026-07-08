@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +14,7 @@ import { MoodSelector } from "@/components/ui/mood-selector"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Progress } from "@/components/ui/progress"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
+import { DailyReviewModal } from "@/components/tasks/tasks-page"
 import {
   Sun,
   Cloud,
@@ -94,6 +96,7 @@ const sampleReminder: Reminder = {
 }
 
 export function TodayDashboard() {
+  const router = useRouter()
   // State
   const [intention, setIntention] = useState("Be fully present in every conversation and create meaningful connections.")
   const [editingIntention, setEditingIntention] = useState(false)
@@ -103,6 +106,13 @@ export function TodayDashboard() {
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
   const [quickActionsOpen, setQuickActionsOpen] = useState(false)
   const [teoExpanded, setTéoExpanded] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const addToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2500)
+  }, [])
 
   // Computed values
   const completedTasks = tasks.filter((t) => t.completed).length
@@ -155,6 +165,10 @@ export function TodayDashboard() {
           <div className="flex items-center gap-3">
             <IntentScoreBadge score={intentScore} size="md" />
             <StreakDisplay count={32} />
+            <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setReviewOpen(true)}>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Review Today</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -600,6 +614,34 @@ export function TodayDashboard() {
           <Plus className="h-6 w-6" />
         </Button>
       </motion.div>
+
+      {/* Review Today toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-foreground text-background text-sm px-4 py-2 rounded-full shadow-lg">
+          {toast}
+        </div>
+      )}
+
+      {/* Daily Completion Review Modal */}
+      {reviewOpen && (
+        <DailyReviewModal
+          date={new Date().toISOString().split("T")[0]}
+          tasksCompleted={completedTasks}
+          totalTasks={tasks.length}
+          productivity={intentScore}
+          router={router}
+          onClose={() => setReviewOpen(false)}
+          onSave={(data) => {
+            try {
+              const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
+              reviews.push({ date: new Date().toISOString().split("T")[0], ...data, productivity: intentScore, tasksCompleted: completedTasks, createdAt: new Date().toISOString() })
+              localStorage.setItem("intenteo-reviews", JSON.stringify(reviews))
+            } catch {}
+            addToast("Daily review saved")
+            setReviewOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }
