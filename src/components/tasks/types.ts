@@ -2,6 +2,8 @@ export type TaskPriority = "priority" | "progress" | "maintenance"
 export type Recurrence = "none" | "daily" | "weekly" | "monthly" | "yearly"
 export type TaskView = "table" | "list"
 export type TimeRange = "anytime" | "morning" | "afternoon" | "evening" | "night" | "custom"
+export type MonthlyRepeatMode = "dayOfMonth" | "weekdayOfMonth"
+export type SortMode = "manual" | "time-asc" | "time-desc" | "priority" | "progress" | "completion" | "dueDate" | "alpha-asc" | "alpha-desc" | "productivity" | "duration" | "recentlyEdited"
 
 export interface Subtask {
   id: string
@@ -25,6 +27,9 @@ export interface Task {
   recurrence: Recurrence
   recurrenceInterval?: number
   recurrenceWeekdays?: number[]
+  monthlyRepeatMode?: MonthlyRepeatMode
+  monthlyWeekdayIndex?: number
+  monthlyWeekdayOrdinal?: number
   completed: boolean
   order: number
   createdAt: string

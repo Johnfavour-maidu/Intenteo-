@@ -513,6 +513,10 @@ export function TasksPage() {
   const [carryOverOpen, setCarryOverOpen] = useState(false)
   const [selectedCarryOverIds, setSelectedCarryOverIds] = useState<Set<string>>(new Set())
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ task: Task } | null>(null)
+  const [sortMode, setSortMode] = useState<import("./types").SortMode>("manual")
+  const [formMonthlyRepeatMode, setFormMonthlyRepeatMode] = useState<import("./types").MonthlyRepeatMode>("dayOfMonth")
+  const [formMonthlyWeekdayIndex, setFormMonthlyWeekdayIndex] = useState(0)
+  const [formMonthlyWeekdayOrdinal, setFormMonthlyWeekdayOrdinal] = useState(1)
 
   // Route change cleanup: clear all temporary UI state when leaving Tasks page
   useEffect(() => {
@@ -590,19 +594,91 @@ export function TasksPage() {
     return todayISO < task.date
   }, [viewingDate, todayISO])
 
+  const isCompletedPastTask = useCallback((task: Task) => {
+    if (viewingDate >= todayISO) return false
+    if (task.recurrence === "daily") {
+      return !!(task.dailyCompletions || {})[viewingDate]
+    }
+    return task.completed
+  }, [viewingDate, todayISO])
+
   const displayTasks = useMemo(() => {
     const tasksForDate = tasks.filter((t) => {
       if ((t.deletedDates || []).includes(viewingDate)) return false
       if (t.date === viewingDate) return true
+      const created = new Date(t.createdAt + "T12:00:00")
+      const view = new Date(viewingDate + "T12:00:00")
+      if (view <= created) return false
       if (t.recurrence === "daily") {
-        const created = new Date(t.createdAt)
-        const view = new Date(viewingDate + "T12:00:00")
-        return view > created
+        return true
+      }
+      if (t.recurrence === "weekly") {
+        const weekdays = t.recurrenceWeekdays || []
+        const viewDay = view.getDay()
+        return weekdays.includes(viewDay)
+      }
+      if (t.recurrence === "monthly") {
+        const viewDay = view.getDate()
+        if (t.monthlyRepeatMode === "weekdayOfMonth") {
+          const targetWeekday = t.monthlyWeekdayIndex ?? 0
+          const targetOrdinal = t.monthlyWeekdayOrdinal ?? 1
+          const firstDay = new Date(view.getFullYear(), view.getMonth(), 1)
+          let count = 0
+          for (let d = 1; d <= 31; d++) {
+            const dt = new Date(view.getFullYear(), view.getMonth(), d)
+            if (dt.getMonth() !== view.getMonth()) break
+            if (dt.getDay() === targetWeekday) {
+              count++
+              if (count === targetOrdinal && d === viewDay) return true
+            }
+          }
+          return false
+        }
+        const targetDay = new Date(t.createdAt).getDate()
+        return viewDay === targetDay
       }
       return false
     })
     return tasksForDate
   }, [tasks, viewingDate])
+
+  const sortedTasks = useMemo(() => {
+    const tasks = [...displayTasks]
+    switch (sortMode) {
+      case "time-asc":
+        return tasks.sort((a, b) => (a.dueTime === "Anytime" ? 0 : parseInt(a.dueTime.replace(":", ""))) - (b.dueTime === "Anytime" ? 0 : parseInt(b.dueTime.replace(":", ""))))
+      case "time-desc":
+        return tasks.sort((a, b) => (b.dueTime === "Anytime" ? 9999 : parseInt(b.dueTime.replace(":", ""))) - (a.dueTime === "Anytime" ? 9999 : parseInt(a.dueTime.replace(":", ""))))
+      case "priority": {
+        const order = { priority: 0, progress: 1, maintenance: 2 }
+        return tasks.sort((a, b) => order[a.priority] - order[b.priority])
+      }
+      case "progress": {
+        const order = { progress: 0, priority: 1, maintenance: 2 }
+        return tasks.sort((a, b) => order[a.priority] - order[b.priority])
+      }
+      case "completion":
+        return tasks.sort((a, b) => (a.completed ? 1 : 0) - (b.completed ? 1 : 0))
+      case "dueDate": {
+        const getDueScore = (t: Task) => {
+          if (t.date === todayISO) return 0
+          if (t.date > todayISO) return 1
+          return 2
+        }
+        return tasks.sort((a, b) => getDueScore(a) - getDueScore(b))
+      }
+      case "alpha-asc":
+        return tasks.sort((a, b) => a.title.localeCompare(b.title))
+      case "alpha-desc":
+        return tasks.sort((a, b) => b.title.localeCompare(a.title))
+      case "duration":
+        return tasks.sort((a, b) => a.estimatedDuration - b.estimatedDuration)
+      case "recentlyEdited":
+        return tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      default:
+        return tasks.sort((a, b) => a.order - b.order)
+    }
+  }, [displayTasks, sortMode, todayISO])
 
   const completedToday = useMemo(() => {
     const viewDate = selectedDate || todayISO
@@ -637,8 +713,18 @@ export function TasksPage() {
 
   const toggleTask = useCallback((id: string) => {
     const viewDate = selectedDate || todayISO
+    const isPast = viewDate < todayISO
     setTasks((prev) => prev.map((t) => {
       if (t.id !== id) return t
+      if (isPast) {
+        if (t.recurrence === "daily") {
+          const dc = { ...(t.dailyCompletions || {}) }
+          if (dc[viewDate]) return t
+          dc[viewDate] = true
+          return { ...t, dailyCompletions: dc }
+        }
+        if (t.completed) return t
+      }
       if (t.recurrence === "daily") {
         const dc = { ...(t.dailyCompletions || {}) }
         dc[viewDate] = !dc[viewDate]
@@ -650,18 +736,18 @@ export function TasksPage() {
 
   const handleToggleTask = useCallback((id: string) => {
     const task = tasks.find((t) => t.id === id)
-    if (!task || isFutureTask(task)) return
+    if (!task || isFutureTask(task) || isCompletedPastTask(task)) return
     if (!task.completed) addToast()
     toggleTask(id)
-  }, [tasks, toggleTask, addToast, isFutureTask])
+  }, [tasks, toggleTask, addToast, isFutureTask, isCompletedPastTask])
 
   const toggleSubtask = useCallback((taskId: string, subtaskId: string) => {
     const task = tasks.find((t) => t.id === taskId)
-    if (task && isFutureTask(task)) return
+    if (task && (isFutureTask(task) || isCompletedPastTask(task))) return
     setTasks((prev) => prev.map((t) =>
       t.id === taskId ? { ...t, subtasks: t.subtasks.map((s) => (s.id === subtaskId ? { ...s, completed: !s.completed } : s)) } : t
     ))
-  }, [tasks, isFutureTask])
+  }, [tasks, isFutureTask, isCompletedPastTask])
 
   const deleteTask = useCallback((id: string) => {
     const task = tasks.find((t) => t.id === id)
@@ -717,8 +803,26 @@ export function TasksPage() {
   }, [tasks.length, todayISO, addToast])
 
   const moveTask = useCallback((taskId: string, newDeadline: string) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, deadline: newDeadline } : t)))
-  }, [])
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
+    const dateMap: Record<string, string> = {
+      "Today": todayISO,
+      "Tomorrow": (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0] })(),
+      "Next Week": (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split("T")[0] })(),
+    }
+    const newDate = dateMap[newDeadline] || todayISO
+    const newTask: Task = {
+      ...task,
+      id: `move-${Date.now()}`,
+      date: newDate,
+      deadline: newDeadline,
+      completed: false,
+      order: tasks.length,
+      createdAt: new Date().toISOString(),
+      dailyCompletions: task.recurrence === "daily" ? { [newDate]: false } : undefined,
+    }
+    setTasks((prev) => [...prev, newTask])
+  }, [tasks, todayISO])
 
   const moveSubtask = useCallback((fromTaskId: string, subtaskId: string, toTaskId: string) => {
     setTasks((prev) => {
@@ -754,6 +858,9 @@ export function TasksPage() {
       date: formDate, dueTime: isAnytime ? "Anytime" : startStr, timeRange, timeRangeType: formTimeRangeType,
       estimatedDuration: isAnytime ? 0 : (dur > 0 ? dur : 30), notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
       recurrenceInterval: formRecurrenceInterval, recurrenceWeekdays: formRecurrenceWeekdays,
+      monthlyRepeatMode: formRecurrence === "monthly" ? formMonthlyRepeatMode : undefined,
+      monthlyWeekdayIndex: formRecurrence === "monthly" && formMonthlyRepeatMode === "weekdayOfMonth" ? formMonthlyWeekdayIndex : undefined,
+      monthlyWeekdayOrdinal: formRecurrence === "monthly" && formMonthlyRepeatMode === "weekdayOfMonth" ? formMonthlyWeekdayOrdinal : undefined,
       completed: false, order: tasks.length, createdAt: new Date().toISOString(),
       dailyCompletions: formRecurrence === "daily" ? { [formDate]: false } : undefined,
       linkedHabitId: formLinkedHabitId || undefined,
@@ -766,6 +873,7 @@ export function TasksPage() {
     setFormStartHour(9); setFormStartMin(0)
     setFormEndHour(9); setFormEndMin(30)
     setFormRecurrence("none"); setFormRecurrenceInterval(1); setFormRecurrenceWeekdays([])
+    setFormMonthlyRepeatMode("dayOfMonth"); setFormMonthlyWeekdayIndex(0); setFormMonthlyWeekdayOrdinal(1)
     setFormSubtasks([]); setFormDate(todayISO)
     setFormTimeRangeType("anytime"); setFormLinkedHabitId(""); setFormLinkedGoalId(""); setFormIntention(""); setFormReminder(true)
     setCreateOpen(false)
@@ -1009,7 +1117,7 @@ export function TasksPage() {
   /* ═══════════════════════════════════════════════════════ */
 
   const renderListView = useCallback(() => {
-    if (displayTasks.length === 0) return <EmptyState onCreate={() => { setFormDate(selectedDate || todayISO); setCreateOpen(true) }} viewingDate={viewingDate} />
+    if (sortedTasks.length === 0) return <EmptyState onCreate={() => { setFormDate(selectedDate || todayISO); setCreateOpen(true) }} viewingDate={viewingDate} />
     return (
       <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
         <div className="sticky top-0 z-10 flex items-center gap-4 px-5 py-3 border-b bg-background/95 backdrop-blur-sm text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -1023,7 +1131,7 @@ export function TasksPage() {
         </div>
 
         <LayoutGroup>
-          {displayTasks.map((task, i) => {
+          {sortedTasks.map((task, i) => {
             const viewDate = selectedDate || todayISO
             const isCompleted = task.recurrence === "daily" ? !!(task.dailyCompletions || {})[viewDate] : task.completed
             const progress = isCompleted ? 100 : getSubtaskProgress(task.subtasks)
@@ -1032,6 +1140,7 @@ export function TasksPage() {
             const isDragOver = dragOverId === task.id && dragOverId !== draggedId && dragType === "task"
             const pConfig = priorityConfig[task.priority]
             const future = isFutureTask(task)
+            const pastCompleted = isCompletedPastTask(task)
 
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -1054,6 +1163,12 @@ export function TasksPage() {
                       {future ? (
                         <Tooltip label="This task becomes available on its scheduled date.">
                           <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20 bg-muted/30 cursor-not-allowed" />
+                        </Tooltip>
+                      ) : pastCompleted && isCompleted ? (
+                        <Tooltip label="Completed on this day. Historical records cannot be changed.">
+                          <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center cursor-not-allowed">
+                            <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                          </div>
                         </Tooltip>
                       ) : (
                         <button onClick={() => handleToggleTask(task.id)}>
@@ -1173,18 +1288,18 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [displayTasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo, isViewingPast, isFutureTask])
+  }, [sortedTasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo, isViewingPast, isFutureTask, isCompletedPastTask])
 
   /* ═══════════════════════════════════════════════════════ */
   /* BOARD VIEW                                              */
   /* ═══════════════════════════════════════════════════════ */
 
   const renderBoardView = useCallback(() => {
-    if (displayTasks.length === 0) return <EmptyState onCreate={() => { setFormDate(selectedDate || todayISO); setCreateOpen(true) }} viewingDate={viewingDate} />
+    if (sortedTasks.length === 0) return <EmptyState onCreate={() => { setFormDate(selectedDate || todayISO); setCreateOpen(true) }} viewingDate={viewingDate} />
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="space-y-1">
         <LayoutGroup>
-          {displayTasks.map((task, i) => {
+          {sortedTasks.map((task, i) => {
             const viewDate = selectedDate || todayISO
             const isCompleted = task.recurrence === "daily" ? !!(task.dailyCompletions || {})[viewDate] : task.completed
             const progress = isCompleted ? 100 : getSubtaskProgress(task.subtasks)
@@ -1192,6 +1307,7 @@ export function TasksPage() {
             const pConfig = priorityConfig[task.priority]
             const completedSubs = task.subtasks.filter((s) => s.completed).length
             const future = isFutureTask(task)
+            const pastCompleted = isCompletedPastTask(task)
 
             return (
               <motion.div key={task.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -1204,6 +1320,12 @@ export function TasksPage() {
                       {future ? (
                         <Tooltip label="This task becomes available on its scheduled date.">
                           <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20 bg-muted/30 cursor-not-allowed mt-0.5 shrink-0" />
+                        </Tooltip>
+                      ) : pastCompleted && isCompleted ? (
+                        <Tooltip label="Completed on this day. Historical records cannot be changed.">
+                          <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center cursor-not-allowed mt-0.5 shrink-0">
+                            <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                          </div>
                         </Tooltip>
                       ) : (
                         <button onClick={() => handleToggleTask(task.id)} className="shrink-0 mt-0.5">
@@ -1312,7 +1434,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [displayTasks, expandedTasks, expandAll, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId, isViewingPast, isFutureTask])
+  }, [sortedTasks, expandedTasks, expandAll, getSubtaskProgress, handleToggleTask, toggleExpanded, toggleSubtask, deleteTask, moveTask, movePopoverTaskId, isViewingPast, isFutureTask, isCompletedPastTask])
 
   return (
     <div className="min-h-screen">
@@ -1374,6 +1496,23 @@ export function TasksPage() {
                 <span className="ml-1.5 hidden sm:inline text-xs">Board</span>
               </Button>
             </div>
+
+            {/* Sort Dropdown */}
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
+              className="h-8 px-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+              <option value="manual">Sort: Manual</option>
+              <option value="time-asc">Sort: Earliest First</option>
+              <option value="time-desc">Sort: Latest First</option>
+              <option value="priority">Sort: Priority</option>
+              <option value="completion">Sort: Incomplete First</option>
+              <option value="dueDate">Sort: Due Date</option>
+              <option value="alpha-asc">Sort: A-Z</option>
+              <option value="alpha-desc">Sort: Z-A</option>
+              <option value="duration">Sort: Shortest First</option>
+              <option value="recentlyEdited">Sort: Recently Edited</option>
+            </select>
 
             {/* Voice Capture */}
             <Tooltip label={isListening ? "Stop Dictation" : "Voice Task"}>
@@ -1492,7 +1631,7 @@ export function TasksPage() {
         </AnimatePresence>
 
         {/* Expand/Collapse All */}
-        {displayTasks.length > 0 && displayTasks.some((t) => t.subtasks.length > 0) && (
+        {sortedTasks.length > 0 && sortedTasks.some((t) => t.subtasks.length > 0) && (
           <div className="mb-3">
             <button onClick={() => setExpandAll(!expandAll)}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
@@ -1509,7 +1648,7 @@ export function TasksPage() {
             className="mt-3 px-3 py-2 rounded-lg bg-muted/50 border text-xs flex items-center justify-between">
             <span className="text-muted-foreground">
               Viewing tasks for <span className="font-medium text-foreground">{formatDateLong(selectedDate)}</span>
-              {" \u2014 "}{displayTasks.length} tasks, {completedToday} completed. Tasks are read-only.
+              {" \u2014 "}{sortedTasks.length} tasks, {completedToday} completed. Tasks are read-only.
             </span>
             <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => setSelectedDate(null)}>
               Back to Today
@@ -1716,20 +1855,59 @@ export function TasksPage() {
                         </div>
                       </div>
                     )}
-                    {/* Monthly interval */}
+                    {/* Monthly interval & repeat mode */}
                     {(editingTask ? editingTask.recurrence : formRecurrence) === "monthly" && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground">Every</span>
-                        <select
-                          value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
-                          onChange={(e) => {
-                            const v = Number(e.target.value)
-                            editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
-                          }}
-                          className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
-                          {[1, 2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                        <span className="text-[11px] text-muted-foreground">month{((editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval) > 1) ? "s" : ""}</span>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground">Every</span>
+                          <select
+                            value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
+                            onChange={(e) => {
+                              const v = Number(e.target.value)
+                              editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
+                            }}
+                            className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+                            {[1, 2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                          <span className="text-[11px] text-muted-foreground">month{((editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval) > 1) ? "s" : ""}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          {([ "dayOfMonth", "weekdayOfMonth" ] as const).map((mode) => (
+                            <button key={mode} type="button"
+                              className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-medium transition-colors border ${
+                                (editingTask ? (editingTask.monthlyRepeatMode || "dayOfMonth") : formMonthlyRepeatMode) === mode
+                                  ? "border-primary bg-primary/5 text-primary"
+                                  : "border-muted hover:bg-muted/50 text-muted-foreground"
+                              }`}
+                              onClick={() => editingTask ? setEditingTask({ ...editingTask, monthlyRepeatMode: mode }) : setFormMonthlyRepeatMode(mode)}>
+                              {mode === "dayOfMonth" ? "Day of Month" : "Weekday of Month"}
+                            </button>
+                          ))}
+                        </div>
+                        {(editingTask ? (editingTask.monthlyRepeatMode || "dayOfMonth") : formMonthlyRepeatMode) === "weekdayOfMonth" && (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={editingTask ? (editingTask.monthlyWeekdayOrdinal || 1) : formMonthlyWeekdayOrdinal}
+                              onChange={(e) => {
+                                const v = Number(e.target.value)
+                                editingTask ? setEditingTask({ ...editingTask, monthlyWeekdayOrdinal: v }) : setFormMonthlyWeekdayOrdinal(v)
+                              }}
+                              className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+                              {[1, 2, 3, 4, -1].map((n) => <option key={n} value={n}>{n === -1 ? "Last" : ["First", "Second", "Third", "Fourth"][n - 1]}</option>)}
+                            </select>
+                            <select
+                              value={editingTask ? (editingTask.monthlyWeekdayIndex ?? 0) : formMonthlyWeekdayIndex}
+                              onChange={(e) => {
+                                const v = Number(e.target.value)
+                                editingTask ? setEditingTask({ ...editingTask, monthlyWeekdayIndex: v }) : setFormMonthlyWeekdayIndex(v)
+                              }}
+                              className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+                              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, i) => (
+                                <option key={i} value={i}>{day}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
