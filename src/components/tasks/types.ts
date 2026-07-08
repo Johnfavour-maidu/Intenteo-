@@ -32,4 +32,5 @@ export interface Task {
   linkedHabitId?: string
   linkedGoalId?: string
   todayIntention?: string
+  reminder?: boolean
 }

@@ -113,21 +113,16 @@ export function Sidebar() {
 
         {/* Main Navigation */}
         <ScrollArea className="flex-1 px-3 py-4">
-          {!collapsed && (
-            <p className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Main
-            </p>
-          )}
           <nav className="space-y-1">
             {mainNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                   pathname === item.href
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                    : "text-foreground hover:bg-muted/50",
                   collapsed && "justify-center px-2"
                 )}
               >
@@ -155,10 +150,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                   pathname === item.href
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                    : "text-foreground hover:bg-muted/50",
                   collapsed && "justify-center px-2"
                 )}
               >

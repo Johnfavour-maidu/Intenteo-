@@ -23,6 +23,7 @@ import {
   Calendar,
   Volume2,
   StopCircle,
+  Copy,
 } from "lucide-react"
 import { useToast, ToastContainer } from "./task-toast"
 import { formatDateDDMMYYYY, formatDateLong } from "@/lib/date-utils"
@@ -572,6 +573,7 @@ export function TasksPage() {
   const [formLinkedHabitId, setFormLinkedHabitId] = useState("")
   const [formLinkedGoalId, setFormLinkedGoalId] = useState("")
   const [formIntention, setFormIntention] = useState("")
+  const [formReminder, setFormReminder] = useState(true)
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
   const [carryOverOpen, setCarryOverOpen] = useState(false)
 
@@ -699,6 +701,20 @@ export function TasksPage() {
     setTasks((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
+  const duplicateTask = useCallback((task: Task) => {
+    const newTask: Task = {
+      ...task,
+      id: `dup-${Date.now()}`,
+      title: `${task.title} (Copy)`,
+      completed: false,
+      order: tasks.length,
+      createdAt: new Date().toISOString(),
+      dailyCompletions: task.recurrence === "daily" ? { [todayISO]: false } : undefined,
+    }
+    setTasks((prev) => [...prev, newTask])
+    addToast(`Duplicated: "${task.title}"`)
+  }, [tasks.length, todayISO, addToast])
+
   const moveTask = useCallback((taskId: string, newDeadline: string) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, deadline: newDeadline } : t)))
   }, [])
@@ -742,6 +758,7 @@ export function TasksPage() {
       linkedHabitId: formLinkedHabitId || undefined,
       linkedGoalId: formLinkedGoalId || undefined,
       todayIntention: formIntention || undefined,
+      reminder: formReminder,
     }
     setTasks((prev) => [...prev, newTask])
     setFormTitle(""); setFormWhy(""); setFormPriority("progress")
@@ -749,7 +766,7 @@ export function TasksPage() {
     setFormEndHour(9); setFormEndMin(30)
     setFormRecurrence("none"); setFormRecurrenceInterval(1); setFormRecurrenceWeekdays([])
     setFormSubtasks([]); setFormDate(todayISO)
-    setFormTimeRangeType("anytime"); setFormLinkedHabitId(""); setFormLinkedGoalId(""); setFormIntention("")
+    setFormTimeRangeType("anytime"); setFormLinkedHabitId(""); setFormLinkedGoalId(""); setFormIntention(""); setFormReminder(true)
     setCreateOpen(false)
   }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formRecurrenceInterval, formRecurrenceWeekdays, formSubtasks, formDate, formTimeRangeType, formLinkedHabitId, formLinkedGoalId, formIntention, todayISO, tasks.length])
 
@@ -1001,7 +1018,7 @@ export function TasksPage() {
           <div className="hidden sm:block w-[160px] shrink-0">Time Range</div>
           <div className="hidden sm:block w-[80px] shrink-0">Duration</div>
           <div className="w-[140px] shrink-0">Progress</div>
-          <div className="w-[100px] shrink-0">Actions</div>
+          <div className="w-[120px] shrink-0">Actions</div>
         </div>
 
         <LayoutGroup>
@@ -1107,11 +1124,17 @@ export function TasksPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="w-[100px] shrink-0 flex items-center gap-1">
+                    <div className="w-[120px] shrink-0 flex items-center gap-1">
                       {!isViewingPast && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
                           <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {!isViewingPast && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
+                          onClick={(e) => { e.stopPropagation(); duplicateTask(task) }}>
+                          <Copy className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       <div className="relative">
@@ -1236,6 +1259,12 @@ export function TasksPage() {
                         <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
                           onClick={() => setEditingTask({ ...task })}>
                           <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {!isViewingPast && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
+                          onClick={() => duplicateTask(task)}>
+                          <Copy className="h-3 w-3" />
                         </Button>
                       )}
                       <div className="relative">
@@ -1545,6 +1574,35 @@ export function TasksPage() {
                             setFormTimeRangeType(v)
                           }
                         }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Reminder</label>
+                    <div className="mt-1 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingTask) {
+                            setEditingTask({ ...editingTask, reminder: !editingTask.reminder })
+                          } else {
+                            setFormReminder(!formReminder)
+                          }
+                        }}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                          (editingTask ? editingTask.reminder : formReminder)
+                            ? "bg-primary" : "bg-muted"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                            (editingTask ? editingTask.reminder : formReminder)
+                              ? "translate-x-4.5" : "translate-x-0.5"
+                          }`}
+                        />
+                      </button>
+                      <span className="text-xs text-muted-foreground">
+                        {(editingTask ? editingTask.reminder : formReminder) ? "Reminder ON" : "Reminder OFF"}
+                      </span>
                     </div>
                   </div>
                   <div>
