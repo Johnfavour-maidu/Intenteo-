@@ -2742,7 +2742,7 @@ function WritingArea({
         type,
         date: "Today",
         dateISO: todayISO(),
-        time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        time: now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
         mood: customMood ? `${customMood.emoji} ${customMood.label}` : mood,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         favorited: false,

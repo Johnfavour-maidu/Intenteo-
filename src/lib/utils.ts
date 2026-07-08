@@ -15,7 +15,7 @@ export function formatDate(date: Date): string {
 }
 
 export function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('en-GB', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,

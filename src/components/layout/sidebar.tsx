@@ -122,7 +122,7 @@ export function Sidebar() {
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                   pathname === item.href
                     ? "bg-primary/10 text-primary"
-                    : "text-foreground hover:bg-muted/50",
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                   collapsed && "justify-center px-2"
                 )}
               >
@@ -153,7 +153,7 @@ export function Sidebar() {
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                   pathname === item.href
                     ? "bg-primary/10 text-primary"
-                    : "text-foreground hover:bg-muted/50",
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                   collapsed && "justify-center px-2"
                 )}
               >

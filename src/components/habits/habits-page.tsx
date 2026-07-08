@@ -1708,7 +1708,7 @@ export function HabitsPage() {
       const existing = habit.completions[targetDate]
       const wasCompleted = existing?.completed || false
       const newCompletions = { ...habit.completions }
-      const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+      const nowTime = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })
 
       if (wasCompleted) {
         delete newCompletions[targetDate]
@@ -1759,7 +1759,7 @@ export function HabitsPage() {
       const newCompletions = { ...habit.completions }
       newCompletions[date] = {
         completed: true,
-        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }),
         quality: "partial",
       }
       const streak = calcStreak(newCompletions)

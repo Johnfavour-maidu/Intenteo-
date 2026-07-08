@@ -190,16 +190,16 @@ function CustomTimeInput({
       <span className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{label}</span>
       <div className="flex items-center gap-1.5">
         <select value={h12} onChange={(e) => setHour(Number(e.target.value))}
-          className="flex-1 h-10 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+          className="flex-1 h-10 px-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
           {hours.map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}</option>)}
         </select>
         <span className="text-muted-foreground font-medium">:</span>
         <select value={parsed.minute} onChange={(e) => setMin(Number(e.target.value))}
-          className="flex-1 h-10 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+          className="flex-1 h-10 px-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
           {mins.map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
         </select>
         <button type="button" onClick={toggleAmPm}
-          className="h-10 px-3 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm font-medium hover:bg-muted/50 transition-colors cursor-pointer">
+          className="h-10 px-3 rounded-lg border border-input bg-background text-sm font-medium hover:bg-muted/50 transition-colors cursor-pointer">
           {isPM ? "PM" : "AM"}
         </button>
       </div>
@@ -229,7 +229,7 @@ function TimeRangePicker({
       {/* Time Range Selector */}
       <div className="relative">
         <button type="button" onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-full h-10 px-3 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm flex items-center justify-between hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
+          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm flex items-center justify-between hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span>{currentLabel}</span>
@@ -375,7 +375,7 @@ function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose, selectedDate 
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth)
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleString("default", { month: "long", year: "numeric" })
+  const monthLabel = new Date(viewYear, viewMonth).toLocaleString("en-GB", { month: "long", year: "numeric" })
 
   const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
@@ -462,7 +462,7 @@ function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-sm font-semibold">{displayDate}</h3>
-          <p className="text-[10px] text-muted-foreground">{tasks.length} tasks \u00B7 {completed.length} completed</p>
+          <p className="text-[10px] text-muted-foreground">{tasks.length} tasks, {completed.length} completed</p>
         </div>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
           <X className="h-3.5 w-3.5" />
@@ -579,6 +579,7 @@ export function TasksPage() {
   const [formReminder, setFormReminder] = useState(true)
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
   const [carryOverOpen, setCarryOverOpen] = useState(false)
+  const [selectedCarryOverIds, setSelectedCarryOverIds] = useState<Set<string>>(new Set())
 
   // Route change cleanup: clear all temporary UI state when leaving Tasks page
   useEffect(() => {
@@ -1337,8 +1338,10 @@ export function TasksPage() {
               Tasks{selectedDate ? ` \u2014 ${formatDateLong(selectedDate)}` : " \u2014 Today"}
             </h1>
             <p className="text-sm text-foreground mt-0.5 tracking-tight">
-              <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
-              <span style={{ color: "var(--brand-primary)" }}>{completedToday}</span> <span className="text-foreground">Completed</span>{" \u00B7 "}
+              <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>
+              <span className="mx-1.5 text-muted-foreground">&middot;</span>
+              <span style={{ color: "var(--brand-primary)" }}>{completedToday}</span> <span className="text-foreground">Completed</span>
+              <span className="mx-1.5 text-muted-foreground">&middot;</span>
               <span style={{ color: "var(--foreground)" }}>{remainingToday}</span> <span className="text-foreground">To Go</span>
             </p>
           </div>
@@ -1441,19 +1444,56 @@ export function TasksPage() {
                     {carryOverTasks.length} unfinished task{carryOverTasks.length !== 1 ? "s" : ""} found from previous days.
                   </p>
                   <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-                    {carryOverTasks.map((t) => (
-                      <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/30">
-                        <PriorityDot priority={t.priority} />
-                        <span className="text-sm flex-1 truncate">{t.title}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{formatDateDDMMYYYY(t.date)}</span>
-                      </div>
-                    ))}
+                    {carryOverTasks.map((t) => {
+                      const isSelected = selectedCarryOverIds.has(t.id)
+                      return (
+                        <button key={t.id} type="button"
+                          onClick={() => {
+                            setSelectedCarryOverIds((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(t.id)) next.delete(t.id)
+                              else next.add(t.id)
+                              return next
+                            })
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${
+                            isSelected
+                              ? "bg-primary/10 border border-primary/30"
+                              : "bg-muted/30 border border-transparent hover:bg-muted/50"
+                          }`}>
+                          <div className={`h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
+                            isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                          }`}>
+                            {isSelected && (
+                              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M2 6l3 3 5-5" />
+                              </svg>
+                            )}
+                          </div>
+                          <PriorityDot priority={t.priority} />
+                          <span className="text-sm flex-1 truncate">{t.title}</span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{formatDateDDMMYYYY(t.date)}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" className="flex-1" onClick={() => { handleMoveToToday(carryOverTasks); setCarryOverOpen(false) }}>
+                    <Button size="sm" className="flex-1" disabled={selectedCarryOverIds.size === 0}
+                      onClick={() => {
+                        const selected = carryOverTasks.filter((t) => selectedCarryOverIds.has(t.id))
+                        if (selected.length > 0) {
+                          handleMoveToToday(selected)
+                          setCarryOverOpen(false)
+                          setSelectedCarryOverIds(new Set())
+                        }
+                      }}>
+                      Move Selected {selectedCarryOverIds.size > 0 && `(${selectedCarryOverIds.size})`}
+                    </Button>
+                    <Button size="sm" className="flex-1" variant="secondary"
+                      onClick={() => { handleMoveToToday(carryOverTasks); setCarryOverOpen(false); setSelectedCarryOverIds(new Set()) }}>
                       Move All
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setCarryOverOpen(false)}>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setCarryOverOpen(false); setSelectedCarryOverIds(new Set()) }}>
                       Ignore Today
                     </Button>
                   </div>
@@ -1462,20 +1502,6 @@ export function TasksPage() {
             </>
           )}
         </AnimatePresence>
-
-        {/* Viewing Past Day Banner */}
-        {isViewingPast && selectedDate && (
-          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-            className="mb-3 px-3 py-2 rounded-lg bg-muted/50 border text-xs flex items-center justify-between">
-            <span className="text-muted-foreground">
-              Viewing tasks for <span className="font-medium text-foreground">{formatDateLong(selectedDate)}</span>
-              {" \u2014 "}{displayTasks.length} tasks, {completedToday} completed. Tasks are read-only.
-            </span>
-            <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => { setSelectedDate(null); setDayHistory(null) }}>
-              Back to Today
-            </Button>
-          </motion.div>
-        )}
 
         {/* Expand/Collapse All */}
         {displayTasks.length > 0 && displayTasks.some((t) => t.subtasks.length > 0) && (
@@ -1496,6 +1522,20 @@ export function TasksPage() {
         </AnimatePresence>
 
         {activeView === "list" ? renderListView() : renderBoardView()}
+
+        {/* Viewing Past Day Banner — below task list */}
+        {isViewingPast && selectedDate && (
+          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+            className="mt-3 px-3 py-2 rounded-lg bg-muted/50 border text-xs flex items-center justify-between">
+            <span className="text-muted-foreground">
+              Viewing tasks for <span className="font-medium text-foreground">{formatDateLong(selectedDate)}</span>
+              {" \u2014 "}{displayTasks.length} tasks, {completedToday} completed. Tasks are read-only.
+            </span>
+            <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => { setSelectedDate(null); setDayHistory(null) }}>
+              Back to Today
+            </Button>
+          </motion.div>
+        )}
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
@@ -1531,6 +1571,7 @@ export function TasksPage() {
                     <label className="text-xs font-medium text-muted-foreground">Task Date</label>
                     <input
                       type="date"
+                      lang="en-GB"
                       value={editingTask ? editingTask.date : formDate}
                       onChange={(e) => editingTask ? setEditingTask({ ...editingTask, date: e.target.value }) : setFormDate(e.target.value)}
                       className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"

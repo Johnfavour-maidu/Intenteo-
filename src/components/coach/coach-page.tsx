@@ -195,7 +195,7 @@ export function CoachPage() {
                         >
                           <p className="text-sm whitespace-pre-line">{message.content}</p>
                           <p className="text-xs opacity-70 mt-1">
-                            {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {message.timestamp.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
                       </div>
