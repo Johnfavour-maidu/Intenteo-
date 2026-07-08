@@ -39,6 +39,14 @@ import {
 } from "lucide-react"
 import { VerticalView } from "./vertical-view"
 import { ListView } from "./list-view"
+import { HabitAnalyticsDrawer } from "./habit-analytics-drawer"
+import {
+  getHealthState, HEALTH_CONFIG, calcLifecycleStage, LIFECYCLE_CONFIG,
+  calcTrend, TREND_CONFIG, generateSmartRecommendation,
+  getScoreBreakdown, generateCoaching, calcWeightedCompletionRate, calcIntentScoreWithQuality,
+  getRecoveryPenalty,
+  type CompletionQuality as CQ,
+} from "./habit-utils"
 
 /* ─── Error Boundary ─── */
 
@@ -70,18 +78,12 @@ class HabitsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-interface HabitScheduleAnytime { type: "anytime" }
-interface HabitSchedulePreferred { type: "preferred"; slot?: "morning" | "afternoon" | "evening" | "night"; time?: string }
-interface HabitScheduleFixed { type: "fixed"; time: string }
-type HabitSchedule = HabitScheduleAnytime | HabitSchedulePreferred | HabitScheduleFixed
+interface HabitSchedule { type: string; slot?: string; time?: string }
 
-interface HabitReminderFixed { enabled: boolean; before?: number; after?: number }
-type HabitReminder = { enabled: false } | HabitReminderFixed
-
-type RecurrenceType = "daily" | "weekdays" | "weekends" | "twice_per_week" | "three_per_week" | "four_per_week" | "five_per_week" | "custom_days" | "every_x_days" | "every_x_weeks" | "monthly"
+interface HabitReminder { enabled: boolean; before?: number; after?: number }
 
 interface HabitRecurrence {
-  type: RecurrenceType
+  type: string
   customDays?: string[]
   interval?: number
 }
@@ -109,11 +111,15 @@ interface Habit {
   color: string
   colorHex: string
   icon: string
-  completions: Record<string, { completed: boolean; time?: string; notes?: string }>
+  completions: Record<string, { completed: boolean; time?: string; notes?: string; quality?: "perfect" | "good" | "partial" | "missed" }>
   createdAt: string
   difficulty?: "easy" | "medium" | "hard"
   streakFreeze?: number
   paused?: boolean
+  recoveriesUsed?: number
+  lastMissedRecovery?: string
+  archived?: boolean
+  archivedDate?: string
 }
 
 type TrackerPeriod = "week" | "month" | "year"
@@ -178,6 +184,10 @@ function normalizeHabit(h: Record<string, unknown>): Habit {
     difficulty: (h.difficulty as "easy" | "medium" | "hard") || "medium",
     streakFreeze: typeof h.streakFreeze === "number" ? h.streakFreeze : 0,
     paused: typeof h.paused === "boolean" ? h.paused : false,
+    recoveriesUsed: typeof h.recoveriesUsed === "number" ? h.recoveriesUsed : 0,
+    lastMissedRecovery: typeof h.lastMissedRecovery === "string" ? h.lastMissedRecovery : undefined,
+    archived: typeof h.archived === "boolean" ? h.archived : false,
+    archivedDate: typeof h.archivedDate === "string" ? h.archivedDate : undefined,
   }
 }
 
@@ -305,37 +315,18 @@ function calcConsistency(completions: Record<string, { completed: boolean }> | u
   } catch { return 0 }
 }
 
-function calcCompletionRate(completions: Record<string, { completed: boolean }> | undefined | null, createdAt: string | undefined | null): number {
-  return calcConsistency(completions, createdAt)
+function calcCompletionRate(completions: Record<string, { completed: boolean; quality?: string }> | undefined | null, createdAt: string | undefined | null): number {
+  return calcWeightedCompletionRate(completions as any, createdAt)
 }
 
 function calcHabitScore(
-  completions: Record<string, { completed: boolean; time?: string }> | undefined | null,
+  completions: Record<string, { completed: boolean; time?: string; quality?: string }> | undefined | null,
   schedule: HabitSchedule | undefined | null,
   createdAt: string | undefined | null,
   bestStreak: number,
+  recoveryPenalty = 0,
 ): { score: number; completionRate: number; consistency: number; timeAccuracy: number | null } {
-  try {
-    const safeSchedule = schedule || { type: "anytime" } as HabitSchedule
-    const safeCompletions = (completions && typeof completions === "object") ? completions : {}
-    const safeCreatedAt = createdAt || getTodayISO()
-    const completionRate = calcCompletionRate(safeCompletions, safeCreatedAt)
-    const streak = calcStreak(safeCompletions)
-    const consistency = calcConsistency(safeCompletions, safeCreatedAt)
-    const today = getTodayISO()
-    const todayCompletion = today ? safeCompletions[today] : undefined
-    const timeAccuracy = todayCompletion?.completed ? calcTimeAccuracy(todayCompletion.time, safeSchedule) : null
-
-    if (safeSchedule.type === "anytime") {
-      const raw = completionRate * 0.50 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20
-      return { score: Math.round(Math.min(100, Math.max(0, raw))), completionRate, consistency, timeAccuracy: null }
-    }
-    const ta = timeAccuracy ?? 0
-    const raw = completionRate * 0.40 + Math.min(streak, 30) / 30 * 100 * 0.25 + consistency * 0.20 + ta * 0.10 + DIFFICULTY_BONUS.medium * 0.05
-    return { score: Math.round(Math.min(100, Math.max(0, raw))), completionRate, consistency, timeAccuracy: ta }
-  } catch {
-    return { score: 0, completionRate: 0, consistency: 0, timeAccuracy: null }
-  }
+  return calcIntentScoreWithQuality(completions as any, schedule, createdAt, bestStreak, recoveryPenalty)
 }
 
 /* ─── Weekly Occurrence Engine ─── */
@@ -460,9 +451,11 @@ const AnimatedValue = ({ value, suffix = "" }: { value: number; suffix?: string 
 const IntentScoreBreakdown = ({
   habit,
   onClose,
+  onViewAnalytics,
 }: {
   habit: Habit
   onClose: () => void
+  onViewAnalytics?: (h: Habit) => void
 }) => {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -474,78 +467,37 @@ const IntentScoreBreakdown = ({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [onClose])
 
-  const completionRate = habit.completionRate || 0
-  const streak = habit.streak || 0
-  const consistency = habit.consistency || 0
-  const timeAccuracy = habit.timeAccuracy ?? null
-  const difficulty = habit.difficulty || "medium"
-
-  const completionPoints = Math.round(completionRate * 0.4)
-  const streakPoints = Math.round(Math.min(streak, 30) / 30 * 100 * 0.25)
-  const consistencyPoints = Math.round(consistency * 0.2)
-  const timeAccuracyPoints = timeAccuracy !== null ? Math.round(timeAccuracy * 0.1) : 0
-  const difficultyPoints = difficulty === "easy" ? 0 : difficulty === "medium" ? 5 : 10
-
-  const breakdown = [
-    { label: "Completion Rate", points: completionPoints, max: 40, raw: `${Math.round(completionRate)}%`, color: "bg-emerald-500" },
-    { label: "Streak", points: streakPoints, max: 25, raw: `${streak} / 25`, color: "bg-orange-500" },
-    { label: "Consistency", points: consistencyPoints, max: 20, raw: `${Math.round(consistency)} / 20`, color: "bg-blue-500" },
-    ...(timeAccuracy !== null ? [{ label: "Time Accuracy", points: timeAccuracyPoints, max: 10, raw: `${Math.round(timeAccuracy)} / 10`, color: "bg-purple-500" }] : []),
-    { label: "Difficulty", points: difficultyPoints, max: 5, raw: `${difficultyPoints} / 5`, color: "bg-red-500" },
-  ]
-
-  /* ── Dynamic Recommendations ── */
-  const suggestions: string[] = []
-  const flexSchedule = habit.schedule?.type === "anytime"
-  const totalScheduled = Object.keys(habit.completions || {}).filter(k => habit.completions[k]?.completed).length
-  const missed = Math.max(0, Math.round((100 - completionRate) / 100 * 40))
-
-  if (completionRate < 80) {
-    suggestions.push("Complete this habit every scheduled day to improve Completion Rate.")
-  }
-  if (streak > 0 && streak < 10) {
-    suggestions.push(`Your current streak is ${streak} days. Complete tomorrow to increase it.`)
-  } else if (streak === 0) {
-    suggestions.push("Start a new streak today by completing this habit.")
-  }
-  if (!flexSchedule) {
-    const scheduledTimes = Object.values(habit.completions || {}).map(c => c.time).filter(Boolean) as string[]
-    if (scheduledTimes.length >= 2) {
-      const mins = scheduledTimes.map(timeToMinutes)
-      const spread = Math.max(...mins) - Math.min(...mins)
-      if (spread > 120) {
-        suggestions.push("Try to perform this habit at a similar time each day.")
-      } else if (timeAccuracy !== null && timeAccuracy < 80) {
-        const target = (habit.schedule.type !== "anytime" ? habit.schedule.time : undefined)
-        if (target) {
-          suggestions.push(`You completed this habit later than your preferred time of ${formatTime12(target)}.`)
-        }
-      }
-    }
-  } else {
-    suggestions.push("Flexible schedule — timing advice does not apply. Focus on consistency.")
-  }
-  if (completionRate < 100) {
-    suggestions.push(`You can increase your Intent Score by approximately ${Math.max(2, Math.min(15, missed))} points if you complete this habit consistently for the next week.`)
-  }
-  if (completionRate >= 90 && streak >= 10 && (flexSchedule || (timeAccuracy ?? 100) >= 80)) {
-    suggestions.push("Excellent performance — keep it up!")
-  }
+  const breakdown = useMemo(() => getScoreBreakdown(habit), [habit])
+  const recommendation = useMemo(() => generateSmartRecommendation(habit), [habit])
+  const health = useMemo(() => getHealthState(habit.habitScore, habit.consistency), [habit.habitScore, habit.consistency])
+  const healthCfg = HEALTH_CONFIG[health]
 
   return (
-    <div ref={ref} className="absolute z-50 top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
+    <div ref={ref} className="absolute z-[100] top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
       <div className="flex items-center justify-between mb-3">
-        <div>
-          <h4 className="font-semibold text-sm">{habit.name}</h4>
-          <p className="text-[10px] text-muted-foreground">Intent Score</p>
+        <div className="flex items-center gap-2">
+          {habit.icon && <span className="text-lg">{habit.icon}</span>}
+          <div>
+            <h4 className="font-semibold text-sm">{habit.name}</h4>
+            <p className="text-[10px] text-muted-foreground">{habit.customCategory || habit.category}</p>
+          </div>
         </div>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Health Badge */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${healthCfg.bg} ${healthCfg.color}`}>
+          {healthCfg.icon} {healthCfg.label}
+        </span>
+      </div>
+
       <div className="text-center mb-3">
         <div className="text-2xl font-bold text-[#1E0E6B]">{habit.habitScore} / 100</div>
       </div>
+
       <div className="space-y-2">
         {breakdown.map((item) => (
           <div key={item.label}>
@@ -554,10 +506,7 @@ const IntentScoreBreakdown = ({
               <span className="text-xs font-medium">{item.raw}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div
-                className={`h-1.5 rounded-full ${item.color}`}
-                style={{ width: `${(item.points / item.max) * 100}%` }}
-              />
+              <div className={`h-1.5 rounded-full ${item.color}`} style={{ width: `${(item.points / item.max) * 100}%` }} />
             </div>
           </div>
         ))}
@@ -569,16 +518,20 @@ const IntentScoreBreakdown = ({
         </div>
       </div>
       <div className="mt-3 pt-3 border-t border-white/20">
-        <p className="text-xs font-medium text-muted-foreground mb-1.5">Recommendations</p>
-        <ul className="space-y-1">
-          {suggestions.map((s, i) => (
-            <li key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-              <span className="text-emerald-500 mt-0.5">✔</span>
-              <span>{s}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-center gap-1 mb-1.5">
+          <Info className="h-3 w-3 text-muted-foreground" />
+          <p className="text-xs font-medium text-muted-foreground">Smart Next Action</p>
+        </div>
+        <p className="text-[10px] text-muted-foreground">{recommendation}</p>
       </div>
+      {onViewAnalytics && (
+        <button
+          onClick={() => { onViewAnalytics(habit); onClose() }}
+          className="w-full mt-3 text-center text-xs font-medium text-[#1E0E6B] py-1.5 rounded-lg bg-[#1E0E6B]/5 hover:bg-[#1E0E6B]/10 transition-colors"
+        >
+          View Full Analytics →
+        </button>
+      )}
     </div>
   )
 }
@@ -1015,6 +968,7 @@ const TrackerView = ({
   onDragEnd,
   habitScoreBreakdownHabit,
   onHabitScoreBreakdown,
+  onViewAnalytics,
 }: {
   habits: Habit[]
   selectedDate: Date
@@ -1030,6 +984,7 @@ const TrackerView = ({
   onDragEnd?: () => void
   habitScoreBreakdownHabit?: Habit | null
   onHabitScoreBreakdown?: (habit: Habit | null) => void
+  onViewAnalytics?: (habit: Habit) => void
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
 
@@ -1111,6 +1066,9 @@ const TrackerView = ({
                       <span className="text-[10px] text-muted-foreground">{habit.streak} streak</span>
                       {(habit.streakFreeze || 0) > 0 && <span className="text-[10px]">❄️{habit.streakFreeze}</span>}
                       {habit.paused && <span className="text-[10px] text-amber-500 font-medium">⏸ Paused</span>}
+                      {habit.archived && <span className="text-[10px] text-gray-400 font-medium">📦 Archived</span>}
+                      {(() => { const h = getHealthState(habit.habitScore, habit.consistency); const hc = HEALTH_CONFIG[h]; return <span className={`text-[9px] font-medium px-1 py-0 rounded ${hc.bg} ${hc.color}`}>{hc.icon}</span> })()}
+                      {(() => { const t = calcTrend(habit); const tc = TREND_CONFIG[t]; return <span className={`text-[9px] ${tc.color}`}>{tc.icon}</span> })()}
                       {getScheduleBadge(habit.schedule)}
                     </div>
                   </div>
@@ -1164,6 +1122,7 @@ const TrackerView = ({
                     <IntentScoreBreakdown
                       habit={habit}
                       onClose={() => onHabitScoreBreakdown?.(null)}
+                      onViewAnalytics={onViewAnalytics}
                     />
                   )}
                 </div>
@@ -1223,8 +1182,8 @@ const HabitModal = ({
   const [duration, setDuration] = useState(habit?.duration || "10 mins")
   const [totalDuration, setTotalDuration] = useState(habit?.totalDuration || "365 days")
   const [totalDurationCustom, setTotalDurationCustom] = useState("")
-  const [scheduleType, setScheduleType] = useState<"anytime" | "preferred" | "fixed">(habit?.schedule?.type || "anytime")
-  const [preferredSlot, setPreferredSlot] = useState<"morning" | "afternoon" | "evening" | "night">((habit?.schedule?.type === "preferred" ? habit.schedule.slot : undefined) || "morning")
+  const [scheduleType, setScheduleType] = useState<string>(habit?.schedule?.type || "anytime")
+  const [preferredSlot, setPreferredSlot] = useState<string>((habit?.schedule?.type === "preferred" ? habit.schedule.slot : undefined) || "morning")
   const [useSpecificTime, setUseSpecificTime] = useState(habit?.schedule?.type === "preferred" && !!habit.schedule.time)
   const [preferredTime, setPreferredTime] = useState(habit?.schedule?.type === "preferred" ? (habit.schedule.time || "08:00") : "08:00")
   const [fixedTime, setFixedTime] = useState(habit?.schedule?.type === "fixed" ? habit.schedule.time : "08:00")
@@ -1240,7 +1199,7 @@ const HabitModal = ({
   )
   const [showIconDropdown, setShowIconDropdown] = useState(false)
   const [showColorDropdown, setShowColorDropdown] = useState(false)
-  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(habit?.recurrence?.type || "daily")
+  const [recurrenceType, setRecurrenceType] = useState<string>(habit?.recurrence?.type || "daily")
   const [customDays, setCustomDays] = useState<string[]>(habit?.recurrence?.customDays || [])
   const [interval, setInterval] = useState(habit?.recurrence?.interval || 2)
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(habit?.difficulty || "medium")
@@ -1365,7 +1324,7 @@ const HabitModal = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium">Recurrence</label>
-              <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as RecurrenceType)}
+              <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as string)}
                 className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
                 style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}>
                 <option value="daily">Daily (Recommended)</option>
@@ -1691,6 +1650,8 @@ export function HabitsPage() {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [showOverallScoreBreakdown, setShowOverallScoreBreakdown] = useState(false)
   const [habitScoreBreakdownHabit, setHabitScoreBreakdownHabit] = useState<Habit | null>(null)
+  const [analyticsDrawerHabit, setAnalyticsDrawerHabit] = useState<Habit | null>(null)
+  const [recoveryState, setRecoveryState] = useState<{ habitId: string; date: string; habitName: string } | null>(null)
   const [activeView, setActiveView] = useState<ViewMode>("table")
 
   useEffect(() => {
@@ -1740,23 +1701,37 @@ export function HabitsPage() {
 
   const toggleHabit = useCallback((id: string, dateStr?: string) => {
     const targetDate = dateStr || formatDateISO(selectedDate)
+    const todayStr = getTodayISO()
     setHabits(prev => prev.map(habit => {
       if (habit.id !== id) return habit
       if (habit.paused) return habit
       const existing = habit.completions[targetDate]
       const wasCompleted = existing?.completed || false
       const newCompletions = { ...habit.completions }
+      const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+
       if (wasCompleted) {
         delete newCompletions[targetDate]
+        // Trigger recovery if this was a past date that would break streak
+        if (targetDate < todayStr) {
+          setRecoveryState({ habitId: id, date: targetDate, habitName: habit.name })
+        }
       } else {
+        // Auto-calculate quality based on time accuracy
+        const ta = calcTimeAccuracy(nowTime, habit.schedule)
+        let quality: "perfect" | "good" | "partial" | "missed" = "good"
+        if (ta !== null && ta >= 90) quality = "perfect"
+        else if (ta !== null && ta < 60) quality = "partial"
+        else if (habit.schedule?.type === "anytime") quality = "good"
+
         newCompletions[targetDate] = {
           completed: true,
-          time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }),
+          time: nowTime,
+          quality,
         }
       }
       const streak = calcStreak(newCompletions)
       const result = calcHabitScore(newCompletions, habit.schedule, habit.createdAt, Math.max(habit.bestStreak, streak))
-      // Award streak freeze at 21 days
       let newFreezes = habit.streakFreeze || 0
       if (streak >= 21 && streak % 21 === 0 && !wasCompleted) {
         newFreezes = newFreezes + 1
@@ -1764,7 +1739,7 @@ export function HabitsPage() {
       return {
         ...habit,
         completions: newCompletions,
-        completedToday: targetDate === getTodayISO() ? !wasCompleted : habit.completedToday,
+        completedToday: targetDate === todayStr ? !wasCompleted : habit.completedToday,
         streak,
         bestStreak: Math.max(habit.bestStreak, streak),
         completionRate: result.completionRate,
@@ -1775,6 +1750,41 @@ export function HabitsPage() {
       }
     }))
   }, [selectedDate])
+
+  const handleRecoverStreak = useCallback(() => {
+    if (!recoveryState) return
+    const { habitId, date } = recoveryState
+    setHabits(prev => prev.map(habit => {
+      if (habit.id !== habitId) return habit
+      const newCompletions = { ...habit.completions }
+      newCompletions[date] = {
+        completed: true,
+        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        quality: "partial",
+      }
+      const streak = calcStreak(newCompletions)
+      const recoveryPenalty = getRecoveryPenalty(streak)
+      const result = calcHabitScore(newCompletions, habit.schedule, habit.createdAt, Math.max(habit.bestStreak, streak), recoveryPenalty)
+      return {
+        ...habit,
+        completions: newCompletions,
+        completedToday: date === getTodayISO(),
+        streak,
+        bestStreak: Math.max(habit.bestStreak, streak),
+        completionRate: result.completionRate,
+        consistency: result.consistency,
+        timeAccuracy: result.timeAccuracy,
+        habitScore: result.score,
+        recoveriesUsed: (habit.recoveriesUsed || 0) + 1,
+        lastMissedRecovery: date,
+      }
+    }))
+    setRecoveryState(null)
+  }, [recoveryState])
+
+  const handleAcceptMiss = useCallback(() => {
+    setRecoveryState(null)
+  }, [])
 
   const saveHabit = useCallback((habitData: Omit<Habit, "id" | "completions" | "createdAt" | "streak" | "bestStreak" | "completionRate" | "consistency" | "timeAccuracy" | "habitScore">) => {
     if (editingHabit) {
@@ -1834,6 +1844,10 @@ export function HabitsPage() {
 
   const handleHabitDragEnd = useCallback(() => {
     setDraggedId(null); setDragOverId(null)
+  }, [])
+
+  const handleOpenAnalytics = useCallback((habit: Habit) => {
+    setAnalyticsDrawerHabit(habit)
   }, [])
 
   const filteredAndSorted = useMemo(() => {
@@ -2017,7 +2031,7 @@ export function HabitsPage() {
         <HabitsErrorBoundary fallbackLabel="habit tracker">
           <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
             {filteredAndSorted.length > 0 ? (
-              <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} draggedId={draggedId} dragOverId={dragOverId} onDragStart={handleHabitDragStart} onDragOver={handleHabitDragOver} onDrop={handleHabitDrop} onDragEnd={handleHabitDragEnd} habitScoreBreakdownHabit={habitScoreBreakdownHabit} onHabitScoreBreakdown={setHabitScoreBreakdownHabit} />
+              <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} draggedId={draggedId} dragOverId={dragOverId} onDragStart={handleHabitDragStart} onDragOver={handleHabitDragOver} onDrop={handleHabitDrop} onDragEnd={handleHabitDragEnd} habitScoreBreakdownHabit={habitScoreBreakdownHabit} onHabitScoreBreakdown={setHabitScoreBreakdownHabit} onViewAnalytics={handleOpenAnalytics} />
             ) : (
               <div className="text-center py-12">
                 <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -2049,6 +2063,7 @@ export function HabitsPage() {
             onDragOver={handleHabitDragOver}
             onDrop={handleHabitDrop}
             onDragEnd={handleHabitDragEnd}
+            onViewAnalytics={handleOpenAnalytics}
           />
         </HabitsErrorBoundary>
       )}
@@ -2062,13 +2077,46 @@ export function HabitsPage() {
             onEdit={(h) => { setEditingHabit(h as any); setIsModalOpen(true) }}
             onDelete={deleteHabit}
             linkedGoals={linkedGoals}
+            onViewAnalytics={handleOpenAnalytics}
           />
         </HabitsErrorBoundary>
+      )}
+
+      {/* Recovery Modal */}
+      {recoveryState && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20">
+          <div className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-white/20 max-w-sm mx-4">
+            <h3 className="font-semibold text-foreground mb-1">Missed a day</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              You missed <span className="font-medium text-foreground">{recoveryState.habitName}</span> on {new Date(recoveryState.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={handleRecoverStreak} className="flex-1 text-center text-sm font-medium text-white bg-[#1E0E6B] py-2 rounded-lg hover:bg-[#1E0E6B]/90 transition-colors">
+                Recover Streak
+              </button>
+              <button onClick={handleAcceptMiss} className="flex-1 text-center text-sm font-medium text-foreground bg-gray-100 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                Accept Miss
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Recovery marks it as partial and slightly reduces your Intent Score. You've recovered {(habits.find(h => h.id === recoveryState.habitId)?.recoveriesUsed || 0)} time{(habits.find(h => h.id === recoveryState.habitId)?.recoveriesUsed || 0) !== 1 ? "s" : ""} before.
+            </p>
+          </div>
+        </div>
       )}
 
       <HabitsErrorBoundary fallbackLabel="habit form">
         <HabitModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHabit(null) }} onSave={saveHabit} onDelete={deleteHabit} habit={editingHabit} goals={linkedGoals} onCreateGoal={() => { window.location.href = "/goals?openAdd=true" }} />
       </HabitsErrorBoundary>
+
+      {analyticsDrawerHabit && (
+        <HabitAnalyticsDrawer
+          habit={analyticsDrawerHabit}
+          linkedGoals={linkedGoals}
+          onClose={() => setAnalyticsDrawerHabit(null)}
+          onEdit={(h) => { setAnalyticsDrawerHabit(null); setEditingHabit(h); setIsModalOpen(true) }}
+        />
+      )}
     </div>
   )
 }

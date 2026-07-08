@@ -4,6 +4,10 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Flame, Target, Edit3, Trash2, CheckCircle2, Clock } from "lucide-react"
+import {
+  getHealthState, HEALTH_CONFIG,
+  calcTrend, TREND_CONFIG,
+} from "./habit-utils"
 
 interface Habit {
   id: string
@@ -33,6 +37,10 @@ interface Habit {
   difficulty?: "easy" | "medium" | "hard"
   streakFreeze?: number
   paused?: boolean
+  recoveriesUsed?: number
+  lastMissedRecovery?: string
+  archived?: boolean
+  archivedDate?: string
 }
 
 interface ListViewProps {
@@ -42,6 +50,7 @@ interface ListViewProps {
   onEdit: (habit: Habit) => void
   onDelete: (habitId: string) => void
   linkedGoals: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
+  onViewAnalytics?: (habit: Habit) => void
 }
 
 const getScoreColor = (score: number): string => {
@@ -76,6 +85,7 @@ export const ListView: React.FC<ListViewProps> = ({
   onEdit,
   onDelete,
   linkedGoals,
+  onViewAnalytics,
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
 
@@ -100,6 +110,10 @@ export const ListView: React.FC<ListViewProps> = ({
         {habits.map((habit) => {
           const linkedGoal = getLinkedGoal(habit)
           const isCompletedToday = habit.completions[todayISO]?.completed || false
+          const health = getHealthState(habit.habitScore, habit.consistency)
+          const healthCfg = HEALTH_CONFIG[health]
+          const trend = calcTrend(habit)
+          const trendCfg = TREND_CONFIG[trend]
           return (
             <div
               key={habit.id}
@@ -118,13 +132,18 @@ export const ListView: React.FC<ListViewProps> = ({
                     <p className="text-xs text-muted-foreground">{habit.category}</p>
                   </div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="text-xs"
-                  style={{ borderColor: getScoreColor(habit.habitScore), color: getScoreColor(habit.habitScore) }}
-                >
-                  {habit.habitScore}%
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <span className={`text-[9px] font-medium px-1 py-0 rounded ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon}</span>
+                  <button onClick={() => onViewAnalytics?.(habit)}>
+                    <Badge
+                      variant="outline"
+                      className="text-xs cursor-pointer hover:opacity-80"
+                      style={{ borderColor: getScoreColor(habit.habitScore), color: getScoreColor(habit.habitScore) }}
+                    >
+                      {habit.habitScore}%
+                    </Badge>
+                  </button>
+                </div>
               </div>
 
               {/* Description */}
@@ -148,6 +167,7 @@ export const ListView: React.FC<ListViewProps> = ({
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">{getScheduleLabel(habit.schedule)}</span>
                 </div>
+                <span className={`text-[10px] ${trendCfg.color}`}>{trendCfg.icon} {trendCfg.label}</span>
               </div>
 
               {/* Badges */}
@@ -171,6 +191,12 @@ export const ListView: React.FC<ListViewProps> = ({
                   >
                     🎯 {linkedGoal.title}
                   </Badge>
+                )}
+                {habit.archived && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-gray-400">📦 Archived</Badge>
+                )}
+                {habit.paused && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-amber-500">⏸ Paused</Badge>
                 )}
               </div>
 

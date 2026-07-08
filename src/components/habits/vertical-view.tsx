@@ -2,6 +2,10 @@
 
 import React, { useState, useMemo } from "react"
 import { CheckCircle2, Flame, Target, GripVertical } from "lucide-react"
+import {
+  getHealthState, HEALTH_CONFIG,
+  calcTrend, TREND_CONFIG,
+} from "./habit-utils"
 
 interface Habit {
   id: string
@@ -31,6 +35,10 @@ interface Habit {
   difficulty?: "easy" | "medium" | "hard"
   streakFreeze?: number
   paused?: boolean
+  recoveriesUsed?: number
+  lastMissedRecovery?: string
+  archived?: boolean
+  archivedDate?: string
 }
 
 type TrackerPeriod = "week" | "month" | "year"
@@ -48,6 +56,7 @@ interface VerticalViewProps {
   onDragOver?: (e: React.DragEvent, id: string) => void
   onDrop?: (id: string) => void
   onDragEnd?: () => void
+  onViewAnalytics?: (habit: Habit) => void
 }
 
 const getScoreColor = (score: number): string => {
@@ -80,6 +89,7 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
   onDragOver,
   onDrop,
   onDragEnd,
+  onViewAnalytics,
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
   const todayISO = new Date().toISOString().split("T")[0]
@@ -109,6 +119,10 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
               </th>
               {habits.map((habit) => {
                 const goal = getLinkedGoal(habit)
+                const health = getHealthState(habit.habitScore, habit.consistency)
+                const healthCfg = HEALTH_CONFIG[health]
+                const trend = calcTrend(habit)
+                const trendCfg = TREND_CONFIG[trend]
                 return (
                   <th key={habit.id} className="p-2 text-left min-w-[140px] border-r border-[#1E0E6B]/10">
                     <button onClick={() => onEdit(habit)} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity text-left w-full">
@@ -119,11 +133,14 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
                           <span className="font-medium text-xs text-[#1E0E6B] truncate">{habit.name}</span>
                           {goal && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: goal.colorHex }} />}
                         </div>
-                        <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
+                        <div className="flex items-center gap-1 text-[10px] mt-0.5">
                           <Flame className="h-2.5 w-2.5 text-orange-500" />
                           <span className="text-orange-500">{habit.streak}</span>
-                          <span className="text-muted-foreground">Intent Score -</span>
-                          <span className="font-medium" style={{ color: getScoreColor(habit.habitScore) }}>{habit.habitScore}</span>
+                          <span className={`text-[9px] font-medium px-1 py-0 rounded ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon}</span>
+                          <span className={`text-[9px] ${trendCfg.color}`}>{trendCfg.icon}</span>
+                          <button onClick={(e) => { e.stopPropagation(); onViewAnalytics?.(habit) }} className="font-medium hover:underline" style={{ color: getScoreColor(habit.habitScore) }}>
+                            {habit.habitScore}
+                          </button>
                         </div>
                       </div>
                     </button>
@@ -148,7 +165,6 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
                     const dateISO = formatISO(dateObj)
                     const isToday = dateISO === todayISO
                     const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6
-                    const isDragging = draggedId !== undefined
                     return (
                       <tr
                         key={dateISO}

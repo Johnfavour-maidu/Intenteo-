@@ -57,13 +57,16 @@ const getDaysInMonth = (y: number, m: number) => new Date(y, m + 1, 0).getDate()
 
 /* ─── Data Interfaces (mirrored from source modules) ─── */
 
-interface HabitCompletion { completed: boolean; time?: string; notes?: string }
+interface HabitCompletion { completed: boolean; time?: string; notes?: string; quality?: string }
 interface HabitRecord {
   id: string; name: string; description: string; category: string; colorHex: string
   icon: string; goal: string; streak: number; habitScore: number; paused?: boolean
   completions: Record<string, HabitCompletion>
   schedule: { type: string; slot?: string; time?: string }
   createdAt: string
+  recoveriesUsed?: number
+  bestStreak?: number
+  archived?: boolean
 }
 interface TaskRecord {
   id: string; title: string; priority: string; notes: string; deadline: string
@@ -112,6 +115,9 @@ function loadHabits(): HabitRecord[] {
       schedule: (h.schedule && typeof h.schedule === "object")
         ? h.schedule as { type: string; slot?: string; time?: string } : { type: "anytime" },
       createdAt: (h.createdAt as string) || "",
+      recoveriesUsed: (h.recoveriesUsed as number) || 0,
+      bestStreak: (h.bestStreak as number) || 0,
+      archived: (h.archived as boolean) || false,
     }))
   } catch { return [] }
 }
@@ -211,14 +217,30 @@ function buildTimeline(dateISO: string, habits: HabitRecord[], tasks: TaskRecord
   habits.forEach(h => {
     const c = h.completions[dateISO]
     if (c && c.completed) {
+      // Count streak ending on this date
+      let streakOnDate = 0
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(dateISO)
+        d.setDate(d.getDate() - i)
+        const key = d.toISOString().split("T")[0]
+        if (h.completions[key]?.completed) streakOnDate++
+        else break
+      }
+      const quality = c.quality || "good"
+      const isRecovered = quality === "partial"
+      const streakMilestones = [7, 14, 21, 30, 60, 90, 180, 365]
+      const isMilestone = streakMilestones.includes(streakOnDate)
+
       entries.push({
         id: `habit-${h.id}-${dateISO}`, type: "habit_complete",
         time: c.time, timestamp: c.time ? parseTime(c.time) : 120,
-        title: h.name, description: h.goal ? `Linked to: ${h.goal}` : undefined,
-        icon: h.icon || "✓", color: h.colorHex, habitColor: h.colorHex,
-        data: { habitId: h.id, streak: h.streak, score: h.habitScore, type: "habit" },
+        title: isRecovered ? `${h.name} (Recovered)` : isMilestone ? `${h.name} — ${streakOnDate}-day streak!` : h.name,
+        description: isRecovered ? `Recovered with partial completion` : isMilestone ? `Amazing consistency streak!` : h.goal ? `Linked to: ${h.goal}` : undefined,
+        icon: isRecovered ? "🔄" : isMilestone ? "🏆" : h.icon || "✓",
+        color: h.colorHex, habitColor: h.colorHex,
+        data: { habitId: h.id, streak: streakOnDate, score: h.habitScore, type: "habit", quality, milestone: isMilestone },
       })
-    } else if (!c && h.createdAt <= dateISO && !h.paused) {
+    } else if (!c && h.createdAt <= dateISO && !h.paused && dateISO <= getTodayISO()) {
       entries.push({
         id: `habit-missed-${h.id}-${dateISO}`, type: "habit_missed",
         time: undefined, timestamp: 1440,
@@ -563,6 +585,35 @@ function detectMilestones(habits: HabitRecord[], tasks: TaskRecord[], journal: J
       icon: "⭐", color: "#F59E0B", date: today,
     })
   }
+
+  // Recoveries
+  const habitsWithRecovery = habits.filter(h => (h.recoveriesUsed || 0) > 0)
+  habitsWithRecovery.forEach(h => {
+    milestones.push({
+      id: `recovery-${h.id}`, title: `Recovered "${h.name}"`,
+      description: `Used streak recovery ${h.recoveriesUsed} time${(h.recoveriesUsed || 0) > 1 ? "s" : ""}`,
+      icon: "🔄", color: "#8B5CF6", date: today,
+    })
+  })
+
+  // Habits mastered (score >= 85)
+  const masteredHabits = habits.filter(h => h.habitScore >= 85 && !h.paused)
+  masteredHabits.forEach(h => {
+    milestones.push({
+      id: `mastered-${h.id}`, title: `Mastered: ${h.name}`,
+      description: `Achieved Excellent health state with ${h.habitScore} Intent Score`,
+      icon: "⭐", color: "#22C55E", date: today,
+    })
+  })
+
+  // Best streak per habit
+  habits.filter(h => (h.bestStreak || 0) >= 7).forEach(h => {
+    milestones.push({
+      id: `best-streak-${h.id}`, title: `${h.bestStreak}-Day Streak: ${h.name}`,
+      description: `Best consistency streak for this habit`,
+      icon: "🔥", color: "#F97316", date: today,
+    })
+  })
 
   return milestones
 }
