@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, useLayoutEffect, memo } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
@@ -521,6 +522,8 @@ function EmptyState({ onCreate, viewingDate }: { onCreate: () => void; viewingDa
 /* ═══════════════════════════════════════════════════════ */
 
 export function TasksPage() {
+  const pathname = usePathname()
+
   const [tasks, setTasks] = useState<Task[]>(() => {
     if (typeof window === "undefined") return sampleTasks
     try {
@@ -576,6 +579,34 @@ export function TasksPage() {
   const [formReminder, setFormReminder] = useState(true)
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
   const [carryOverOpen, setCarryOverOpen] = useState(false)
+
+  // Route change cleanup: clear all temporary UI state when leaving Tasks page
+  useEffect(() => {
+    if (pathname !== "/tasks") {
+      setSelectedDate(null)
+      setDayHistory(null)
+      setCarryOverOpen(false)
+      setExpandedTasks(new Set())
+      setExpandAll(false)
+      setCreateOpen(false)
+      setEditingTask(null)
+      setMovePopoverTaskId(null)
+      setMoveSubtaskInfo(null)
+      setCalendarOpen(false)
+      setDraggedId(null)
+      setDragOverId(null)
+      setDragType(null)
+      setDragSourceTaskId(null)
+      setRecurringEditPrompt(null)
+    }
+  }, [pathname])
+
+  // Always start on today's date - clear any stale selectedDate on mount
+  useEffect(() => {
+    setSelectedDate(null)
+    setDayHistory(null)
+    setCarryOverOpen(false)
+  }, [])
 
   const taskHistory = useMemo(() => {
     const history: Record<string, Task[]> = {}
@@ -1381,40 +1412,56 @@ export function TasksPage() {
         {carryOverTasks.length > 0 && !selectedDate && (
           <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
             className="mb-3">
-            <button onClick={() => setCarryOverOpen(!carryOverOpen)}
-              className="w-full px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors">
-              <div className="flex items-center gap-2">
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                <span className="font-medium">{carryOverTasks.length} Carry Over Task{carryOverTasks.length !== 1 ? "s" : ""}</span>
-              </div>
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${carryOverOpen ? "rotate-180" : ""}`} />
+            <button onClick={() => setCarryOverOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors">
+              <ArrowRightLeft className="h-3 w-3" />
+              Carry-over ({carryOverTasks.length})
             </button>
-            <AnimatePresence>
-              {carryOverOpen && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden">
-                  <div className="mt-1 p-3 rounded-lg border bg-background shadow-sm space-y-2">
-                    <p className="text-[11px] text-muted-foreground">{carryOverTasks.length} unfinished task{carryOverTasks.length !== 1 ? "s" : ""} from previous days.</p>
-                    <div className="space-y-1">
-                      {carryOverTasks.slice(0, 5).map((t) => (
-                        <div key={t.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <PriorityDot priority={t.priority} />
-                          <span className="truncate">{t.title}</span>
-                          <span className="text-[10px] ml-auto shrink-0">{formatDateDDMMYYYY(t.date)}</span>
-                        </div>
-                      ))}
-                      {carryOverTasks.length > 5 && <p className="text-[10px] text-muted-foreground">+{carryOverTasks.length - 5} more</p>}
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" className="h-7 text-xs flex-1" onClick={() => { handleMoveToToday(carryOverTasks); setCarryOverOpen(false) }}>Move All</Button>
-                      <Button variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={() => setCarryOverOpen(false)}>Ignore</Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
         )}
+
+        {/* Carry-Over Modal */}
+        <AnimatePresence>
+          {carryOverOpen && (
+            <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+                onClick={() => setCarryOverOpen(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-background rounded-2xl border shadow-2xl">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Carry-over Tasks</h3>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCarryOverOpen(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {carryOverTasks.length} unfinished task{carryOverTasks.length !== 1 ? "s" : ""} found from previous days.
+                  </p>
+                  <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
+                    {carryOverTasks.map((t) => (
+                      <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/30">
+                        <PriorityDot priority={t.priority} />
+                        <span className="text-sm flex-1 truncate">{t.title}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{formatDateDDMMYYYY(t.date)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="flex-1" onClick={() => { handleMoveToToday(carryOverTasks); setCarryOverOpen(false) }}>
+                      Move All
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setCarryOverOpen(false)}>
+                      Ignore Today
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Viewing Past Day Banner */}
         {isViewingPast && selectedDate && (
