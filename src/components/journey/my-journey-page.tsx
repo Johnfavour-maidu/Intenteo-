@@ -28,7 +28,10 @@ const formatISO = (d: Date): string => {
 }
 
 const formatDateLong = (d: Date): string => {
-  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${day}/${m}/${y}`
 }
 
 const formatMonthYear = (d: Date): string => {
@@ -1038,7 +1041,7 @@ export function MyJourneyPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
               <p className="text-xs text-muted-foreground mb-1">Best Day</p>
-              <p className="text-lg font-bold text-[#1E0E6B]">{weekStats.bestDay ? new Date(weekStats.bestDay + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }) : "—"}</p>
+              <p className="text-lg font-bold text-[#1E0E6B]">{weekStats.bestDay ? (() => { const d = new Date(weekStats.bestDay + "T12:00:00"); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}` })() : "—"}</p>
             </div>
             <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
               <p className="text-xs text-muted-foreground mb-1">Longest Streak</p>

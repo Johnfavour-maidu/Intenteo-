@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, Component, ty
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import {
   Plus,
   CheckCircle2,
@@ -2088,7 +2089,7 @@ export function HabitsPage() {
           <div className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-white/20 max-w-sm mx-4">
             <h3 className="font-semibold text-foreground mb-1">Missed a day</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              You missed <span className="font-medium text-foreground">{recoveryState.habitName}</span> on {new Date(recoveryState.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.
+              You missed <span className="font-medium text-foreground">{recoveryState.habitName}</span> on {formatDateDDMMYYYY(recoveryState.date)}.
             </p>
             <div className="flex gap-2">
               <button onClick={handleRecoverStreak} className="flex-1 text-center text-sm font-medium text-white bg-[#1E0E6B] py-2 rounded-lg hover:bg-[#1E0E6B]/90 transition-colors">

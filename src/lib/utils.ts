@@ -6,12 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(date)
+  const d = String(date.getDate()).padStart(2, "0")
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const y = date.getFullYear()
+  return `${d}/${m}/${y}`
 }
 
 export function formatTime(date: Date): string {

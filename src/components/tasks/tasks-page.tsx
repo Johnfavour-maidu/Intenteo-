@@ -28,7 +28,7 @@ import {
   Copy,
 } from "lucide-react"
 import { useToast, ToastContainer } from "./task-toast"
-import { formatDateDDMMYYYY } from "@/lib/date-utils"
+import { formatDateDDMMYYYY, formatDateLong } from "@/lib/date-utils"
 import { DateInput } from "@/components/ui/date-input"
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
@@ -222,45 +222,62 @@ function TimeRangePicker({
   timeRangeType: import("./types").TimeRange
   onTimeRangeTypeChange: (v: import("./types").TimeRange) => void
 }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const dur = calcDurationFromRange(startTime, endTime)
-
-  const handlePresetClick = (value: import("./types").TimeRange) => {
-    onTimeRangeTypeChange(value)
-    if (value !== "custom" && value !== "anytime") {
-      const s = TIME_PRESET_MAP[value]
-      const e = TIME_PRESET_END[value]
-      if (s && e) onChange(s, e)
-    } else if (value === "anytime") {
-      onChange("09:00", "09:30")
-    }
-  }
+  const currentLabel = TIME_PRESETS.find((p) => p.value === timeRangeType)?.label || "Anytime"
 
   return (
     <div className="space-y-3">
-      {/* Preset Tabs */}
-      <div className="flex flex-wrap gap-1.5">
-        {TIME_PRESETS.map((preset) => (
-          <button key={preset.value} type="button"
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              timeRangeType === preset.value
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-            onClick={() => handlePresetClick(preset.value)}>
-            <Clock className="h-3 w-3 inline-block mr-1 -mt-0.5" />
-            {preset.label}
-          </button>
-        ))}
+      {/* Time Range Selector */}
+      <div className="relative">
+        <button type="button" onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm flex items-center justify-between hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span>{currentLabel}</span>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+        </button>
+        {dropdownOpen && (
+          <div className="absolute z-30 mt-1 w-full rounded-xl border bg-background shadow-xl p-1">
+            {TIME_PRESETS.map((preset) => (
+              <button key={preset.value} type="button"
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                  timeRangeType === preset.value
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-foreground"
+                }`}
+                onClick={() => {
+                  onTimeRangeTypeChange(preset.value)
+                  setDropdownOpen(false)
+                  if (preset.value !== "custom" && preset.value !== "anytime") {
+                    const s = TIME_PRESET_MAP[preset.value]
+                    const e = TIME_PRESET_END[preset.value]
+                    if (s && e) onChange(s, e)
+                  } else if (preset.value === "anytime") {
+                    onChange("09:00", "09:30")
+                  }
+                }}>
+                <span>{preset.label}</span>
+                {preset.desc && <span className="text-[11px] text-muted-foreground">{preset.desc}</span>}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Start / End Time Inputs — always visible */}
-      <div className="flex items-start gap-3">
-        <CustomTimeInput value={startTime} onChange={(v) => onChange(v, endTime)} label="Start Time" />
-        <CustomTimeInput value={endTime} onChange={(v) => onChange(startTime, v)} label="End Time" />
-      </div>
-      <p className="text-[10px] text-muted-foreground text-center">
-        Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
-      </p>
+      {/* Custom Time Inputs */}
+      {timeRangeType === "custom" && (
+        <>
+          <div className="flex items-start gap-3">
+            <CustomTimeInput value={startTime} onChange={(v) => onChange(v, endTime)} label="Start Time" />
+            <CustomTimeInput value={endTime} onChange={(v) => onChange(startTime, v)} label="End Time" />
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center">
+            Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
+          </p>
+        </>
+      )}
     </div>
   )
 }
@@ -813,7 +830,7 @@ export function TasksPage() {
     const timeRange = isAnytime ? "Anytime" : `${startStr} \u2013 ${endStr}`
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
-      deadline: formDate === todayISO ? "Today" : new Date(formDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" }),
+      deadline: formDate === todayISO ? "Today" : formatDateDDMMYYYY(formDate),
       date: formDate, dueTime: isAnytime ? "Anytime" : startStr, timeRange, timeRangeType: formTimeRangeType,
       estimatedDuration: isAnytime ? 0 : (dur > 0 ? dur : 30), notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
       recurrenceInterval: formRecurrenceInterval, recurrenceWeekdays: formRecurrenceWeekdays,
@@ -1620,13 +1637,10 @@ export function TasksPage() {
                       className="mt-1" autoFocus />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Task Date</label>
-                    <div className="mt-1">
-                      <DateInput
-                        value={editingTask ? editingTask.date : formDate}
-                        onChange={(v) => editingTask ? setEditingTask({ ...editingTask, date: v }) : setFormDate(v)}
-                      />
-                    </div>
+                    <DateInput
+                      value={editingTask ? editingTask.date : formDate}
+                      onChange={(v) => editingTask ? setEditingTask({ ...editingTask, date: v }) : setFormDate(v)}
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Subtasks</label>

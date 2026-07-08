@@ -12,6 +12,7 @@ import { StreakDisplay } from "@/components/ui/streak-display"
 import { MoodSelector } from "@/components/ui/mood-selector"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Progress } from "@/components/ui/progress"
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import {
   Sun,
   Cloud,
@@ -130,11 +131,7 @@ export function TodayDashboard() {
     return "Good evening"
   }
 
-  const currentDate = new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  })
+  const currentDate = formatDateDDMMYYYY(new Date().toISOString().split("T")[0])
 
   return (
     <div className="min-h-screen bg-background">

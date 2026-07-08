@@ -20,6 +20,7 @@ import {
   getGoalHealthScore, detectCelebration, getGoalScoreBreakdown,
 } from "./goal-utils"
 import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
+import { DateInput } from "@/components/ui/date-input"
 
 interface Milestone { id: string; title: string; completed: boolean }
 
@@ -370,8 +371,8 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
             </div>
           )}
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1" style={{ colorScheme: "light" }} /></div>
-            <div><label className="text-sm font-medium">Target Date</label><Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={minDeadline || undefined} className="mt-1" style={{ colorScheme: "light" }} /></div>
+            <div><DateInput label="Start Date" value={startDate} onChange={setStartDate} /></div>
+            <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} min={minDeadline || undefined} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="relative"><label className="text-sm font-medium">Icon</label>
@@ -524,7 +525,7 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
             <div><label className="text-sm font-medium">Priority</label>
               <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
-            <div><label className="text-sm font-medium">Due Date</label><Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="mt-1" /></div>
+            <div><DateInput label="Due Date" value={dueDate} onChange={setDueDate} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Icon</label><div className="flex flex-wrap gap-1 mt-1">{GOAL_ICONS.map(ic => (
@@ -680,8 +681,8 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
           <div><label className="text-sm font-medium">Why It Matters</label><textarea value={data.whyItMatters} onChange={e => setData({...data, whyItMatters: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Start Date</label><Input type="date" value={data.startDate} onChange={e => setData({...data, startDate: e.target.value})} className="mt-1" /></div>
-            <div><label className="text-sm font-medium">Target Date</label><Input type="date" value={data.deadline} onChange={e => setData({...data, deadline: e.target.value})} className="mt-1" /></div>
+            <div><DateInput label="Start Date" value={data.startDate} onChange={(v) => setData({...data, startDate: v})} /></div>
+            <div><DateInput label="Target Date" value={data.deadline} onChange={(v) => setData({...data, deadline: v})} /></div>
           </div>
 
           <div>

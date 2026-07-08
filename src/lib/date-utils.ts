@@ -7,16 +7,24 @@ export function formatDateDDMMYYYY(dateStr: string): string {
   return `${day}/${month}/${year}`
 }
 
+export function parseDDMMYYYY(value: string): string | null {
+  const m = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!m) return null
+  const day = m[1].padStart(2, "0")
+  const month = m[2].padStart(2, "0")
+  const year = m[3]
+  const iso = `${year}-${month}-${day}`
+  const d = new Date(iso + "T00:00:00")
+  if (isNaN(d.getTime())) return null
+  return iso
+}
+
 export function formatDateLong(dateStr: string): string {
-  if (!dateStr) return ""
-  const d = new Date(dateStr + "T00:00:00")
-  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+  return formatDateDDMMYYYY(dateStr)
 }
 
 export function formatDateShort(dateStr: string): string {
-  if (!dateStr) return ""
-  const d = new Date(dateStr + "T00:00:00")
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  return formatDateDDMMYYYY(dateStr)
 }
 
 export function formatTimeDisplay(hour: number, minute: number): string {

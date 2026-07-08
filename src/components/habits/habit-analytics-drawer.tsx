@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useMemo } from "react"
 import { X, Flame, Target, Clock, TrendingUp, Calendar, Award, Info, AlertTriangle } from "lucide-react"
 import type { Habit } from "./habit-types"
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import {
   getHealthState,
   HEALTH_CONFIG,
@@ -63,7 +64,7 @@ export const HabitAnalyticsDrawer: React.FC<HabitAnalyticsDrawerProps> = ({
       const c = habit.completions?.[key]
       if (c?.completed) {
         entries.push({
-          date: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+          date: formatDateDDMMYYYY(key),
           quality: c.quality || "good",
           time: c.time,
           score: c.quality === "perfect" ? habit.habitScore : c.quality === "good" ? Math.round(habit.habitScore * 0.8) : c.quality === "partial" ? Math.round(habit.habitScore * 0.5) : 0,
@@ -76,7 +77,7 @@ export const HabitAnalyticsDrawer: React.FC<HabitAnalyticsDrawerProps> = ({
   const milestones = useMemo(() => {
     const ms: { icon: string; text: string }[] = []
     const created = new Date(habit.createdAt)
-    ms.push({ icon: "📅", text: `Started ${created.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}` })
+    ms.push({ icon: "📅", text: `Started ${formatDateDDMMYYYY(habit.createdAt.split("T")[0])}` })
     if (habit.bestStreak >= 7) ms.push({ icon: "🔥", text: `Reached ${habit.bestStreak}-day streak` })
     if (linkedGoal) ms.push({ icon: "🎯", text: `Linked to ${linkedGoal.title}` })
     if (habit.bestStreak >= 365) ms.push({ icon: "🏆", text: "Completed 365-day challenge" })

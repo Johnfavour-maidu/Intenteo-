@@ -1,5 +1,7 @@
 "use client"
 
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
+
 export type GoalHealthState = "excellent" | "on_track" | "needs_attention" | "at_risk"
 export type GoalLifecycleStage = "planning" | "active" | "building" | "on_track" | "near_completion" | "completed" | "archived"
 export type GoalTrendDirection = "up" | "down" | "stable"
@@ -270,7 +272,7 @@ export function buildGoalJourney(
   const items: { icon: string; text: string }[] = []
   const created = goal.createdAt ? new Date(goal.createdAt) : null
   if (created) {
-    items.push({ icon: "🎯", text: `Goal set ${created.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}` })
+    items.push({ icon: "🎯", text: `Goal set ${formatDateDDMMYYYY(goal.createdAt!.split("T")[0])}` })
   }
   const completedMilestones = goal.milestones.filter(m => m.completed)
   if (completedMilestones.length > 0) {
@@ -297,7 +299,7 @@ export function buildGoalJourney(
   }
   if (goal.lastActivity) {
     const lastActive = new Date(goal.lastActivity)
-    items.push({ icon: "⚡", text: `Last activity ${lastActive.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` })
+    items.push({ icon: "⚡", text: `Last activity ${formatDateDDMMYYYY(goal.lastActivity!.split("T")[0])}` })
   }
   return items
 }

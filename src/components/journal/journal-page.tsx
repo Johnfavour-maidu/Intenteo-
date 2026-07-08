@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect, memo, forwardRef, useImperativeHandle } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Plus,
@@ -416,8 +417,7 @@ function getParagraphCount(text: string): number {
 }
 
 function formatDateLong(iso: string): string {
-  const d = new Date(iso + "T00:00:00")
-  return d.toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+  return formatDateDDMMYYYY(iso)
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
