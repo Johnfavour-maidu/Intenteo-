@@ -26,7 +26,22 @@ import {
   Volume2,
   StopCircle,
   Copy,
+  Target,
+  Crosshair,
+  Pause,
+  Play,
+  CheckCircle2,
+  ArrowUp,
+  Smile,
+  Meh,
+  Frown,
+  Moon,
+  Angry,
+  Timer,
+  Sparkles,
+  Target as TargetIcon,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useToast, ToastContainer } from "./task-toast"
 import { formatDateDDMMYYYY, formatDateLong } from "@/lib/date-utils"
 import { DateInput } from "@/components/ui/date-input"
@@ -79,20 +94,31 @@ const TaskRow = memo(function TaskRow({
   isDragging,
   isDragOver,
   className = "",
+  brandBorder = false,
+  selected = false,
 }: {
   children: React.ReactNode
   tint: string
   isDragging?: boolean
   isDragOver?: boolean
   className?: string
+  brandBorder?: boolean
+  selected?: boolean
 }) {
+  const borderCls = brandBorder
+    ? selected
+      ? "border-2 border-[var(--brand-primary)] ring-2 ring-[rgba(30,14,107,0.25)] shadow-md"
+      : "border-[1.5px] border-[var(--brand-primary)] hover:border-[var(--brand-primary-lighter)] shadow-sm hover:shadow-lg transition-shadow duration-200"
+    : ""
   return (
-    <div className={`relative rounded-xl task-row ${className}`}
+    <div className={`relative rounded-xl task-row ${borderCls} ${className}`}
       style={{
         backgroundColor: tint + "40",
         boxShadow: isDragOver
           ? "0 4px 16px rgba(0,0,0,0.10), 0 0 0 2px var(--primary)"
-          : "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
+          : brandBorder
+            ? undefined
+            : "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
         transform: isDragging ? "scale(0.98)" : isDragOver ? "scale(1.005)" : "none",
         opacity: isDragging ? 0.4 : 1,
       }}
@@ -456,6 +482,7 @@ function EmptyState({ onCreate, viewingDate }: { onCreate: () => void; viewingDa
 
 export function TasksPage() {
   const pathname = usePathname()
+  const router = useRouter()
 
   const [tasks, setTasks] = useState<Task[]>(() => {
     if (typeof window === "undefined") return sampleTasks
@@ -517,6 +544,24 @@ export function TasksPage() {
   const [formMonthlyRepeatMode, setFormMonthlyRepeatMode] = useState<import("./types").MonthlyRepeatMode>("dayOfMonth")
   const [formMonthlyWeekdayIndex, setFormMonthlyWeekdayIndex] = useState(0)
   const [formMonthlyWeekdayOrdinal, setFormMonthlyWeekdayOrdinal] = useState(1)
+
+  // Feature: Focus Mode
+  const [focusTask, setFocusTask] = useState<Task | null>(null)
+
+  // Feature: Daily Completion Review
+  const [reviewOpen, setReviewOpen] = useState(false)
+
+  // Linked data (goals, habits, projects) loaded from localStorage for Relationships & Focus
+  const [goalsData, setGoalsData] = useState<{ id: string; title: string; health?: number }[]>([])
+  const [habitsData, setHabitsData] = useState<{ id: string; name: string }[]>([])
+  const [projectsData, setProjectsData] = useState<{ id: string; name: string }[]>([])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try { setGoalsData(JSON.parse(localStorage.getItem("intenteo-goals") || "[]")) } catch {}
+    try { setHabitsData(JSON.parse(localStorage.getItem("intenteo-habits") || "[]")) } catch {}
+    try { setProjectsData(JSON.parse(localStorage.getItem("intenteo-projects") || "[]")) } catch {}
+  }, [])
 
   // Route change cleanup: clear all temporary UI state when leaving Tasks page
   useEffect(() => {
@@ -1106,6 +1151,7 @@ export function TasksPage() {
             <button onClick={() => addSubtaskInline(task.id)} className="flex items-center gap-1.5 py-1 px-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
               <Plus className="h-3 w-3" /> Add subtask
             </button>
+            <TaskRelationships task={task} goals={goalsData} habits={habitsData} projects={projectsData} router={router} />
           </div>
         </motion.div>
       )}
@@ -1260,6 +1306,10 @@ export function TasksPage() {
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
+                        onClick={(e) => { e.stopPropagation(); setFocusTask(task) }}>
+                        <Target className="h-3.5 w-3.5" />
+                      </Button>
                       <div className="relative">
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id) }}>
@@ -1313,7 +1363,7 @@ export function TasksPage() {
               <motion.div key={task.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: i * 0.03, layout: { type: "spring", stiffness: 300, damping: 30 } }}>
-                <TaskRow tint={pConfig.tint} className="group overflow-hidden">
+                <TaskRow tint={pConfig.tint} brandBorder selected={editingTask?.id === task.id} className="group overflow-hidden">
                   <div className="pl-10 pr-10 p-4">
                     <div className="flex items-start gap-2.5 mb-3">
                       <PriorityDot priority={task.priority} />
@@ -1409,6 +1459,10 @@ export function TasksPage() {
                           <Copy className="h-3 w-3" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
+                        onClick={() => setFocusTask(task)}>
+                        <Target className="h-3 w-3" />
+                      </Button>
                       <div className="relative">
                         <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"
                           onClick={() => setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id)}>
@@ -1444,8 +1498,8 @@ export function TasksPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Tasks{selectedDate ? ` \u2014 ${formatDateLong(selectedDate)}` : " \u2014 Today"}
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight whitespace-nowrap">
+              Tasks{selectedDate ? ` \u2014 ${formatDateDDMMYYYY(selectedDate)}` : " \u2014 Today"}
             </h1>
             <p className="text-sm text-foreground mt-0.5 tracking-tight">
               <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>
@@ -1496,23 +1550,6 @@ export function TasksPage() {
                 <span className="ml-1.5 hidden sm:inline text-xs">Board</span>
               </Button>
             </div>
-
-            {/* Sort Dropdown */}
-            <select
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
-              className="h-8 px-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
-              <option value="manual">Sort: Manual</option>
-              <option value="time-asc">Sort: Earliest First</option>
-              <option value="time-desc">Sort: Latest First</option>
-              <option value="priority">Sort: Priority</option>
-              <option value="completion">Sort: Incomplete First</option>
-              <option value="dueDate">Sort: Due Date</option>
-              <option value="alpha-asc">Sort: A-Z</option>
-              <option value="alpha-desc">Sort: Z-A</option>
-              <option value="duration">Sort: Shortest First</option>
-              <option value="recentlyEdited">Sort: Recently Edited</option>
-            </select>
 
             {/* Voice Capture */}
             <Tooltip label={isListening ? "Stop Dictation" : "Voice Task"}>
