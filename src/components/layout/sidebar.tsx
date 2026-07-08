@@ -40,9 +40,9 @@ const mainNav: NavItem[] = [
   { title: "Today", href: "/", icon: LayoutDashboard },
   { title: "Tasks", href: "/tasks", icon: CheckSquare },
   { title: "Journal", href: "/journal", icon: BookOpen },
-  { title: "My Journey", href: "/journey", icon: Map },
   { title: "Habits", href: "/habits", icon: Repeat },
   { title: "Goals", href: "/goals", icon: Target },
+  { title: "My Journey", href: "/journey", icon: Map },
 ]
 
 const aiNav: NavItem[] = [

@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
-import { CheckCircle2, Flame, Target } from "lucide-react"
+import React, { useState, useMemo } from "react"
+import { CheckCircle2, Flame, Target, GripVertical } from "lucide-react"
 
 interface Habit {
   id: string
@@ -33,12 +33,21 @@ interface Habit {
   paused?: boolean
 }
 
+type TrackerPeriod = "week" | "month" | "year"
+
 interface VerticalViewProps {
   habits: Habit[]
   selectedDate: Date
+  period: TrackerPeriod
   onToggleCell: (habitId: string, date: string) => void
   onEdit: (habit: Habit) => void
   linkedGoals: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
+  draggedId?: string | null
+  dragOverId?: string | null
+  onDragStart?: (id: string) => void
+  onDragOver?: (e: React.DragEvent, id: string) => void
+  onDrop?: (id: string) => void
+  onDragEnd?: () => void
 }
 
 const getScoreColor = (score: number): string => {
@@ -48,65 +57,74 @@ const getScoreColor = (score: number): string => {
   return "#EF4444"
 }
 
+const formatISO = (d: Date): string => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const dd = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${dd}`
+}
+
+const monthNames = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"]
+
 export const VerticalView: React.FC<VerticalViewProps> = ({
   habits,
   selectedDate,
+  period,
   onToggleCell,
   onEdit,
   linkedGoals,
+  draggedId,
+  dragOverId,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
-
-  const year = selectedDate.getFullYear()
-  const month = selectedDate.getMonth()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
   const todayISO = new Date().toISOString().split("T")[0]
-
-  const monthLabel = selectedDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-
-  const formatDayISO = (day: number): string => {
-    const d = new Date(year, month, day)
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, "0")
-    const dd = String(d.getDate()).padStart(2, "0")
-    return `${y}-${m}-${dd}`
-  }
 
   const getLinkedGoal = (habit: Habit) => {
     if (!habit.goal) return null
     return linkedGoals.find((g) => g.title === habit.goal || g.id === habit.goal) || null
   }
 
+  const months = useMemo(() => {
+    if (period === "year") {
+      return Array.from({ length: 12 }, (_, i) => i)
+    }
+    return [selectedDate.getMonth()]
+  }, [period, selectedDate])
+
+  const year = selectedDate.getFullYear()
+
   return (
     <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
-      <div className="p-4 border-b border-white/10">
-        <h3 className="text-lg font-semibold text-foreground">{monthLabel} — Vertical Tracker</h3>
-      </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse min-w-[640px]">
           <thead>
-            <tr className="border-b border-white/10">
-              <th className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left text-sm font-medium text-muted-foreground min-w-[56px] border-r border-white/10">
+            <tr className="border-b border-[#1E0E6B]/10">
+              <th className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-2 text-left text-xs font-medium text-muted-foreground min-w-[52px] border-r border-[#1E0E6B]/10 w-[52px]">
                 Day
               </th>
               {habits.map((habit) => {
                 const goal = getLinkedGoal(habit)
                 return (
-                  <th key={habit.id} className="p-3 text-left min-w-[120px] border-r border-white/10">
-                    <button onClick={() => onEdit(habit)} className="flex flex-col gap-1 hover:opacity-70 transition-opacity text-left w-full">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: habit.colorHex }} />
-                        {habit.icon && <span className="text-base shrink-0">{habit.icon}</span>}
-                        <span className="font-medium text-sm text-[#1E0E6B] truncate">{habit.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 pl-4">
-                        <span className="flex items-center gap-0.5 text-[10px] text-orange-500">
-                          <Flame className="h-2.5 w-2.5" />
-                          {habit.streak}
-                        </span>
-                        <span className="text-[10px] font-medium" style={{ color: getScoreColor(habit.habitScore) }}>
-                          {habit.habitScore}
-                        </span>
+                  <th key={habit.id} className="p-2 text-left min-w-[140px] border-r border-[#1E0E6B]/10">
+                    <button onClick={() => onEdit(habit)} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity text-left w-full">
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: habit.colorHex }} />
+                      {habit.icon && <span className="text-sm shrink-0">{habit.icon}</span>}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium text-xs text-[#1E0E6B] truncate">{habit.name}</span>
+                          {goal && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: goal.colorHex }} />}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
+                          <Flame className="h-2.5 w-2.5 text-orange-500" />
+                          <span className="text-orange-500">{habit.streak}</span>
+                          <span className="text-muted-foreground">Intent Score -</span>
+                          <span className="font-medium" style={{ color: getScoreColor(habit.habitScore) }}>{habit.habitScore}</span>
+                        </div>
                       </div>
                     </button>
                   </th>
@@ -115,61 +133,88 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: daysInMonth }, (_, i) => {
-              const day = i + 1
-              const dateISO = formatDayISO(day)
-              const date = new Date(year, month, day)
-              const isToday = dateISO === todayISO
-              const isWeekend = date.getDay() === 0 || date.getDay() === 6
+            {months.map((month, mi) => {
+              const daysInMonth = new Date(year, month + 1, 0).getDate()
               return (
-                <tr key={day} className={`border-b border-white/5 ${isToday ? "bg-[#1E0E6B]/5" : "hover:bg-white/30"}`}>
-                  <td className={`sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10 ${
-                    isToday ? "bg-[#1E0E6B]/10" : ""
-                  }`}>
-                    <div className="flex flex-col items-center">
-                      <span className={`text-sm font-medium ${isToday ? "text-[#1E0E6B]" : isWeekend ? "text-muted-foreground/60" : "text-foreground"}`}>
-                        {day}
-                      </span>
-                      <span className="text-[10px] uppercase text-muted-foreground">
-                        {date.toLocaleDateString("en-GB", { weekday: "short" })}
-                      </span>
-                    </div>
-                  </td>
-                  {habits.map((habit) => {
-                    const completion = habit.completions[dateISO]
-                    const isCompleted = completion?.completed || false
-                    const isFuture = dateISO > todayISO
-                    const isPaused = habit.paused
-                    const isHovered = hoveredCell?.habitId === habit.id && hoveredCell?.date === dateISO
+                <React.Fragment key={`${year}-${month}`}>
+                  {period === "year" && mi > 0 && (
+                    <tr className="border-b border-[#1E0E6B]/10">
+                      <td colSpan={habits.length + 1} className="p-0" />
+                    </tr>
+                  )}
+                  {Array.from({ length: daysInMonth }, (_, i) => {
+                    const day = i + 1
+                    const dateObj = new Date(year, month, day)
+                    const dateISO = formatISO(dateObj)
+                    const isToday = dateISO === todayISO
+                    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6
+                    const isDragging = draggedId !== undefined
                     return (
-                      <td key={habit.id} className="p-1.5 text-center border-r border-white/5">
-                        <button
-                          onClick={() => !isFuture && !isPaused && onToggleCell(habit.id, dateISO)}
-                          onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateISO })}
-                          onMouseLeave={() => setHoveredCell(null)}
-                          disabled={isFuture || isPaused}
-                          className={`w-7 h-7 rounded-md transition-all mx-auto flex items-center justify-center ${
-                            isFuture || isPaused
-                              ? "cursor-not-allowed opacity-30"
-                              : isCompleted
-                              ? "cursor-pointer hover:scale-110"
-                              : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
-                          }`}
-                          style={isCompleted ? { backgroundColor: habit.colorHex } : undefined}
-                        >
-                          {isCompleted && <CheckCircle2 className="h-4 w-4 text-white" />}
-                        </button>
-                        {isHovered && completion && (
-                          <div className="absolute z-50 mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-white/20 text-xs whitespace-nowrap">
-                            <div className="font-medium">{completion.completed ? "Completed" : "Missed"}</div>
-                            {completion.time && <div className="text-muted-foreground">at {completion.time}</div>}
-                            {completion.notes && <div className="text-muted-foreground mt-1 max-w-[150px] truncate">{completion.notes}</div>}
+                      <tr
+                        key={dateISO}
+                        className={`border-b border-[#1E0E6B]/5 ${isToday ? "bg-[#1E0E6B]/5" : "hover:bg-white/30"}`}
+                      >
+                        <td className={`sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-2 border-r border-[#1E0E6B]/10 ${
+                          isToday ? "bg-[#1E0E6B]/10" : ""
+                        }`}>
+                          <div className="flex flex-col items-center">
+                            {period === "year" && day === 1 && (
+                              <span className="text-[9px] font-semibold text-[#1E0E6B] uppercase tracking-wider mb-0.5">
+                                {monthNames[month]}
+                              </span>
+                            )}
+                            <span className={`text-xs font-medium ${isToday ? "text-[#1E0E6B]" : isWeekend ? "text-muted-foreground/60" : "text-foreground"}`}>
+                              {day}
+                            </span>
+                            <span className="text-[9px] uppercase text-muted-foreground">
+                              {dateObj.toLocaleDateString("en-GB", { weekday: "short" })}
+                            </span>
                           </div>
-                        )}
-                      </td>
+                        </td>
+                        {habits.map((habit) => {
+                          const completion = habit.completions[dateISO]
+                          const isCompleted = completion?.completed || false
+                          const isFuture = dateISO > todayISO
+                          const isPaused = habit.paused
+                          const isHovered = hoveredCell?.habitId === habit.id && hoveredCell?.date === dateISO
+                          const isDragOver = dragOverId === habit.id && dragOverId !== draggedId
+                          return (
+                            <td key={habit.id} className={`p-1 text-center border-r border-[#1E0E6B]/5 ${isDragOver ? "bg-[#1E0E6B]/10" : ""}`}>
+                              <button
+                                draggable
+                                onDragStart={() => onDragStart?.(habit.id)}
+                                onDragOver={(e) => onDragOver?.(e, habit.id)}
+                                onDrop={() => onDrop?.(habit.id)}
+                                onDragEnd={onDragEnd}
+                                onClick={() => !isFuture && !isPaused && onToggleCell(habit.id, dateISO)}
+                                onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateISO })}
+                                onMouseLeave={() => setHoveredCell(null)}
+                                disabled={isFuture || isPaused}
+                                className={`w-6 h-6 rounded-md transition-all mx-auto flex items-center justify-center ${
+                                  isFuture || isPaused
+                                    ? "cursor-not-allowed opacity-30"
+                                    : isCompleted
+                                    ? "cursor-pointer hover:scale-110"
+                                    : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
+                                }`}
+                                style={isCompleted ? { backgroundColor: habit.colorHex } : undefined}
+                              >
+                                {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                              </button>
+                              {isHovered && completion && (
+                                <div className="absolute z-50 mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-white/20 text-xs whitespace-nowrap">
+                                  <div className="font-medium">{completion.completed ? "Completed" : "Missed"}</div>
+                                  {completion.time && <div className="text-muted-foreground">at {completion.time}</div>}
+                                  {completion.notes && <div className="text-muted-foreground mt-1 max-w-[150px] truncate">{completion.notes}</div>}
+                                </div>
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
                     )
                   })}
-                </tr>
+                </React.Fragment>
               )
             })}
           </tbody>

@@ -38,7 +38,6 @@ import {
   Circle,
 } from "lucide-react"
 import { VerticalView } from "./vertical-view"
-import { CircularView } from "./circular-view"
 import { ListView } from "./list-view"
 
 /* ─── Error Boundary ─── */
@@ -119,7 +118,7 @@ interface Habit {
 
 type TrackerPeriod = "week" | "month" | "year"
 type SortMode = "all" | "completed_today" | "not_completed" | "highest_score" | "lowest_score" | "longest_streak" | "newest" | "oldest" | "category" | "category_az" | "category_za" | "habits_az" | "habits_za" | "colour" | "schedule_type"
-type ViewMode = "table" | "vertical" | "circular" | "list"
+type ViewMode = "table" | "vertical" | "list"
 
 const getTodayISO = () => {
   try { return new Date().toISOString().split("T")[0] }
@@ -1098,7 +1097,7 @@ const TrackerView = ({
               onDragOver={(e) => onDragOver?.(e, habit.id)}
               onDrop={() => onDrop?.(habit.id)}
               onDragEnd={onDragEnd}
-              className={`border-b border-white/10 transition-colors cursor-grab active:cursor-grabbing ${isDragging ? "opacity-40" : ""} ${isDragOver ? "border-t-2 border-t-[#1E0E6B]" : ""} hover:bg-white/30 dark:hover:bg-white/5`}>
+              className={`border-b border-[#1E0E6B]/10 transition-colors cursor-grab active:cursor-grabbing ${isDragging ? "opacity-40" : ""} ${isDragOver ? "border-t-2 border-t-[#1E0E6B]" : ""} hover:bg-white/30 dark:hover:bg-white/5`}>
               <td className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: habit.colorHex }} />
               </td>
@@ -1728,7 +1727,7 @@ export function HabitsPage() {
     } catch {}
     try {
       const savedView = localStorage.getItem("intenteo-habits-view") as ViewMode | null
-      if (savedView && ["table", "vertical", "circular", "list"].includes(savedView)) {
+      if (savedView && ["table", "vertical", "list"].includes(savedView)) {
         setActiveView(savedView)
       }
     } catch {}
@@ -1967,7 +1966,6 @@ export function HabitsPage() {
           >
             <option value="table">Table View</option>
             <option value="vertical">Vertical View</option>
-            <option value="circular">Circular View</option>
             <option value="list">List View</option>
           </select>
           <LayoutList className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -2041,21 +2039,16 @@ export function HabitsPage() {
           <VerticalView
             habits={filteredAndSorted}
             selectedDate={selectedDate}
+            period={trackerPeriod}
             onToggleCell={toggleHabit}
             onEdit={(h) => { setEditingHabit(h as any); setIsModalOpen(true) }}
             linkedGoals={linkedGoals}
-          />
-        </HabitsErrorBoundary>
-      )}
-
-      {activeView === "circular" && (
-        <HabitsErrorBoundary fallbackLabel="circular view">
-          <CircularView
-            habits={filteredAndSorted}
-            selectedDate={selectedDate}
-            onToggleCell={toggleHabit}
-            onEdit={(h) => { setEditingHabit(h as any); setIsModalOpen(true) }}
-            linkedGoals={linkedGoals}
+            draggedId={draggedId}
+            dragOverId={dragOverId}
+            onDragStart={handleHabitDragStart}
+            onDragOver={handleHabitDragOver}
+            onDrop={handleHabitDrop}
+            onDragEnd={handleHabitDragEnd}
           />
         </HabitsErrorBoundary>
       )}

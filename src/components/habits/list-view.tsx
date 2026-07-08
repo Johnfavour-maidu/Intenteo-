@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Flame, Target, TrendingUp, Edit3, Trash2, CheckCircle2, Clock, Calendar } from "lucide-react"
+import { Flame, Target, Edit3, Trash2, CheckCircle2, Clock } from "lucide-react"
 
 interface Habit {
   id: string
@@ -44,8 +44,6 @@ interface ListViewProps {
   linkedGoals: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
 }
 
-type CardSortMode = "category" | "score" | "streak" | "completion" | "az" | "newest" | "oldest"
-
 const getScoreColor = (score: number): string => {
   if (score >= 80) return "#22C55E"
   if (score >= 60) return "#EAB308"
@@ -79,7 +77,6 @@ export const ListView: React.FC<ListViewProps> = ({
   onDelete,
   linkedGoals,
 }) => {
-  const [cardSortMode, setCardSortMode] = useState<CardSortMode>("category")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
 
   const todayISO = selectedDate.toISOString().split("T")[0]
@@ -89,56 +86,18 @@ export const ListView: React.FC<ListViewProps> = ({
     return linkedGoals.find((g) => g.title === habit.goal || g.id === habit.goal) || null
   }
 
-  const sortedHabits = useMemo(() => {
-    const sorted = [...habits]
-    switch (cardSortMode) {
-      case "category":
-        return sorted.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
-      case "score":
-        return sorted.sort((a, b) => b.habitScore - a.habitScore)
-      case "streak":
-        return sorted.sort((a, b) => b.streak - a.streak)
-      case "completion":
-        return sorted.sort((a, b) => b.completionRate - a.completionRate)
-      case "az":
-        return sorted.sort((a, b) => a.name.localeCompare(b.name))
-      case "newest":
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      case "oldest":
-        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      default:
-        return sorted
-    }
-  }, [habits, cardSortMode])
-
   const handleQuickComplete = (habit: Habit) => {
     onToggleCell(habit.id, todayISO)
   }
 
   return (
     <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
+      <div className="p-4 border-b border-white/10">
         <h3 className="text-lg font-semibold text-foreground">Habit Cards</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Sort:</span>
-          <select
-            value={cardSortMode}
-            onChange={(e) => setCardSortMode(e.target.value as CardSortMode)}
-            className="text-sm border border-[#1E0E6B]/60 rounded-lg px-2 py-1 bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B]"
-          >
-            <option value="category">Category</option>
-            <option value="score">Score</option>
-            <option value="streak">Streak</option>
-            <option value="completion">Completion</option>
-            <option value="az">A-Z</option>
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-          </select>
-        </div>
       </div>
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedHabits.map((habit) => {
+        {habits.map((habit) => {
           const linkedGoal = getLinkedGoal(habit)
           const isCompletedToday = habit.completions[todayISO]?.completed || false
           return (
