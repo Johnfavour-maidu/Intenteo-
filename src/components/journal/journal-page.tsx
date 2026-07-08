@@ -1073,7 +1073,7 @@ function StarredPanel({
 
 
 /* ────────────────────────────────────────────────────── */
-/* Teo AI Writing Assistant (Fully Functional)           */
+/* Téo AI Writing Assistant (Fully Functional)          */
 /* ────────────────────────────────────────────────────── */
 
 function TeoPanel({ contentText, onInsert, onClose }: { contentText: string; onInsert: (text: string) => void; onClose: () => void }) {
@@ -1508,7 +1508,7 @@ function TeoPanel({ contentText, onInsert, onClose }: { contentText: string; onI
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Teo AI Writing Assistant</span>
+          <span className="text-sm font-semibold">Téo AI Writing Assistant</span>
         </div>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
           <X className="h-3.5 w-3.5" />
@@ -1553,7 +1553,7 @@ function TeoPanel({ contentText, onInsert, onClose }: { contentText: string; onI
       {loading && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
           <Loader2 className="h-3 w-3 animate-spin" />
-          <span>Teo is thinking...</span>
+          <span>Téo is thinking...</span>
         </div>
       )}
 
@@ -1578,7 +1578,7 @@ function TeoPanel({ contentText, onInsert, onClose }: { contentText: string; onI
         <Input
           value={customPrompt}
           onChange={(e) => setCustomPrompt(e.target.value)}
-          placeholder="Ask Teo anything about your writing..."
+          placeholder="Ask Téo anything about your writing..."
           className="text-xs h-8"
           onKeyDown={(e) => {
             if (e.key === "Enter" && customPrompt.trim()) {
@@ -3140,7 +3140,7 @@ function WritingArea({
 
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <div className="flex items-center gap-2">
-            <Tooltip label="Ask Teo">
+            <Tooltip label="Ask Téo">
               <button
                 className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
                 style={{ backgroundColor: "var(--brand-primary)", color: "white" }}

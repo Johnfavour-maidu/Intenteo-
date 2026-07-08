@@ -256,7 +256,7 @@ export function SettingsPage() {
                 { label: "Daily Reminders", desc: "Morning intention and evening reflection", default: true },
                 { label: "Habit Alerts", desc: "Reminders to complete your habits", default: true },
                 { label: "Goal Updates", desc: "Progress on your goals", default: true },
-                { label: "AI Insights", desc: "Personalized recommendations from Téo", default: true },
+                { label: "Téo's Insights", desc: "Personalized recommendations from Téo", default: true },
                 { label: "Social Updates", desc: "Accountability partner activity", default: false },
                 { label: "Marketing", desc: "Product updates and tips", default: false },
               ].map((item) => (
@@ -348,7 +348,7 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { label: "Enable AI Coach", desc: "Receive personalized guidance from Téo", default: true },
+                { label: "Enable Téo", desc: "Receive personalized guidance from Téo", default: true },
                 { label: "Coach Frequency", desc: "Daily check-ins", default: true },
                 { label: "Share Mood Data", desc: "Allow AI to use mood patterns", default: false },
               ].map((item) => (

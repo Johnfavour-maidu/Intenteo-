@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,10 +16,14 @@ import {
   TrendingUp,
   Calendar,
   Brain,
-  Zap,
   BookOpen,
   Heart,
   ArrowRight,
+  RefreshCw,
+  MessageSquare,
+  BarChart3,
+  ListChecks,
+  Zap,
 } from "lucide-react"
 
 interface Message {
@@ -29,23 +33,43 @@ interface Message {
   timestamp: Date
 }
 
-const initialMessages: Message[] = [
-  {
-    id: "1",
-    role: "assistant",
-    content: "Hello! I'm Téo, your AI intentional living coach. I'm here to help you become the person you aspire to be. How can I support you today?",
-    timestamp: new Date(Date.now() - 60000),
-  },
+const promptChips = [
+  { icon: <Calendar className="h-4 w-4" />, label: "Plan my day", color: "from-blue-400 to-cyan-500" },
+  { icon: <RefreshCw className="h-4 w-4" />, label: "Review my habits", color: "from-emerald-400 to-green-500" },
+  { icon: <Target className="h-4 w-4" />, label: "Help me reach my goals", color: "from-amber-400 to-orange-500" },
+  { icon: <BookOpen className="h-4 w-4" />, label: "Summarize my journal", color: "from-violet-400 to-purple-500" },
+  { icon: <Zap className="h-4 w-4" />, label: "What's my next best action?", color: "from-rose-400 to-red-500" },
+  { icon: <BarChart3 className="h-4 w-4" />, label: "How can I improve my Intent Score?", color: "from-indigo-400 to-blue-500" },
+  { icon: <Brain className="h-4 w-4" />, label: "Help me build a better routine", color: "from-cyan-400 to-teal-500" },
+  { icon: <ListChecks className="h-4 w-4" />, label: "Review my week", color: "from-pink-400 to-rose-500" },
 ]
 
-const suggestions = [
-  { icon: <Target className="h-4 w-4" />, label: "Review my goals", color: "from-blue-400 to-cyan-500" },
-  { icon: <Brain className="h-4 w-4" />, label: "Help me make a decision", color: "from-purple-400 to-pink-500" },
-  { icon: <TrendingUp className="h-4 w-4" />, label: "Analyze my patterns", color: "from-emerald-400 to-green-500" },
-  { icon: <Calendar className="h-4 w-4" />, label: "Plan my week", color: "from-amber-400 to-orange-500" },
-  { icon: <Heart className="h-4 w-4" />, label: "Check my wellbeing", color: "from-rose-400 to-red-500" },
-  { icon: <Lightbulb className="h-4 w-4" />, label: "Give me an insight", color: "from-violet-400 to-purple-500" },
+const quickActions = [
+  { icon: <Calendar className="h-4 w-4" />, label: "Plan My Day" },
+  { icon: <RefreshCw className="h-4 w-4" />, label: "Review Habits" },
+  { icon: <MessageSquare className="h-4 w-4" />, label: "Weekly Reflection" },
+  { icon: <Target className="h-4 w-4" />, label: "Goal Check-in" },
+  { icon: <Zap className="h-4 w-4" />, label: "Next Best Action" },
+  { icon: <BookOpen className="h-4 w-4" />, label: "Journal Review" },
 ]
+
+const welcomeMessage: Message = {
+  id: "welcome",
+  role: "assistant",
+  content: `Hi, I'm Téo.
+
+I'm here to help you live more intentionally—not just get more done.
+
+I can help you:
+
+• Plan your day
+• Build lasting habits
+• Reach your goals
+• Reflect through journaling
+• Make better decisions
+• Stay aligned with your Life Vision`,
+  timestamp: new Date(),
+}
 
 const insights = [
   {
@@ -66,32 +90,46 @@ const insights = [
 ]
 
 export function CoachPage() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [messages, setMessages] = useState<Message[]>([welcomeMessage])
   const [inputValue, setInputValue] = useState("")
+  const [showWelcome, setShowWelcome] = useState(true)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSend = (text?: string) => {
+    const content = text || inputValue
+    if (!content.trim()) return
+
+    setShowWelcome(false)
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: inputValue,
+      content: content.trim(),
       timestamp: new Date(),
     }
 
-    setMessages([...messages, userMessage])
+    setMessages(prev => [...prev, userMessage])
     setInputValue("")
 
-    // Simulate AI response
     setTimeout(() => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I understand. Let me think about that... Based on your recent patterns and goals, here's what I suggest: focus on aligning your daily actions with your long-term vision. Your Intent Score has been improving steadily. Keep up the intentional living!",
+        content: "That's a great question. Based on your recent patterns and goals, here's what I recommend: focus on aligning your daily actions with your long-term vision. Your Intent Score has been improving steadily—keep up the intentional living! What else can I help you with?",
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, aiMessage])
     }, 1500)
+  }
+
+  const handleChipClick = (label: string) => {
+    setInputValue(label)
   }
 
   return (
@@ -99,12 +137,12 @@ export function CoachPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">AI Coach</h1>
-          <p className="text-muted-foreground">Your personal intentional living guide</p>
+          <h1 className="text-3xl font-bold tracking-tight">Talk with Téo</h1>
+          <p className="text-muted-foreground">Your personal guide for intentional living.</p>
         </div>
         <Badge variant="outline" className="w-fit">
           <Sparkles className="mr-2 h-4 w-4 text-primary" />
-          Powered by Téo
+          Téo
         </Badge>
       </div>
 
@@ -119,40 +157,71 @@ export function CoachPage() {
                 </div>
                 <div>
                   <CardTitle className="text-lg">Téo</CardTitle>
-                  <p className="text-sm text-muted-foreground">Always here to help</p>
+                  <p className="text-sm text-muted-foreground">Your intentional living companion</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-0">
-              <ScrollArea className="h-full p-4">
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      {message.role === "assistant" && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white text-xs">
-                            T
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                          message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <p className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </p>
+              <ScrollArea className="h-full">
+                <div ref={scrollRef} className="p-4 space-y-4">
+                  {messages.length === 0 ? (
+                    /* Empty State */
+                    <div className="flex flex-col items-center justify-center h-[400px] text-center px-6">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 mb-4">
+                        <Sparkles className="h-8 w-8 text-white" />
                       </div>
+                      <h3 className="text-xl font-semibold mb-2">Every intentional life starts with one conversation.</h3>
+                      <p className="text-muted-foreground">What would you like to work on today?</p>
                     </div>
-                  ))}
+                  ) : (
+                    messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        {message.role === "assistant" && (
+                          <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white text-xs">
+                              T
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                            message.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-line">{message.content}</p>
+                          <p className="text-xs opacity-70 mt-1">
+                            {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
+
+                {/* Prompt Chips (when only welcome or empty) */}
+                {messages.length <= 1 && showWelcome && (
+                  <div className="px-4 pb-4">
+                    <div className="flex flex-wrap gap-2">
+                      {promptChips.map((chip, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleChipClick(chip.label)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-background hover:bg-muted transition-colors"
+                        >
+                          <div className={`flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${chip.color} text-white`}>
+                            {chip.icon}
+                          </div>
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </ScrollArea>
             </CardContent>
             <div className="border-t p-4">
@@ -161,10 +230,10 @@ export function CoachPage() {
                   placeholder="Ask Téo anything..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   className="flex-1"
                 />
-                <Button onClick={handleSend} size="icon">
+                <Button onClick={() => handleSend()} size="icon">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
@@ -181,26 +250,27 @@ export function CoachPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-2">
-                {suggestions.map((suggestion, index) => (
+                {quickActions.map((action, index) => (
                   <Button
                     key={index}
                     variant="outline"
                     className="h-auto py-3 flex flex-col items-center gap-2"
+                    onClick={() => handleChipClick(action.label)}
                   >
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${suggestion.color} text-white`}>
-                      {suggestion.icon}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-purple-600/20 text-primary">
+                      {action.icon}
                     </div>
-                    <span className="text-xs text-center">{suggestion.label}</span>
+                    <span className="text-xs text-center">{action.label}</span>
                   </Button>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* AI Insights */}
+          {/* Insights */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">AI Insights</CardTitle>
+              <CardTitle className="text-lg">Téo&apos;s Insights</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
