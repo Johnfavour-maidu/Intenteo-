@@ -7,6 +7,7 @@ import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { AutosuggestInput } from "@/components/ui/autosuggest-input"
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion"
 import {
   Plus,
@@ -27,7 +28,8 @@ import {
   Copy,
 } from "lucide-react"
 import { useToast, ToastContainer } from "./task-toast"
-import { formatDateDDMMYYYY, formatDateLong } from "@/lib/date-utils"
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
+import { DateInput } from "@/components/ui/date-input"
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   priority: "#EF4444",
@@ -220,62 +222,45 @@ function TimeRangePicker({
   timeRangeType: import("./types").TimeRange
   onTimeRangeTypeChange: (v: import("./types").TimeRange) => void
 }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const dur = calcDurationFromRange(startTime, endTime)
-  const currentLabel = TIME_PRESETS.find((p) => p.value === timeRangeType)?.label || "Anytime"
+
+  const handlePresetClick = (value: import("./types").TimeRange) => {
+    onTimeRangeTypeChange(value)
+    if (value !== "custom" && value !== "anytime") {
+      const s = TIME_PRESET_MAP[value]
+      const e = TIME_PRESET_END[value]
+      if (s && e) onChange(s, e)
+    } else if (value === "anytime") {
+      onChange("09:00", "09:30")
+    }
+  }
 
   return (
     <div className="space-y-3">
-      {/* Time Range Selector */}
-      <div className="relative">
-        <button type="button" onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm flex items-center justify-between hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span>{currentLabel}</span>
-          </div>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
-        </button>
-        {dropdownOpen && (
-          <div className="absolute z-30 mt-1 w-full rounded-xl border bg-background shadow-xl p-1">
-            {TIME_PRESETS.map((preset) => (
-              <button key={preset.value} type="button"
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors text-left ${
-                  timeRangeType === preset.value
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "hover:bg-muted/50 text-foreground"
-                }`}
-                onClick={() => {
-                  onTimeRangeTypeChange(preset.value)
-                  setDropdownOpen(false)
-                  if (preset.value !== "custom" && preset.value !== "anytime") {
-                    const s = TIME_PRESET_MAP[preset.value]
-                    const e = TIME_PRESET_END[preset.value]
-                    if (s && e) onChange(s, e)
-                  } else if (preset.value === "anytime") {
-                    onChange("09:00", "09:30")
-                  }
-                }}>
-                <span>{preset.label}</span>
-                {preset.desc && <span className="text-[11px] text-muted-foreground">{preset.desc}</span>}
-              </button>
-            ))}
-          </div>
-        )}
+      {/* Preset Tabs */}
+      <div className="flex flex-wrap gap-1.5">
+        {TIME_PRESETS.map((preset) => (
+          <button key={preset.value} type="button"
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              timeRangeType === preset.value
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+            onClick={() => handlePresetClick(preset.value)}>
+            <Clock className="h-3 w-3 inline-block mr-1 -mt-0.5" />
+            {preset.label}
+          </button>
+        ))}
       </div>
 
-      {/* Custom Time Inputs */}
-      {timeRangeType === "custom" && (
-        <>
-          <div className="flex items-start gap-3">
-            <CustomTimeInput value={startTime} onChange={(v) => onChange(v, endTime)} label="Start Time" />
-            <CustomTimeInput value={endTime} onChange={(v) => onChange(startTime, v)} label="End Time" />
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center">
-            Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
-          </p>
-        </>
-      )}
+      {/* Start / End Time Inputs — always visible */}
+      <div className="flex items-start gap-3">
+        <CustomTimeInput value={startTime} onChange={(v) => onChange(v, endTime)} label="Start Time" />
+        <CustomTimeInput value={endTime} onChange={(v) => onChange(startTime, v)} label="End Time" />
+      </div>
+      <p className="text-[10px] text-muted-foreground text-center">
+        Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
+      </p>
     </div>
   )
 }
@@ -642,13 +627,11 @@ export function TasksPage() {
     return history
   }, [tasks])
 
-  const todayISO = useMemo(() => new Date().toISOString().split("T")[0], [])
+  const taskTitleSuggestions = useMemo(() => {
+    return [...new Set(tasks.map((t) => t.title.trim()).filter(Boolean))]
+  }, [tasks])
 
-  const isFutureTask = useCallback((task: Task) => {
-    return todayISO < task.date
-  }, [todayISO])
-  const viewingDate = selectedDate || todayISO
-  const isViewingPast = useMemo(() => viewingDate < todayISO, [viewingDate, todayISO])
+  const todayISO = useMemo(() => new Date().toISOString().split("T")[0], [])
 
   // Carry-over: tasks from previous days that are incomplete and not daily
   const carryOverTasks = useMemo(() => {
@@ -659,6 +642,16 @@ export function TasksPage() {
       return true
     })
   }, [tasks, todayISO])
+
+  const viewingDate = selectedDate || todayISO
+  const isViewingPast = useMemo(() => viewingDate < todayISO, [viewingDate, todayISO])
+
+  const isFutureTask = useCallback((task: Task) => {
+    if (task.recurrence === "daily" || task.recurrence === "weekly" || task.recurrence === "monthly") {
+      return viewingDate !== todayISO
+    }
+    return todayISO < task.date
+  }, [viewingDate, todayISO])
 
   const displayTasks = useMemo(() => {
     const tasksForDate = tasks.filter((t) => {
@@ -804,11 +797,11 @@ export function TasksPage() {
 
   const handleMoveToToday = useCallback((movedTasks: Task[]) => {
     setTasks((prev) => prev.map((t) => {
-      if (movedTasks.some((m) => m.id === t.id)) return { ...t, deadline: "Today" }
+      if (movedTasks.some((m) => m.id === t.id)) return { ...t, deadline: "Today", date: todayISO }
       return t
     }))
     addToast(`${movedTasks.length} unfinished task${movedTasks.length !== 1 ? "s" : ""} moved to today.`)
-  }, [addToast])
+  }, [addToast, todayISO])
 
   const handleCreateTask = useCallback(() => {
     if (!formTitle.trim()) return
@@ -1309,7 +1302,7 @@ export function TasksPage() {
 
                     {task.subtasks.length > 0 && (
                       <div className="mb-3 space-y-1">
-                        {task.subtasks.slice(0, isExpanded ? undefined : 3).map((sub) => (
+                        {isExpanded && task.subtasks.map((sub) => (
                           <div key={sub.id} className="flex items-center gap-2">
                             <button onClick={() => toggleSubtask(task.id, sub.id)} className="shrink-0">
                               {sub.completed ? (
@@ -1323,9 +1316,14 @@ export function TasksPage() {
                             <span className={`text-[11px] ${sub.completed ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
                           </div>
                         ))}
-                        {task.subtasks.length > 3 && !isExpanded && (
-                          <button onClick={() => toggleExpanded(task.id)} className="text-[11px] text-primary hover:underline pl-5">+{task.subtasks.length - 3} more</button>
-                        )}
+                        <button onClick={() => toggleExpanded(task.id)}
+                          className="text-[11px] text-primary hover:underline pl-1 flex items-center gap-1">
+                          {isExpanded ? (
+                            <><ChevronDown className="h-3 w-3" /> Hide subtasks</>
+                          ) : (
+                            <><ChevronRight className="h-3 w-3" /> {task.subtasks.length} subtask{task.subtasks.length !== 1 ? "s" : ""}</>
+                          )}
+                        </button>
                       </div>
                     )}
 
@@ -1615,20 +1613,20 @@ export function TasksPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Task Name</label>
-                    <Input placeholder="What needs to be done?"
+                    <AutosuggestInput placeholder="What needs to be done?"
                       value={editingTask ? editingTask.title : formTitle}
                       onChange={(e) => editingTask ? setEditingTask({ ...editingTask, title: e.target.value }) : setFormTitle(e.target.value)}
+                      suggestions={taskTitleSuggestions}
                       className="mt-1" autoFocus />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Task Date</label>
-                    <input
-                      type="date"
-                      lang="en-GB"
-                      value={editingTask ? editingTask.date : formDate}
-                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, date: e.target.value }) : setFormDate(e.target.value)}
-                      className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    />
+                    <div className="mt-1">
+                      <DateInput
+                        value={editingTask ? editingTask.date : formDate}
+                        onChange={(v) => editingTask ? setEditingTask({ ...editingTask, date: v }) : setFormDate(v)}
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Subtasks</label>
