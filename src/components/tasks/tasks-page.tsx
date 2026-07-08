@@ -25,6 +25,7 @@ import {
   StopCircle,
 } from "lucide-react"
 import { useToast, ToastContainer } from "./task-toast"
+import { formatDateDDMMYYYY, formatDateLong } from "@/lib/date-utils"
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   priority: "#EF4444",
@@ -127,61 +128,149 @@ function calcDurationFromRange(start: string, end: string): number {
 /* Time Range Picker                                     */
 /* ────────────────────────────────────────────────────── */
 
+const TIME_PRESETS = [
+  { value: "anytime" as const, label: "Anytime", desc: "" },
+  { value: "morning" as const, label: "Morning", desc: "6:00 AM – 11:59 AM" },
+  { value: "afternoon" as const, label: "Afternoon", desc: "12:00 PM – 4:59 PM" },
+  { value: "evening" as const, label: "Evening", desc: "5:00 PM – 8:59 PM" },
+  { value: "night" as const, label: "Night", desc: "9:00 PM – 5:59 AM" },
+  { value: "custom" as const, label: "Custom Time", desc: "Set start & end" },
+]
+
+const TIME_PRESET_MAP: Record<string, string> = {
+  morning: "06:00",
+  afternoon: "12:00",
+  evening: "17:00",
+  night: "21:00",
+}
+const TIME_PRESET_END: Record<string, string> = {
+  morning: "11:59",
+  afternoon: "16:59",
+  evening: "20:59",
+  night: "05:59",
+}
+
+function CustomTimeInput({
+  value,
+  onChange,
+  label,
+}: {
+  value: string
+  onChange: (v: string) => void
+  label: string
+}) {
+  const parsed = parseTime(value) || { hour: 9, minute: 0 }
+  const isPM = parsed.hour >= 12
+  const h12 = parsed.hour === 0 ? 12 : parsed.hour > 12 ? parsed.hour - 12 : parsed.hour
+
+  const setHour = (h: number) => {
+    let full = h
+    if (isPM && h !== 12) full = h + 12
+    if (!isPM && h === 12) full = 0
+    onChange(formatTimeSelection(full, parsed.minute))
+  }
+  const setMin = (m: number) => onChange(formatTimeSelection(parsed.hour, m))
+  const toggleAmPm = () => {
+    if (isPM) {
+      const h = parsed.hour === 12 ? 0 : parsed.hour - 12
+      onChange(formatTimeSelection(h, parsed.minute))
+    } else {
+      const h = parsed.hour === 12 ? 12 : parsed.hour + 12
+      onChange(formatTimeSelection(h, parsed.minute))
+    }
+  }
+
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1)
+  const mins = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+
+  return (
+    <div className="flex-1">
+      <span className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <select value={h12} onChange={(e) => setHour(Number(e.target.value))}
+          className="flex-1 h-10 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+          {hours.map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}</option>)}
+        </select>
+        <span className="text-muted-foreground font-medium">:</span>
+        <select value={parsed.minute} onChange={(e) => setMin(Number(e.target.value))}
+          className="flex-1 h-10 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+          {mins.map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
+        </select>
+        <button type="button" onClick={toggleAmPm}
+          className="h-10 px-3 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm font-medium hover:bg-muted/50 transition-colors cursor-pointer">
+          {isPM ? "PM" : "AM"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function TimeRangePicker({
   startTime,
   endTime,
   onChange,
-  anyTime,
-  onToggleAnyTime,
+  timeRangeType,
+  onTimeRangeTypeChange,
 }: {
   startTime: string
   endTime: string
   onChange: (start: string, end: string) => void
-  anyTime: boolean
-  onToggleAnyTime: (v: boolean) => void
+  timeRangeType: import("./types").TimeRange
+  onTimeRangeTypeChange: (v: import("./types").TimeRange) => void
 }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const dur = calcDurationFromRange(startTime, endTime)
+  const currentLabel = TIME_PRESETS.find((p) => p.value === timeRangeType)?.label || "Anytime"
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-2">
-        <button
-          type="button"
-          onClick={() => onToggleAnyTime(!anyTime)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors ${
-            anyTime
-              ? "border-primary bg-primary/10 text-primary font-medium"
-              : "border-muted hover:bg-muted/50 text-muted-foreground"
-          }`}
-        >
-          <Clock className="h-3 w-3" />
-          Anytime
+      {/* Time Range Selector */}
+      <div className="relative">
+        <button type="button" onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="w-full h-10 px-3 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm flex items-center justify-between hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span>{currentLabel}</span>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
         </button>
+        {dropdownOpen && (
+          <div className="absolute z-30 mt-1 w-full rounded-xl border bg-background shadow-xl p-1">
+            {TIME_PRESETS.map((preset) => (
+              <button key={preset.value} type="button"
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                  timeRangeType === preset.value
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-foreground"
+                }`}
+                onClick={() => {
+                  onTimeRangeTypeChange(preset.value)
+                  setDropdownOpen(false)
+                  if (preset.value !== "custom" && preset.value !== "anytime") {
+                    const s = TIME_PRESET_MAP[preset.value]
+                    const e = TIME_PRESET_END[preset.value]
+                    if (s && e) onChange(s, e)
+                  } else if (preset.value === "anytime") {
+                    onChange("09:00", "09:30")
+                  }
+                }}>
+                <span>{preset.label}</span>
+                {preset.desc && <span className="text-[11px] text-muted-foreground">{preset.desc}</span>}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      {!anyTime && (
+
+      {/* Custom Time Inputs */}
+      {timeRangeType === "custom" && (
         <>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <span className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Start Time</span>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => onChange(e.target.value, endTime)}
-                className="w-full px-3 py-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div className="flex-1">
-              <span className="text-[11px] font-medium text-muted-foreground mb-1.5 block">End Time</span>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => onChange(startTime, e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
+          <div className="flex items-start gap-3">
+            <CustomTimeInput value={startTime} onChange={(v) => onChange(v, endTime)} label="Start Time" />
+            <CustomTimeInput value={endTime} onChange={(v) => onChange(startTime, v)} label="End Time" />
           </div>
           <p className="text-[10px] text-muted-foreground text-center">
-            Duration: {dur > 0 ? formatDuration(dur) : "—"}
+            Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
           </p>
         </>
       )}
@@ -363,7 +452,7 @@ function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
 }) {
   const incomplete = tasks.filter((t) => t.recurrence === "daily" ? !(t.dailyCompletions || {})[date] : !t.completed)
   const completed = tasks.filter((t) => t.recurrence === "daily" ? !!(t.dailyCompletions || {})[date] : t.completed)
-  const displayDate = new Date(date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric" })
+  const displayDate = formatDateLong(date)
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
@@ -475,10 +564,16 @@ export function TasksPage() {
   const [formEndHour, setFormEndHour] = useState(9)
   const [formEndMin, setFormEndMin] = useState(30)
   const [formRecurrence, setFormRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
+  const [formRecurrenceInterval, setFormRecurrenceInterval] = useState(1)
+  const [formRecurrenceWeekdays, setFormRecurrenceWeekdays] = useState<number[]>([])
   const [formSubtasks, setFormSubtasks] = useState<{ id: string; title: string; completed: boolean }[]>([])
   const [formDate, setFormDate] = useState<string>(() => new Date().toISOString().split("T")[0])
-  const [formAnyTime, setFormAnyTime] = useState(false)
+  const [formTimeRangeType, setFormTimeRangeType] = useState<import("./types").TimeRange>("anytime")
+  const [formLinkedHabitId, setFormLinkedHabitId] = useState("")
+  const [formLinkedGoalId, setFormLinkedGoalId] = useState("")
+  const [formIntention, setFormIntention] = useState("")
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
+  const [carryOverOpen, setCarryOverOpen] = useState(false)
 
   const taskHistory = useMemo(() => {
     const history: Record<string, Task[]> = {}
@@ -507,6 +602,17 @@ export function TasksPage() {
   const todayISO = useMemo(() => new Date().toISOString().split("T")[0], [])
   const viewingDate = selectedDate || todayISO
   const isViewingPast = useMemo(() => viewingDate < todayISO, [viewingDate, todayISO])
+
+  // Carry-over: tasks from previous days that are incomplete and not daily
+  const carryOverTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (t.date >= todayISO) return false
+      if (t.recurrence === "daily") return false
+      if (t.completed) return false
+      return true
+    })
+  }, [tasks, todayISO])
+
   const displayTasks = useMemo(() => {
     const tasksForDate = tasks.filter((t) => {
       if (t.date === viewingDate) return true
@@ -623,21 +729,29 @@ export function TasksPage() {
     const endStr = formatTimeSelection(formEndHour, formEndMin)
     const dur = calcDurationFromRange(startStr, endStr)
     const filteredSubs = formSubtasks.filter((s) => s.title.trim()).map((s) => ({ ...s, id: `sub-${Date.now()}-${s.id}`, completed: false }))
-    const timeRange = formAnyTime ? "Anytime" : `${startStr} \u2013 ${endStr}`
+    const isAnytime = formTimeRangeType === "anytime"
+    const timeRange = isAnytime ? "Anytime" : `${startStr} \u2013 ${endStr}`
     const newTask: Task = {
       id: `new-${Date.now()}`, title: formTitle, whyItMatters: formWhy, priority: formPriority,
       deadline: formDate === todayISO ? "Today" : new Date(formDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" }),
-      date: formDate, dueTime: formAnyTime ? "Anytime" : startStr, timeRange,
-      estimatedDuration: formAnyTime ? 0 : (dur > 0 ? dur : 30), notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
+      date: formDate, dueTime: isAnytime ? "Anytime" : startStr, timeRange, timeRangeType: formTimeRangeType,
+      estimatedDuration: isAnytime ? 0 : (dur > 0 ? dur : 30), notes: "", subtasks: filteredSubs, recurrence: formRecurrence,
+      recurrenceInterval: formRecurrenceInterval, recurrenceWeekdays: formRecurrenceWeekdays,
       completed: false, order: tasks.length, createdAt: new Date().toISOString(),
       dailyCompletions: formRecurrence === "daily" ? { [formDate]: false } : undefined,
+      linkedHabitId: formLinkedHabitId || undefined,
+      linkedGoalId: formLinkedGoalId || undefined,
+      todayIntention: formIntention || undefined,
     }
     setTasks((prev) => [...prev, newTask])
     setFormTitle(""); setFormWhy(""); setFormPriority("progress")
     setFormStartHour(9); setFormStartMin(0)
     setFormEndHour(9); setFormEndMin(30)
-    setFormRecurrence("none"); setFormSubtasks([]); setFormDate(todayISO); setFormAnyTime(false); setCreateOpen(false)
-  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formSubtasks, formDate, formAnyTime, todayISO, tasks.length])
+    setFormRecurrence("none"); setFormRecurrenceInterval(1); setFormRecurrenceWeekdays([])
+    setFormSubtasks([]); setFormDate(todayISO)
+    setFormTimeRangeType("anytime"); setFormLinkedHabitId(""); setFormLinkedGoalId(""); setFormIntention("")
+    setCreateOpen(false)
+  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formRecurrenceInterval, formRecurrenceWeekdays, formSubtasks, formDate, formTimeRangeType, formLinkedHabitId, formLinkedGoalId, formIntention, todayISO, tasks.length])
 
   const handleSaveEdit = useCallback(() => {
     if (!editingTask) return
@@ -1160,7 +1274,7 @@ export function TasksPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Tasks{selectedDate ? ` \u2014 ${new Date(selectedDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}` : " \u2014 Today"}
+              Tasks{selectedDate ? ` \u2014 ${formatDateLong(selectedDate)}` : " \u2014 Today"}
             </h1>
             <p className="text-sm text-foreground mt-0.5 tracking-tight">
               <span style={{ color: "var(--brand-primary)" }}>{totalToday}</span> <span className="text-foreground">Tasks</span>{" \u00B7 "}
@@ -1234,12 +1348,51 @@ export function TasksPage() {
           </motion.div>
         )}
 
+        {/* Carry-Over Notification Badge */}
+        {carryOverTasks.length > 0 && !selectedDate && (
+          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-3">
+            <button onClick={() => setCarryOverOpen(!carryOverOpen)}
+              className="w-full px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors">
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                <span className="font-medium">{carryOverTasks.length} Carry Over Task{carryOverTasks.length !== 1 ? "s" : ""}</span>
+              </div>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${carryOverOpen ? "rotate-180" : ""}`} />
+            </button>
+            <AnimatePresence>
+              {carryOverOpen && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden">
+                  <div className="mt-1 p-3 rounded-lg border bg-background shadow-sm space-y-2">
+                    <p className="text-[11px] text-muted-foreground">{carryOverTasks.length} unfinished task{carryOverTasks.length !== 1 ? "s" : ""} from previous days.</p>
+                    <div className="space-y-1">
+                      {carryOverTasks.slice(0, 5).map((t) => (
+                        <div key={t.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <PriorityDot priority={t.priority} />
+                          <span className="truncate">{t.title}</span>
+                          <span className="text-[10px] ml-auto shrink-0">{formatDateDDMMYYYY(t.date)}</span>
+                        </div>
+                      ))}
+                      {carryOverTasks.length > 5 && <p className="text-[10px] text-muted-foreground">+{carryOverTasks.length - 5} more</p>}
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" className="h-7 text-xs flex-1" onClick={() => { handleMoveToToday(carryOverTasks); setCarryOverOpen(false) }}>Move All</Button>
+                      <Button variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={() => setCarryOverOpen(false)}>Ignore</Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+
         {/* Viewing Past Day Banner */}
         {isViewingPast && selectedDate && (
           <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
             className="mb-3 px-3 py-2 rounded-lg bg-muted/50 border text-xs flex items-center justify-between">
             <span className="text-muted-foreground">
-              Viewing tasks for <span className="font-medium text-foreground">{new Date(selectedDate + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric" })}</span>
+              Viewing tasks for <span className="font-medium text-foreground">{formatDateLong(selectedDate)}</span>
               {" \u2014 "}{displayTasks.length} tasks, {completedToday} completed. Tasks are read-only.
             </span>
             <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => { setSelectedDate(null); setDayHistory(null) }}>
@@ -1383,12 +1536,13 @@ export function TasksPage() {
                             if (en) { setFormEndHour(en.hour); setFormEndMin(en.minute) }
                           }
                         }}
-                        anyTime={editingTask ? editingTask.timeRange === "Anytime" : formAnyTime}
-                        onToggleAnyTime={(v) => {
+                        timeRangeType={editingTask ? (editingTask.timeRangeType || "anytime") : formTimeRangeType}
+                        onTimeRangeTypeChange={(v) => {
                           if (editingTask) {
-                            setEditingTask({ ...editingTask, timeRange: v ? "Anytime" : "09:00 \u2013 09:30", dueTime: v ? "Anytime" : "09:00" })
+                            const isAnytime = v === "anytime"
+                            setEditingTask({ ...editingTask, timeRangeType: v, timeRange: isAnytime ? "Anytime" : editingTask.timeRange, dueTime: isAnytime ? "Anytime" : editingTask.dueTime })
                           } else {
-                            setFormAnyTime(v)
+                            setFormTimeRangeType(v)
                           }
                         }} />
                     </div>
@@ -1403,12 +1557,105 @@ export function TasksPage() {
                         </Button>
                       ))}
                     </div>
+                    {/* Weekly interval & weekday selector */}
+                    {(editingTask ? editingTask.recurrence : formRecurrence) === "weekly" && (
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground">Every</span>
+                          <select
+                            value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
+                            onChange={(e) => {
+                              const v = Number(e.target.value)
+                              editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
+                            }}
+                            className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+                            {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                          <span className="text-[11px] text-muted-foreground">week{((editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval) > 1) ? "s" : ""}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day, i) => {
+                            const weekdays = editingTask ? (editingTask.recurrenceWeekdays || []) : formRecurrenceWeekdays
+                            const isSelected = weekdays.includes(i)
+                            return (
+                              <button key={day} type="button"
+                                className={`h-7 w-7 rounded-full text-[10px] font-medium transition-colors ${
+                                  isSelected ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                                }`}
+                                onClick={() => {
+                                  const newDays = isSelected ? weekdays.filter((d) => d !== i) : [...weekdays, i]
+                                  editingTask ? setEditingTask({ ...editingTask, recurrenceWeekdays: newDays }) : setFormRecurrenceWeekdays(newDays)
+                                }}>
+                                {day}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Monthly interval */}
+                    {(editingTask ? editingTask.recurrence : formRecurrence) === "monthly" && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground">Every</span>
+                        <select
+                          value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
+                          onChange={(e) => {
+                            const v = Number(e.target.value)
+                            editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
+                          }}
+                          className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+                          {[1, 2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                        <span className="text-[11px] text-muted-foreground">month{((editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval) > 1) ? "s" : ""}</span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Why It Matters</label>
                     <Input placeholder="Optional: Why is this important?"
                       value={editingTask ? editingTask.whyItMatters : formWhy}
                       onChange={(e) => editingTask ? setEditingTask({ ...editingTask, whyItMatters: e.target.value }) : setFormWhy(e.target.value)}
+                      className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Linked Habit</label>
+                    <select
+                      value={editingTask ? (editingTask.linkedHabitId || "") : formLinkedHabitId}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, linkedHabitId: e.target.value || undefined }) : setFormLinkedHabitId(e.target.value)}
+                      className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer">
+                      <option value="">None</option>
+                      {(() => {
+                        try {
+                          const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
+                          return habits.map((h: { id: string; name: string }) => (
+                            <option key={h.id} value={h.id}>{h.name}</option>
+                          ))
+                        } catch { return [] }
+                      })()}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Linked Goal</label>
+                    <select
+                      value={editingTask ? (editingTask.linkedGoalId || "") : formLinkedGoalId}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, linkedGoalId: e.target.value || undefined }) : setFormLinkedGoalId(e.target.value)}
+                      className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer">
+                      <option value="">None</option>
+                      {(() => {
+                        try {
+                          const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
+                          return goals.map((g: { id: string; title: string }) => (
+                            <option key={g.id} value={g.id}>{g.title}</option>
+                          ))
+                        } catch { return [] }
+                      })()}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Today&apos;s Intention</label>
+                    <Input placeholder="Optional: What's the intention behind this task?"
+                      value={editingTask ? (editingTask.todayIntention || "") : formIntention}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, todayIntention: e.target.value || undefined }) : setFormIntention(e.target.value)}
                       className="mt-1" />
                   </div>
                 </div>

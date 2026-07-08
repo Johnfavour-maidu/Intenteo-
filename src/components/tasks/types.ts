@@ -1,6 +1,7 @@
 export type TaskPriority = "priority" | "progress" | "maintenance"
 export type Recurrence = "none" | "daily" | "weekly" | "monthly" | "yearly"
 export type TaskView = "table" | "list"
+export type TimeRange = "anytime" | "morning" | "afternoon" | "evening" | "night" | "custom"
 
 export interface Subtask {
   id: string
@@ -17,12 +18,18 @@ export interface Task {
   date: string
   dueTime: string
   timeRange: string
+  timeRangeType: TimeRange
   estimatedDuration: number
   notes: string
   subtasks: Subtask[]
   recurrence: Recurrence
+  recurrenceInterval?: number
+  recurrenceWeekdays?: number[]
   completed: boolean
   order: number
   createdAt: string
   dailyCompletions?: Record<string, boolean>
+  linkedHabitId?: string
+  linkedGoalId?: string
+  todayIntention?: string
 }
