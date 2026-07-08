@@ -169,7 +169,7 @@ function CustomTimeInput({
   const setMin = (m: number) => onChange(formatTimeSelection(parsed.hour, m))
 
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const mins = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+  const mins = Array.from({ length: 60 }, (_, i) => i)
 
   return (
     <div className="flex-1">
@@ -429,59 +429,6 @@ function TaskHistoryCalendar({ taskHistory, onSelectDate, onClose, selectedDate 
 }
 
 /* ────────────────────────────────────────────────────── */
-/* Day History View                                      */
-/* ────────────────────────────────────────────────────── */
-
-function DayHistoryView({ date, tasks, onClose, onMoveToToday }: {
-  date: string
-  tasks: Task[]
-  onClose: () => void
-  onMoveToToday: (tasks: Task[]) => void
-}) {
-  const incomplete = tasks.filter((t) => t.recurrence === "daily" ? !(t.dailyCompletions || {})[date] : !t.completed)
-  const completed = tasks.filter((t) => t.recurrence === "daily" ? !!(t.dailyCompletions || {})[date] : t.completed)
-  const displayDate = formatDateLong(date)
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-      className="rounded-2xl border bg-card p-4 mb-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-sm font-semibold">{displayDate}</h3>
-          <p className="text-[10px] text-muted-foreground">{tasks.length} tasks, {completed.length} completed</p>
-        </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      <div className="space-y-1.5">
-        {tasks.map((task) => {
-          const isCompleted = task.recurrence === "daily" ? !!(task.dailyCompletions || {})[date] : task.completed
-          return (
-            <div key={task.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${isCompleted ? "bg-muted/30" : "bg-muted/50"}`}>
-              <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${isCompleted ? "border-primary bg-primary" : "border-muted-foreground/30"}`}>
-                {isCompleted && <svg className="h-2 w-2 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-              </div>
-              <span className={`flex-1 ${isCompleted ? "line-through text-muted-foreground" : ""}`}>{task.title}</span>
-              <span className="text-muted-foreground">{task.timeRange}</span>
-            </div>
-          )
-        })}
-      </div>
-      {incomplete.length > 0 && (
-        <div className="mt-3 pt-3 border-t">
-          <p className="text-xs text-muted-foreground mb-2">Move {incomplete.length} unfinished task{incomplete.length !== 1 ? "s" : ""} to today?</p>
-          <div className="flex gap-2">
-            <Button size="sm" className="h-7 text-xs" onClick={() => { onMoveToToday(incomplete); onClose() }}>Move All</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onClose}>Cancel</Button>
-          </div>
-        </div>
-      )}
-    </motion.div>
-  )
-}
-
-/* ────────────────────────────────────────────────────── */
 /* Empty State                                            */
 /* ────────────────────────────────────────────────────── */
 
@@ -538,7 +485,6 @@ export function TasksPage() {
   const [movePopoverTaskId, setMovePopoverTaskId] = useState<string | null>(null)
   const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
-  const [dayHistory, setDayHistory] = useState<{ date: string; tasks: Task[] } | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isListening, setIsListening] = useState(false)
   const [voiceStatus, setVoiceStatus] = useState("")
@@ -572,7 +518,6 @@ export function TasksPage() {
   useEffect(() => {
     if (pathname !== "/tasks") {
       setSelectedDate(null)
-      setDayHistory(null)
       setCarryOverOpen(false)
       setExpandedTasks(new Set())
       setExpandAll(false)
@@ -592,7 +537,6 @@ export function TasksPage() {
   // Always start on today's date - clear any stale selectedDate on mount
   useEffect(() => {
     setSelectedDate(null)
-    setDayHistory(null)
     setCarryOverOpen(false)
   }, [])
 
@@ -924,7 +868,7 @@ export function TasksPage() {
     const h = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setCreateOpen(false); setMovePopoverTaskId(null); setMoveSubtaskInfo(null)
-        setEditingTask(null); setCalendarOpen(false); setDayHistory(null)
+        setEditingTask(null); setCalendarOpen(false)
       }
     }
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
@@ -1405,7 +1349,7 @@ export function TasksPage() {
                 <button
                   className="h-9 w-9 rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
                   style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
-                  onClick={() => { setCalendarOpen(!calendarOpen); setDayHistory(null) }}>
+                  onClick={() => setCalendarOpen(!calendarOpen)}>
                   <Calendar className="h-4 w-4" />
                 </button>
               </Tooltip>
@@ -1413,7 +1357,7 @@ export function TasksPage() {
                 {calendarOpen && (
                   <TaskHistoryCalendar
                     taskHistory={taskHistory}
-                    onSelectDate={(date, histTasks) => { setSelectedDate(date); setDayHistory({ date, tasks: histTasks }); setCalendarOpen(false) }}
+                    onSelectDate={(date, histTasks) => { setSelectedDate(date); setCalendarOpen(false) }}
                     onClose={() => setCalendarOpen(false)}
                     selectedDate={selectedDate} />
                 )}
@@ -1557,14 +1501,6 @@ export function TasksPage() {
           </div>
         )}
 
-        {/* Day History View */}
-        <AnimatePresence>
-          {dayHistory && (
-            <DayHistoryView date={dayHistory.date} tasks={dayHistory.tasks}
-              onClose={() => setDayHistory(null)} onMoveToToday={handleMoveToToday} />
-          )}
-        </AnimatePresence>
-
         {activeView === "list" ? renderListView() : renderBoardView()}
 
         {/* Viewing Past Day Banner — below task list */}
@@ -1575,7 +1511,7 @@ export function TasksPage() {
               Viewing tasks for <span className="font-medium text-foreground">{formatDateLong(selectedDate)}</span>
               {" \u2014 "}{displayTasks.length} tasks, {completedToday} completed. Tasks are read-only.
             </span>
-            <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => { setSelectedDate(null); setDayHistory(null) }}>
+            <Button variant="ghost" size="sm" className="h-6 text-xs ml-3" onClick={() => setSelectedDate(null)}>
               Back to Today
             </Button>
           </motion.div>
