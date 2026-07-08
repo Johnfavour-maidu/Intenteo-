@@ -37,6 +37,9 @@ export interface Task {
   deletedDates?: string[]
   linkedHabitId?: string
   linkedGoalId?: string
+  linkedProjectId?: string
+  category?: string
+  contributionPercent?: number
   todayIntention?: string
   reminder?: boolean
 }

@@ -1667,15 +1667,32 @@ export function TasksPage() {
           )}
         </AnimatePresence>
 
-        {/* Expand/Collapse All */}
-        {sortedTasks.length > 0 && sortedTasks.some((t) => t.subtasks.length > 0) && (
-          <div className="mb-3">
+        {/* Expand/Collapse All + Sort */}
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          {sortedTasks.length > 0 && sortedTasks.some((t) => t.subtasks.length > 0) && (
             <button onClick={() => setExpandAll(!expandAll)}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
               {expandAll ? "\u25BC Collapse All Subtasks" : "\u25B6 Expand All Subtasks"}
             </button>
-          </div>
-        )}
+          )}
+
+          {/* Sort Dropdown */}
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
+            className="h-8 px-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer sm:ml-auto">
+            <option value="manual">Sort: Manual</option>
+            <option value="time-asc">Sort: Earliest First</option>
+            <option value="time-desc">Sort: Latest First</option>
+            <option value="priority">Sort: Priority</option>
+            <option value="completion">Sort: Incomplete First</option>
+            <option value="dueDate">Sort: Due Date</option>
+            <option value="alpha-asc">Sort: A-Z</option>
+            <option value="alpha-desc">Sort: Z-A</option>
+            <option value="duration">Sort: Shortest First</option>
+            <option value="recentlyEdited">Sort: Recently Edited</option>
+          </select>
+        </div>
 
         {activeView === "list" ? renderListView() : renderBoardView()}
 
@@ -2091,6 +2108,322 @@ export function TasksPage() {
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Task Relationships (expandable section)                */
+/* ────────────────────────────────────────────────────── */
+
+function TaskRelationships({ task, goals, habits, projects, router }: {
+  task: Task
+  goals: { id: string; title: string }[]
+  habits: { id: string; name: string }[]
+  projects: { id: string; name: string }[]
+  router: ReturnType<typeof useRouter>
+}) {
+  const goal = task.linkedGoalId ? goals.find((g) => g.id === task.linkedGoalId) : null
+  const habit = task.linkedHabitId ? habits.find((h) => h.id === task.linkedHabitId) : null
+  const project = task.linkedProjectId ? projects.find((p) => p.id === task.linkedProjectId) : null
+
+  const hasAny = goal || habit || project || task.category || task.contributionPercent !== undefined
+  if (!hasAny) return null
+
+  const Row = ({ label, value, onClick }: { label: string; value: string; onClick?: () => void }) => (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      {onClick ? (
+        <button onClick={onClick} className="text-xs font-medium text-primary hover:underline truncate max-w-[60%] text-right">{value}</button>
+      ) : (
+        <span className="text-xs font-medium truncate max-w-[60%] text-right">{value}</span>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="mt-3 pt-3 border-t border-dashed border-muted-foreground/20">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Crosshair className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Relationships</span>
+      </div>
+
+      <div className="space-y-0.5">
+        {goal && <Row label="Goal" value={goal.title} onClick={() => router.push("/goals")} />}
+        {habit && <Row label="Habit" value={habit.name} onClick={() => router.push("/habits")} />}
+        {project && <Row label="Project" value={project.name} onClick={() => router.push("/projects")} />}
+        {task.category && <Row label="Category" value={task.category} />}
+        {task.contributionPercent !== undefined && <Row label="Contribution" value={`${task.contributionPercent}%`} />}
+      </div>
+
+      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
+        <span>Life Vision</span>
+        <ArrowUp className="h-2.5 w-2.5 rotate-90" />
+        <span>Goal</span>
+        <ArrowUp className="h-2.5 w-2.5 rotate-90" />
+        <span>Project</span>
+        <ArrowUp className="h-2.5 w-2.5 rotate-90" />
+        <span>Task</span>
+      </div>
+
+      {(goal || task.contributionPercent !== undefined) && (
+        <div className="mt-2 flex items-start gap-1.5 p-2 rounded-lg bg-primary/5 border border-primary/10">
+          <Sparkles className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+          <p className="text-[10px] text-muted-foreground leading-snug">
+            <span className="font-medium text-foreground">Téo Suggests</span> — This task contributes approximately{" "}
+            <span className="font-semibold text-primary">{task.contributionPercent ?? 15}%</span>{" "}
+            toward your <span className="font-medium">{goal?.title ?? "goal"}</span>.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Focus Mode Overlay                                     */
+/* ────────────────────────────────────────────────────── */
+
+function FocusMode({ task, onExit, onComplete }: {
+  task: Task
+  onExit: () => void
+  onComplete: () => void
+}) {
+  const [paused, setPaused] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+  const [timerMinutes, setTimerMinutes] = useState(25)
+  const [timerActive, setTimerActive] = useState(false)
+  const [interceptions, setInterceptions] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!paused) setSeconds((s) => s + 1)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [paused])
+
+  useEffect(() => {
+    if (!timerActive) return
+    const remaining = timerMinutes * 60 - seconds
+    if (remaining <= 0) setTimerActive(false)
+  }, [seconds, timerMinutes, timerActive])
+
+  const totalDuration = task.estimatedDuration || 60
+  const elapsed = task.estimatedDuration ? Math.min(seconds / 60 / (totalDuration / 60) * 100, 100) : 0
+  const progressPct = timerActive ? Math.min((seconds / (timerMinutes * 60)) * 100, 100) : elapsed
+
+  const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+  const remaining = Math.max(timerMinutes * 60 - seconds, 0)
+  const completedSubs = task.subtasks.filter((s) => s.completed).length
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-background flex flex-col">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-2xl mx-auto w-full">
+        <div className="flex items-center gap-2 text-muted-foreground mb-8">
+          <Target className="h-4 w-4" />
+          <span className="text-xs font-medium uppercase tracking-wider">Focus Mode</span>
+        </div>
+
+        <h1 className="text-3xl font-bold tracking-tight text-center mb-8">{task.title}</h1>
+
+        {/* Progress */}
+        <div className="w-full max-w-md mb-8">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+            <span>Progress</span>
+            <span>{Math.round(progressPct)}%</span>
+          </div>
+          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+            <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${progressPct}%` }} transition={{ duration: 0.4 }} />
+          </div>
+        </div>
+
+        {/* Subtasks */}
+        {task.subtasks.length > 0 && (
+          <div className="w-full max-w-md mb-8 space-y-1.5">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Subtasks</p>
+            {task.subtasks.map((s) => (
+              <div key={s.id} className={`flex items-center gap-2.5 text-sm ${s.completed ? "line-through text-muted-foreground" : ""}`}>
+                <div className={`h-4 w-4 rounded border-2 ${s.completed ? "bg-primary border-primary" : "border-muted-foreground/30"} flex items-center justify-center`}>
+                  {s.completed && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
+                </div>
+                {s.title}
+              </div>
+            ))}
+            {completedSubs === 0 && task.subtasks.length > 0 && null}
+          </div>
+        )}
+
+        {/* Linked Habit / Goal */}
+        <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-8">
+          {task.linkedHabitId && (
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Linked Habit</p>
+              <p className="text-sm font-medium truncate">Habit</p>
+            </div>
+          )}
+          {task.linkedGoalId && (
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Linked Goal</p>
+              <p className="text-sm font-medium truncate">Goal</p>
+            </div>
+          )}
+        </div>
+
+        {/* Why It Matters */}
+        {task.whyItMatters && (
+          <div className="w-full max-w-md mb-8">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Why It Matters</p>
+            <p className="text-sm text-foreground/80 leading-relaxed">{task.whyItMatters}</p>
+          </div>
+        )}
+
+        {/* Timer */}
+        <div className="w-full max-w-md mb-8">
+          <div className="flex items-center justify-center gap-2 text-4xl font-bold tabular-nums mb-3">
+            <Timer className="h-5 w-5 text-muted-foreground" />
+            {timerActive ? fmt(remaining) : fmt(seconds)}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            {[25, 45, 60, 90].map((m) => (
+              <button key={m} onClick={() => { setTimerMinutes(m); setTimerActive(true) }}
+                className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${timerMinutes === m && timerActive ? "border-primary bg-primary/10 text-primary" : "border-muted hover:bg-muted/50 text-muted-foreground"}`}>
+                {m}m
+              </button>
+            ))}
+            <button onClick={() => setTimerActive((a) => !a)}
+              className="px-3 py-1 rounded-lg text-xs font-medium border border-muted hover:bg-muted/50 text-muted-foreground">
+              {timerActive ? "Reset" : "Start"}
+            </button>
+          </div>
+        </div>
+
+        <div className="text-xs text-muted-foreground space-y-1 mb-8 text-center">
+          <p>Estimated Duration: {task.estimatedDuration ? `${task.estimatedDuration}m` : "—"}</p>
+          {task.estimatedDuration ? <p>Time Spent: {fmt(seconds)}</p> : null}
+        </div>
+
+        {/* Buttons */}
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => { setInterceptions((n) => n + 1); setPaused(true) }}>
+            <Pause className="h-4 w-4 mr-1.5" /> {paused ? "Resume" : "Pause"}
+          </Button>
+          <Button className="glow" onClick={onComplete}>
+            <CheckCircle2 className="h-4 w-4 mr-1.5" /> Complete Task
+          </Button>
+          <Button variant="ghost" onClick={onExit}>Exit Focus Mode</Button>
+        </div>
+
+        {interceptions > 0 && (
+          <p className="text-[10px] text-muted-foreground/60 mt-3">Interruptions logged: {interceptions}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Daily Completion Review Modal                         */
+/* ────────────────────────────────────────────────────── */
+
+function DailyReviewModal({ date, tasksCompleted, totalTasks, productivity, onClose, onSave, router }: {
+  date: string
+  tasksCompleted: number
+  totalTasks: number
+  productivity: number
+  onClose: () => void
+  onSave: (data: { wentWell: string; improve: string; intentional: number; mood: string }) => void
+  router: ReturnType<typeof useRouter>
+}) {
+  const [wentWell, setWentWell] = useState("")
+  const [improve, setImprove] = useState("")
+  const [intentional, setIntentional] = useState(7)
+  const [mood, setMood] = useState("smile")
+
+  const moods = [
+    { key: "smile", icon: Smile, label: "Good" },
+    { key: "meh", icon: Meh, label: "Okay" },
+    { key: "frown", icon: Frown, label: "Low" },
+    { key: "moon", icon: Moon, label: "Tired" },
+    { key: "angry", icon: Angry, label: "Stressed" },
+  ]
+
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[61] w-full max-w-lg bg-background rounded-2xl border shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Today&apos;s Review</h3>
+              <p className="text-xs text-muted-foreground">{formatDateLong(date)}</p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}><X className="h-4 w-4" /></Button>
+          </div>
+
+          {/* Completion Summary */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <p className="text-2xl font-bold">{tasksCompleted} / {totalTasks}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tasks Completed</p>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <div className="relative h-16 w-16 mx-auto mb-1">
+                <svg className="h-16 w-16 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#1E0E6B]/15" />
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#1E0E6B]" strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 15} strokeDashoffset={2 * Math.PI * 15 * (1 - productivity / 100)} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center"><span className="text-sm font-bold text-[#1E0E6B]">{productivity}</span></div>
+              </div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Productivity Score</p>
+            </div>
+          </div>
+
+          {/* Reflection */}
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">What went well today?</label>
+              <textarea value={wentWell} onChange={(e) => setWentWell(e.target.value)} rows={2}
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                placeholder="Reflect on your wins..." />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">What could be improved tomorrow?</label>
+              <textarea value={improve} onChange={(e) => setImprove(e.target.value)} rows={2}
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                placeholder="Areas to grow..." />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">How intentional did today feel? {intentional}/10</label>
+              <input type="range" min={1} max={10} value={intentional} onChange={(e) => setIntentional(Number(e.target.value))}
+                className="mt-1 w-full accent-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Mood</label>
+              <div className="flex gap-1.5 mt-1">
+                {moods.map((m) => {
+                  const Icon = m.icon
+                  return (
+                    <button key={m.key} onClick={() => setMood(m.key)}
+                      className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${mood === m.key ? "border-primary bg-primary/10 text-primary" : "border-muted hover:bg-muted/50 text-muted-foreground"}`}>
+                      <Icon className="h-4 w-4" />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-5">
+            <Button variant="outline" className="flex-1" onClick={onClose}>Skip</Button>
+            <Button className="flex-1 glow" onClick={() => onSave({ wentWell, improve, intentional, mood })}>Save Review</Button>
+          </div>
+          <button onClick={() => router.push("/journey")} className="w-full mt-2 text-xs text-primary hover:underline">View My Journey</button>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   )
 }
 
