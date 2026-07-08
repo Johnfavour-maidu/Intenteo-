@@ -266,18 +266,14 @@ function TimeRangePicker({
         )}
       </div>
 
-      {/* Custom Time Inputs */}
-      {timeRangeType === "custom" && (
-        <>
-          <div className="flex items-start gap-3">
-            <CustomTimeInput value={startTime} onChange={(v) => onChange(v, endTime)} label="Start Time" />
-            <CustomTimeInput value={endTime} onChange={(v) => onChange(startTime, v)} label="End Time" />
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center">
-            Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
-          </p>
-        </>
-      )}
+      {/* Start & End Time Inputs */}
+      <div className="flex items-start gap-3">
+        <CustomTimeInput value={startTime} onChange={(v) => onChange(v, endTime)} label="Start Time" />
+        <CustomTimeInput value={endTime} onChange={(v) => onChange(startTime, v)} label="End Time" />
+      </div>
+      <p className="text-[10px] text-muted-foreground text-center">
+        Duration: {dur > 0 ? formatDuration(dur) : "\u2014"}
+      </p>
     </div>
   )
 }
