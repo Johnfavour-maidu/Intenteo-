@@ -2367,39 +2367,6 @@ function FocusMode({ task, onExit, onComplete }: {
   )
 }
 
-/* ────────────────────────────────────────────────────── */
-/* Focus Mode Overlay                                     */
-      {focusTask && (
-        <FocusMode
-          task={focusTask}
-          onExit={() => setFocusTask(null)}
-          onComplete={() => { handleToggleTask(focusTask.id); setFocusTask(null); addToast("Focus session complete") }}
-        />
-      )}
-
-      {/* Daily Completion Review Modal */}
-      {reviewOpen && (
-        <DailyReviewModal
-          date={selectedDate || todayISO}
-          tasksCompleted={completedToday}
-          totalTasks={totalToday}
-          productivity={productivity}
-          router={router}
-          onClose={() => setReviewOpen(false)}
-          onSave={(data) => {
-            try {
-              const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
-              reviews.push({ date: selectedDate || todayISO, ...data, productivity, tasksCompleted: completedToday, createdAt: new Date().toISOString() })
-              localStorage.setItem("intenteo-reviews", JSON.stringify(reviews))
-            } catch {}
-            addToast("Daily review saved")
-            setReviewOpen(false)
-          }}
-        />
-      )}
-    </div>
-  )
-}
 
 /* ────────────────────────────────────────────────────── */
 /* Daily Completion Review Modal                         */
