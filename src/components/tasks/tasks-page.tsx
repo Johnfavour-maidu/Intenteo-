@@ -1579,17 +1579,15 @@ export function TasksPage() {
           )}
         </AnimatePresence>
 
-        {/* Expand/Collapse All + Sort */}
+        {/* Expand/Collapse + Carry-over + Sort */}
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          {sortedTasks.length > 0 && sortedTasks.some((t) => t.subtasks.length > 0) && (
-            <button onClick={() => setExpandAll(!expandAll)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-              {expandAll ? "\u25BC Collapse All Subtasks" : "\u25B6 Expand All Subtasks"}
-            </button>
-          )}
-
-          {/* Carry-over + Sort */}
           <div className="flex items-center gap-3 shrink-0">
+            {sortedTasks.length > 0 && sortedTasks.some((t) => t.subtasks.length > 0) && (
+              <button onClick={() => setExpandAll(!expandAll)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                {expandAll ? "\u25BC Collapse All Subtasks" : "\u25B6 Expand All Subtasks"}
+              </button>
+            )}
             {carryOverTasks.length > 0 && !selectedDate && (
               <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
                 <button onClick={() => setCarryOverOpen(true)}
@@ -1599,10 +1597,13 @@ export function TasksPage() {
                 </button>
               </motion.div>
             )}
+          </div>
+
+          {/* Sort */}
           <select
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
-            className="h-8 px-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+            className="h-8 px-2 rounded-lg border border-[#1E0E6B]/30 bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/50 cursor-pointer">
             <option value="manual">Sort: Manual</option>
             <option value="time-asc">Sort: Earliest First</option>
             <option value="time-desc">Sort: Latest First</option>
@@ -1614,7 +1615,6 @@ export function TasksPage() {
             <option value="duration">Sort: Shortest First</option>
             <option value="recentlyEdited">Sort: Recently Edited</option>
           </select>
-          </div>
         </div>
 
         {activeView === "list" ? renderListView() : renderBoardView()}

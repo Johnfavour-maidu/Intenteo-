@@ -119,6 +119,9 @@ const createSampleGoals = (): Goal[] => [
   { id:"6", title:"Strengthen Relationships", description:"Be more intentional with family and friends", category:"Relationships", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Relationships are life's greatest treasure", milestones:[{id:"m16",title:"Weekly family dinner",completed:true},{id:"m17",title:"Monthly friend hangout",completed:false},{id:"m18",title:"Plan family trip",completed:false}], linkedHabits:["Call a Friend"], linkedHabitWeights:[{habitId:"h6",habitName:"Call a Friend",weight:100}], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u2764\uFE0F", trackingMethod:"milestone", weighting:{projects:30,habits:30,milestones:20,manual:20}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-15", updatedAt:"2026-05-20" },
   { id:"7", title:"Master TypeScript", description:"Become an expert in TypeScript and advanced patterns", category:"Learning", priority:"low", progress:0, deadline:"2026-09-30", startDate:"2026-04-01", type:"quarterly", whyItMatters:"Better code quality and career growth", milestones:[{id:"m19",title:"Complete advanced course",completed:false},{id:"m20",title:"Build 3 practice projects",completed:false},{id:"m21",title:"Contribute to open source",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F4BB}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Quarterly", status:"not-started", createdAt:"2026-04-01", updatedAt:"2026-04-01" },
   { id:"8", title:"Launch Side Project", description:"Build and ship a profitable SaaS product", category:"Business", priority:"high", progress:0, deadline:"2026-10-31", startDate:"2026-03-01", type:"quarterly", whyItMatters:"Create additional income and impact", milestones:[{id:"m22",title:"Validate idea",completed:true},{id:"m23",title:"Build MVP",completed:false},{id:"m24",title:"Get first 10 paying users",completed:false},{id:"m25",title:"Reach $1k MRR",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-03-01", updatedAt:"2026-06-15" },
+  { id:"9", title:"Learn French", description:"Reach conversational fluency in French", category:"Learning", priority:"low", progress:0, deadline:"2027-06-30", startDate:"2026-07-01", type:"annual", whyItMatters:"Connecting with culture and opening travel opportunities", milestones:[{id:"m26",title:"Complete Duolingo streak 30 days",completed:true},{id:"m27",title:"Watch 5 French films",completed:false},{id:"m28",title:"Hold 10-min conversation",completed:false},{id:"m29",title:"Read a French book",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F30D}", trackingMethod:"milestone", weighting:{projects:30,habits:30,milestones:20,manual:20}, timeline:"Annual", status:"in-progress", createdAt:"2026-07-01", updatedAt:"2026-07-01" },
+  { id:"10", title:"Launch YouTube Channel", description:"Create and grow a personal development channel", category:"Business", priority:"medium", progress:0, deadline:"2027-03-31", startDate:"2026-08-01", type:"annual", whyItMatters:"Share knowledge and build a personal brand", milestones:[{id:"m30",title:"Plan 10 video topics",completed:false},{id:"m31",title:"Record first 3 videos",completed:false},{id:"m32",title:"Reach 100 subscribers",completed:false},{id:"m33",title:"Reach 1,000 subscribers",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u{1F3AC}", trackingMethod:"milestone", weighting:{projects:40,habits:10,milestones:30,manual:20}, timeline:"Annual", status:"not-started", createdAt:"2026-08-01", updatedAt:"2026-08-01" },
+  { id:"11", title:"Run a Marathon", description:"Complete a full 42km marathon", category:"Health", priority:"high", progress:0, deadline:"2027-04-30", startDate:"2026-09-01", type:"annual", whyItMatters:"Push physical limits and prove discipline", milestones:[{id:"m34",title:"Run 15km non-stop",completed:false},{id:"m35",title:"Run 21km half marathon",completed:false},{id:"m36",title:"Run 30km training run",completed:false},{id:"m37",title:"Complete marathon",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F3C3}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"not-started", createdAt:"2026-09-01", updatedAt:"2026-09-01" },
 ]
 
 const createSampleProjects = (): Project[] => [
@@ -246,8 +249,11 @@ const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
           <textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className={inputCls} /></div>
 
         <div><label className="text-sm font-medium">Review Frequency</label>
-          <select value={data.reviewFrequency} onChange={e => setData({...data, reviewFrequency: e.target.value})} className={inputCls + " cursor-pointer"}>
-            {["Weekly","Monthly","Quarterly","Yearly"].map(f => <option key={f} value={f}>{f}</option>)}</select></div>
+          <div className="relative">
+            <select value={data.reviewFrequency} onChange={e => setData({...data, reviewFrequency: e.target.value})} className={inputCls + " cursor-pointer appearance-none pr-8"}>
+              {["Weekly","Monthly","Quarterly","Yearly"].map(f => <option key={f} value={f}>{f}</option>)}</select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+          </div></div>
 
         <div>
           <label className="text-sm font-medium">Reminder</label>
@@ -442,9 +448,12 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
                 <div className="grid grid-cols-2 gap-2">
                   <div><label className="text-xs font-medium">Project Name</label><Input value={newTimelineProjectName} onChange={e => setNewTimelineProjectName(e.target.value)} placeholder="Project name" className="mt-1 text-xs h-8" /></div>
                   <div><label className="text-xs font-medium">Status</label>
-                    <select value={newTimelineStatus} onChange={e => setNewTimelineStatus(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5">
-                      <option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="on-hold">On Hold</option>
-                    </select>
+                    <div className="relative">
+                      <select value={newTimelineStatus} onChange={e => setNewTimelineStatus(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 appearance-none pr-6">
+                        <option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="on-hold">On Hold</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
                   </div>
                 </div>
                 <div><label className="text-xs font-medium">Description</label><textarea value={newTimelineDesc} onChange={e => setNewTimelineDesc(e.target.value)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 min-h-[40px]" /></div>
@@ -502,13 +511,19 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Category</label>
-              <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
-                {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+              <div className="relative">
+                <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div>
               {category === "Custom" && <Input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Custom category" className="mt-2" />}
             </div>
             <div><label className="text-sm font-medium">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
-                <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+              <div className="relative">
+                <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div></div>
           </div>
           <div><label className="text-sm font-medium">Goal Type</label><div className="flex gap-2 mt-1">
             {(["annual","quarterly","monthly","weekly","custom"] as const).map(t => (
@@ -680,8 +695,11 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
           <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
-                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+              <div className="relative">
+                <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div></div>
             <div><DateInput label="Due Date" value={dueDate} onChange={setDueDate} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -831,8 +849,11 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Goal Title</label><Input value={data.title} onChange={e => setData({...data, title: e.target.value})} className="mt-1" /></div>
             <div><label className="text-sm font-medium">Category</label>
-              <select value={data.category} onChange={e => setData({...data, category: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm">
-                {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select></div>
+              <div className="relative">
+                <select value={data.category} onChange={e => setData({...data, category: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm appearance-none pr-8">
+                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div></div>
           </div>
           <div><label className="text-sm font-medium">Description</label><textarea value={data.description} onChange={e => setData({...data, description: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
           <div><label className="text-sm font-medium">Why It Matters</label><textarea value={data.whyItMatters} onChange={e => setData({...data, whyItMatters: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
