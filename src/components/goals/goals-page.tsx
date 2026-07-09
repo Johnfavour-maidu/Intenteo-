@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ProgressRing } from "@/components/ui/progress-ring"
 import { GlassCard } from "@/components/ui/glass-card"
 import {
-  Plus, Target, TrendingUp, Calendar, ChevronRight,
+  Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
   Link2, AlertTriangle, Info,
 } from "lucide-react"
@@ -412,6 +412,64 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
           <div><label className="text-sm font-medium">Goal Name</label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Read 24 Books" className="mt-1" /></div>
           <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
           <div><label className="text-sm font-medium">Why It Matters</label><textarea value={whyItMatters} onChange={e => setWhyItMatters(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
+          <div>
+            <label className="text-sm font-medium">Project Timelines</label>
+            <p className="text-xs text-muted-foreground mb-2">Add project timelines for this goal</p>
+            {projectTimelines.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {projectTimelines.map(pt => (
+                  <div key={pt.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-white/10">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{pt.projectName || "Untitled Project"}</p>
+                      <p className="text-[10px] text-muted-foreground">{pt.startDate || "No start"} → {pt.endDate || "No end"} · {pt.status.replace("-"," ")} · {pt.progress}%</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                      const ptToEdit = projectTimelines.find(p => p.id === pt.id)
+                      if (ptToEdit) { setEditingTimelineId(pt.id); setNewTimelineProjectName(ptToEdit.projectName); setNewTimelineDesc(ptToEdit.description); setNewTimelineStart(ptToEdit.startDate); setNewTimelineEnd(ptToEdit.endDate); setNewTimelineStatus(ptToEdit.status); setNewTimelineProgress(ptToEdit.progress.toString()); setNewTimelineNotes(ptToEdit.notes); setShowTimelineForm(true) }
+                    }}><span className="text-xs">✎</span></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500" onClick={() => setProjectTimelines(prev => prev.filter(p => p.id !== pt.id))}><Trash2 className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={() => { setEditingTimelineId(null); setNewTimelineProjectName(""); setNewTimelineDesc(""); setNewTimelineStart(getTodayISO()); setNewTimelineEnd(""); setNewTimelineStatus("not-started"); setNewTimelineProgress("0"); setNewTimelineNotes(""); setShowTimelineForm(true) }} className="text-xs">
+              <Plus className="h-3 w-3 mr-1" /> Add Project Timeline
+            </Button>
+            {showTimelineForm && (
+              <div className="mt-3 p-3 rounded-lg border border-[#1E0E6B]/20 bg-[#1E0E6B]/5 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div><label className="text-xs font-medium">Project Name</label><Input value={newTimelineProjectName} onChange={e => setNewTimelineProjectName(e.target.value)} placeholder="Project name" className="mt-1 text-xs h-8" /></div>
+                  <div><label className="text-xs font-medium">Status</label>
+                    <select value={newTimelineStatus} onChange={e => setNewTimelineStatus(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5">
+                      <option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="on-hold">On Hold</option>
+                    </select>
+                  </div>
+                </div>
+                <div><label className="text-xs font-medium">Description</label><textarea value={newTimelineDesc} onChange={e => setNewTimelineDesc(e.target.value)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 min-h-[40px]" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><label className="text-xs font-medium">Start Date</label><DateInput value={newTimelineStart} onChange={setNewTimelineStart} /></div>
+                  <div><label className="text-xs font-medium">End Date</label><DateInput value={newTimelineEnd} onChange={setNewTimelineEnd} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><label className="text-xs font-medium">Progress %</label><Input type="number" min="0" max="100" value={newTimelineProgress} onChange={e => setNewTimelineProgress(e.target.value)} className="mt-1 text-xs h-8" /></div>
+                  <div><label className="text-xs font-medium">Notes</label><Input value={newTimelineNotes} onChange={e => setNewTimelineNotes(e.target.value)} placeholder="Notes" className="mt-1 text-xs h-8" /></div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={() => setShowTimelineForm(false)} className="text-xs h-7">Cancel</Button>
+                  <Button size="sm" onClick={() => {
+                    if (newTimelineProjectName.trim()) {
+                      if (editingTimelineId) {
+                        setProjectTimelines(prev => prev.map(pt => pt.id === editingTimelineId ? {...pt, projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes} : pt))
+                      } else {
+                        setProjectTimelines(prev => [...prev, {id: Date.now().toString(), projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes}])
+                      }
+                      setShowTimelineForm(false)
+                    }
+                  }} className="text-xs h-7 bg-[#1E0E6B] text-white">{editingTimelineId ? "Update" : "Add"} Timeline</Button>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Category</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer">
@@ -487,64 +545,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
                 </div>
               )}
             </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Project Timelines</label>
-            <p className="text-xs text-muted-foreground mb-2">Add project timelines for this goal</p>
-            {projectTimelines.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {projectTimelines.map(pt => (
-                  <div key={pt.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-white/10">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{pt.projectName || "Untitled Project"}</p>
-                      <p className="text-[10px] text-muted-foreground">{pt.startDate || "No start"} → {pt.endDate || "No end"} · {pt.status.replace("-"," ")} · {pt.progress}%</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                      const ptToEdit = projectTimelines.find(p => p.id === pt.id)
-                      if (ptToEdit) { setEditingTimelineId(pt.id); setNewTimelineProjectName(ptToEdit.projectName); setNewTimelineDesc(ptToEdit.description); setNewTimelineStart(ptToEdit.startDate); setNewTimelineEnd(ptToEdit.endDate); setNewTimelineStatus(ptToEdit.status); setNewTimelineProgress(ptToEdit.progress.toString()); setNewTimelineNotes(ptToEdit.notes); setShowTimelineForm(true) }
-                    }}><span className="text-xs">✎</span></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500" onClick={() => setProjectTimelines(prev => prev.filter(p => p.id !== pt.id))}><Trash2 className="h-3 w-3" /></Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <Button variant="outline" size="sm" onClick={() => { setEditingTimelineId(null); setNewTimelineProjectName(""); setNewTimelineDesc(""); setNewTimelineStart(getTodayISO()); setNewTimelineEnd(""); setNewTimelineStatus("not-started"); setNewTimelineProgress("0"); setNewTimelineNotes(""); setShowTimelineForm(true) }} className="text-xs">
-              <Plus className="h-3 w-3 mr-1" /> Add Project Timeline
-            </Button>
-            {showTimelineForm && (
-              <div className="mt-3 p-3 rounded-lg border border-[#1E0E6B]/20 bg-[#1E0E6B]/5 space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-xs font-medium">Project Name</label><Input value={newTimelineProjectName} onChange={e => setNewTimelineProjectName(e.target.value)} placeholder="Project name" className="mt-1 text-xs h-8" /></div>
-                  <div><label className="text-xs font-medium">Status</label>
-                    <select value={newTimelineStatus} onChange={e => setNewTimelineStatus(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5">
-                      <option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="on-hold">On Hold</option>
-                    </select>
-                  </div>
-                </div>
-                <div><label className="text-xs font-medium">Description</label><textarea value={newTimelineDesc} onChange={e => setNewTimelineDesc(e.target.value)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 min-h-[40px]" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-xs font-medium">Start Date</label><DateInput value={newTimelineStart} onChange={setNewTimelineStart} /></div>
-                  <div><label className="text-xs font-medium">End Date</label><DateInput value={newTimelineEnd} onChange={setNewTimelineEnd} /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-xs font-medium">Progress %</label><Input type="number" min="0" max="100" value={newTimelineProgress} onChange={e => setNewTimelineProgress(e.target.value)} className="mt-1 text-xs h-8" /></div>
-                  <div><label className="text-xs font-medium">Notes</label><Input value={newTimelineNotes} onChange={e => setNewTimelineNotes(e.target.value)} placeholder="Notes" className="mt-1 text-xs h-8" /></div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button variant="outline" size="sm" onClick={() => setShowTimelineForm(false)} className="text-xs h-7">Cancel</Button>
-                  <Button size="sm" onClick={() => {
-                    if (newTimelineProjectName.trim()) {
-                      if (editingTimelineId) {
-                        setProjectTimelines(prev => prev.map(pt => pt.id === editingTimelineId ? {...pt, projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes} : pt))
-                      } else {
-                        setProjectTimelines(prev => [...prev, {id: Date.now().toString(), projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes}])
-                      }
-                      setShowTimelineForm(false)
-                    }
-                  }} className="text-xs h-7 bg-[#1E0E6B] text-white">{editingTimelineId ? "Update" : "Add"} Timeline</Button>
-                </div>
-              </div>
-            )}
           </div>
           <div>
             <label className="text-sm font-medium">Linked Habits</label>
@@ -968,6 +968,31 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
   )
 }
 
+function SummaryCard({ label, value, color, infoText }: { label: string; value: string | number; color: string; infoText: string }) {
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!showInfo) return
+    const handleClick = (e: MouseEvent) => { if (infoRef.current && !infoRef.current.contains(e.target as Node)) setShowInfo(false) }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [showInfo])
+  return (
+    <div className="relative rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg bg-white dark:bg-gray-950 px-4 py-2.5" style={{ border: `2px solid ${color}80` }}>
+      <p className="text-2xl font-bold" style={{ color }}>{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <button onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }} className="absolute bottom-2 right-2 text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+        <ChevronDown className="h-3 w-3" />
+      </button>
+      {showInfo && (
+        <div className="absolute z-50 bottom-full mb-2 right-2 w-64 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20 text-xs text-muted-foreground leading-relaxed" ref={infoRef}>
+          {infoText}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -1114,16 +1139,13 @@ export function GoalsPage() {
 
           <div className="grid gap-3 md:grid-cols-5">
             {[
-              { label: "Total Goals", value: goals.length, color: "#1E0E6B" },
-              { label: "Avg Health", value: `${avgHealth}`, color: avgHealth >= 80 ? "#22C55E" : avgHealth >= 60 ? "#3B82F6" : avgHealth >= 35 ? "#F97316" : "#EF4444" },
-              { label: "Avg Progress", value: `${avgProgress}%`, color: "#F97316" },
-              { label: "Excellent", value: excellentCount, color: "#22C55E" },
-              { label: "Overdue", value: overdueCount, color: "#EF4444" },
+              { label: "Total Goals", value: goals.length, color: "#1E0E6B", info: `Total number of goals you've created. Currently tracking ${goals.length} goal${goals.length !== 1 ? "s" : ""} across all categories.` },
+              { label: "Avg Health", value: `${avgHealth}`, color: avgHealth >= 80 ? "#22C55E" : avgHealth >= 60 ? "#3B82F6" : avgHealth >= 35 ? "#F97316" : "#EF4444", info: `Average health score of all goals (0-100). Based on progress, deadline proximity, habit completion, and project progress. ${avgHealth >= 80 ? "Excellent — keep it up!" : avgHealth >= 60 ? "On track — room to improve." : "Needs attention — review your goals."}` },
+              { label: "Avg Progress", value: `${avgProgress}%`, color: "#F97316", info: `Average completion percentage across all goals. Calculated from project progress, milestone completion, and manual tracking. ${avgProgress}% overall progress.` },
+              { label: "Excellent", value: excellentCount, color: "#22C55E", info: `Goals with health score ≥ 80. These goals are on track with good progress, deadline management, and consistent habits. ${excellentCount} goal${excellentCount !== 1 ? "s" : ""} performing excellently.` },
+              { label: "Overdue", value: overdueCount, color: "#EF4444", info: `Goals past their deadline with less than 100% progress. These need immediate attention. ${overdueCount > 0 ? "Review and update deadlines or accelerate progress." : "No overdue goals — great job!"}` },
             ].map((s, i) => (
-              <div key={i} className="rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg bg-white dark:bg-gray-950 px-4 py-2.5" style={{ border: `2px solid ${s.color}30` }}>
-                <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </div>
+              <SummaryCard key={i} label={s.label} value={s.value} color={s.color} infoText={s.info} />
             ))}
           </div>
 
@@ -1242,6 +1264,7 @@ export function GoalsPage() {
       )}
 
       <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} />
+      <LifeVisionDrawer isOpen={isVisionOpen} onClose={() => setIsVisionOpen(false)} vision={vision} onSave={setVision} />
       <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
 
       {/* Analytics Drawer */}
