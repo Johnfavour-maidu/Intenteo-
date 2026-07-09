@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, useLayoutEffect, memo } from "react"
+import { createPortal } from "react-dom"
 import { usePathname } from "next/navigation"
 import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
@@ -1498,18 +1499,6 @@ export function TasksPage() {
           </div>
         </div>
 
-        {/* Carry-Over Notification Badge */}
-        {carryOverTasks.length > 0 && !selectedDate && (
-          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-            className="mb-3">
-            <button onClick={() => setCarryOverOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors">
-              <ArrowRightLeft className="h-3 w-3" />
-              Carry-over ({carryOverTasks.length})
-            </button>
-          </motion.div>
-        )}
-
         {/* Carry-Over Modal */}
         <AnimatePresence>
           {carryOverOpen && (
@@ -1599,11 +1588,21 @@ export function TasksPage() {
             </button>
           )}
 
-          {/* Sort Dropdown */}
+          {/* Carry-over + Sort */}
+          <div className="flex items-center gap-3 shrink-0">
+            {carryOverTasks.length > 0 && !selectedDate && (
+              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
+                <button onClick={() => setCarryOverOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors">
+                  <ArrowRightLeft className="h-3 w-3" />
+                  Carry-over ({carryOverTasks.length})
+                </button>
+              </motion.div>
+            )}
           <select
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
-            className="h-8 px-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer sm:ml-auto">
+            className="h-8 px-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
             <option value="manual">Sort: Manual</option>
             <option value="time-asc">Sort: Earliest First</option>
             <option value="time-desc">Sort: Latest First</option>
@@ -1615,6 +1614,7 @@ export function TasksPage() {
             <option value="duration">Sort: Shortest First</option>
             <option value="recentlyEdited">Sort: Recently Edited</option>
           </select>
+          </div>
         </div>
 
         {activeView === "list" ? renderListView() : renderBoardView()}
@@ -2402,17 +2402,28 @@ export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivit
 
 function Tooltip({ label, children }: { label: string; children: React.ReactNode }) {
   const [show, setShow] = useState(false)
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ left: 0, top: 0 })
+
+  const handleMouseEnter = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPos({ left: rect.left + rect.width / 2, top: rect.top })
+    }
+    setShow(true)
+  }
+
   return (
-    <div className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+    <div className="relative inline-flex" ref={triggerRef} onMouseEnter={handleMouseEnter} onMouseLeave={() => setShow(false)}>
       {children}
-      <AnimatePresence>
-        {show && (
-          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-medium text-foreground bg-background border rounded-lg shadow-lg whitespace-nowrap z-50 pointer-events-none">
-            {label}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {show && typeof document !== 'undefined' && createPortal(
+        <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+          className="fixed px-2 py-1 text-[10px] font-medium text-foreground bg-background border rounded-lg shadow-lg whitespace-nowrap z-[9999] pointer-events-none"
+          style={{ left: pos.left, top: pos.top - 8, transform: 'translateX(-50%) translateY(-100%)' }}>
+          {label}
+        </motion.div>,
+        document.body
+      )}
     </div>
   )
 }
