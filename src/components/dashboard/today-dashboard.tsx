@@ -117,8 +117,8 @@ export function TodayDashboard() {
 
   const quickActions = [
     { icon: <Plus className="h-4 w-4" />, label: "Add New Task", action: () => router.push("/tasks") },
-    { icon: <PenLine className="h-4 w-4" />, label: "Write a Quick Thought", action: () => router.push("/journal") },
-    { icon: <Calendar className="h-4 w-4" />, label: "Add Reminder", action: () => router.push("/tasks") },
+    { icon: <PenLine className="h-4 w-4" />, label: "Write a Quick Thought", action: () => router.push("/journal?type=quick") },
+    { icon: <Calendar className="h-4 w-4" />, label: "Add Reminder", action: () => router.push("/calendar") },
     { icon: <Target className="h-4 w-4" />, label: "Add New Habit", action: () => router.push("/habits") },
     { icon: <Sparkles className="h-4 w-4" />, label: "Ask T\u00e9o", action: () => router.push("/coach") },
   ]

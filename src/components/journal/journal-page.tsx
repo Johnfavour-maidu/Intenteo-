@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, memo, forwardRef, useImperativeHandle } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
@@ -2566,6 +2567,7 @@ function WritingArea({
   onOpenPinned,
   onSaveSuccess,
   resetKey,
+  initialType,
 }: {
   editingEntry: JournalEntry | null
   onCreated: (entry: JournalEntry) => void
@@ -2576,6 +2578,7 @@ function WritingArea({
   onOpenPinned: (entry: JournalEntry) => void
   onSaveSuccess: (message: string) => void
   resetKey: number
+  initialType?: JournalType
 }) {
   const draft = useMemo(() => autosave.load(), [autosave])
   const [title, setTitle] = useState((draft?.title as string) || "")
@@ -2597,6 +2600,10 @@ function WritingArea({
   const [cameraOpen, setCameraOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (initialType) setType(initialType)
+  }, [initialType])
   const audioPlaybackRef = useRef<HTMLAudioElement | null>(null)
   const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
   const [currentFontFamily, setCurrentFontFamily] = useState<"Calibri" | "Arial" | "Times New Roman" | "Georgia" | "Verdana" | "Courier New">("Calibri")
@@ -3353,6 +3360,8 @@ function EntryReader({
 /* ────────────────────────────────────────────────────── */
 
 export function JournalPage() {
+  const searchParams = useSearchParams()
+  const initialJournalType = (searchParams.get("type") as JournalType) || undefined
   const [entries, setEntries] = useState<JournalEntry[]>(() => {
     if (typeof window === "undefined") return sampleEntries
     try {
@@ -3553,6 +3562,7 @@ export function JournalPage() {
             onOpenPinned={handleSelectEntryForEdit}
             onSaveSuccess={(msg) => addToast(msg, "info")}
             resetKey={resetKey}
+            initialType={initialJournalType}
           />
         </div>
 
