@@ -128,21 +128,12 @@ export function TodayDashboard() {
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b">
         <div className="flex items-center justify-between px-4 md:px-6 py-3">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <div>
               <h1 className="text-xl font-semibold">
                 {getGreeting()}, <span className="text-gradient">John</span>
               </h1>
               <p className="text-sm text-muted-foreground">{getFormattedDate()}</p>
-            </div>
-            <div className="flex items-center gap-2 pl-6 border-l">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg shadow-orange-500/25">
-                <span className="text-lg">{"\u{1F525}"}</span>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Current Streak</div>
-                <div className="text-lg font-bold leading-tight">32 Days</div>
-              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -176,6 +167,15 @@ export function TodayDashboard() {
                   </>
                 )}
               </AnimatePresence>
+            </div>
+            <div className="flex items-center gap-2 px-3 border-l border-r">
+              <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg shadow-orange-500/25">
+                <span className="text-base">{"\u{1F525}"}</span>
+              </div>
+              <div>
+                <div className="text-[10px] text-muted-foreground leading-none">Current Streak</div>
+                <div className="text-sm font-bold leading-tight">32 Days</div>
+              </div>
             </div>
             <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5" onClick={() => setReviewOpen(true)}>
               <CheckCircle2 className="h-3.5 w-3.5" />
