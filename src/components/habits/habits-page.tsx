@@ -917,15 +917,17 @@ const TrackerCalendar = ({
         <Button variant={period === "year" ? "default" : "ghost"} size="sm" onClick={() => onPeriodChange("year")} className={period === "year" ? "bg-[#1E0E6B] text-white h-8 px-2 text-xs" : "h-8 px-2 text-xs"}>Year</Button>
       </div>
       {period === "month" && (
-        <select value={currentMonth} onChange={(e) => {
-          const newDate = new Date(selectedDate)
-          newDate.setMonth(parseInt(e.target.value))
-          onDateSelect(newDate)
-        }}
-          className="appearance-none px-2 py-1 text-xs border border-[#1E0E6B]/40 rounded-lg bg-white/50 dark:bg-white/5 cursor-pointer pr-6"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.375rem center" }}>
-          {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-        </select>
+        <div className="relative">
+          <select value={currentMonth} onChange={(e) => {
+            const newDate = new Date(selectedDate)
+            newDate.setMonth(parseInt(e.target.value))
+            onDateSelect(newDate)
+          }}
+            className="appearance-none px-2 py-1 text-xs border border-[#1E0E6B]/40 rounded-lg bg-white/50 dark:bg-white/5 cursor-pointer pr-6">
+            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+          </select>
+          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+        </div>
       )}
       {period === "year" && (
         <select value={currentYear} onChange={(e) => {

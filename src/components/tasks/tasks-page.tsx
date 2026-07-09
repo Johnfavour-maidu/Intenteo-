@@ -1600,21 +1600,24 @@ export function TasksPage() {
           </div>
 
           {/* Sort */}
-          <select
-            value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
-            className="h-8 px-2 rounded-lg border border-[#1E0E6B]/30 bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/50 cursor-pointer">
-            <option value="manual">Sort: Manual</option>
-            <option value="time-asc">Sort: Earliest First</option>
-            <option value="time-desc">Sort: Latest First</option>
-            <option value="priority">Sort: Priority</option>
-            <option value="completion">Sort: Incomplete First</option>
-            <option value="dueDate">Sort: Due Date</option>
-            <option value="alpha-asc">Sort: A-Z</option>
-            <option value="alpha-desc">Sort: Z-A</option>
-            <option value="duration">Sort: Shortest First</option>
-            <option value="recentlyEdited">Sort: Recently Edited</option>
-          </select>
+          <div className="relative">
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
+              className="h-8 px-2 pr-7 rounded-lg border border-[#1E0E6B]/30 bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/50 cursor-pointer appearance-none">
+              <option value="manual">Sort: Manual</option>
+              <option value="time-asc">Sort: Earliest First</option>
+              <option value="time-desc">Sort: Latest First</option>
+              <option value="priority">Sort: Priority</option>
+              <option value="completion">Sort: Incomplete First</option>
+              <option value="dueDate">Sort: Due Date</option>
+              <option value="alpha-asc">Sort: A-Z</option>
+              <option value="alpha-desc">Sort: Z-A</option>
+              <option value="duration">Sort: Shortest First</option>
+              <option value="recentlyEdited">Sort: Recently Edited</option>
+            </select>
+            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+          </div>
         </div>
 
         {activeView === "list" ? renderListView() : renderBoardView()}
@@ -1801,15 +1804,18 @@ export function TasksPage() {
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] text-muted-foreground">Every</span>
-                          <select
-                            value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
-                            onChange={(e) => {
-                              const v = Number(e.target.value)
-                              editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
-                            }}
-                            className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
-                            {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
-                          </select>
+                          <div className="relative">
+                            <select
+                              value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
+                              onChange={(e) => {
+                                const v = Number(e.target.value)
+                                editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
+                              }}
+                              className="h-8 px-2 pr-6 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer appearance-none">
+                              {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                          </div>
                           <span className="text-[11px] text-muted-foreground">week{((editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval) > 1) ? "s" : ""}</span>
                         </div>
                         <div className="flex gap-1">
@@ -1837,15 +1843,18 @@ export function TasksPage() {
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] text-muted-foreground">Every</span>
-                          <select
-                            value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
-                            onChange={(e) => {
-                              const v = Number(e.target.value)
-                              editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
-                            }}
-                            className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
-                            {[1, 2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n}</option>)}
-                          </select>
+                          <div className="relative">
+                            <select
+                              value={editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval}
+                              onChange={(e) => {
+                                const v = Number(e.target.value)
+                                editingTask ? setEditingTask({ ...editingTask, recurrenceInterval: v }) : setFormRecurrenceInterval(v)
+                              }}
+                              className="h-8 px-2 pr-6 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer appearance-none">
+                              {[1, 2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                          </div>
                           <span className="text-[11px] text-muted-foreground">month{((editingTask ? (editingTask.recurrenceInterval || 1) : formRecurrenceInterval) > 1) ? "s" : ""}</span>
                         </div>
                         <div className="flex gap-1">
@@ -1863,26 +1872,32 @@ export function TasksPage() {
                         </div>
                         {(editingTask ? (editingTask.monthlyRepeatMode || "dayOfMonth") : formMonthlyRepeatMode) === "weekdayOfMonth" && (
                           <div className="flex items-center gap-2">
-                            <select
-                              value={editingTask ? (editingTask.monthlyWeekdayOrdinal || 1) : formMonthlyWeekdayOrdinal}
-                              onChange={(e) => {
-                                const v = Number(e.target.value)
-                                editingTask ? setEditingTask({ ...editingTask, monthlyWeekdayOrdinal: v }) : setFormMonthlyWeekdayOrdinal(v)
-                              }}
-                              className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
-                              {[1, 2, 3, 4, -1].map((n) => <option key={n} value={n}>{n === -1 ? "Last" : ["First", "Second", "Third", "Fourth"][n - 1]}</option>)}
-                            </select>
-                            <select
-                              value={editingTask ? (editingTask.monthlyWeekdayIndex ?? 0) : formMonthlyWeekdayIndex}
-                              onChange={(e) => {
-                                const v = Number(e.target.value)
-                                editingTask ? setEditingTask({ ...editingTask, monthlyWeekdayIndex: v }) : setFormMonthlyWeekdayIndex(v)
-                              }}
-                              className="h-8 px-2 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
-                              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, i) => (
-                                <option key={i} value={i}>{day}</option>
-                              ))}
-                            </select>
+                            <div className="relative">
+                              <select
+                                value={editingTask ? (editingTask.monthlyWeekdayOrdinal || 1) : formMonthlyWeekdayOrdinal}
+                                onChange={(e) => {
+                                  const v = Number(e.target.value)
+                                  editingTask ? setEditingTask({ ...editingTask, monthlyWeekdayOrdinal: v }) : setFormMonthlyWeekdayOrdinal(v)
+                                }}
+                                className="h-8 px-2 pr-6 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer appearance-none">
+                                {[1, 2, 3, 4, -1].map((n) => <option key={n} value={n}>{n === -1 ? "Last" : ["First", "Second", "Third", "Fourth"][n - 1]}</option>)}
+                              </select>
+                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                            </div>
+                            <div className="relative">
+                              <select
+                                value={editingTask ? (editingTask.monthlyWeekdayIndex ?? 0) : formMonthlyWeekdayIndex}
+                                onChange={(e) => {
+                                  const v = Number(e.target.value)
+                                  editingTask ? setEditingTask({ ...editingTask, monthlyWeekdayIndex: v }) : setFormMonthlyWeekdayIndex(v)
+                                }}
+                                className="h-8 px-2 pr-6 rounded-lg border border-white/20 bg-white/50 dark:bg-white/5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer appearance-none">
+                                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, i) => (
+                                  <option key={i} value={i}>{day}</option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1897,28 +1912,32 @@ export function TasksPage() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Linked Habit</label>
-                    <select
-                      value={editingTask ? (editingTask.linkedHabitId || "") : formLinkedHabitId}
-                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, linkedHabitId: e.target.value || undefined }) : setFormLinkedHabitId(e.target.value)}
-                      className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer">
-                      <option value="">None</option>
-                      {(() => {
-                        try {
-                          const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
-                          return habits.map((h: { id: string; name: string }) => (
-                            <option key={h.id} value={h.id}>{h.name}</option>
-                          ))
-                        } catch { return [] }
-                      })()}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={editingTask ? (editingTask.linkedHabitId || "") : formLinkedHabitId}
+                        onChange={(e) => editingTask ? setEditingTask({ ...editingTask, linkedHabitId: e.target.value || undefined }) : setFormLinkedHabitId(e.target.value)}
+                        className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer appearance-none">
+                        <option value="">None</option>
+                        {(() => {
+                          try {
+                            const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
+                            return habits.map((h: { id: string; name: string }) => (
+                              <option key={h.id} value={h.id}>{h.name}</option>
+                            ))
+                          } catch { return [] }
+                        })()}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Linked Goal</label>
-                    <select
-                      value={editingTask ? (editingTask.linkedGoalId || "") : formLinkedGoalId}
-                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, linkedGoalId: e.target.value || undefined }) : setFormLinkedGoalId(e.target.value)}
-                      className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer">
-                      <option value="">None</option>
+                    <div className="relative">
+                      <select
+                        value={editingTask ? (editingTask.linkedGoalId || "") : formLinkedGoalId}
+                        onChange={(e) => editingTask ? setEditingTask({ ...editingTask, linkedGoalId: e.target.value || undefined }) : setFormLinkedGoalId(e.target.value)}
+                        className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 pr-8 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer appearance-none">
+                        <option value="">None</option>
                       {(() => {
                         try {
                           const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
@@ -1927,7 +1946,9 @@ export function TasksPage() {
                           ))
                         } catch { return [] }
                       })()}
-                    </select>
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Today&apos;s Intention</label>

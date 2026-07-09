@@ -1203,44 +1203,53 @@ export function GoalsPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" /></div>
-            <select value={filter} onChange={e => setFilter(e.target.value as GoalFilterMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
-              <optgroup label="Goal Types">
-                <option value="all">All Goals</option>
-                <option value="life-vision">Life Vision</option>
-                <option value="10-year">10-Year</option>
-                <option value="5-year">5-Year</option>
-                <option value="annual">Annual</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="monthly">Monthly</option>
-                <option value="weekly">Weekly</option>
-                <option value="daily">Daily</option>
-                <option value="projects">Projects</option>
-              </optgroup>
-              <optgroup label="Status">
-                <option value="completed">Completed</option>
-                <option value="in-progress">In Progress</option>
-                <option value="not-started">Not Started</option>
-                <option value="overdue">Overdue</option>
-                <option value="archived">Archived</option>
-              </optgroup>
-            </select>
-            <select value={healthFilter !== "all" ? `health:${healthFilter}` : categoryFilter} onChange={e => {
-              const v = e.target.value
-              if (v.startsWith("health:")) { setHealthFilter(v.replace("health:", "")); setCategoryFilter("all") }
-              else { setCategoryFilter(v); setHealthFilter("all") }
-            }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
-              <option value="all">All Categories</option>
-              {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-              <option disabled>── Health ──</option>
-              <option value="health:excellent">🟢 Excellent</option>
-              <option value="health:on_track">🔵 On Track</option>
-              <option value="health:needs_attention">🟡 Needs Attention</option>
-              <option value="health:at_risk">🔴 At Risk</option>
-            </select>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
-              <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
-              <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
-            </select>
+            <div className="relative">
+              <select value={filter} onChange={e => setFilter(e.target.value as GoalFilterMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+                <optgroup label="Goal Types">
+                  <option value="all">All Goals</option>
+                  <option value="life-vision">Life Vision</option>
+                  <option value="10-year">10-Year</option>
+                  <option value="5-year">5-Year</option>
+                  <option value="annual">Annual</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="daily">Daily</option>
+                  <option value="projects">Projects</option>
+                </optgroup>
+                <optgroup label="Status">
+                  <option value="completed">Completed</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="not-started">Not Started</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="archived">Archived</option>
+                </optgroup>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+            </div>
+            <div className="relative">
+              <select value={healthFilter !== "all" ? `health:${healthFilter}` : categoryFilter} onChange={e => {
+                const v = e.target.value
+                if (v.startsWith("health:")) { setHealthFilter(v.replace("health:", "")); setCategoryFilter("all") }
+                else { setCategoryFilter(v); setHealthFilter("all") }
+              }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+                <option value="all">All Categories</option>
+                {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                <option disabled>── Health ──</option>
+                <option value="health:excellent">🟢 Excellent</option>
+                <option value="health:on_track">🔵 On Track</option>
+                <option value="health:needs_attention">🟡 Needs Attention</option>
+                <option value="health:at_risk">🔴 At Risk</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+            </div>
+            <div className="relative">
+              <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+                <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
+                <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+            </div>
           </div>
 
           {viewMode === "board" ? (
