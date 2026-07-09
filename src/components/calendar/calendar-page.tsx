@@ -1,32 +1,20 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { formatDateDDMMYYYY } from "@/lib/date-utils"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Search,
-  Filter,
   Calendar as CalendarIcon,
-  Clock,
   Target,
   BookOpen,
   Repeat,
-  Users,
-  MapPin,
-  Sun,
-  Cloud,
-  Rainbow,
   Bell,
   CheckCircle2,
   Flag,
-  AlertCircle,
 } from "lucide-react"
 
 interface CalendarEvent {
@@ -34,83 +22,55 @@ interface CalendarEvent {
   title: string
   date: Date
   time?: string
-  endTime?: string
-  category: "task" | "goal" | "habit" | "journal" | "meeting" | "personal" | "challenge" | "reminder" | "milestone" | "deadline" | "review"
-  color: string
-  description?: string
-  location?: string
+  category: "task" | "goal" | "habit" | "journal" | "reminder" | "milestone" | "review"
 }
 
-const categoryColors: Record<string, string> = {
-  task: "bg-blue-500",
-  goal: "bg-indigo-500",
-  habit: "bg-amber-500",
-  journal: "bg-violet-500",
-  meeting: "bg-purple-500",
-  personal: "bg-rose-500",
-  challenge: "bg-orange-500",
-  reminder: "bg-amber-500",
-  milestone: "bg-emerald-500",
-  deadline: "bg-red-500",
-  review: "bg-cyan-500",
-}
-
-const categoryLabels: Record<string, string> = {
-  task: "Task",
-  goal: "Goal",
-  habit: "Habit",
-  journal: "Journal",
-  meeting: "Meeting",
-  personal: "Personal",
-  challenge: "Challenge",
-  reminder: "Reminder",
-  milestone: "Milestone",
-  deadline: "Deadline",
-  review: "Review",
+const TYPE_CONFIG: Record<CalendarEvent["category"], { label: string; icon: React.ReactNode }> = {
+  task: { label: "Tasks", icon: <Target className="h-3.5 w-3.5" /> },
+  habit: { label: "Habits", icon: <Repeat className="h-3.5 w-3.5" /> },
+  goal: { label: "Goals", icon: <Flag className="h-3.5 w-3.5" /> },
+  journal: { label: "Journal", icon: <BookOpen className="h-3.5 w-3.5" /> },
+  reminder: { label: "Reminders", icon: <Bell className="h-3.5 w-3.5" /> },
+  milestone: { label: "Milestones", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  review: { label: "Review", icon: <CalendarIcon className="h-3.5 w-3.5" /> },
 }
 
 function loadAllEvents(): CalendarEvent[] {
   const events: CalendarEvent[] = []
   const today = new Date()
 
-  // Tasks from localStorage
   try {
     const tasks = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
     if (Array.isArray(tasks)) {
       for (const task of tasks) {
         if (task.dueDate) {
-          const dateParts = task.dueDate.split("-")
-          const date = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]))
+          const parts = task.dueDate.split("-")
           events.push({
             id: `task-${task.id}`,
             title: task.title || "Untitled Task",
-            date,
+            date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
             time: task.time || undefined,
             category: "task",
-            color: "bg-blue-500",
-            location: task.location || undefined,
           })
         }
       }
     }
   } catch {}
 
-  // Habits from localStorage
   try {
     const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
     if (Array.isArray(habits)) {
       for (const habit of habits) {
         if (habit.schedule && Array.isArray(habit.schedule)) {
           for (const dateStr of habit.schedule) {
-            if (typeof dateStr === "string" && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-              const dateParts = dateStr.split("-")
+            if (typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              const parts = dateStr.split("-")
               events.push({
                 id: `habit-${habit.id}-${dateStr}`,
                 title: habit.name || "Habit",
-                date: new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])),
+                date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
                 time: habit.time || undefined,
                 category: "habit",
-                color: "bg-amber-500",
               })
             }
           }
@@ -119,47 +79,28 @@ function loadAllEvents(): CalendarEvent[] {
     }
   } catch {}
 
-  // Goals with deadlines
   try {
     const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
     if (Array.isArray(goals)) {
       for (const goal of goals) {
         if (goal.deadline) {
-          const dateParts = goal.deadline.split("-")
+          const parts = goal.deadline.split("-")
           events.push({
             id: `goal-${goal.id}`,
             title: goal.title || "Goal Deadline",
-            date: new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])),
-            category: "deadline",
-            color: "bg-red-500",
+            date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
+            category: "goal",
           })
         }
-        // Goal milestones
         if (Array.isArray(goal.milestones)) {
-          for (const milestone of goal.milestones) {
-            if (milestone.dueDate) {
-              const dateParts = milestone.dueDate.split("-")
+          for (const ms of goal.milestones) {
+            if (ms.dueDate) {
+              const parts = ms.dueDate.split("-")
               events.push({
-                id: `milestone-${milestone.id || Math.random().toString(36).slice(2)}`,
-                title: milestone.title || "Milestone",
-                date: new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])),
+                id: `milestone-${ms.id || Math.random().toString(36).slice(2)}`,
+                title: ms.title || "Milestone",
+                date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
                 category: "milestone",
-                color: "bg-emerald-500",
-              })
-            }
-          }
-        }
-        // Goal projects with deadlines
-        if (Array.isArray(goal.projects)) {
-          for (const project of goal.projects) {
-            if (project.deadline) {
-              const dateParts = project.deadline.split("-")
-              events.push({
-                id: `project-${project.id || Math.random().toString(36).slice(2)}`,
-                title: project.title || "Project Deadline",
-                date: new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])),
-                category: "deadline",
-                color: "bg-red-500",
               })
             }
           }
@@ -168,59 +109,53 @@ function loadAllEvents(): CalendarEvent[] {
     }
   } catch {}
 
-  // Reminders from localStorage
   try {
     const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
     if (Array.isArray(reminders)) {
       for (const reminder of reminders) {
         if (reminder.date) {
-          const dateParts = reminder.date.split("-")
+          const parts = reminder.date.split("-")
           events.push({
             id: `reminder-${reminder.id}`,
             title: reminder.title || "Reminder",
-            date: new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])),
+            date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
             time: reminder.time || undefined,
             category: "reminder",
-            color: "bg-amber-500",
           })
         }
       }
     }
   } catch {}
 
-  // Daily reviews from localStorage
   try {
     const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
     if (Array.isArray(reviews)) {
       for (const review of reviews) {
         if (review.date) {
-          const dateParts = review.date.split("-")
+          const parts = review.date.split("-")
           events.push({
             id: `review-${review.date}`,
             title: "Daily Review",
-            date: new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])),
+            date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
             category: "review",
-            color: "bg-cyan-500",
           })
         }
       }
     }
   } catch {}
 
-  // Journal entries from localStorage
   try {
     const entries = JSON.parse(localStorage.getItem("intenteo-journal-entries") || "[]")
     if (Array.isArray(entries)) {
       for (const entry of entries) {
         if (entry.date) {
-          const dateParts = String(entry.date).split("-")
-          if (dateParts.length === 3) {
+          const parts = String(entry.date).split("-")
+          if (parts.length === 3) {
             events.push({
               id: `journal-${entry.id}`,
               title: entry.title || entry.prompt || "Journal Entry",
-              date: new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])),
+              date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
               category: "journal",
-              color: "bg-violet-500",
             })
           }
         }
@@ -228,17 +163,12 @@ function loadAllEvents(): CalendarEvent[] {
     }
   } catch {}
 
-  // Add some demo events for today and coming days if no real data exists
   if (events.length === 0) {
     events.push(
-      { id: "demo-1", title: "Deep Work Block", date: today, time: "9:00 AM", endTime: "11:00 AM", category: "task", color: "bg-blue-500", location: "Focus mode" },
-      { id: "demo-2", title: "Team Standup", date: today, time: "11:00 AM", endTime: "11:30 AM", category: "meeting", color: "bg-purple-500", location: "Zoom" },
-      { id: "demo-3", title: "Morning Journal", date: today, time: "7:00 AM", category: "habit", color: "bg-amber-500" },
-      { id: "demo-4", title: "Exercise", date: today, time: "6:00 PM", category: "habit", color: "bg-emerald-500" },
-      { id: "demo-5", title: "Read 30 Minutes", date: today, time: "9:00 PM", category: "habit", color: "bg-cyan-500" },
-      { id: "demo-6", title: "Complete Q2 Strategy", date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1), time: "2:00 PM", category: "goal", color: "bg-indigo-500" },
-      { id: "demo-7", title: "Weekly Planning", date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2), time: "10:00 AM", category: "task", color: "bg-blue-500" },
-      { id: "demo-8", title: "Evening Reflection", date: today, time: "9:30 PM", category: "journal", color: "bg-violet-500" },
+      { id: "demo-1", title: "Morning Journal", date: today, time: "7:00 AM", category: "habit" },
+      { id: "demo-2", title: "Deep Work", date: today, time: "9:00 AM", category: "task" },
+      { id: "demo-3", title: "Exercise", date: today, time: "6:00 PM", category: "habit" },
+      { id: "demo-4", title: "Evening Reflection", date: today, time: "9:30 PM", category: "journal" },
     )
   }
 
@@ -250,7 +180,6 @@ export function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [view, setView] = useState<"month" | "week" | "day" | "agenda">("month")
-  const [filterCategory, setFilterCategory] = useState<string>("all")
 
   const today = new Date()
   const monthNames = [
@@ -259,58 +188,25 @@ export function CalendarPage() {
   ]
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-  const events = useMemo(() => {
-    if (filterCategory === "all") return allEvents
-    return allEvents.filter((e) => e.category === filterCategory)
-  }, [allEvents, filterCategory])
-
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
     const startingDay = firstDay.getDay()
-
     const days: (Date | null)[] = []
-    for (let i = 0; i < startingDay; i++) {
-      days.push(null)
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i))
-    }
+    for (let i = 0; i < startingDay; i++) days.push(null)
+    for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i))
     return days
   }
 
-  const getEventsForDate = (date: Date) => {
-    return events.filter(
+  const getEventsForDate = (date: Date) =>
+    allEvents.filter(
       (e) =>
         e.date.getDate() === date.getDate() &&
         e.date.getMonth() === date.getMonth() &&
         e.date.getFullYear() === date.getFullYear()
     )
-  }
-
-  const navigateMonth = (direction: number) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1))
-  }
-
-  const navigateWeek = (direction: number) => {
-    const newDate = new Date(currentDate)
-    newDate.setDate(newDate.getDate() + direction * 7)
-    setCurrentDate(newDate)
-  }
-
-  const navigateDay = (direction: number) => {
-    const newDate = new Date(currentDate)
-    newDate.setDate(newDate.getDate() + direction)
-    setCurrentDate(newDate)
-  }
-
-  const goToToday = () => {
-    setCurrentDate(new Date())
-    setSelectedDate(new Date())
-  }
 
   const isSameDay = (d1: Date, d2: Date) =>
     d1.getDate() === d2.getDate() &&
@@ -329,14 +225,55 @@ export function CalendarPage() {
     return dates
   }
 
-  const selectedDayEvents = useMemo(() => getEventsForDate(selectedDate), [selectedDate, events])
+  const navigateMonth = (direction: number) =>
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1))
+
+  const navigateWeek = (direction: number) => {
+    const d = new Date(currentDate)
+    d.setDate(d.getDate() + direction * 7)
+    setCurrentDate(d)
+  }
+
+  const navigateDay = (direction: number) => {
+    const d = new Date(currentDate)
+    d.setDate(d.getDate() + direction)
+    setCurrentDate(d)
+  }
+
+  const goToToday = () => {
+    setCurrentDate(new Date())
+    setSelectedDate(new Date())
+  }
+
+  const selectedDayEvents = useMemo(() => getEventsForDate(selectedDate), [selectedDate, allEvents])
+
+  const groupedEvents = useMemo(() => {
+    const groups: Record<string, CalendarEvent[]> = {}
+    for (const event of selectedDayEvents) {
+      if (!groups[event.category]) groups[event.category] = []
+      groups[event.category].push(event)
+    }
+    return groups
+  }, [selectedDayEvents])
+
+  const tasks = selectedDayEvents.filter((e) => e.category === "task")
+  const habits = selectedDayEvents.filter((e) => e.category === "habit")
+
+  const formatSelectedDate = (date: Date) => {
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ]
+    return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Day Planner</h1>
           <p className="text-muted-foreground">Your complete timeline — tasks, habits, milestones, reminders & more</p>
         </div>
         <div className="flex items-center gap-2">
@@ -348,30 +285,6 @@ export function CalendarPage() {
             Add Event
           </Button>
         </div>
-      </div>
-
-      {/* Category Filter */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          variant={filterCategory === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterCategory("all")}
-          className="h-7 text-xs"
-        >
-          All
-        </Button>
-        {Object.entries(categoryLabels).map(([key, label]) => (
-          <Button
-            key={key}
-            variant={filterCategory === key ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterCategory(key)}
-            className="h-7 text-xs"
-          >
-            <div className={`h-2 w-2 rounded-full ${categoryColors[key]} mr-1.5`} />
-            {label}
-          </Button>
-        ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-4">
@@ -402,6 +315,7 @@ export function CalendarPage() {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Month View */}
               {view === "month" && (
                 <div className="grid grid-cols-7 gap-px bg-muted rounded-xl overflow-hidden">
                   {dayNames.map((day) => (
@@ -434,7 +348,7 @@ export function CalendarPage() {
                               .map((event) => (
                                 <div
                                   key={event.id}
-                                  className={`text-xs p-1 rounded ${categoryColors[event.category]} text-white truncate`}
+                                  className="text-xs p-1 rounded bg-muted truncate"
                                 >
                                   {event.title}
                                 </div>
@@ -452,6 +366,7 @@ export function CalendarPage() {
                 </div>
               )}
 
+              {/* Week View */}
               {view === "week" && (
                 <div className="grid grid-cols-7 gap-2">
                   {getWeekDates().map((date, index) => (
@@ -477,10 +392,10 @@ export function CalendarPage() {
                         {getEventsForDate(date).map((event) => (
                           <div
                             key={event.id}
-                            className={`text-xs p-1.5 rounded-lg ${categoryColors[event.category]} text-white`}
+                            className="text-xs p-1.5 rounded-lg bg-muted"
                           >
                             <p className="font-medium truncate">{event.title}</p>
-                            {event.time && <p className="opacity-80">{event.time}</p>}
+                            {event.time && <p className="text-muted-foreground">{event.time}</p>}
                           </div>
                         ))}
                       </div>
@@ -489,6 +404,7 @@ export function CalendarPage() {
                 </div>
               )}
 
+              {/* Day View */}
               {view === "day" && (
                 <div className="space-y-2">
                   {Array.from({ length: 17 }, (_, i) => i + 6).map((hour) => (
@@ -508,10 +424,10 @@ export function CalendarPage() {
                           .map((event) => (
                             <div
                               key={event.id}
-                              className={`p-2 rounded-lg ${categoryColors[event.category]} text-white mb-1`}
+                              className="p-2 rounded-lg bg-muted mb-1"
                             >
                               <p className="font-medium text-sm">{event.title}</p>
-                              <p className="text-xs opacity-80">{event.time || "All day"} · {categoryLabels[event.category]}</p>
+                              <p className="text-xs text-muted-foreground">{event.time || "All day"}</p>
                             </div>
                           ))}
                       </div>
@@ -520,6 +436,7 @@ export function CalendarPage() {
                 </div>
               )}
 
+              {/* Agenda View */}
               {view === "agenda" && (
                 <div className="space-y-4">
                   {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
@@ -530,17 +447,20 @@ export function CalendarPage() {
                     return (
                       <div key={dayOffset}>
                         <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                          {isSameDay(date, today) ? "Today" : formatDateDDMMYYYY(date.toISOString().split("T")[0])}
+                          {isSameDay(date, today)
+                            ? "Today"
+                            : `${dayNames[date.getDay()]} ${date.getDate()} ${monthNames[date.getMonth()]}`}
                         </h3>
                         <div className="space-y-2">
                           {dayEvents.map((event) => (
                             <div key={event.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                              <div className={`h-3 w-3 rounded-full ${categoryColors[event.category]}`} />
+                              <div className="text-muted-foreground">
+                                {TYPE_CONFIG[event.category]?.icon}
+                              </div>
                               <div className="flex-1">
                                 <p className="font-medium">{event.title}</p>
                                 <p className="text-sm text-muted-foreground">{event.time || "All day"}</p>
                               </div>
-                              <Badge variant="outline">{categoryLabels[event.category]}</Badge>
                             </div>
                           ))}
                         </div>
@@ -553,78 +473,55 @@ export function CalendarPage() {
           </Card>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Selected Day Detail */}
+        {/* Daily Overview Panel */}
+        <div className="lg:col-span-1">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">
-                {isSameDay(selectedDate, today) ? "Today" : formatDateDDMMYYYY(selectedDate.toISOString().split("T")[0])}
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <h3 className="text-lg font-semibold leading-none tracking-tight">
+                {formatSelectedDate(selectedDate)}
+              </h3>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {selectedDayEvents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nothing scheduled</p>
-                ) : (
-                  selectedDayEvents.map((event) => (
-                    <div key={event.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                      <div className={`h-2 w-2 rounded-full ${categoryColors[event.category]}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{event.title}</p>
-                        <p className="text-xs text-muted-foreground">{event.time || "All day"} · {categoryLabels[event.category]}</p>
+            <CardContent className="space-y-4">
+              {selectedDayEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">Nothing scheduled</p>
+              ) : (
+                Object.entries(TYPE_CONFIG).map(([type, config]) => {
+                  const items = groupedEvents[type]
+                  if (!items || items.length === 0) return null
+                  return (
+                    <div key={type}>
+                      <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+                        {config.icon}
+                        <h4 className="text-xs font-medium uppercase tracking-wider">
+                          {config.label}
+                        </h4>
+                      </div>
+                      <div className="space-y-1 ml-5">
+                        {items
+                          .sort((a, b) => (a.time || "ZZ").localeCompare(b.time || "ZZ"))
+                          .map((event) => (
+                            <div key={event.id} className="flex items-center justify-between text-sm">
+                              <span className="truncate">{event.title}</span>
+                              {event.time && (
+                                <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                                  {event.time}
+                                </span>
+                              )}
+                            </div>
+                          ))}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  )
+                })
+              )}
 
-          {/* Upcoming Events */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Upcoming</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {events
-                  .filter((e) => e.date >= new Date(today.getFullYear(), today.getMonth(), today.getDate()))
-                  .sort((a, b) => a.date.getTime() - b.date.getTime())
-                  .slice(0, 8)
-                  .map((event) => (
-                    <div key={event.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                      <div className={`h-2 w-2 rounded-full ${categoryColors[event.category]}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{event.title}</p>
-                        <p className="text-xs text-muted-foreground">{event.time || "All day"}</p>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">
-                        {isSameDay(event.date, today) ? "Today" : `${event.date.getDate()}/${event.date.getMonth() + 1}`}
-                      </span>
-                    </div>
-                  ))}
-                {events.filter((e) => e.date >= new Date(today.getFullYear(), today.getMonth(), today.getDate())).length === 0 && (
-                  <p className="text-sm text-muted-foreground">No upcoming events</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Category Legend */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {Object.entries(categoryLabels).map(([key, label]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <div className={`h-3 w-3 rounded-full ${categoryColors[key]}`} />
-                    <span className="text-sm">{label}</span>
-                  </div>
-                ))}
-              </div>
+              {selectedDayEvents.length > 0 && (
+                <div className="pt-3 border-t text-xs text-muted-foreground">
+                  {tasks.length > 0 && `${tasks.length} task${tasks.length !== 1 ? "s" : ""}`}
+                  {tasks.length > 0 && habits.length > 0 && ", "}
+                  {habits.length > 0 && `${habits.length} habit${habits.length !== 1 ? "s" : ""}`}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
