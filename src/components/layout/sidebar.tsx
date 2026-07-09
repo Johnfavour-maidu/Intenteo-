@@ -10,7 +10,6 @@ import {
   Target,
   BookOpen,
   Repeat,
-  Map,
   Sparkles,
   Settings,
   ChevronLeft,
@@ -35,7 +34,6 @@ const mainNav: NavItem[] = [
   { title: "Journal", href: "/journal", icon: BookOpen },
   { title: "Habits", href: "/habits", icon: Repeat },
   { title: "Goals", href: "/goals", icon: Target },
-  { title: "My Journey", href: "/journey", icon: Map },
   { title: "Téo", href: "/coach", icon: Sparkles },
 ]
 

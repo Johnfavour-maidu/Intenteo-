@@ -2047,12 +2047,17 @@ export function TasksPage() {
           tasksCompleted={completedToday}
           totalTasks={totalToday}
           productivity={productivity}
+          completedHabits={0}
+          totalHabits={habitsData.length}
+          habitNames={habitsData.map(h => ({ name: h.name, completed: false, score: 0 }))}
+          taskList={sortedTasks.map(t => ({ id: t.id, title: t.title, completed: t.completed, subtasks: (t.subtasks || []).map(s => ({ title: s.title, completed: s.completed })) }))}
+          existingReview={null}
           router={router}
           onClose={() => setReviewOpen(false)}
           onSave={(data) => {
             try {
               const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
-              reviews.push({ date: selectedDate || todayISO, ...data, productivity, tasksCompleted: completedToday, createdAt: new Date().toISOString() })
+              reviews.push({ date: selectedDate || todayISO, ...data, productivity, tasksCompleted: completedToday, completedHabits: 0, totalHabits: habitsData.length, createdAt: new Date().toISOString() })
               localStorage.setItem("intenteo-reviews", JSON.stringify(reviews))
             } catch {}
             addToast("Daily review saved")
@@ -2293,19 +2298,36 @@ function FocusMode({ task, onExit, onComplete }: {
 /* Daily Completion Review Modal                         */
 /* ────────────────────────────────────────────────────── */
 
-export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivity, onClose, onSave, router }: {
+interface ReviewData {
+  wentWell: string; improve: string; intentional: number; mood: string
+  biggestWin: string; biggestChallenge: string; gratitude: string; lesson: string
+  intention: string; carryForward: string[]
+}
+
+export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivity, completedHabits, totalHabits, habitNames, taskList, existingReview, onClose, onSave, router }: {
   date: string
   tasksCompleted: number
   totalTasks: number
   productivity: number
+  completedHabits: number
+  totalHabits: number
+  habitNames: { name: string; completed: boolean; score: number }[]
+  taskList: { id: string; title: string; completed: boolean; subtasks: { title: string; completed: boolean }[] }[]
+  existingReview: { wentWell?: string; improve?: string; gratitude?: string; lesson?: string; biggestWin?: string; biggestChallenge?: string; intention?: string } | null
   onClose: () => void
-  onSave: (data: { wentWell: string; improve: string; intentional: number; mood: string }) => void
+  onSave: (data: ReviewData) => void
   router: ReturnType<typeof useRouter>
 }) {
-  const [wentWell, setWentWell] = useState("")
-  const [improve, setImprove] = useState("")
+  const [wentWell, setWentWell] = useState(existingReview?.wentWell || "")
+  const [improve, setImprove] = useState(existingReview?.improve || "")
   const [intentional, setIntentional] = useState(7)
   const [mood, setMood] = useState("smile")
+  const [biggestWin, setBiggestWin] = useState(existingReview?.biggestWin || "")
+  const [biggestChallenge, setBiggestChallenge] = useState(existingReview?.biggestChallenge || "")
+  const [gratitude, setGratitude] = useState(existingReview?.gratitude || "")
+  const [lesson, setLesson] = useState(existingReview?.lesson || "")
+  const [intention, setIntention] = useState(existingReview?.intention || "Be fully present in every conversation.")
+  const [carryForward, setCarryForward] = useState<string[]>([])
 
   const moods = [
     { key: "smile", icon: Smile, label: "Good" },
@@ -2315,6 +2337,22 @@ export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivit
     { key: "angry", icon: Angry, label: "Stressed" },
   ]
 
+  const teoReflection = useMemo(() => {
+    const insights = []
+    if (completedHabits === totalHabits && totalHabits > 0) insights.push("Perfect day! You completed every habit.")
+    else if (completedHabits > 0) insights.push(`You completed ${completedHabits} habit${completedHabits > 1 ? "s" : ""} today. Keep the momentum.`)
+    if (tasksCompleted === totalTasks && totalTasks > 0) insights.push("All tasks done! Great focus today.")
+    if (tasksCompleted < totalTasks && totalTasks > 0) insights.push(`${totalTasks - tasksCompleted} task${totalTasks - tasksCompleted > 1 ? "s" : ""} remaining. Consider prioritizing tomorrow.`)
+    if (habitNames.some(h => h.score >= 90)) insights.push(`Strong performance on ${habitNames.find(h => h.score >= 90)?.name}.`)
+    return insights[0] || "Every day is a step forward."
+  }, [completedHabits, totalHabits, tasksCompleted, totalTasks, habitNames])
+
+  const unfinishedTasks = taskList.filter(t => !t.completed)
+  const habitCompletionPct = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0
+  const subtasksCompleted = taskList.reduce((acc, t) => acc + t.subtasks.filter(s => s.completed).length, 0)
+  const subtasksTotal = taskList.reduce((acc, t) => acc + t.subtasks.length, 0)
+  const anyReflectionFilled = wentWell.length > 0 || improve.length > 0 || biggestWin.length > 0 || biggestChallenge.length > 0 || gratitude.length > 0 || lesson.length > 0
+
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -2322,8 +2360,10 @@ export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivit
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[61] w-full max-w-lg bg-background rounded-2xl border shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-6 space-y-5">
+
+          {/* 1. Header */}
+          <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold">Today&apos;s Review</h3>
               <p className="text-xs text-muted-foreground">{formatDateLong(date)}</p>
@@ -2331,65 +2371,178 @@ export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivit
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}><X className="h-4 w-4" /></Button>
           </div>
 
-          {/* Completion Summary */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-muted/40 border text-center">
-              <p className="text-2xl font-bold">{tasksCompleted} / {totalTasks}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tasks Completed</p>
+          {/* 2. Today's Intention */}
+          <div className="p-3 rounded-xl bg-muted/40 border">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Today&apos;s Intention</span>
             </div>
-            <div className="p-3 rounded-xl bg-muted/40 border text-center">
-              <div className="relative h-16 w-16 mx-auto mb-1">
-                <svg className="h-16 w-16 -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#1E0E6B]/15" />
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#1E0E6B]" strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 15} strokeDashoffset={2 * Math.PI * 15 * (1 - productivity / 100)} />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center"><span className="text-sm font-bold text-[#1E0E6B]">{productivity}</span></div>
-              </div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Productivity Score</p>
+            <p className="text-sm">&quot;{intention}&quot;</p>
+          </div>
+
+          {/* 3. Today's Habits */}
+          <div className="p-3 rounded-xl bg-muted/40 border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Today&apos;s Habits</span>
+              <span className="text-xs font-semibold">{completedHabits} / {totalHabits} ({habitCompletionPct}%)</span>
+            </div>
+            <div className="space-y-1.5">
+              {habitNames.map((h, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  {h.completed ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  ) : (
+                    <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/40 shrink-0" />
+                  )}
+                  <span className={`flex-1 ${h.completed ? "text-muted-foreground" : ""}`}>{h.name}</span>
+                  <span className="text-[10px] font-medium" style={{ color: h.score >= 80 ? "#22C55E" : h.score >= 50 ? "#F97316" : "#EF4444" }}>{h.score}%</span>
+                </div>
+              ))}
+              {habitNames.length === 0 && <p className="text-xs text-muted-foreground">No habits tracked today.</p>}
             </div>
           </div>
 
-          {/* Reflection */}
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">What went well today?</label>
-              <textarea value={wentWell} onChange={(e) => setWentWell(e.target.value)} rows={2}
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                placeholder="Reflect on your wins..." />
+          {/* 4. Today's Tasks */}
+          <div className="p-3 rounded-xl bg-muted/40 border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Today&apos;s Tasks</span>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">What could be improved tomorrow?</label>
-              <textarea value={improve} onChange={(e) => setImprove(e.target.value)} rows={2}
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                placeholder="Areas to grow..." />
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-lg font-bold">{tasksCompleted} / {totalTasks}</p>
+                <p className="text-[10px] text-muted-foreground">Tasks Done</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold">{productivity}%</p>
+                <p className="text-[10px] text-muted-foreground">Productivity</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold">{subtasksCompleted}/{subtasksTotal}</p>
+                <p className="text-[10px] text-muted-foreground">Subtasks</p>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">How intentional did today feel? {intentional}/10</label>
-              <input type="range" min={1} max={10} value={intentional} onChange={(e) => setIntentional(Number(e.target.value))}
-                className="mt-1 w-full accent-primary" />
+          </div>
+
+          {/* 5. Biggest Win */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">What was your biggest win today?</label>
+            <textarea value={biggestWin} onChange={(e) => setBiggestWin(e.target.value)} rows={2}
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="Your highlight of the day..." />
+          </div>
+
+          {/* 6. Biggest Challenge */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">What challenged you today?</label>
+            <textarea value={biggestChallenge} onChange={(e) => setBiggestChallenge(e.target.value)} rows={2}
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="Obstacles you faced..." />
+          </div>
+
+          {/* 7. Gratitude */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">What are you grateful for today?</label>
+            <textarea value={gratitude} onChange={(e) => setGratitude(e.target.value)} rows={2}
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="Moments of gratitude..." />
+          </div>
+
+          {/* 8. Lesson Learned */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">What did today teach you?</label>
+            <textarea value={lesson} onChange={(e) => setLesson(e.target.value)} rows={2}
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="A lesson or insight..." />
+          </div>
+
+          {/* 9. Mood */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Mood</label>
+            <div className="flex gap-1.5 mt-1">
+              {moods.map((m) => {
+                const Icon = m.icon
+                return (
+                  <button key={m.key} onClick={() => setMood(m.key)}
+                    className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${mood === m.key ? "border-primary bg-primary/10 text-primary" : "border-muted hover:bg-muted/50 text-muted-foreground"}`}>
+                    <Icon className="h-4 w-4" />
+                  </button>
+                )
+              })}
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Mood</label>
-              <div className="flex gap-1.5 mt-1">
-                {moods.map((m) => {
-                  const Icon = m.icon
-                  return (
-                    <button key={m.key} onClick={() => setMood(m.key)}
-                      className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${mood === m.key ? "border-primary bg-primary/10 text-primary" : "border-muted hover:bg-muted/50 text-muted-foreground"}`}>
-                      <Icon className="h-4 w-4" />
+          </div>
+
+          {/* 10. Intentionality Score */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">How intentional did today feel? {intentional}/10</label>
+            <input type="range" min={1} max={10} value={intentional} onChange={(e) => setIntentional(Number(e.target.value))}
+              className="mt-1 w-full accent-primary" />
+          </div>
+
+          {/* 11. Carry Forward */}
+          {unfinishedTasks.length > 0 && (
+            <div className="p-3 rounded-xl bg-muted/40 border">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Carry Forward</span>
+              <p className="text-xs text-muted-foreground mt-1 mb-2">Move unfinished tasks to tomorrow:</p>
+              <div className="space-y-1.5">
+                {unfinishedTasks.map(t => (
+                  <div key={t.id} className="flex items-center gap-2">
+                    <button onClick={() => setCarryForward(prev => prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id])}
+                      className={`shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors ${carryForward.includes(t.id) ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"}`}>
+                      {carryForward.includes(t.id) && <CheckCircle2 className="h-3 w-3" />}
                     </button>
-                  )
-                })}
+                    <span className="text-sm flex-1">{t.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 12. Téo Reflection */}
+          <div className="p-3 rounded-xl bg-muted/40 border">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Téo Reflection</span>
+            </div>
+            <p className="text-sm">{teoReflection}</p>
+          </div>
+
+          {/* 13. End of Day Summary */}
+          <div className="p-3 rounded-xl bg-muted/40 border">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium block mb-2">End of Day Summary</span>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <p className="font-bold text-sm">{intentional}/10</p>
+                <p className="text-muted-foreground">Intent Score</p>
+              </div>
+              <div>
+                <p className="font-bold text-sm">{productivity}%</p>
+                <p className="text-muted-foreground">Productivity</p>
+              </div>
+              <div>
+                <p className="font-bold text-sm">{completedHabits}/{totalHabits}</p>
+                <p className="text-muted-foreground">Habits</p>
+              </div>
+              <div>
+                <p className="font-bold text-sm">{tasksCompleted}/{totalTasks}</p>
+                <p className="text-muted-foreground">Tasks</p>
+              </div>
+              <div>
+                <p className="font-bold text-sm capitalize">{mood}</p>
+                <p className="text-muted-foreground">Mood</p>
+              </div>
+              <div>
+                <p className="font-bold text-sm">{anyReflectionFilled ? "Yes" : "No"}</p>
+                <p className="text-muted-foreground">Reflection</p>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-2 mt-5">
+          {/* 14. Buttons */}
+          <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>Skip</Button>
-            <Button className="flex-1 glow" onClick={() => onSave({ wentWell, improve, intentional, mood })}>Save Review</Button>
+            <Button className="flex-1 glow" onClick={() => onSave({ wentWell, improve, intentional, mood, biggestWin, biggestChallenge, gratitude, lesson, intention, carryForward })}>Save Review</Button>
           </div>
-          <button onClick={() => router.push("/journey")} className="w-full mt-2 text-xs text-primary hover:underline">View My Journey</button>
+          <button onClick={() => router.push("/journey")} className="w-full text-xs text-primary hover:underline">View My Journey</button>
         </div>
       </motion.div>
     </AnimatePresence>

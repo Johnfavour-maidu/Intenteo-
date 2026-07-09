@@ -629,12 +629,17 @@ export function TodayDashboard() {
           tasksCompleted={completedTasks}
           totalTasks={tasks.length}
           productivity={intentScore}
+          completedHabits={completedHabits}
+          totalHabits={habits.length}
+          habitNames={habits.map(h => ({ name: h.name, completed: h.completed, score: h.completed ? 100 : 0 }))}
+          taskList={tasks.map(t => ({ id: t.id, title: t.title, completed: t.completed, subtasks: [] }))}
+          existingReview={null}
           router={router}
           onClose={() => setReviewOpen(false)}
           onSave={(data) => {
             try {
               const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
-              reviews.push({ date: new Date().toISOString().split("T")[0], ...data, productivity: intentScore, tasksCompleted: completedTasks, createdAt: new Date().toISOString() })
+              reviews.push({ date: new Date().toISOString().split("T")[0], ...data, productivity: intentScore, tasksCompleted: completedTasks, completedHabits, totalHabits: habits.length, createdAt: new Date().toISOString() })
               localStorage.setItem("intenteo-reviews", JSON.stringify(reviews))
             } catch {}
             addToast("Daily review saved")

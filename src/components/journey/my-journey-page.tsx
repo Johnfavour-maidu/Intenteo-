@@ -690,33 +690,121 @@ function CalendarGrid({ selectedDate, onSelect, habits, tasks, journal, goals }:
   )
 }
 
+/* ─── Review Data Interface ─── */
+
+interface ReviewData {
+  date: string
+  wentWell?: string; improve?: string; intentional?: number; mood?: string
+  biggestWin?: string; biggestChallenge?: string; gratitude?: string; lesson?: string
+  intention?: string; carryForward?: string[]
+  productivity?: number; tasksCompleted?: number
+  completedHabits?: number; totalHabits?: number
+  createdAt?: string
+}
+
+function loadReviews(): ReviewData[] {
+  try {
+    const raw = localStorage.getItem("intenteo-reviews")
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch { return [] }
+}
+
+/* ─── Period Aggregation ─── */
+
+interface PeriodChapter {
+  label: string
+  dateRange: string
+  reviewCount: number
+  avgIntentScore: number
+  avgProductivity: number
+  storySummary: string
+  habitsImproved: string[]
+  goalsProgressed: string[]
+  moodTrend: string
+  majorWins: string[]
+  challenges: string[]
+  lessonsLearned: string[]
+  teoInsight: string
+}
+
+function aggregatePeriod(reviews: ReviewData[], startISO: string, endISO: string): PeriodChapter {
+  const filtered = reviews.filter(r => r.date >= startISO && r.date <= endISO)
+  const count = filtered.length
+
+  const avgIntent = count > 0 ? Math.round(filtered.reduce((s, r) => s + (r.intentional || 7), 0) / count) : 0
+  const avgProd = count > 0 ? Math.round(filtered.reduce((s, r) => s + (r.productivity || 0), 0) / count) : 0
+
+  const moodCounts: Record<string, number> = {}
+  filtered.forEach(r => { if (r.mood) moodCounts[r.mood] = (moodCounts[r.mood] || 0) + 1 })
+  const topMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "neutral"
+
+  const wins = filtered.map(r => r.biggestWin).filter((w): w is string => !!w && w.trim().length > 0)
+  const challenges = filtered.map(r => r.biggestChallenge).filter((c): c is string => !!c && c.trim().length > 0)
+  const lessons = filtered.map(r => r.lesson).filter((l): l is string => !!l && l.trim().length > 0)
+
+  const storyParts: string[] = []
+  if (count === 0) storyParts.push("No reviews recorded for this period.")
+  else if (count === 1) storyParts.push(`You completed 1 daily review.`)
+  else storyParts.push(`You completed ${count} daily reviews.`)
+  if (avgIntent >= 8) storyParts.push("Your intentionality was very high.")
+  else if (avgIntent >= 5) storyParts.push("You maintained moderate intentionality.")
+  else if (count > 0) storyParts.push("Intentionality could use more focus.")
+  if (wins.length > 0) storyParts.push(`You celebrated ${wins.length} win${wins.length > 1 ? "s" : ""}.`)
+  if (challenges.length > 0) storyParts.push(`You faced ${challenges.length} challenge${challenges.length > 1 ? "s" : ""}.`)
+
+  const teoParts: string[] = []
+  if (count === 0) teoParts.push("Start recording daily reviews to unlock insights.")
+  else {
+    if (avgIntent >= 8) teoParts.push("Great intentionality this period. Keep it up!")
+    if (avgProd >= 80) teoParts.push("Your productivity scores are excellent.")
+    if (challenges.length > wins.length) teoParts.push("More challenges than wins — consider focusing on small victories.")
+    if (teoParts.length === 0) teoParts.push("Consistency is the key to growth. Keep showing up.")
+  }
+
+  return {
+    label: "",
+    dateRange: `${startISO} to ${endISO}`,
+    reviewCount: count,
+    avgIntentScore: avgIntent,
+    avgProductivity: avgProd,
+    storySummary: storyParts.join(" "),
+    habitsImproved: [],
+    goalsProgressed: [],
+    moodTrend: topMood,
+    majorWins: wins.slice(0, 5),
+    challenges: challenges.slice(0, 5),
+    lessonsLearned: lessons.slice(0, 5),
+    teoInsight: teoParts[0] || "Every day is a step forward.",
+  }
+}
+
 /* ─── Main Component ─── */
 
-type JourneyTab = "day" | "week" | "month"
+type JourneyTab = "day" | "week" | "month" | "quarter" | "year" | "life"
 
 export function MyJourneyPage() {
+  const [reviews, setReviews] = useState<ReviewData[]>([])
   const [habits, setHabits] = useState<HabitRecord[]>([])
   const [tasks, setTasks] = useState<TaskRecord[]>([])
   const [journal, setJournal] = useState<JournalEntry[]>([])
   const [goals, setGoals] = useState<GoalRecord[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [activeTab, setActiveTab] = useState<JourneyTab>("day")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeFilter, setActiveFilter] = useState<string>("all")
-  const [expandedYear, setExpandedYear] = useState<string | null>(null)
-  const [expandedMonth, setExpandedMonth] = useState<string | null>(null)
-  const [expandedDay, setExpandedDay] = useState<string | null>(null)
+  const [searchQuery] = useState("")
 
   useEffect(() => {
+    setReviews(loadReviews())
     setHabits(loadHabits())
     setTasks(loadTasks())
     setJournal(loadJournal())
     setGoals(loadGoals())
   }, [])
 
-  // Refresh data every time the page gets focus
   useEffect(() => {
     const refresh = () => {
+      setReviews(loadReviews())
       setHabits(loadHabits())
       setTasks(loadTasks())
       setJournal(loadJournal())
@@ -729,169 +817,88 @@ export function MyJourneyPage() {
   const todayISO = getTodayISO()
   const selectedISO = formatISO(selectedDate)
 
-  const timelineEntries = useMemo(() => buildTimeline(selectedISO, habits, tasks, journal, goals), [selectedISO, habits, tasks, journal, goals])
-
-  const weekStart = useMemo(() => {
-    const d = new Date(selectedDate)
-    d.setDate(d.getDate() - d.getDay())
-    return d
-  }, [selectedDate])
-  const weekEnd = useMemo(() => {
-    const d = new Date(weekStart)
-    d.setDate(d.getDate() + 6)
-    return d
-  }, [weekStart])
-  const monthStart = useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1), [selectedDate])
-  const monthEnd = useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0), [selectedDate])
-
-  const weekStats = useMemo(() => computePeriodStats(weekStart, weekEnd, habits, tasks, journal, goals), [weekStart, weekEnd, habits, tasks, journal, goals])
-  const monthStats = useMemo(() => computePeriodStats(monthStart, monthEnd, habits, tasks, journal, goals), [monthStart, monthEnd, habits, tasks, journal, goals])
-
-  const insights = useMemo(() => generateInsights(habits, tasks, journal, goals), [habits, tasks, journal, goals])
-  const recommendations = useMemo(() => generateRecommendations(habits, tasks, journal, goals), [habits, tasks, journal, goals])
-  const milestones = useMemo(() => detectMilestones(habits, tasks, journal, goals), [habits, tasks, journal, goals])
-
   const overallIntentScore = useMemo(() => {
-    const active = habits.filter(h => !h.paused)
-    return active.length > 0 ? Math.round(active.reduce((s, h) => s + h.habitScore, 0) / active.length) : 0
-  }, [habits])
-
-  // Separate timeline by time of day
-  const morningEntries = timelineEntries.filter(e => (e.timestamp ?? 0) < 720)
-  const afternoonEntries = timelineEntries.filter(e => (e.timestamp ?? 0) >= 720 && (e.timestamp ?? 0) < 1080)
-  const eveningEntries = timelineEntries.filter(e => (e.timestamp ?? 0) >= 1080)
-
-  // Filters
-  const filterOptions = [
-    { id: "all", label: "All Activity" },
-    { id: "habit", label: "Habits" },
-    { id: "task", label: "Tasks" },
-    { id: "journal", label: "Journal" },
-    { id: "goal", label: "Goals" },
-    { id: "milestone", label: "Milestones" },
-  ]
-
-  const filteredTimeline = useMemo(() => {
-    let entries = timelineEntries
-    if (activeFilter !== "all") {
-      entries = entries.filter(e => {
-        const sourceType = (e.data.sourceType as string) || (e.data.type as string) || ""
-        return sourceType === activeFilter || e.type.startsWith(activeFilter)
-      })
+    if (reviews.length === 0) {
+      const active = habits.filter(h => !h.paused)
+      return active.length > 0 ? Math.round(active.reduce((s, h) => s + h.habitScore, 0) / active.length) : 0
     }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      entries = entries.filter(e => e.title.toLowerCase().includes(q) || (e.description || "").toLowerCase().includes(q))
+    return Math.round(reviews.reduce((s, r) => s + (r.intentional || 7), 0) / reviews.length * 10)
+  }, [reviews, habits])
+
+  /* ─── Period Chapters ─── */
+
+  const dayChapter = useMemo((): PeriodChapter => {
+    const dayReviews = reviews.filter(r => r.date === selectedISO)
+    if (dayReviews.length === 0) return { label: "Day", dateRange: selectedISO, reviewCount: 0, avgIntentScore: 0, avgProductivity: 0, storySummary: "No review recorded for this day.", habitsImproved: [], goalsProgressed: [], moodTrend: "", majorWins: [], challenges: [], lessonsLearned: [], teoInsight: "Complete a daily review to see your story." }
+    const r = dayReviews[0]
+    return {
+      label: "Day", dateRange: selectedISO, reviewCount: 1,
+      avgIntentScore: r.intentional || 0, avgProductivity: r.productivity || 0,
+      storySummary: r.wentWell ? `Today you reflected: "${r.wentWell}"` : "A day of intentional living.",
+      habitsImproved: [], goalsProgressed: [],
+      moodTrend: r.mood || "",
+      majorWins: r.biggestWin ? [r.biggestWin] : [],
+      challenges: r.biggestChallenge ? [r.biggestChallenge] : [],
+      lessonsLearned: r.lesson ? [r.lesson] : [],
+      teoInsight: r.gratitude ? `You practiced gratitude: "${r.gratitude}"` : "Keep reflecting each day.",
     }
-    return entries
-  }, [timelineEntries, activeFilter, searchQuery])
+  }, [reviews, selectedISO])
 
-  // Filtered full data for search
-  const filteredHabits = useMemo(() => {
-    if (!searchQuery) return habits
-    const q = searchQuery.toLowerCase()
-    return habits.filter(h => h.name.toLowerCase().includes(q))
-  }, [habits, searchQuery])
+  const weekChapter = useMemo((): PeriodChapter => {
+    const d = new Date(selectedDate)
+    const start = new Date(d); start.setDate(d.getDate() - d.getDay())
+    const end = new Date(start); end.setDate(start.getDate() + 6)
+    const chapter = aggregatePeriod(reviews, formatISO(start), formatISO(end))
+    chapter.label = "Week"
+    return chapter
+  }, [reviews, selectedDate])
 
-  const navigateTo = (path: string) => { window.location.href = path }
+  const monthChapter = useMemo((): PeriodChapter => {
+    const start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+    const end = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
+    const chapter = aggregatePeriod(reviews, formatISO(start), formatISO(end))
+    chapter.label = "Month"
+    return chapter
+  }, [reviews, selectedDate])
 
-  const renderEntry = (entry: TimelineEntry) => {
-    const isHabit = entry.type === "habit_complete" || entry.type === "habit_missed"
-    const isTask = entry.type === "task_complete" || entry.type === "task_overdue"
-    const isJournal = entry.type === "journal"
-    const isMood = entry.type === "mood"
-    const isGoal = entry.type === "goal_progress"
-    const streak = entry.data.streak as number | undefined
-    const score = entry.data.score as number | undefined
-    const hasImages = entry.data.hasImages as boolean | undefined
-    const hasAudio = entry.data.hasAudio as boolean | undefined
+  const quarterChapter = useMemo((): PeriodChapter => {
+    const q = Math.floor(selectedDate.getMonth() / 3)
+    const start = new Date(selectedDate.getFullYear(), q * 3, 1)
+    const end = new Date(selectedDate.getFullYear(), q * 3 + 3, 0)
+    const chapter = aggregatePeriod(reviews, formatISO(start), formatISO(end))
+    chapter.label = "Quarter"
+    return chapter
+  }, [reviews, selectedDate])
 
-    return (
-      <div
-        key={entry.id}
-        className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/30 transition-colors cursor-pointer group"
-        onClick={() => {
-          if (isHabit) navigateTo("/habits")
-          else if (isTask) navigateTo("/tasks")
-          else if (isJournal || isMood) navigateTo("/journal")
-          else if (isGoal) navigateTo("/goals")
-        }}
-      >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 text-sm"
-          style={{ backgroundColor: entry.color ? `${entry.color}20` : "rgba(30,14,107,0.08)" }}>
-          {entry.icon && /^[^\u0000-\u007F]/.test(entry.icon) ? <span>{entry.icon}</span> : (
-            entry.type === "habit_complete" ? <CheckCircle2 className="h-4 w-4" style={{ color: entry.color }} /> :
-            entry.type === "habit_missed" ? <Circle className="h-4 w-4 text-red-400" /> :
-            entry.type === "task_complete" ? <CheckSquare className="h-4 w-4 text-green-500" /> :
-            entry.type === "task_overdue" ? <AlertTriangle className="h-4 w-4 text-red-500" /> :
-            entry.type === "journal" ? <BookOpen className="h-4 w-4 text-purple-500" /> :
-            entry.type === "goal_progress" ? <Target className="h-4 w-4" style={{ color: entry.color }} /> :
-            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: entry.color || "#8B5CF6" }} />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium truncate">{entry.title}</span>
-            {entry.time && <span className="text-[10px] text-muted-foreground shrink-0">{formatTime(entry.time)}</span>}
-          </div>
-          {entry.description && <p className="text-xs text-muted-foreground mt-0.5">{entry.description}</p>}
-          {entry.type === "habit_complete" && streak && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <Flame className="h-3 w-3 text-orange-500" />
-              <span className="text-[10px] text-orange-500 font-medium">{streak} day streak</span>
-            </div>
-          )}
-          {entry.type === "habit_complete" && score && (
-            <span className="text-[10px] font-medium ml-2" style={{ color: score >= 80 ? "#22C55E" : score >= 50 ? "#F97316" : "#EF4444" }}>
-              Score: {score}%
-            </span>
-          )}
-          {entry.type === "journal" && (hasImages || hasAudio) && (
-            <div className="flex items-center gap-1.5 mt-1">
-              {hasImages && <Camera className="h-3 w-3 text-muted-foreground" />}
-              {hasAudio && <Mic className="h-3 w-3 text-muted-foreground" />}
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
+  const yearChapter = useMemo((): PeriodChapter => {
+    const start = new Date(selectedDate.getFullYear(), 0, 1)
+    const end = new Date(selectedDate.getFullYear(), 11, 31)
+    const chapter = aggregatePeriod(reviews, formatISO(start), formatISO(end))
+    chapter.label = "Year"
+    return chapter
+  }, [reviews, selectedDate])
 
-  const renderTimelineSection = (label: string, icon: React.ReactNode, entries: TimelineEntry[]) => {
-    if (entries.length === 0) return null
-    return (
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          {icon}
-          <h4 className="text-sm font-semibold text-foreground">{label}</h4>
-        </div>
-        <div className="space-y-0.5">
-          {entries.map(renderEntry)}
-        </div>
-      </div>
-    )
-  }
+  const lifeChapter = useMemo((): PeriodChapter => {
+    if (reviews.length === 0) return { label: "Life", dateRange: "All time", reviewCount: 0, avgIntentScore: 0, avgProductivity: 0, storySummary: "Start your journey by completing daily reviews.", habitsImproved: [], goalsProgressed: [], moodTrend: "", majorWins: [], challenges: [], lessonsLearned: [], teoInsight: "Your story begins with one intentional step." }
+    const sorted = [...reviews].sort((a, b) => a.date.localeCompare(b.date))
+    const first = sorted[0].date
+    const last = sorted[sorted.length - 1].date
+    const chapter = aggregatePeriod(reviews, first, last)
+    chapter.label = "Life"
+    chapter.storySummary = `Your journey spans ${reviews.length} reviews from ${first} to ${last}. ${chapter.storySummary}`
+    return chapter
+  }, [reviews])
 
-  const renderEmptyDay = () => (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <MapIcon className="h-16 w-16 text-muted-foreground/30 mb-4" />
-      <h3 className="text-lg font-medium text-foreground">Nothing recorded today</h3>
-      <p className="text-sm text-muted-foreground mt-1 max-w-md">
-        Take one intentional action to begin your journey.
-      </p>
-      <div className="flex gap-3 mt-6">
-        <Button onClick={() => navigateTo("/habits")} variant="outline" size="sm">
-          <CheckCircle2 className="h-4 w-4 mr-1" /> Complete a Habit
-        </Button>
-        <Button onClick={() => navigateTo("/journal")} variant="outline" size="sm">
-          <BookOpen className="h-4 w-4 mr-1" /> Write in Journal
-        </Button>
-        <Button onClick={() => navigateTo("/tasks")} variant="outline" size="sm">
-          <CheckSquare className="h-4 w-4 mr-1" /> Do a Task
-        </Button>
-      </div>
-    </div>
-  )
+  const activeChapter = useMemo(() => {
+    switch (activeTab) {
+      case "day": return dayChapter
+      case "week": return weekChapter
+      case "month": return monthChapter
+      case "quarter": return quarterChapter
+      case "year": return yearChapter
+      case "life": return lifeChapter
+    }
+  }, [activeTab, dayChapter, weekChapter, monthChapter, quarterChapter, yearChapter, lifeChapter])
 
   /* ─── Life Timeline ─── */
   const lifeTimelineYears = useMemo(() => {
@@ -907,13 +914,25 @@ export function MyJourneyPage() {
     tasks.forEach(t => { if (t.date) addDate(t.date); if (t.deadline) addDate(t.deadline) })
     journal.forEach(e => addDate(e.dateISO))
     goals.forEach(g => { if (g.updatedAt) addDate(g.updatedAt) })
+    reviews.forEach(r => addDate(r.date))
     Object.keys(years).forEach(y => {
       Object.keys(years[y]).forEach(m => { years[y][m].sort() })
     })
     return Object.entries(years).sort(([a], [b]) => Number(b) - Number(a))
-  }, [habits, tasks, journal, goals])
+  }, [habits, tasks, journal, goals, reviews])
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+  const navigateTo = (path: string) => { window.location.href = path }
+
+  const tabs: { id: JourneyTab; label: string }[] = [
+    { id: "day", label: "Day" },
+    { id: "week", label: "Week" },
+    { id: "month", label: "Month" },
+    { id: "quarter", label: "Quarter" },
+    { id: "year", label: "Year" },
+    { id: "life", label: "Life" },
+  ]
 
   return (
     <div className="space-y-6">
@@ -923,53 +942,13 @@ export function MyJourneyPage() {
         <p className="text-muted-foreground">Your life, one intentional day at a time.</p>
       </div>
 
-      {/* ── Search & Filters ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search My Journey..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md"
-          />
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {filterOptions.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setActiveFilter(f.id)}
-              className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
-                activeFilter === f.id ? "bg-[#1E0E6B] text-white" : "bg-white/50 text-muted-foreground hover:bg-white/80"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Calendar ── */}
-      <CalendarGrid
-        selectedDate={selectedDate}
-        onSelect={setSelectedDate}
-        habits={habits}
-        tasks={tasks}
-        journal={journal}
-        goals={goals}
-      />
-
       {/* ── Tab Navigation ── */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 w-fit">
-        {([
-          { id: "day" as JourneyTab, label: "Day" },
-          { id: "week" as JourneyTab, label: "Week" },
-          { id: "month" as JourneyTab, label: "Month" },
-        ]).map(tab => (
+      <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 w-fit overflow-x-auto">
+        {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
               activeTab === tab.id ? "bg-[#1E0E6B] text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -989,177 +968,117 @@ export function MyJourneyPage() {
         </div>
       </div>
 
-      {/* ── Day View ── */}
-      {activeTab === "day" && (
-        <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
-          <div className="p-4 border-b border-white/10">
-            <h3 className="text-lg font-semibold">{formatDateLong(selectedDate)}</h3>
+      {/* ── Chapter Content ── */}
+      <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
+        <div className="p-4 border-b border-white/10">
+          <h3 className="text-lg font-semibold">{activeChapter.label} Review</h3>
+          <p className="text-xs text-muted-foreground">{activeChapter.dateRange}</p>
+        </div>
+        <div className="p-4 space-y-4">
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <p className="text-2xl font-bold text-[#1E0E6B]">{activeChapter.reviewCount}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Reviews</p>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <p className="text-2xl font-bold text-[#1E0E6B]">{activeChapter.avgIntentScore}/10</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Intent</p>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <p className="text-2xl font-bold text-[#1E0E6B]">{activeChapter.avgProductivity}%</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Productivity</p>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/40 border text-center">
+              <p className="text-2xl font-bold capitalize">{activeChapter.moodTrend || "—"}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mood Trend</p>
+            </div>
           </div>
-          <div className="p-4">
-            {filteredTimeline.length === 0 && !searchQuery ? renderEmptyDay() : (
-              <>
-                {searchQuery ? (
-                  <div className="space-y-0.5">
-                    {filteredTimeline.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">No results found for "{searchQuery}"</p>
-                    ) : filteredTimeline.map(renderEntry)}
+
+          {/* Story Summary */}
+          <div className="p-3 rounded-xl bg-muted/40 border">
+            <div className="flex items-center gap-2 mb-1">
+              <BookOpen className="h-4 w-4 text-purple-500" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Story Summary</span>
+            </div>
+            <p className="text-sm">{activeChapter.storySummary}</p>
+          </div>
+
+          {/* Major Wins */}
+          {activeChapter.majorWins.length > 0 && (
+            <div className="p-3 rounded-xl bg-muted/40 border">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="h-4 w-4 text-yellow-500" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Major Wins</span>
+              </div>
+              <div className="space-y-1.5">
+                {activeChapter.majorWins.map((w, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                    <span>{w}</span>
                   </div>
-                ) : (
-                  <>
-                    {renderTimelineSection("Morning", <Sun className="h-4 w-4 text-orange-500" />, morningEntries)}
-                    {renderTimelineSection("Afternoon", <Sunset className="h-4 w-4 text-amber-500" />, afternoonEntries)}
-                    {renderTimelineSection("Evening", <Moon className="h-4 w-4 text-indigo-500" />, eveningEntries)}
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Week View ── */}
-      {activeTab === "week" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Habits Completed</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{weekStats.habitCompletions}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Tasks Done</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{weekStats.taskCompletions}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Journal Days</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{weekStats.journalDays}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Avg Intent Score</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{weekStats.avgIntentScore}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Best Day</p>
-              <p className="text-lg font-bold text-[#1E0E6B]">{weekStats.bestDay ? (() => { const d = new Date(weekStats.bestDay + "T12:00:00"); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}` })() : "—"}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Longest Streak</p>
-              <p className="text-lg font-bold text-[#1E0E6B]">{weekStats.longestStreak} <span className="text-xs font-normal text-muted-foreground">days</span></p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Goal Progress</p>
-              <p className="text-lg font-bold text-[#1E0E6B]">{weekStats.goalProgressChanges} <span className="text-xs font-normal text-muted-foreground">updates</span></p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Best Mood</p>
-              <p className="text-lg font-bold">{weekStats.topMood || "—"}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Month View ── */}
-      {activeTab === "month" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Habits Completed</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{monthStats.habitCompletions}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Tasks Finished</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{monthStats.taskCompletions}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Journal Days</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{monthStats.journalDays}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Avg Intent Score</p>
-              <p className="text-2xl font-bold text-[#1E0E6B]">{monthStats.avgIntentScore}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Longest Streak</p>
-              <p className="text-lg font-bold text-[#1E0E6B]">{monthStats.longestStreak} <span className="text-xs font-normal text-muted-foreground">days</span></p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Goal Updates</p>
-              <p className="text-lg font-bold text-[#1E0E6B]">{monthStats.goalProgressChanges}</p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Active Days</p>
-              <p className="text-lg font-bold text-[#1E0E6B]">{monthStats.mostConsistentDay} <span className="text-xs font-normal text-muted-foreground">/ {monthStats.dayCount}</span></p>
-            </div>
-            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20">
-              <p className="text-xs text-muted-foreground mb-1">Avg Mood</p>
-              <p className="text-lg font-bold">{monthStats.topMood || "—"}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Insights ── */}
-      {insights.length > 0 && (
-        <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-purple-500" />
-            <h3 className="text-lg font-semibold">Insights</h3>
-          </div>
-          <div className="space-y-3">
-            {insights.slice(0, 5).map((insight, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-white/30">
-                <span className="text-lg shrink-0">{insight.icon}</span>
-                <p className="text-sm text-foreground">{insight.text}</p>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* ── Recommendations ── */}
-      {recommendations.length > 0 && (
-        <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="h-5 w-5 text-orange-500" />
-            <h3 className="text-lg font-semibold">Recommendations</h3>
-          </div>
-          <div className="space-y-3">
-            {recommendations.slice(0, 5).map((rec, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-white/30">
-                <span className="text-lg shrink-0">{rec.icon}</span>
-                <p className="text-sm text-foreground">{rec.text}</p>
+          {/* Challenges */}
+          {activeChapter.challenges.length > 0 && (
+            <div className="p-3 rounded-xl bg-muted/40 border">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Challenges</span>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <div className="space-y-1.5">
+                {activeChapter.challenges.map((c, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <span className="text-orange-500 shrink-0 mt-0.5">!</span>
+                    <span>{c}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* ── Milestones ── */}
-      {milestones.length > 0 && (
-        <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Award className="h-5 w-5 text-yellow-500" />
-            <h3 className="text-lg font-semibold">Milestones</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {milestones.map(m => (
-              <div key={m.id} className="flex items-start gap-3 p-4 rounded-xl bg-white/40 border border-white/20 hover:shadow-sm transition-shadow">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full shrink-0 text-lg"
-                  style={{ backgroundColor: `${m.color}20` }}>
-                  {m.icon}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{m.title}</p>
-                  <p className="text-xs text-muted-foreground">{m.description}</p>
-                </div>
+          {/* Lessons Learned */}
+          {activeChapter.lessonsLearned.length > 0 && (
+            <div className="p-3 rounded-xl bg-muted/40 border">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-blue-500" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Lessons Learned</span>
               </div>
-            ))}
+              <div className="space-y-1.5">
+                {activeChapter.lessonsLearned.map((l, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <span className="text-blue-500 shrink-0 mt-0.5">*</span>
+                    <span>{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Téo Insight */}
+          <div className="p-3 rounded-xl bg-muted/40 border">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="h-4 w-4 text-purple-500" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Téo Insight</span>
+            </div>
+            <p className="text-sm">{activeChapter.teoInsight}</p>
           </div>
+
+          {activeChapter.reviewCount === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <MapIcon className="h-12 w-12 text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground">No reviews for this period yet.</p>
+              <Button onClick={() => navigateTo("/tasks")} variant="outline" size="sm" className="mt-3">
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Complete a Review
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ── Life Timeline ── */}
       <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
@@ -1169,60 +1088,40 @@ export function MyJourneyPage() {
         <div className="p-4 space-y-4 max-h-[600px] overflow-y-auto">
           {lifeTimelineYears.map(([year, months]) => (
             <div key={year}>
-              <button
-                onClick={() => setExpandedYear(expandedYear === year ? null : year)}
-                className="flex items-center gap-2 text-sm font-bold text-[#1E0E6B] hover:opacity-70 transition-opacity"
-              >
-                <ChevronDown className={`h-4 w-4 transition-transform ${expandedYear === year ? "rotate-0" : "-rotate-90"}`} />
+              <div className="flex items-center gap-2 text-sm font-bold text-[#1E0E6B]">
+                <ChevronDown className="h-4 w-4" />
                 {year}
                 <span className="text-xs font-normal text-muted-foreground">({Object.keys(months).length} months)</span>
-              </button>
-              {expandedYear === year && (
-                <div className="ml-4 mt-2 space-y-2 border-l-2 border-[#1E0E6B]/10 pl-4">
-                  {Object.entries(months).sort(([a], [b]) => Number(b) - Number(a)).map(([month, days]) => {
-                    const monthKey = `${year}-${month}`
-                    return (
-                      <div key={monthKey}>
-                        <button
-                          onClick={() => setExpandedMonth(expandedMonth === monthKey ? null : monthKey)}
-                          className="flex items-center gap-2 text-sm font-medium text-foreground hover:opacity-70 transition-opacity"
-                        >
-                          <ChevronDown className={`h-3 w-3 transition-transform ${expandedMonth === monthKey ? "rotate-0" : "-rotate-90"}`} />
-                          {monthNames[Number(month) - 1]}
-                          <span className="text-xs font-normal text-muted-foreground">({days.length} days)</span>
-                        </button>
-                        {expandedMonth === monthKey && (
-                          <div className="ml-4 mt-1 space-y-1">
-                            {days.map(dayISO => {
-                              const dayHabits = habits.filter(h => h.completions[dayISO]?.completed).length
-                              const dayTasks = tasks.filter(t => t.dailyCompletions?.[dayISO] || (t.date === dayISO && t.completed)).length
-                              const dayJournal = journal.filter(e => e.dateISO === dayISO).length
-                              const dateObj = new Date(dayISO + "T12:00:00")
-                              return (
-                                <button
-                                  key={dayISO}
-                                  onClick={() => { setExpandedDay(expandedDay === dayISO ? null : dayISO); setSelectedDate(dateObj); setActiveTab("day") }}
-                                  className={`w-full text-left flex items-center gap-2 p-2 rounded-lg text-xs hover:bg-white/30 transition-colors ${
-                                    dayISO === selectedISO ? "bg-[#1E0E6B]/10" : ""
-                                  }`}
-                                >
-                                  <ChevronDown className={`h-3 w-3 transition-transform shrink-0 ${expandedDay === dayISO ? "rotate-0" : "-rotate-90"}`} />
-                                  <span className="font-medium w-8">{new Date(dayISO + "T12:00:00").getDate()}</span>
-                                  <div className="flex items-center gap-1.5">
-                                    {dayHabits > 0 && <span className="flex items-center gap-0.5 text-[10px]"><CheckCircle2 className="h-3 w-3 text-green-500" />{dayHabits}</span>}
-                                    {dayTasks > 0 && <span className="flex items-center gap-0.5 text-[10px]"><CheckSquare className="h-3 w-3 text-blue-500" />{dayTasks}</span>}
-                                    {dayJournal > 0 && <span className="flex items-center gap-0.5 text-[10px]"><BookOpen className="h-3 w-3 text-purple-500" />{dayJournal}</span>}
-                                  </div>
-                                </button>
-                              )
-                            })}
+              </div>
+              <div className="ml-4 mt-2 space-y-2 border-l-2 border-[#1E0E6B]/10 pl-4">
+                {Object.entries(months).sort(([a], [b]) => Number(b) - Number(a)).map(([month, days]) => (
+                  <div key={`${year}-${month}`}>
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <ChevronDown className="h-3 w-3" />
+                      {monthNames[Number(month) - 1]}
+                      <span className="text-xs font-normal text-muted-foreground">({days.length} days)</span>
+                    </div>
+                    <div className="ml-4 mt-1 space-y-1">
+                      {days.map(dayISO => {
+                        const dayReviews = reviews.filter(r => r.date === dayISO)
+                        const hasReview = dayReviews.length > 0
+                        const dayHabits = habits.filter(h => h.completions[dayISO]?.completed).length
+                        const dayTasks = tasks.filter(t => t.dailyCompletions?.[dayISO] || (t.date === dayISO && t.completed)).length
+                        return (
+                          <div key={dayISO} className="flex items-center gap-2 p-2 rounded-lg text-xs">
+                            <span className="font-medium w-8">{new Date(dayISO + "T12:00:00").getDate()}</span>
+                            <div className="flex items-center gap-1.5">
+                              {hasReview && <span className="flex items-center gap-0.5 text-[10px]"><BookOpen className="h-3 w-3 text-purple-500" />review</span>}
+                              {dayHabits > 0 && <span className="flex items-center gap-0.5 text-[10px]"><CheckCircle2 className="h-3 w-3 text-green-500" />{dayHabits}</span>}
+                              {dayTasks > 0 && <span className="flex items-center gap-0.5 text-[10px]"><CheckSquare className="h-3 w-3 text-blue-500" />{dayTasks}</span>}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
           {lifeTimelineYears.length === 0 && (
