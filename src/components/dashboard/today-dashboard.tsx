@@ -168,6 +168,10 @@ export function TodayDashboard() {
                 )}
               </AnimatePresence>
             </div>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5" onClick={() => setReviewOpen(true)}>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Review Today</span>
+            </Button>
             <div className="flex items-center gap-2 px-3 border-l border-r">
               <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg shadow-orange-500/25">
                 <span className="text-base">{"\u{1F525}"}</span>
@@ -177,10 +181,6 @@ export function TodayDashboard() {
                 <div className="text-sm font-bold leading-tight">32 Days</div>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5" onClick={() => setReviewOpen(true)}>
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Review Today</span>
-            </Button>
           </div>
         </div>
       </div>
