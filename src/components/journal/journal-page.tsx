@@ -2602,7 +2602,13 @@ function WritingArea({
   const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (initialType) setType(initialType)
+    if (initialType) {
+      setType(initialType)
+      setTimeout(() => {
+        const el = document.querySelector("[data-writing-area]")
+        el?.scrollIntoView({ behavior: "smooth" })
+      }, 300)
+    }
   }, [initialType])
   const audioPlaybackRef = useRef<HTMLAudioElement | null>(null)
   const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
