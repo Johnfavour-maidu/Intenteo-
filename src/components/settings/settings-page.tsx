@@ -20,7 +20,7 @@ import {
   Video, HelpCircle, FileText, LifeBuoy, Users, Send,
   Heart, MapPin, Clock, Calendar, Palette, Eye, EyeOff,
   Fingerprint, Laptop, Smartphone as Phone, Tablet, Monitor as MonitorIcon,
-  Wifi, Cloud, RefreshCw, AlertTriangle, Lightbulb,
+  Wifi, Cloud, RefreshCw, AlertTriangle, Lightbulb, Search,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { BarChart3 } from "lucide-react"
@@ -148,6 +148,9 @@ export function SettingsPage() {
               </div>
               <FieldRow label="Birthday" placeholder="dd/mm/yyyy" />
             </div>
+            <div className="flex justify-end pt-2">
+              <Button size="sm" className="bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70 text-white px-6 shadow-sm">Save Changes</Button>
+            </div>
           </Section>
 
           {/* Section 2: Appearance */}
@@ -251,7 +254,6 @@ export function SettingsPage() {
             <Button variant="outline" size="sm" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteStep(1)}>
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete Account
             </Button>
-            <Button size="sm" className="bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70 text-white px-6 shadow-sm">Save Changes</Button>
           </div>
         </TabsContent>
 
@@ -381,138 +383,92 @@ export function SettingsPage() {
         {/* ═══════════════════════════════════════════════════ */}
         <TabsContent value="help" className="mt-6 space-y-4">
 
-          {/* Help Center */}
+          {/* 1. Help Center */}
           <Section id="help-center" title="Help Center" isOpen={openSection === "help-center"} onToggle={() => toggleSection("help-center")}>
-            <div className="grid gap-2 md:grid-cols-2">
-              {["Getting Started", "Beginner Guide", "Using Tasks", "Using Habits", "Using Goals", "Using Téo"].map((item) => (
-                <button key={item} className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/30 transition-colors text-left text-sm">
-                  <BookOpen className="h-4 w-4 text-primary" />{item}
+            <div className="space-y-1">
+              {[
+                { icon: <BookOpen className="h-4 w-4" />, label: "Getting Started", desc: "New to Intenteo? Start here" },
+                { icon: <Search className="h-4 w-4" />, label: "Search Help Articles", desc: "Find answers to common questions" },
+                { icon: <Video className="h-4 w-4" />, label: "Video Tutorials", desc: "Step-by-step video guides" },
+                { icon: <HelpCircle className="h-4 w-4" />, label: "Frequently Asked Questions", desc: "Quick answers to popular questions" },
+              ].map((item) => (
+                <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
+                  <span className="text-muted-foreground">{item.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
                 </button>
               ))}
             </div>
           </Section>
 
-          {/* Video Tutorials */}
-          <Section id="video-tutorials" title="Video Tutorials" isOpen={openSection === "video-tutorials"} onToggle={() => toggleSection("video-tutorials")}>
-            <div className="grid gap-3 md:grid-cols-2">
-              {["Introduction", "Tasks", "Goals", "Habits", "Journal", "Téo", "Calendar", "Review Today"].map((item) => (
-                <div key={item} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Video className="h-4 w-4 text-primary" /></div>
-                  <div>
-                    <p className="text-sm font-medium">{item}</p>
-                    <p className="text-xs text-muted-foreground">Watch tutorial</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          {/* FAQs */}
-          <Section id="faqs" title="Frequently Asked Questions" isOpen={openSection === "faqs"} onToggle={() => toggleSection("faqs")}>
-            <div className="space-y-2">
+          {/* 2. Contact Us */}
+          <Section id="contact" title="Contact Us" isOpen={openSection === "contact"} onToggle={() => toggleSection("contact")}>
+            <div className="space-y-1">
               {[
-                "How do recurring tasks work?",
-                "Can I recover deleted data?",
-                "How does Intent Score work?",
-                "Can I export journals?",
-                "What is My Journey?",
-                "Can I change date format?",
-              ].map((q) => (
-                <div key={q} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer">
-                  <p className="text-sm">{q}</p>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          {/* Contact Support */}
-          <Section id="contact" title="Contact Support" isOpen={openSection === "contact"} onToggle={() => toggleSection("contact")}>
-            <div className="grid gap-2 md:grid-cols-2">
-              {[
-                { label: "Email", icon: <Mail className="h-4 w-4" />, value: "support@intenteo.app" },
-                { label: "WhatsApp", icon: <MessageSquare className="h-4 w-4" />, value: "+234 800 123 4567" },
-                { label: "Website", icon: <Globe className="h-4 w-4" />, value: "intenteo.app/support" },
-                { label: "Live Chat", icon: <Send className="h-4 w-4" />, value: "Coming Soon" },
-              ].map((c) => (
-                <div key={c.label} className="flex items-center gap-3 p-3 rounded-lg border">
-                  <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">{c.icon}</div>
+                { icon: <Mail className="h-4 w-4" />, label: "Email Support", desc: "support@intenteo.app" },
+                { icon: <Send className="h-4 w-4" />, label: "Live Chat", desc: "Coming Soon" },
+                { icon: <MessageSquare className="h-4 w-4" />, label: "WhatsApp Support", desc: "+234 800 123 4567" },
+                { icon: <AlertTriangle className="h-4 w-4" />, label: "Report a Bug", desc: "Help us improve Intenteo" },
+                { icon: <Lightbulb className="h-4 w-4" />, label: "Send Feedback", desc: "Share your thoughts and suggestions" },
+              ].map((item) => (
+                <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
+                  <span className="text-muted-foreground">{item.icon}</span>
                   <div>
-                    <p className="text-sm font-medium">{c.label}</p>
-                    <p className="text-xs text-muted-foreground">{c.value}</p>
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Support Hours: 24/7 &middot; Response Time: Within 24 hours</p>
           </Section>
 
-          {/* Community */}
+          {/* 3. Community */}
           <Section id="community" title="Community" isOpen={openSection === "community"} onToggle={() => toggleSection("community")}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="space-y-1">
               {[
-                { name: "Instagram", icon: <Globe className="h-4 w-4" /> },
-                { name: "Facebook", icon: <Globe className="h-4 w-4" /> },
-                { name: "LinkedIn", icon: <Globe className="h-4 w-4" /> },
-                { name: "X", icon: <Globe className="h-4 w-4" /> },
-                { name: "YouTube", icon: <Video className="h-4 w-4" /> },
-                { name: "Discord", icon: <MessageSquare className="h-4 w-4" /> },
-                { name: "GitHub", icon: <Globe className="h-4 w-4" /> },
-              ].map((s) => (
-                <button key={s.name} className="flex items-center gap-2 p-2.5 rounded-lg border hover:bg-muted/30 transition-colors text-sm">
-                  {s.icon}{s.name}
+                { icon: <Globe className="h-4 w-4" />, label: "Facebook" },
+                { icon: <Globe className="h-4 w-4" />, label: "X (Twitter)" },
+                { icon: <Globe className="h-4 w-4" />, label: "Instagram" },
+                { icon: <Globe className="h-4 w-4" />, label: "LinkedIn" },
+                { icon: <MessageSquare className="h-4 w-4" />, label: "Discord", desc: "Coming Soon" },
+              ].map((item) => (
+                <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
+                  <span className="text-muted-foreground">{item.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium">{item.label}</p>
+                    {item.desc && <p className="text-xs text-muted-foreground">{item.desc}</p>}
+                  </div>
                 </button>
               ))}
             </div>
           </Section>
 
-          {/* Feedback */}
-          <Section id="feedback" title="Feedback" isOpen={openSection === "feedback"} onToggle={() => toggleSection("feedback")}>
-            <div className="grid gap-2 md:grid-cols-2">
-              {[
-                { label: "Report Bug", icon: <AlertTriangle className="h-4 w-4" /> },
-                { label: "Suggest Feature", icon: <Lightbulb className="h-4 w-4" /> },
-                { label: "Request Integration", icon: <Zap className="h-4 w-4" /> },
-                { label: "Beta Program", icon: <Sparkles className="h-4 w-4" /> },
-                { label: "Rate Intenteo", icon: <Star className="h-4 w-4" /> },
-              ].map((f) => (
-                <button key={f.label} className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/30 transition-colors text-sm">
-                  {f.icon}{f.label}
-                </button>
-              ))}
-            </div>
-          </Section>
-
-          {/* Legal */}
-          <Section id="legal" title="Legal" isOpen={openSection === "legal"} onToggle={() => toggleSection("legal")}>
-            <div className="space-y-2">
-              {["Privacy Policy", "Terms of Service", "Cookie Policy", "Licenses", "Open Source"].map((item) => (
-                <button key={item} className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors text-sm">
-                  <span>{item}</span>
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          </Section>
-
-          {/* About */}
+          {/* 4. About Intenteo */}
           <Section id="about" title="About Intenteo" isOpen={openSection === "about"} onToggle={() => toggleSection("about")}>
-            <GlassCard className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xl font-bold">I</div>
-                <div>
-                  <h3 className="font-bold text-lg">Intenteo</h3>
-                  <p className="text-xs text-muted-foreground">The world&apos;s first AI-powered Intentional Living Platform</p>
-                </div>
-              </div>
-            </GlassCard>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-muted-foreground">Version</p><p className="font-medium">0.1.0</p></div>
-              <div><p className="text-muted-foreground">Build</p><p className="font-medium">2026.07.09</p></div>
-              <div><p className="text-muted-foreground">Release Channel</p><p className="font-medium">Stable</p></div>
-              <div><p className="text-muted-foreground">Latest Update</p><p className="font-medium">July 9, 2026</p></div>
-              <div className="col-span-2"><p className="text-muted-foreground">Developed by</p><p className="font-medium">Glopresc Technologies</p></div>
-              <div className="col-span-2"><p className="text-muted-foreground">Copyright</p><p className="font-medium">&copy; 2026 Intenteo. All rights reserved.</p></div>
+            <div className="space-y-1">
+              {[
+                { label: "Current App Version", value: "0.1.0" },
+                { label: "What's New", value: "July 9, 2026" },
+                { label: "Privacy Policy", external: true },
+                { label: "Terms & Conditions", external: true },
+                { label: "Open Source Licenses", external: true },
+              ].map((item) => (
+                <button key={item.label} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
+                  <span className="text-sm font-medium">{item.label}</span>
+                  {item.value ? (
+                    <span className="text-sm text-muted-foreground">{item.value}</span>
+                  ) : (
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t text-center">
+              <p className="text-sm font-semibold">Intenteo</p>
+              <p className="text-[11px] text-muted-foreground">Version 0.1.0</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Live with Intentionality.</p>
             </div>
           </Section>
         </TabsContent>
