@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, X, FileText, Target, Repeat, CheckSquare, BookOpen, ArrowRight, Command } from "lucide-react"
+import { Search, X, FileText, Target, Repeat, CheckSquare, BookOpen, ArrowRight, Command, Bell, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -10,7 +10,7 @@ interface SearchResult {
   id: string
   title: string
   category: string
-  type: "task" | "habit" | "goal" | "journal" | "project"
+  type: "task" | "habit" | "goal" | "journal" | "project" | "reminder" | "calendar"
   icon: React.ReactNode
   href: string
 }
@@ -21,11 +21,13 @@ interface UniversalSearchProps {
 }
 
 const categoryIcons: Record<string, React.ReactNode> = {
-  tasks: <CheckSquare className="h-4 w-4" />,
-  habits: <Repeat className="h-4 w-4" />,
-  goals: <Target className="h-4 w-4" />,
-  journal: <BookOpen className="h-4 w-4" />,
-  projects: <FileText className="h-4 w-4" />,
+  Tasks: <CheckSquare className="h-4 w-4" />,
+  Habits: <Repeat className="h-4 w-4" />,
+  Goals: <Target className="h-4 w-4" />,
+  Journal: <BookOpen className="h-4 w-4" />,
+  Projects: <FileText className="h-4 w-4" />,
+  Reminders: <Bell className="h-4 w-4" />,
+  Reviews: <Calendar className="h-4 w-4" />,
 }
 
 const typeToIcon: Record<string, React.ReactNode> = {
@@ -34,6 +36,8 @@ const typeToIcon: Record<string, React.ReactNode> = {
   goal: <Target className="h-4 w-4" />,
   journal: <BookOpen className="h-4 w-4" />,
   project: <FileText className="h-4 w-4" />,
+  reminder: <Bell className="h-4 w-4" />,
+  calendar: <Calendar className="h-4 w-4" />,
 }
 
 const typeToHref: Record<string, (id: string) => string> = {
@@ -42,6 +46,8 @@ const typeToHref: Record<string, (id: string) => string> = {
   goal: (id) => `/goals?highlight=${id}`,
   journal: (id) => `/journal?highlight=${id}`,
   project: (id) => `/goals?tab=projects&highlight=${id}`,
+  reminder: () => `/calendar`,
+  calendar: () => `/calendar`,
 }
 
 function loadSearchData(): SearchResult[] {
@@ -120,6 +126,38 @@ function loadSearchData(): SearchResult[] {
           type: "journal",
           icon: typeToIcon.journal,
           href: typeToHref.journal(entry.id),
+        })
+      }
+    }
+  } catch {}
+
+  try {
+    const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+    if (Array.isArray(reminders)) {
+      for (const reminder of reminders) {
+        results.push({
+          id: reminder.id || crypto.randomUUID(),
+          title: reminder.title || "Reminder",
+          category: "Reminders",
+          type: "reminder",
+          icon: typeToIcon.reminder,
+          href: typeToHref.reminder(reminder.id),
+        })
+      }
+    }
+  } catch {}
+
+  try {
+    const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
+    if (Array.isArray(reviews)) {
+      for (const review of reviews) {
+        results.push({
+          id: `review-${review.date}`,
+          title: `Review — ${review.date}`,
+          category: "Reviews",
+          type: "calendar",
+          icon: typeToIcon.calendar,
+          href: `/calendar`,
         })
       }
     }
@@ -211,7 +249,7 @@ export function UniversalSearch({ open, onClose }: UniversalSearchProps) {
     items[selectedIndex]?.scrollIntoView({ block: "nearest" })
   }, [selectedIndex])
 
-  const currentCategoryOrder = ["Tasks", "Habits", "Goals", "Projects", "Journal"]
+  const currentCategoryOrder = ["Tasks", "Habits", "Goals", "Projects", "Journal", "Reminders", "Reviews"]
   let runningIndex = -1
 
   return (

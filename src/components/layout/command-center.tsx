@@ -105,6 +105,16 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
         }
       }
     } catch {}
+    try {
+      const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+      if (Array.isArray(reminders)) {
+        for (const reminder of reminders) {
+          if (reminder.date === dateKey) {
+            items.push({ title: reminder.title || "Reminder", time: reminder.time || "", type: "reminder", icon: <Bell className="h-3.5 w-3.5" /> })
+          }
+        }
+      }
+    } catch {}
     return items
   }
 
