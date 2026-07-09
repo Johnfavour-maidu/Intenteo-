@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ import {
   User, Bell, Shield, Globe, Moon, Sun, Monitor,
   Lock, Key, Download, Trash2, Mail, Smartphone, Check, Camera,
   Edit, Star, BookOpen, CheckSquare, Repeat, Trophy, Target,
-  Zap, Award, Sparkles, Brain, Database, Info, Search,
+  Zap, Award, Sparkles, Brain, Database, Info,
   ChevronDown, ChevronRight, ExternalLink, Copy, MessageSquare,
   Video, HelpCircle, FileText, LifeBuoy, Users, Send,
   Heart, MapPin, Clock, Calendar, Palette, Eye, EyeOff,
@@ -27,69 +27,18 @@ import { useTheme } from "next-themes"
 // ──────────────────── Types ────────────────────
 type SettingsTab = "profile" | "security" | "help"
 
-interface SettingsSection {
-  id: string
-  title: string
-  tab: SettingsTab
-  keywords: string[]
-}
-
-// ──────────────────── Section Registry ────────────────────
-const SETTINGS_SECTIONS: SettingsSection[] = [
-  // Tab 1: Profile & Personalization
-  { id: "personal-info", title: "Personal Information", tab: "profile", keywords: ["name", "email", "phone", "country", "timezone", "language", "date format", "time format", "week starts", "birthday", "profile", "username"] },
-  { id: "life-vision", title: "Life Vision", tab: "profile", keywords: ["vision", "statement", "why it matters", "review frequency", "timeline", "values", "life areas", "notes"] },
-  { id: "values", title: "Values", tab: "profile", keywords: ["values", "integrity", "growth", "faith", "learning", "family"] },
-  { id: "life-areas", title: "Life Areas", tab: "profile", keywords: ["health", "career", "finance", "relationships", "faith", "learning", "business"] },
-  { id: "life-focus", title: "Current Life Focus", tab: "profile", keywords: ["season", "biggest goal", "biggest challenge", "most important habit", "primary project"] },
-  { id: "teo-prefs", title: "Téo Preferences", tab: "profile", keywords: ["teo", "ai", "coach", "style", "morning briefing", "evening review", "weekly insights", "voice", "proactive", "summaries", "context"] },
-  { id: "appearance", title: "Appearance", tab: "profile", keywords: ["theme", "dark", "light", "system", "accent", "color", "glass", "animations", "compact", "reduced motion", "high contrast"] },
-  { id: "calendar-prefs", title: "Calendar Preferences", tab: "profile", keywords: ["calendar", "date format", "time format", "week starts", "reminder", "duration", "timezone", "working days"] },
-  { id: "notif-prefs", title: "Notification Preferences", tab: "profile", keywords: ["notifications", "reminders", "daily review", "habits", "goals", "projects", "push", "email", "sms", "marketing"] },
-  { id: "personal-stats", title: "Personal Statistics", tab: "profile", keywords: ["streak", "intent score", "goals completed", "journal entries", "tasks completed", "habits built", "projects", "achievements", "journey"] },
-  // Tab 2: Privacy & Security
-  { id: "password", title: "Password", tab: "security", keywords: ["password", "current password", "new password", "confirm"] },
-  { id: "pin", title: "PIN", tab: "security", keywords: ["pin", "enable pin", "change pin"] },
-  { id: "biometric", title: "Biometric", tab: "security", keywords: ["fingerprint", "face id", "windows hello", "touch id", "biometric"] },
-  { id: "devices", title: "Active Devices", tab: "security", keywords: ["devices", "windows", "android", "ipad", "macbook", "laptop", "phone"] },
-  { id: "sessions", title: "Sessions", tab: "security", keywords: ["sessions", "current session", "other sessions", "sign out"] },
-  { id: "connected-accounts", title: "Connected Accounts", tab: "security", keywords: ["google", "apple", "microsoft", "github", "notion", "slack", "connect", "disconnect"] },
-  { id: "backup", title: "Backup & Sync", tab: "security", keywords: ["backup", "sync", "automatic", "manual", "restore", "cloud", "last backup"] },
-  { id: "export", title: "Export Data", tab: "security", keywords: ["export", "journal", "habits", "tasks", "goals", "projects", "pdf", "csv", "json"] },
-  { id: "privacy", title: "Privacy Controls", tab: "security", keywords: ["privacy", "ai", "analytics", "anonymous", "location", "camera", "microphone", "cookies", "data sharing"] },
-  { id: "danger", title: "Danger Zone", tab: "security", keywords: ["delete", "deactivate", "danger", "remove account", "remove data"] },
-  // Tab 3: Help & Support
-  { id: "help-center", title: "Help Center", tab: "help", keywords: ["help", "getting started", "beginner", "guide", "tutorial"] },
-  { id: "video-tutorials", title: "Video Tutorials", tab: "help", keywords: ["video", "tutorial", "introduction", "walkthrough"] },
-  { id: "faqs", title: "Frequently Asked Questions", tab: "help", keywords: ["faq", "questions", "how to", "recover", "export", "recurring"] },
-  { id: "contact", title: "Contact Support", tab: "help", keywords: ["contact", "email", "whatsapp", "website", "chat", "support", "response time"] },
-  { id: "community", title: "Community", tab: "help", keywords: ["community", "instagram", "facebook", "linkedin", "twitter", "youtube", "discord", "github"] },
-  { id: "feedback", title: "Feedback", tab: "help", keywords: ["feedback", "bug", "feature", "integration", "beta", "rate"] },
-  { id: "legal", title: "Legal", tab: "help", keywords: ["legal", "privacy policy", "terms", "cookie", "licenses", "open source"] },
-  { id: "about", title: "About Intenteo", tab: "help", keywords: ["about", "version", "build", "release", "update", "glopresc", "copyright"] },
-]
-
 // ──────────────────── Collapsible Section ────────────────────
-function Section({ id, title, children, defaultOpen = false, isHighlighted = false }: {
-  id: string; title: string; children: React.ReactNode; defaultOpen?: boolean; isHighlighted?: boolean
+function Section({ id, title, children, isOpen, onToggle, isHighlighted = false }: {
+  id: string; title: string; children: React.ReactNode; isOpen: boolean; onToggle: () => void; isHighlighted?: boolean
 }) {
-  const [open, setOpen] = useState(defaultOpen)
   const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (isHighlighted) {
-      setOpen(true)
-      setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100)
-    }
-  }, [isHighlighted])
-
   return (
     <div ref={ref} id={id} className={`rounded-xl border transition-all duration-300 ${isHighlighted ? "border-primary shadow-md ring-2 ring-primary/20" : "border-border"}`}>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors rounded-xl">
+      <button onClick={onToggle} className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors rounded-xl">
         <h3 className="font-semibold text-sm">{title}</h3>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
-      {open && <div className="px-4 pb-4 space-y-4">{children}</div>}
+      {isOpen && <div className="px-4 pb-4 space-y-4">{children}</div>}
     </div>
   )
 }
@@ -117,27 +66,6 @@ function FieldRow({ label, value, placeholder }: { label: string; value?: string
   )
 }
 
-// ──────────────────── Chip Editor ────────────────────
-function ChipEditor({ items, onAdd, onRemove }: { items: string[]; onAdd: (v: string) => void; onRemove: (i: number) => void }) {
-  const [newItem, setNewItem] = useState("")
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {items.map((item, i) => (
-          <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm bg-primary/5 border-primary/20">
-            {item}
-            <button onClick={() => onRemove(i)} className="h-3.5 w-3.5 rounded-full hover:bg-primary/20 flex items-center justify-center text-xs">&times;</button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input value={newItem} onChange={(e) => setNewItem(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && newItem.trim()) { onAdd(newItem.trim()); setNewItem("") } }} placeholder="Add..." className="flex-1 px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
-        <Button size="sm" onClick={() => { if (newItem.trim()) { onAdd(newItem.trim()); setNewItem("") } }}>Add</Button>
-      </div>
-    </div>
-  )
-}
-
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════ MAIN COMPONENT ═══════════════════════
 // ══════════════════════════════════════════════════════════════
@@ -146,28 +74,12 @@ export function SettingsPage() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get("tab") as SettingsTab | null
   const [activeTab, setActiveTab] = useState<SettingsTab>(tabParam || "profile")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [highlightedSection, setHighlightedSection] = useState<string | null>(null)
-  const [values, setValues] = useState(["Growth", "Integrity", "Creativity", "Compassion", "Excellence"])
-  const [lifeAreas, setLifeAreas] = useState(["Health", "Career", "Finance", "Relationships", "Faith", "Learning", "Business"])
+  const [openSection, setOpenSection] = useState<string | null>("personal-info")
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" })
 
   useEffect(() => { if (tabParam) setActiveTab(tabParam) }, [tabParam])
-
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return []
-    const q = searchQuery.toLowerCase()
-    return SETTINGS_SECTIONS.filter(s => s.keywords.some(k => k.includes(q)) || s.title.toLowerCase().includes(q))
-  }, [searchQuery])
-
-  const handleSearch = useCallback(() => {
-    if (searchResults.length > 0) {
-      const first = searchResults[0]
-      setActiveTab(first.tab)
-      setHighlightedSection(first.id)
-      setTimeout(() => setHighlightedSection(null), 3000)
-    }
-  }, [searchResults])
 
   const stats = [
     { label: "Current Streak", value: "32 Days", icon: "🔥" },
@@ -180,38 +92,16 @@ export function SettingsPage() {
     { label: "Achievements", value: "24", icon: "🏆" },
   ]
 
+  const toggleSection = (id: string) => {
+    setOpenSection(prev => prev === id ? null : id)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">Customize your Intenteo experience</p>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setHighlightedSection(null) }}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSearch() }}
-          placeholder="Search settings..."
-          className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
-        {searchQuery && searchResults.length > 0 && (
-          <div className="absolute top-full mt-1 w-full bg-background border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
-            {searchResults.map((r) => (
-              <button key={r.id} onClick={() => { setActiveTab(r.tab); setHighlightedSection(r.id); setSearchQuery(""); setTimeout(() => setHighlightedSection(null), 3000) }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left">
-                <Search className="h-3.5 w-3.5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">{r.title}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{r.tab === "profile" ? "Profile & Personalization" : r.tab === "security" ? "Privacy & Security" : "Help & Support"}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
@@ -228,11 +118,22 @@ export function SettingsPage() {
         <TabsContent value="profile" className="mt-6 space-y-4">
 
           {/* Section 1: Personal Information */}
-          <Section id="personal-info" title="Personal Information" defaultOpen isHighlighted={highlightedSection === "personal-info"}>
+          <Section id="personal-info" title="Personal Information" isOpen={openSection === "personal-info"} onToggle={() => toggleSection("personal-info")}>
             <div className="flex items-center gap-4 mb-4">
               <div className="relative">
-                <UserAvatar size="lg" fallback="JD" />
-                <button className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"><Camera className="h-3.5 w-3.5" /></button>
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="h-16 w-16 rounded-full object-cover" />
+                ) : (
+                  <UserAvatar size="lg" fallback="JD" />
+                )}
+                <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"><Camera className="h-3.5 w-3.5" /></button>
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const reader = new FileReader()
+                  reader.onload = (ev) => setProfileImage(ev.target?.result as string)
+                  reader.readAsDataURL(file)
+                }} />
               </div>
               <div>
                 <p className="font-semibold">Profile Picture</p>
@@ -243,92 +144,20 @@ export function SettingsPage() {
               <FieldRow label="Name" value="John Doe" />
               <FieldRow label="Username" value="johndoe" />
               <FieldRow label="Email" value="john@example.com" />
-              <FieldRow label="Phone Number" placeholder="+1 234 567 890" />
-              <FieldRow label="Country" placeholder="Nigeria" />
-              <FieldRow label="Time Zone" placeholder="WAT (UTC+1)" />
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Language</label>
                 <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>English</option><option>French</option><option>Spanish</option></select>
               </div>
+              <FieldRow label="Birthday" placeholder="dd/mm/yyyy" />
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Date Format</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>dd/mm/yyyy</option><option>mm/dd/yyyy</option><option>yyyy-mm-dd</option></select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Time Format</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>12 Hour</option><option>24 Hour</option></select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Week Starts</label>
+                <label className="text-sm font-medium">Week Starts On</label>
                 <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Monday</option><option>Sunday</option></select>
               </div>
-              <FieldRow label="Birthday (optional)" placeholder="dd/mm/yyyy" />
             </div>
           </Section>
 
-          {/* Section 2: Life Vision */}
-          <Section id="life-vision" title="Life Vision" isHighlighted={highlightedSection === "life-vision"}>
-            <div className="space-y-4">
-              <FieldRow label="Vision Statement" placeholder="Your life vision..." />
-              <FieldRow label="Why It Matters" placeholder="Why this vision matters to you..." />
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Review Frequency</label>
-                  <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Weekly</option><option>Monthly</option><option>Quarterly</option></select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Timeline</label>
-                  <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>1 Year</option><option>3 Years</option><option>5 Years</option><option>10 Years</option></select>
-                </div>
-              </div>
-              <ToggleRow label="Reminder" desc="Get reminded to review your vision" defaultChecked />
-              <FieldRow label="Notes" placeholder="Additional notes..." />
-              <div className="flex gap-2">
-                <Button size="sm"><Edit className="mr-1 h-3.5 w-3.5" />Edit</Button>
-                <Button size="sm" variant="outline"><Check className="mr-1 h-3.5 w-3.5" />Save</Button>
-              </div>
-            </div>
-          </Section>
-
-          {/* Section 3: Values */}
-          <Section id="values" title="Values" isHighlighted={highlightedSection === "values"}>
-            <ChipEditor items={values} onAdd={(v) => setValues([...values, v])} onRemove={(i) => setValues(values.filter((_, idx) => idx !== i))} />
-          </Section>
-
-          {/* Section 4: Life Areas */}
-          <Section id="life-areas" title="Life Areas" isHighlighted={highlightedSection === "life-areas"}>
-            <ChipEditor items={lifeAreas} onAdd={(v) => setLifeAreas([...lifeAreas, v])} onRemove={(i) => setLifeAreas(lifeAreas.filter((_, idx) => idx !== i))} />
-          </Section>
-
-          {/* Section 5: Current Life Focus */}
-          <Section id="life-focus" title="Current Life Focus" isHighlighted={highlightedSection === "life-focus"}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <FieldRow label="Current Season" placeholder="Building Intenteo MVP" />
-              <FieldRow label="Biggest Goal" placeholder="Launch product" />
-              <FieldRow label="Biggest Challenge" placeholder="Time management" />
-              <FieldRow label="Most Important Habit" placeholder="Morning journaling" />
-              <FieldRow label="Primary Project" placeholder="AI Planner" />
-            </div>
-          </Section>
-
-          {/* Section 6: Téo Preferences */}
-          <Section id="teo-prefs" title="Téo Preferences" isHighlighted={highlightedSection === "teo-prefs"}>
-            <ToggleRow label="Enable Téo" desc="Receive personalized guidance from Téo" defaultChecked />
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Coach Style</label>
-              <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Friendly</option><option>Direct</option><option>Motivational</option><option>Analytical</option></select>
-            </div>
-            <ToggleRow label="Morning Briefing" desc="Daily morning insights from Téo" defaultChecked />
-            <ToggleRow label="Evening Review" desc="End-of-day reflection prompts" defaultChecked />
-            <ToggleRow label="Weekly Insights" desc="Weekly progress summaries" defaultChecked />
-            <ToggleRow label="Voice Replies" desc="Téo can respond with voice" />
-            <ToggleRow label="Proactive Suggestions" desc="Téo suggests actions proactively" defaultChecked />
-            <ToggleRow label="Auto Summaries" desc="Automatic daily and weekly summaries" defaultChecked />
-            <ToggleRow label="Context Memory" desc="Téo remembers your preferences" defaultChecked />
-          </Section>
-
-          {/* Section 7: Appearance */}
-          <Section id="appearance" title="Appearance" defaultOpen isHighlighted={highlightedSection === "appearance"}>
+          {/* Section 2: Appearance */}
+          <Section id="appearance" title="Appearance" isOpen={openSection === "appearance"} onToggle={() => toggleSection("appearance")}>
             <div>
               <label className="text-sm font-medium mb-2 block">Theme</label>
               <div className="grid grid-cols-3 gap-3">
@@ -358,8 +187,8 @@ export function SettingsPage() {
             <ToggleRow label="High Contrast" desc="Increase contrast for accessibility" />
           </Section>
 
-          {/* Section 8: Calendar Preferences */}
-          <Section id="calendar-prefs" title="Calendar Preferences" isHighlighted={highlightedSection === "calendar-prefs"}>
+          {/* Section 3: Calendar Preferences */}
+          <Section id="calendar-prefs" title="Calendar Preferences" isOpen={openSection === "calendar-prefs"} onToggle={() => toggleSection("calendar-prefs")}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Default Date Format</label>
@@ -383,8 +212,8 @@ export function SettingsPage() {
             </div>
           </Section>
 
-          {/* Section 9: Notification Preferences */}
-          <Section id="notif-prefs" title="Notification Preferences" isHighlighted={highlightedSection === "notif-prefs"}>
+          {/* Section 4: Notification Preferences */}
+          <Section id="notif-prefs" title="Notification Preferences" isOpen={openSection === "notif-prefs"} onToggle={() => toggleSection("notif-prefs")}>
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Reminders</p>
               <ToggleRow label="Daily Review" desc="Morning and evening prompts" defaultChecked />
@@ -403,8 +232,24 @@ export function SettingsPage() {
             </div>
           </Section>
 
-          {/* Section 10: Personal Statistics */}
-          <Section id="personal-stats" title="Personal Statistics" isHighlighted={highlightedSection === "personal-stats"}>
+          {/* Section 5: Téo Preferences */}
+          <Section id="teo-prefs" title="Téo Preferences" isOpen={openSection === "teo-prefs"} onToggle={() => toggleSection("teo-prefs")}>
+            <ToggleRow label="Enable Téo" desc="Receive personalized guidance from Téo" defaultChecked />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Coach Style</label>
+              <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Friendly</option><option>Direct</option><option>Motivational</option><option>Analytical</option></select>
+            </div>
+            <ToggleRow label="Morning Briefing" desc="Daily morning insights from Téo" defaultChecked />
+            <ToggleRow label="Evening Review" desc="End-of-day reflection prompts" defaultChecked />
+            <ToggleRow label="Weekly Insights" desc="Weekly progress summaries" defaultChecked />
+            <ToggleRow label="Voice Replies" desc="Téo can respond with voice" />
+            <ToggleRow label="Proactive Suggestions" desc="Téo suggests actions proactively" defaultChecked />
+            <ToggleRow label="Auto Summaries" desc="Automatic daily and weekly summaries" defaultChecked />
+            <ToggleRow label="Context Memory" desc="Téo remembers your preferences" defaultChecked />
+          </Section>
+
+          {/* Section 6: Personal Statistics */}
+          <Section id="personal-stats" title="Personal Statistics" isOpen={openSection === "personal-stats"} onToggle={() => toggleSection("personal-stats")}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {stats.map((s) => (
                 <div key={s.label} className="p-3 rounded-xl border text-center">
@@ -426,7 +271,7 @@ export function SettingsPage() {
         <TabsContent value="security" className="mt-6 space-y-4">
 
           {/* Password */}
-          <Section id="password" title="Password" defaultOpen isHighlighted={highlightedSection === "password"}>
+          <Section id="password" title="Password" isOpen={openSection === "password"} onToggle={() => toggleSection("password")}>
             <div className="space-y-3 max-w-md">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Current Password</label>
@@ -445,13 +290,13 @@ export function SettingsPage() {
           </Section>
 
           {/* PIN */}
-          <Section id="pin" title="PIN" isHighlighted={highlightedSection === "pin"}>
+          <Section id="pin" title="PIN" isOpen={openSection === "pin"} onToggle={() => toggleSection("pin")}>
             <ToggleRow label="Enable PIN" desc="Require PIN to open the app" />
             <Button size="sm" variant="outline"><Lock className="mr-1 h-3.5 w-3.5" />Change PIN</Button>
           </Section>
 
           {/* Biometric */}
-          <Section id="biometric" title="Biometric" isHighlighted={highlightedSection === "biometric"}>
+          <Section id="biometric" title="Biometric" isOpen={openSection === "biometric"} onToggle={() => toggleSection("biometric")}>
             <ToggleRow label="Fingerprint" desc="Use fingerprint to unlock" />
             <ToggleRow label="Face ID" desc="Use face recognition to unlock" />
             <ToggleRow label="Windows Hello" desc="Use Windows biometric auth" />
@@ -459,7 +304,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Active Devices */}
-          <Section id="devices" title="Active Devices" isHighlighted={highlightedSection === "devices"}>
+          <Section id="devices" title="Active Devices" isOpen={openSection === "devices"} onToggle={() => toggleSection("devices")}>
             <div className="space-y-3">
               {[
                 { name: "Windows Laptop", location: "Lagos, Nigeria", lastActive: "Now", icon: <Laptop className="h-4 w-4" /> },
@@ -481,7 +326,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Sessions */}
-          <Section id="sessions" title="Sessions" isHighlighted={highlightedSection === "sessions"}>
+          <Section id="sessions" title="Sessions" isOpen={openSection === "sessions"} onToggle={() => toggleSection("sessions")}>
             <div className="space-y-3">
               <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
                 <p className="text-sm font-medium">Current Session</p>
@@ -496,7 +341,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Connected Accounts */}
-          <Section id="connected-accounts" title="Connected Accounts" isHighlighted={highlightedSection === "connected-accounts"}>
+          <Section id="connected-accounts" title="Connected Accounts" isOpen={openSection === "connected-accounts"} onToggle={() => toggleSection("connected-accounts")}>
             <div className="space-y-3">
               {[
                 { name: "Google", connected: true },
@@ -526,7 +371,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Backup & Sync */}
-          <Section id="backup" title="Backup & Sync" isHighlighted={highlightedSection === "backup"}>
+          <Section id="backup" title="Backup & Sync" isOpen={openSection === "backup"} onToggle={() => toggleSection("backup")}>
             <ToggleRow label="Automatic Backup" desc="Daily cloud backup" defaultChecked />
             <div className="flex gap-2">
               <Button size="sm" variant="outline"><Cloud className="mr-1 h-3.5 w-3.5" />Manual Backup</Button>
@@ -536,7 +381,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Export Data */}
-          <Section id="export" title="Export Data" isHighlighted={highlightedSection === "export"}>
+          <Section id="export" title="Export Data" isOpen={openSection === "export"} onToggle={() => toggleSection("export")}>
             <div className="grid gap-2 md:grid-cols-2">
               {["Journal", "Habits", "Tasks", "Goals", "Projects", "Entire Account"].map((item) => (
                 <Button key={item} variant="outline" size="sm" className="justify-start"><Download className="mr-1 h-3.5 w-3.5" />Export {item}</Button>
@@ -549,7 +394,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Privacy Controls */}
-          <Section id="privacy" title="Privacy Controls" isHighlighted={highlightedSection === "privacy"}>
+          <Section id="privacy" title="Privacy Controls" isOpen={openSection === "privacy"} onToggle={() => toggleSection("privacy")}>
             <ToggleRow label="Personalized AI" desc="Allow Téo to learn from your patterns" defaultChecked />
             <ToggleRow label="Analytics" desc="Help improve Intenteo with usage data" defaultChecked />
             <ToggleRow label="Anonymous Usage" desc="Share anonymous usage statistics" />
@@ -562,7 +407,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Danger Zone */}
-          <Section id="danger" title="Danger Zone" isHighlighted={highlightedSection === "danger"}>
+          <Section id="danger" title="Danger Zone" isOpen={openSection === "danger"} onToggle={() => toggleSection("danger")}>
             <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 space-y-3">
               <p className="text-sm font-semibold text-red-500">Irreversible Actions</p>
               <Button variant="outline" size="sm" className="w-full justify-start text-red-500 border-red-500/30 hover:bg-red-500/10"><Trash2 className="mr-2 h-3.5 w-3.5" />Delete all Data</Button>
@@ -578,7 +423,7 @@ export function SettingsPage() {
         <TabsContent value="help" className="mt-6 space-y-4">
 
           {/* Help Center */}
-          <Section id="help-center" title="Help Center" defaultOpen isHighlighted={highlightedSection === "help-center"}>
+          <Section id="help-center" title="Help Center" isOpen={openSection === "help-center"} onToggle={() => toggleSection("help-center")}>
             <div className="grid gap-2 md:grid-cols-2">
               {["Getting Started", "Beginner Guide", "Using Tasks", "Using Habits", "Using Goals", "Using Téo"].map((item) => (
                 <button key={item} className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/30 transition-colors text-left text-sm">
@@ -589,7 +434,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Video Tutorials */}
-          <Section id="video-tutorials" title="Video Tutorials" isHighlighted={highlightedSection === "video-tutorials"}>
+          <Section id="video-tutorials" title="Video Tutorials" isOpen={openSection === "video-tutorials"} onToggle={() => toggleSection("video-tutorials")}>
             <div className="grid gap-3 md:grid-cols-2">
               {["Introduction", "Tasks", "Goals", "Habits", "Journal", "Téo", "Calendar", "Review Today"].map((item) => (
                 <div key={item} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer">
@@ -604,7 +449,7 @@ export function SettingsPage() {
           </Section>
 
           {/* FAQs */}
-          <Section id="faqs" title="Frequently Asked Questions" isHighlighted={highlightedSection === "faqs"}>
+          <Section id="faqs" title="Frequently Asked Questions" isOpen={openSection === "faqs"} onToggle={() => toggleSection("faqs")}>
             <div className="space-y-2">
               {[
                 "How do recurring tasks work?",
@@ -623,7 +468,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Contact Support */}
-          <Section id="contact" title="Contact Support" isHighlighted={highlightedSection === "contact"}>
+          <Section id="contact" title="Contact Support" isOpen={openSection === "contact"} onToggle={() => toggleSection("contact")}>
             <div className="grid gap-2 md:grid-cols-2">
               {[
                 { label: "Email", icon: <Mail className="h-4 w-4" />, value: "support@intenteo.app" },
@@ -644,7 +489,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Community */}
-          <Section id="community" title="Community" isHighlighted={highlightedSection === "community"}>
+          <Section id="community" title="Community" isOpen={openSection === "community"} onToggle={() => toggleSection("community")}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {[
                 { name: "Instagram", icon: <Globe className="h-4 w-4" /> },
@@ -663,7 +508,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Feedback */}
-          <Section id="feedback" title="Feedback" isHighlighted={highlightedSection === "feedback"}>
+          <Section id="feedback" title="Feedback" isOpen={openSection === "feedback"} onToggle={() => toggleSection("feedback")}>
             <div className="grid gap-2 md:grid-cols-2">
               {[
                 { label: "Report Bug", icon: <AlertTriangle className="h-4 w-4" /> },
@@ -680,7 +525,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Legal */}
-          <Section id="legal" title="Legal" isHighlighted={highlightedSection === "legal"}>
+          <Section id="legal" title="Legal" isOpen={openSection === "legal"} onToggle={() => toggleSection("legal")}>
             <div className="space-y-2">
               {["Privacy Policy", "Terms of Service", "Cookie Policy", "Licenses", "Open Source"].map((item) => (
                 <button key={item} className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors text-sm">
@@ -692,7 +537,7 @@ export function SettingsPage() {
           </Section>
 
           {/* About */}
-          <Section id="about" title="About Intenteo" isHighlighted={highlightedSection === "about"}>
+          <Section id="about" title="About Intenteo" isOpen={openSection === "about"} onToggle={() => toggleSection("about")}>
             <GlassCard className="p-4">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xl font-bold">I</div>
