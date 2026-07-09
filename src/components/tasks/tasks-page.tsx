@@ -573,16 +573,16 @@ export function TasksPage() {
       id: `task-${Date.now()}`,
       title: reminder.title,
       whyItMatters: "",
-      priority: "progress",
-      deadline: "",
+      priority: "progress" as TaskPriority,
+      deadline: "Today",
       date: new Date().toISOString().split("T")[0],
       dueTime: "",
       timeRange: "",
-      timeRangeType: "anytime",
+      timeRangeType: "anytime" as any,
       estimatedDuration: 0,
       notes: "",
       subtasks: [],
-      recurrence: "none",
+      recurrence: "none" as any,
       completed: false,
       order: 0,
       createdAt: new Date().toISOString(),
@@ -1668,7 +1668,7 @@ export function TasksPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2">
             {/* View Reminders */}
             <Button
               variant="outline"
@@ -1686,24 +1686,24 @@ export function TasksPage() {
             </Button>
 
             {/* Sort */}
-            <div className="relative">
-              <select
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
-                className="h-8 px-2 pr-7 rounded-lg border border-[#1E0E6B]/30 bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/50 cursor-pointer appearance-none">
-                <option value="manual">Sort: Manual</option>
-                <option value="time-asc">Sort: Earliest First</option>
-                <option value="time-desc">Sort: Latest First</option>
-                <option value="priority">Sort: Priority</option>
-                <option value="completion">Sort: Incomplete First</option>
-                <option value="dueDate">Sort: Due Date</option>
-                <option value="alpha-asc">Sort: A-Z</option>
-                <option value="alpha-desc">Sort: Z-A</option>
-                <option value="duration">Sort: Shortest First</option>
-                <option value="recentlyEdited">Sort: Recently Edited</option>
-              </select>
-              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-            </div>
+          <div className="relative">
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
+              className="h-8 px-2 pr-7 rounded-lg border border-[#1E0E6B]/30 bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/50 cursor-pointer appearance-none">
+              <option value="manual">Sort: Manual</option>
+              <option value="time-asc">Sort: Earliest First</option>
+              <option value="time-desc">Sort: Latest First</option>
+              <option value="priority">Sort: Priority</option>
+              <option value="completion">Sort: Incomplete First</option>
+              <option value="dueDate">Sort: Due Date</option>
+              <option value="alpha-asc">Sort: A-Z</option>
+              <option value="alpha-desc">Sort: Z-A</option>
+              <option value="duration">Sort: Shortest First</option>
+              <option value="recentlyEdited">Sort: Recently Edited</option>
+            </select>
+            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+          </div>
           </div>
         </div>
 
