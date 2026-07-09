@@ -76,7 +76,10 @@ export function TodayDashboard() {
   const [toast, setToast] = useState<string | null>(null)
   const [quickReminderOpen, setQuickReminderOpen] = useState(false)
   const [reminderText, setReminderText] = useState("")
-  const [reminderTime, setReminderTime] = useState("")
+  const [reminderDate, setReminderDate] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+  })
   const [reminderSaved, setReminderSaved] = useState(false)
 
   const addToast = useCallback((msg: string) => {
@@ -86,14 +89,11 @@ export function TodayDashboard() {
 
   const saveQuickReminder = useCallback(() => {
     if (!reminderText.trim()) return
-    const today = new Date()
-    const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
     const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
     reminders.push({
       id: crypto.randomUUID(),
       title: reminderText.trim(),
-      time: reminderTime || "09:00",
-      date: dateKey,
+      date: reminderDate,
       category: "reminder",
       color: "bg-amber-500",
       createdAt: new Date().toISOString(),
@@ -103,11 +103,14 @@ export function TodayDashboard() {
     setTimeout(() => {
       setQuickReminderOpen(false)
       setReminderText("")
-      setReminderTime("")
+      setReminderDate(() => {
+        const d = new Date()
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+      })
       setReminderSaved(false)
       addToast("Reminder saved!")
     }, 600)
-  }, [reminderText, reminderTime, addToast])
+  }, [reminderText, reminderDate, addToast])
 
   // Computed values
   const completedTasks = tasks.filter((t) => t.completed).length
@@ -265,13 +268,6 @@ export function TodayDashboard() {
                   <p className="text-xl md:text-2xl font-medium leading-relaxed">
                     &quot;{intention}&quot;
                   </p>
-                  <div className="flex items-center gap-4 mt-4">
-                    <Badge variant="outline" className="bg-primary/5">
-                      <Target className="mr-1 h-3 w-3" />
-                      Build deeper relationships
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">Future Self</span>
-                  </div>
                 </>
               )}
             </div>
@@ -497,7 +493,7 @@ export function TodayDashboard() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
-              onClick={() => { setQuickReminderOpen(false); setReminderText(""); setReminderTime(""); setReminderSaved(false) }}
+              onClick={() => { setQuickReminderOpen(false); setReminderText(""); setReminderDate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` }); setReminderSaved(false) }}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -535,11 +531,11 @@ export function TodayDashboard() {
                     className="border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40"
                   />
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="time"
-                      value={reminderTime}
-                      onChange={(e) => setReminderTime(e.target.value)}
-                      className="flex-1 border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40"
+                    <input
+                      type="date"
+                      value={reminderDate}
+                      onChange={(e) => setReminderDate(e.target.value)}
+                      className="flex-1 px-3 py-1.5 text-sm rounded-lg border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40 focus-visible:outline-none bg-background"
                     />
                     <Button
                       size="sm"

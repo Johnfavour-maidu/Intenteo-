@@ -1,8 +1,21 @@
 "use client"
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Repeat, Bell } from "lucide-react"
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Target,
+  Repeat,
+  Bell,
+  BookOpen,
+  Flag,
+  CheckCircle,
+  Plus,
+  ListChecks,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -12,6 +25,16 @@ interface CommandCenterProps {
 }
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+
+const TYPE_META: Record<string, { label: string; icon: React.ReactNode }> = {
+  task: { label: "Tasks", icon: <Target className="h-3 w-3" /> },
+  habit: { label: "Habits", icon: <Repeat className="h-3 w-3" /> },
+  goal: { label: "Goals", icon: <Flag className="h-3 w-3" /> },
+  milestone: { label: "Milestones", icon: <CheckCircle className="h-3 w-3" /> },
+  reminder: { label: "Reminders", icon: <Bell className="h-3 w-3" /> },
+  journal: { label: "Journal", icon: <BookOpen className="h-3 w-3" /> },
+  review: { label: "Review", icon: <ListChecks className="h-3 w-3" /> },
+}
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -25,6 +48,130 @@ function formatDateKey(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
 }
 
+function toISODate(d: Date) {
+  return formatDateKey(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+function formatPrettyDay(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number)
+  const dt = new Date(y, m - 1, d)
+  return dt.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+}
+
+interface DayItem {
+  title: string
+  time: string
+  type: string
+}
+
+function loadItemsForDate(dateKey: string): DayItem[] {
+  const items: DayItem[] = []
+
+  try {
+    const tasks = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
+    if (Array.isArray(tasks)) {
+      for (const t of tasks) {
+        if (t.dueDate === dateKey || t.due === dateKey) {
+          items.push({ title: t.title || "Task", time: t.time || "", type: "task" })
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
+    if (Array.isArray(habits)) {
+      for (const h of habits) {
+        const schedule = h.schedule
+        if (Array.isArray(schedule)) {
+          if (schedule.includes(dateKey)) {
+            items.push({ title: h.name || "Habit", time: h.time || "", type: "habit" })
+          }
+        } else if (schedule && typeof schedule === "object") {
+          // recurring schedule object — show if today falls on matching day
+          const dt = new Date(dateKey)
+          const dayNum = dt.getDay()
+          if (schedule.days && Array.isArray(schedule.days) && schedule.days.includes(dayNum)) {
+            items.push({ title: h.name || "Habit", time: schedule.time || h.time || "", type: "habit" })
+          }
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
+    if (Array.isArray(goals)) {
+      for (const g of goals) {
+        if (g.deadline === dateKey) {
+          items.push({ title: g.title || g.name || "Goal", time: "", type: "goal" })
+        }
+        if (Array.isArray(g.milestones)) {
+          for (const m of g.milestones) {
+            if (m.dueDate === dateKey) {
+              items.push({ title: m.title || "Milestone", time: m.time || "", type: "milestone" })
+            }
+          }
+        }
+        if (Array.isArray(g.projects)) {
+          for (const p of g.projects) {
+            if (p.deadline === dateKey) {
+              items.push({ title: `${p.title || "Project"} deadline`, time: "", type: "goal" })
+            }
+          }
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+    if (Array.isArray(reminders)) {
+      for (const r of reminders) {
+        if (r.date === dateKey) {
+          items.push({ title: r.title || r.text || "Reminder", time: r.time || "", type: "reminder" })
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    const entries = JSON.parse(localStorage.getItem("intenteo-journal-entries") || "[]")
+    if (Array.isArray(entries)) {
+      for (const e of entries) {
+        if (e.date === dateKey) {
+          items.push({ title: e.title || e.prompt || "Journal Entry", time: e.time || "", type: "journal" })
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
+    if (Array.isArray(reviews)) {
+      for (const r of reviews) {
+        if (r.date === dateKey) {
+          items.push({ title: "Daily Review", time: r.time || "", type: "review" })
+        }
+      }
+    }
+  } catch {}
+
+  return items
+}
+
+function loadRemindersForDate(dateKey: string): DayItem[] {
+  try {
+    const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+    if (Array.isArray(reminders)) {
+      return reminders
+        .filter((r: any) => r.date === dateKey)
+        .map((r: any) => ({ title: r.title || r.text || "Reminder", time: r.time || "", type: "reminder" }))
+    }
+  } catch {}
+  return []
+}
+
 export function CommandCenter({ open, onClose }: CommandCenterProps) {
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
@@ -32,13 +179,18 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate())
-  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [showReminderForm, setShowReminderForm] = useState(false)
+  const [reminderText, setReminderText] = useState("")
+  const [reminderDate, setReminderDate] = useState("")
+  const [reminderTime, setReminderTime] = useState("")
+
   useEffect(() => {
     if (open) {
       setCurrentMonth(today.getMonth())
       setCurrentYear(today.getFullYear())
       setSelectedDay(today.getDate())
-      setShowQuickAdd(false)
+      setReminderDate(toISODate(today))
     }
   }, [open])
 
@@ -53,72 +205,61 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth)
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth)
+  const monthName = new Date(currentYear, currentMonth).toLocaleString("default", { month: "short" })
 
   const prevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11)
-      setCurrentYear((y) => y - 1)
-    } else {
-      setCurrentMonth((m) => m - 1)
-    }
+    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear((y) => y - 1) }
+    else setCurrentMonth((m) => m - 1)
   }
 
   const nextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0)
-      setCurrentYear((y) => y + 1)
-    } else {
-      setCurrentMonth((m) => m + 1)
-    }
+    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear((y) => y + 1) }
+    else setCurrentMonth((m) => m + 1)
   }
 
-  const monthName = new Date(currentYear, currentMonth).toLocaleString("default", { month: "short" })
+  const isToday = useCallback(
+    (day: number) => day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear(),
+    [currentMonth, currentYear]
+  )
 
   const selectedDateKey =
     selectedDay !== null
       ? formatDateKey(
-          currentMonth === today.getMonth() && currentYear === today.getFullYear() ? today.getFullYear() : currentYear,
-          currentMonth,
+          isToday(selectedDay) ? today.getFullYear() : currentYear,
+          isToday(selectedDay) ? today.getMonth() : currentMonth,
           selectedDay
         )
       : null
 
-  const getScheduleForDate = (dateKey: string) => {
-    const items: { title: string; time: string; type: string; icon: React.ReactNode }[] = []
-    try {
-      const tasks = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
-      if (Array.isArray(tasks)) {
-        for (const task of tasks) {
-          if (task.dueDate === dateKey || task.due === dateKey) {
-            items.push({ title: task.title || "Task", time: task.time || "", type: "task", icon: <Target className="h-3.5 w-3.5" /> })
-          }
-        }
-      }
-    } catch {}
-    try {
-      const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
-      if (Array.isArray(habits)) {
-        for (const habit of habits) {
-          if (habit.schedule?.includes(dateKey)) {
-            items.push({ title: habit.name || "Habit", time: habit.time || "", type: "habit", icon: <Repeat className="h-3.5 w-3.5" /> })
-          }
-        }
-      }
-    } catch {}
-    try {
-      const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
-      if (Array.isArray(reminders)) {
-        for (const reminder of reminders) {
-          if (reminder.date === dateKey) {
-            items.push({ title: reminder.title || "Reminder", time: reminder.time || "", type: "reminder", icon: <Bell className="h-3.5 w-3.5" /> })
-          }
-        }
-      }
-    } catch {}
-    return items
+  const dayItems = selectedDateKey ? loadItemsForDate(selectedDateKey) : []
+  const groupedItems: Record<string, DayItem[]> = {}
+  for (const item of dayItems) {
+    if (!groupedItems[item.type]) groupedItems[item.type] = []
+    groupedItems[item.type].push(item)
   }
 
-  const scheduleItems = selectedDateKey ? getScheduleForDate(selectedDateKey) : []
+  const todayKey = toISODate(today)
+  const todayReminders = selectedDateKey === todayKey ? loadRemindersForDate(todayKey) : []
+
+  const handleSaveReminder = () => {
+    if (!reminderText.trim()) return
+    try {
+      const existing = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+      const newReminder = {
+        id: crypto.randomUUID(),
+        title: reminderText.trim(),
+        date: reminderDate || todayKey,
+        time: reminderTime || "",
+        createdAt: new Date().toISOString(),
+      }
+      existing.push(newReminder)
+      localStorage.setItem("intenteo-reminders", JSON.stringify(existing))
+    } catch {}
+    setReminderText("")
+    setReminderTime("")
+    setShowReminderForm(false)
+    setRefreshKey((k) => k + 1)
+  }
 
   return (
     <AnimatePresence>
@@ -133,22 +274,10 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
         >
           {/* Header */}
           <div className="px-4 pt-4 pb-2">
-            <div className="flex items-center justify-between mb-1">
-              <div>
-                <p className="text-xs text-muted-foreground">Today</p>
-                <p className="text-sm font-semibold">
-                  {today.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric" })}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/calendar")}
-                className="text-xs h-7 px-2"
-              >
-                Open Calendar
-              </Button>
-            </div>
+            <p className="text-xs text-muted-foreground mb-0.5">Today</p>
+            <p className="text-sm font-semibold">
+              {today.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            </p>
           </div>
 
           {/* Mini Calendar */}
@@ -175,20 +304,16 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1
-                const isToday =
-                  day === today.getDate() &&
-                  currentMonth === today.getMonth() &&
-                  currentYear === today.getFullYear()
-                const isSelected = day === selectedDay
+                const selected = day === selectedDay
                 return (
                   <button
                     key={day}
                     onClick={() => setSelectedDay(day)}
                     className={cn(
-                      "relative h-7 w-full text-[11px] rounded-md flex items-center justify-center transition-colors",
-                      isSelected && !isToday && "bg-[#1E0E6B] text-white",
-                      isToday && !isSelected && "bg-[#1E0E6B]/10 text-[#1E0E6B] font-bold",
-                      !isSelected && !isToday && "hover:bg-muted text-foreground"
+                      "h-7 w-full text-[11px] rounded-md flex items-center justify-center transition-colors",
+                      selected && !isToday(day) && "bg-[#1E0E6B] text-white",
+                      isToday(day) && !selected && "bg-[#1E0E6B]/10 text-[#1E0E6B] font-bold",
+                      !selected && !isToday(day) && "hover:bg-muted text-foreground"
                     )}
                   >
                     {day}
@@ -198,103 +323,134 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
             </div>
           </div>
 
-          {/* Selected Day Schedule */}
+          {/* Day Preview */}
           {selectedDateKey && (
-            <div className="border-t px-4 py-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">
-                  {selectedDay === today.getDate() &&
-                  currentMonth === today.getMonth() &&
-                  currentYear === today.getFullYear()
-                    ? "Today's Schedule"
-                    : `Schedule — ${monthName} ${selectedDay}, ${currentYear}`}
-                </span>
+            <motion.div
+              key={selectedDateKey + refreshKey}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              transition={{ duration: 0.15 }}
+              className="border-t overflow-hidden"
+            >
+              <div className="px-4 py-3">
+                <p className="text-[11px] font-semibold text-muted-foreground mb-2">
+                  {formatPrettyDay(selectedDateKey)}
+                </p>
+
+                {dayItems.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground/60 italic">Nothing scheduled</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {Object.entries(groupedItems).map(([type, items]) => {
+                      const meta = TYPE_META[type] || { label: type, icon: null }
+                      return (
+                        <div key={type}>
+                          <p className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider mb-1">
+                            {meta.label}
+                          </p>
+                          <div className="space-y-1">
+                            {items.map((item, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs">
+                                <span className="text-muted-foreground/50">{meta.icon}</span>
+                                <span className="flex-1 truncate">{item.title}</span>
+                                {item.time && <span className="text-muted-foreground text-[10px]">{item.time}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-              {scheduleItems.length === 0 ? (
-                <p className="text-xs text-muted-foreground/60">No events scheduled</p>
+            </motion.div>
+          )}
+
+          {/* Today's Reminders */}
+          {selectedDateKey === todayKey && (
+            <div className="border-t px-4 py-3">
+              <p className="text-[11px] font-semibold text-muted-foreground mb-2">Today's Reminders</p>
+              {todayReminders.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/60 italic">No reminders for today</p>
               ) : (
-                <div className="space-y-1.5">
-                  {scheduleItems.slice(0, 5).map((item, i) => (
+                <div className="space-y-1">
+                  {todayReminders.map((r, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="text-muted-foreground">{item.icon}</span>
-                      <span className="flex-1 truncate">{item.title}</span>
-                      {item.time && <span className="text-muted-foreground">{item.time}</span>}
+                      <Clock className="h-3 w-3 text-muted-foreground/50" />
+                      <span className="flex-1 truncate">{r.title}</span>
+                      {r.time && <span className="text-muted-foreground text-[10px]">{r.time}</span>}
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Add Quick Reminder */}
+              <div className="mt-2">
+                {!showReminderForm ? (
+                  <button
+                    onClick={() => { setShowReminderForm(true); setReminderDate(todayKey) }}
+                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Quick Reminder
+                  </button>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 pt-0.5">
+                      <input
+                        type="text"
+                        value={reminderText}
+                        onChange={(e) => setReminderText(e.target.value)}
+                        placeholder="Reminder text..."
+                        className="w-full text-xs px-2.5 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
+                        autoFocus
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSaveReminder(); if (e.key === "Escape") setShowReminderForm(false) }}
+                      />
+                      <div className="flex gap-1.5">
+                        <input
+                          type="date"
+                          value={reminderDate}
+                          onChange={(e) => setReminderDate(e.target.value)}
+                          className="flex-1 text-[11px] px-2 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
+                        />
+                        <input
+                          type="time"
+                          value={reminderTime}
+                          onChange={(e) => setReminderTime(e.target.value)}
+                          className="flex-1 text-[11px] px-2 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
+                        />
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Button size="sm" className="h-6 text-[11px] px-2.5" onClick={handleSaveReminder}>
+                          Save
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-6 text-[11px] px-2.5" onClick={() => setShowReminderForm(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Quick Add */}
-          <div className="border-t px-4 py-3">
-            <button
-              onClick={() => setShowQuickAdd(!showQuickAdd)}
-              className="w-full flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Quick Add
-            </button>
-            <AnimatePresence>
-              {showQuickAdd && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="overflow-hidden"
-                >
-                  <div className="pt-2 space-y-1">
-                    <button
-                      onClick={() => { router.push("/tasks?new=true"); onClose() }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs hover:bg-muted transition-colors"
-                    >
-                      <Target className="h-3.5 w-3.5 text-[#1E0E6B]" />
-                      New Task
-                    </button>
-                    <button
-                      onClick={() => { router.push("/tasks?new=true&type=reminder"); onClose() }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs hover:bg-muted transition-colors"
-                    >
-                      <Bell className="h-3.5 w-3.5 text-[#EB9E5B]" />
-                      New Reminder
-                    </button>
-                    <button
-                      onClick={() => { router.push("/calendar?new=event"); onClose() }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs hover:bg-muted transition-colors"
-                    >
-                      <Calendar className="h-3.5 w-3.5 text-emerald-500" />
-                      New Event
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* Footer */}
-          <div className="border-t px-4 py-2.5 flex items-center gap-2">
+          <div className="border-t px-4 py-2.5">
             <Button
               variant="ghost"
               size="sm"
-              className="flex-1 text-xs h-7"
+              className="w-full text-xs h-7"
               onClick={() => { router.push("/calendar"); onClose() }}
             >
               <Calendar className="h-3.5 w-3.5 mr-1.5" />
-              Full Calendar
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => {
-                setSelectedDay(today.getDate())
-                setCurrentMonth(today.getMonth())
-                setCurrentYear(today.getFullYear())
-              }}
-            >
-              Go To Today
+              Open Full Calendar
             </Button>
           </div>
         </motion.div>

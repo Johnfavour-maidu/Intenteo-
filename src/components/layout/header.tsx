@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Bell, Moon, Sun, Menu, Calendar, Undo2, Redo2, Command } from "lucide-react"
+import { Bell, Moon, Sun, Menu, Undo2, Redo2, Search, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useTheme } from "next-themes"
@@ -9,6 +9,7 @@ import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { UniversalSearch } from "./universal-search"
 import { CommandCenter } from "./command-center"
 import { NotificationCenter } from "./notification-center"
+import { motion, AnimatePresence } from "framer-motion"
 
 export function Header() {
   const { theme, setTheme } = useTheme()
@@ -17,6 +18,22 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2000)
+  }, [])
+
+  const handleUndo = useCallback(() => {
+    undo()
+    showToast("Undo successful")
+  }, [undo, showToast])
+
+  const handleRedo = useCallback(() => {
+    redo()
+    showToast("Redo successful")
+  }, [redo, showToast])
 
   const closeAll = useCallback(() => {
     setSearchOpen(false)
@@ -61,28 +78,24 @@ export function Header() {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleSearch}
-          className="gap-2 text-muted-foreground hover:text-foreground h-9 px-3"
-        >
-          <Command className="h-4 w-4" />
-          <span className="hidden sm:inline text-sm">Search</span>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1 py-0.5 text-[10px] font-medium text-muted-foreground ml-1">
-            ⌘K
-          </kbd>
-        </Button>
-
-        <div className="flex-1" />
+        <div className="relative flex-1 max-w-md">
+          <button
+            onClick={toggleSearch}
+            className="w-full flex items-center gap-2 h-9 px-3 rounded-xl border-2 border-[#1E0E6B]/20 bg-background text-sm text-muted-foreground hover:border-[#1E0E6B]/40 transition-colors cursor-text"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left">Search anything...</span>
+          </button>
+        </div>
 
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
             disabled={!canUndo}
-            onClick={undo}
+            onClick={handleUndo}
             className="h-9 w-9"
+            title="Undo"
           >
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -90,8 +103,9 @@ export function Header() {
             variant="ghost"
             size="icon"
             disabled={!canRedo}
-            onClick={redo}
+            onClick={handleRedo}
             className="h-9 w-9"
+            title="Redo"
           >
             <Redo2 className="h-4 w-4" />
           </Button>
@@ -138,6 +152,19 @@ export function Header() {
       </header>
 
       <UniversalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-foreground text-background text-sm px-4 py-2 rounded-full shadow-lg"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
