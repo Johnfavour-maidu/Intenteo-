@@ -11,6 +11,41 @@ import { CommandCenter } from "./command-center"
 import { NotificationCenter } from "./notification-center"
 import { motion, AnimatePresence } from "framer-motion"
 
+function NotificationBadge() {
+  const [count, setCount] = React.useState(0)
+
+  React.useEffect(() => {
+    const getUnreadCount = () => {
+      try {
+        const readIds: string[] = JSON.parse(localStorage.getItem("intenteo-notifications-read") || "[]")
+        const tasks = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
+        const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
+        const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
+        const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+        const journal = JSON.parse(localStorage.getItem("intenteo-journal-entries") || "[]")
+        let total = 0
+        if (Array.isArray(tasks)) total += tasks.length
+        if (Array.isArray(habits)) total += habits.filter((h: any) => h.streak >= 7).length
+        if (Array.isArray(goals)) total += goals.filter((g: any) => g.progress >= 25).length
+        if (Array.isArray(reminders)) total += reminders.length
+        if (Array.isArray(journal)) total += journal.length
+        const unread = total - readIds.length
+        setCount(Math.max(0, unread))
+      } catch { setCount(0) }
+    }
+    getUnreadCount()
+    const interval = setInterval(getUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (count === 0) return null
+  return (
+    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-1">
+      {count > 99 ? "99+" : count}
+    </span>
+  )
+}
+
 export function Header() {
   const { theme, setTheme } = useTheme()
   const { canUndo, canRedo, undo, redo } = useUndoRedo()
@@ -78,27 +113,6 @@ export function Header() {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          disabled={!canUndo}
-          onClick={handleUndo}
-          className="h-9 w-9"
-          title="Undo"
-        >
-          <Undo2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          disabled={!canRedo}
-          onClick={handleRedo}
-          className="h-9 w-9"
-          title="Redo"
-        >
-          <Redo2 className="h-4 w-4" />
-        </Button>
-
         <div className="relative flex-1 max-w-md">
           <button
             onClick={toggleSearch}
@@ -109,7 +123,29 @@ export function Header() {
           </button>
         </div>
 
+        <div className="flex-1" />
+
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!canUndo}
+            onClick={handleUndo}
+            className="h-9 w-9"
+            title="Undo"
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!canRedo}
+            onClick={handleRedo}
+            className="h-9 w-9"
+            title="Redo"
+          >
+            <Redo2 className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -140,7 +176,7 @@ export function Header() {
               className={`relative ${notifOpen ? "bg-accent text-accent-foreground" : ""}`}
             >
               <Bell className="h-5 w-5" />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#EB9E5B]" />
+              <NotificationBadge />
             </Button>
             <NotificationCenter open={notifOpen} onClose={() => setNotifOpen(false)} />
           </div>

@@ -373,36 +373,10 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
                 <Bell className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-semibold">Notifications</span>
               </div>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                {unreadIds.length > 0 ? unreadIds.length : notifications.length}
-              </span>
-            </div>
-
-            <div className="px-4 pb-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search notifications..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-8 pl-8 pr-3 text-xs bg-muted/50 border-0 rounded-lg focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-                />
-              </div>
             </div>
 
             <div className="max-h-72 overflow-y-auto">
-              {notifications
-                .filter((n) => {
-                  if (!searchQuery.trim()) return true
-                  const q = searchQuery.toLowerCase()
-                  return (
-                    n.title.toLowerCase().includes(q) ||
-                    n.subtitle.toLowerCase().includes(q) ||
-                    SOURCE_LABELS[n.source].toLowerCase().includes(q)
-                  )
-                })
-                .slice(0, 6)
+              {notifications.slice(0, 5)
                 .map((notif) => (
                   <button
                     key={notif.id}

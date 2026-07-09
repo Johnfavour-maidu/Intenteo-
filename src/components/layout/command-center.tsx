@@ -310,9 +310,9 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
                     key={day}
                     onClick={() => setSelectedDay(day)}
                     className={cn(
-                      "h-7 w-full text-[11px] rounded-md flex items-center justify-center transition-colors",
+                      "h-7 w-full text-[11px] rounded-full flex items-center justify-center transition-colors font-medium",
+                      isToday(day) && "bg-[#1E0E6B] text-white font-bold",
                       selected && !isToday(day) && "bg-[#1E0E6B] text-white",
-                      isToday(day) && !selected && "bg-[#1E0E6B]/10 text-[#1E0E6B] font-bold",
                       !selected && !isToday(day) && "hover:bg-muted text-foreground"
                     )}
                   >
@@ -323,60 +323,21 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
             </div>
           </div>
 
-          {/* Day Preview */}
+          {/* Reminders for selected day */}
           {selectedDateKey && (
-            <motion.div
-              key={selectedDateKey + refreshKey}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              transition={{ duration: 0.15 }}
-              className="border-t overflow-hidden"
-            >
-              <div className="px-4 py-3">
-                <p className="text-[11px] font-semibold text-muted-foreground mb-2">
-                  {formatPrettyDay(selectedDateKey)}
-                </p>
-
-                {dayItems.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground/60 italic">Nothing scheduled</p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {Object.entries(groupedItems).map(([type, items]) => {
-                      const meta = TYPE_META[type] || { label: type, icon: null }
-                      return (
-                        <div key={type}>
-                          <p className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider mb-1">
-                            {meta.label}
-                          </p>
-                          <div className="space-y-1">
-                            {items.map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-xs">
-                                <span className="text-muted-foreground/50">{meta.icon}</span>
-                                <span className="flex-1 truncate">{item.title}</span>
-                                {item.time && <span className="text-muted-foreground text-[10px]">{item.time}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Today's Reminders */}
-          {selectedDateKey === todayKey && (
             <div className="border-t px-4 py-3">
-              <p className="text-[11px] font-semibold text-muted-foreground mb-2">Today's Reminders</p>
+              <p className="text-[11px] font-semibold text-muted-foreground mb-2">
+                {selectedDateKey === todayKey ? "Today's Reminders" : `${formatPrettyDay(selectedDateKey)}`}
+              </p>
               {todayReminders.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground/60 italic">No reminders for today</p>
+                <p className="text-[11px] text-muted-foreground/60 italic">
+                  {selectedDateKey === todayKey ? "No reminders for today" : "No reminders"}
+                </p>
               ) : (
                 <div className="space-y-1">
                   {todayReminders.map((r, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
-                      <Clock className="h-3 w-3 text-muted-foreground/50" />
+                      <Bell className="h-3 w-3 text-muted-foreground/50" />
                       <span className="flex-1 truncate">{r.title}</span>
                       {r.time && <span className="text-muted-foreground text-[10px]">{r.time}</span>}
                     </div>
