@@ -9,7 +9,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle, Info,
+  Link2, AlertTriangle, Info, Map,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -29,6 +29,7 @@ interface Milestone { id: string; title: string; completed: boolean }
 interface GoalProjectTimeline {
   id: string; projectName: string; description: string; startDate: string; endDate: string
   status: "not-started" | "in-progress" | "completed" | "on-hold"; progress: number; notes: string
+  milestones?: string[]
 }
 
 interface ProjectTask {
@@ -361,6 +362,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
   const [newTimelineStatus, setNewTimelineStatus] = useState<"not-started"|"in-progress"|"completed"|"on-hold">("not-started")
   const [newTimelineProgress, setNewTimelineProgress] = useState("0")
   const [newTimelineNotes, setNewTimelineNotes] = useState("")
+  const [newTimelineMilestones, setNewTimelineMilestones] = useState<string[]>([])
 
   useEffect(() => {
     if (type !== "custom") {
@@ -421,18 +423,18 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
                   <div key={pt.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-white/10">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{pt.projectName || "Untitled Project"}</p>
-                      <p className="text-[10px] text-muted-foreground">{pt.startDate || "No start"} → {pt.endDate || "No end"} · {pt.status.replace("-"," ")} · {pt.progress}%</p>
+                      <p className="text-[10px] text-muted-foreground">{pt.startDate || "No start"} → {pt.endDate || "No end"} · {pt.status.replace("-"," ")}{pt.milestones && pt.milestones.length > 0 ? ` · ${pt.milestones.length} milestone${pt.milestones.length !== 1 ? "s" : ""}` : ""}</p>
                     </div>
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
                       const ptToEdit = projectTimelines.find(p => p.id === pt.id)
-                      if (ptToEdit) { setEditingTimelineId(pt.id); setNewTimelineProjectName(ptToEdit.projectName); setNewTimelineDesc(ptToEdit.description); setNewTimelineStart(ptToEdit.startDate); setNewTimelineEnd(ptToEdit.endDate); setNewTimelineStatus(ptToEdit.status); setNewTimelineProgress(ptToEdit.progress.toString()); setNewTimelineNotes(ptToEdit.notes); setShowTimelineForm(true) }
+                      if (ptToEdit) { setEditingTimelineId(pt.id); setNewTimelineProjectName(ptToEdit.projectName); setNewTimelineDesc(ptToEdit.description); setNewTimelineStart(ptToEdit.startDate); setNewTimelineEnd(ptToEdit.endDate); setNewTimelineStatus(ptToEdit.status); setNewTimelineProgress(ptToEdit.progress.toString()); setNewTimelineNotes(ptToEdit.notes); setNewTimelineMilestones(ptToEdit.milestones || []); setShowTimelineForm(true) }
                     }}><span className="text-xs">✎</span></Button>
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500" onClick={() => setProjectTimelines(prev => prev.filter(p => p.id !== pt.id))}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 ))}
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => { setEditingTimelineId(null); setNewTimelineProjectName(""); setNewTimelineDesc(""); setNewTimelineStart(getTodayISO()); setNewTimelineEnd(""); setNewTimelineStatus("not-started"); setNewTimelineProgress("0"); setNewTimelineNotes(""); setShowTimelineForm(true) }} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => { setEditingTimelineId(null); setNewTimelineProjectName(""); setNewTimelineDesc(""); setNewTimelineStart(getTodayISO()); setNewTimelineEnd(""); setNewTimelineStatus("not-started"); setNewTimelineProgress("0"); setNewTimelineNotes(""); setNewTimelineMilestones([]); setShowTimelineForm(true) }} className="text-xs">
               <Plus className="h-3 w-3 mr-1" /> Add Project Timeline
             </Button>
             {showTimelineForm && (
@@ -451,7 +453,34 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
                   <div><label className="text-xs font-medium">End Date</label><DateInput value={newTimelineEnd} onChange={setNewTimelineEnd} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-xs font-medium">Progress %</label><Input type="number" min="0" max="100" value={newTimelineProgress} onChange={e => setNewTimelineProgress(e.target.value)} className="mt-1 text-xs h-8" /></div>
+                  <div><label className="text-xs font-medium">Milestones</label>
+                    <div className="mt-1 space-y-1">
+                      {(editingTimelineId ? projectTimelines.find(p => p.id === editingTimelineId)?.milestones || [] : newTimelineMilestones).map((ms, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                          <span className="flex-1 truncate">{ms}</span>
+                          <button type="button" onClick={() => {
+                            if (editingTimelineId) {
+                              setProjectTimelines(prev => prev.map(p => p.id === editingTimelineId ? {...p, milestones: (p.milestones || []).filter((_, j) => j !== i)} : p))
+                            } else {
+                              setNewTimelineMilestones(prev => prev.filter((_, j) => j !== i))
+                            }
+                          }} className="text-red-400 hover:text-red-600"><X className="h-2.5 w-2.5" /></button>
+                        </div>
+                      ))}
+                      <Input value="" placeholder="Add milestone and press Enter" onKeyDown={e => {
+                        if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                          const val = (e.target as HTMLInputElement).value.trim()
+                          if (editingTimelineId) {
+                            setProjectTimelines(prev => prev.map(p => p.id === editingTimelineId ? {...p, milestones: [...(p.milestones || []), val]} : p))
+                          } else {
+                            setNewTimelineMilestones(prev => [...prev, val])
+                          }
+                          ;(e.target as HTMLInputElement).value = ""
+                        }
+                      }} className="text-xs h-7" />
+                    </div>
+                  </div>
                   <div><label className="text-xs font-medium">Notes</label><Input value={newTimelineNotes} onChange={e => setNewTimelineNotes(e.target.value)} placeholder="Notes" className="mt-1 text-xs h-8" /></div>
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -459,9 +488,10 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
                   <Button size="sm" onClick={() => {
                     if (newTimelineProjectName.trim()) {
                       if (editingTimelineId) {
-                        setProjectTimelines(prev => prev.map(pt => pt.id === editingTimelineId ? {...pt, projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes} : pt))
+                        const existing = projectTimelines.find(pt => pt.id === editingTimelineId)
+                        setProjectTimelines(prev => prev.map(pt => pt.id === editingTimelineId ? {...pt, projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes, milestones: existing?.milestones || []} : pt))
                       } else {
-                        setProjectTimelines(prev => [...prev, {id: Date.now().toString(), projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes}])
+                        setProjectTimelines(prev => [...prev, {id: Date.now().toString(), projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes, milestones: newTimelineMilestones}])
                       }
                       setShowTimelineForm(false)
                     }
@@ -879,6 +909,11 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
           </div>
 
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
+        </div>
+        <div className="p-4 border-t">
+          <Button variant="outline" className="w-full" onClick={() => { onClose(); window.location.href = "/journey" }}>
+            <Map className="h-4 w-4 mr-2" /> View My Journey
+          </Button>
         </div>
       </div>
       <AddProjectModal isOpen={showAddProject} onClose={() => setShowAddProject(false)} onSave={(p) => { onSaveProject({ ...p, id: Date.now().toString(), createdAt: getTodayISO(), updatedAt: getTodayISO() }) }} goalId={data.id} />
