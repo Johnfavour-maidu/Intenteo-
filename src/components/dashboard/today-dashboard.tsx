@@ -19,11 +19,23 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Zap,
   Bell,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
+
+const CAL_WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+
+function calDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate()
+}
+function calFirstDayOfMonth(year: number, month: number) {
+  return new Date(year, month, 1).getDay()
+}
 
 // Types
 interface PriorityTask {
@@ -76,24 +88,27 @@ export function TodayDashboard() {
   const [toast, setToast] = useState<string | null>(null)
   const [quickReminderOpen, setQuickReminderOpen] = useState(false)
   const [reminderText, setReminderText] = useState("")
-  const [reminderDate, setReminderDate] = useState(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-  })
   const [reminderSaved, setReminderSaved] = useState(false)
+  const [reminderCalMonth, setReminderCalMonth] = useState(() => new Date().getMonth())
+  const [reminderCalYear, setReminderCalYear] = useState(() => new Date().getFullYear())
+  const [reminderCalDay, setReminderCalDay] = useState(() => new Date().getDate())
 
   const addToast = useCallback((msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }, [])
 
+  const reminderDateKey = `${reminderCalYear}-${String(reminderCalMonth + 1).padStart(2, "0")}-${String(reminderCalDay).padStart(2, "0")}`
+  const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` })()
+  const isReminderPast = reminderDateKey < todayKey
+
   const saveQuickReminder = useCallback(() => {
-    if (!reminderText.trim()) return
+    if (!reminderText.trim() || isReminderPast) return
     const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
     reminders.push({
       id: crypto.randomUUID(),
       title: reminderText.trim(),
-      date: reminderDate,
+      date: reminderDateKey,
       category: "reminder",
       color: "bg-amber-500",
       createdAt: new Date().toISOString(),
@@ -103,14 +118,14 @@ export function TodayDashboard() {
     setTimeout(() => {
       setQuickReminderOpen(false)
       setReminderText("")
-      setReminderDate(() => {
-        const d = new Date()
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-      })
+      const d = new Date()
+      setReminderCalMonth(d.getMonth())
+      setReminderCalYear(d.getFullYear())
+      setReminderCalDay(d.getDate())
       setReminderSaved(false)
       addToast("Reminder saved!")
     }, 600)
-  }, [reminderText, reminderDate, addToast])
+  }, [reminderText, reminderDateKey, isReminderPast, addToast])
 
   // Computed values
   const completedTasks = tasks.filter((t) => t.completed).length
@@ -493,7 +508,7 @@ export function TodayDashboard() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
-              onClick={() => { setQuickReminderOpen(false); setReminderText(""); setReminderDate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` }); setReminderSaved(false) }}
+              onClick={() => { setQuickReminderOpen(false); setReminderText(""); const d = new Date(); setReminderCalMonth(d.getMonth()); setReminderCalYear(d.getFullYear()); setReminderCalDay(d.getDate()); setReminderSaved(false) }}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -522,25 +537,72 @@ export function TodayDashboard() {
                 </motion.div>
               ) : (
                 <div className="space-y-3">
+                  {/* Selected date display */}
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {new Date(reminderCalYear, reminderCalMonth, reminderCalDay).toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+
+                  {/* Mini Calendar */}
+                  <div className="border border-[#1E0E6B]/10 rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <button onClick={() => { if (reminderCalMonth === 0) { setReminderCalMonth(11); setReminderCalYear(y => y - 1) } else setReminderCalMonth(m => m - 1) }} className="p-1 rounded hover:bg-muted transition-colors">
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="text-[11px] font-medium">
+                        {new Date(reminderCalYear, reminderCalMonth).toLocaleString("default", { month: "short" })} {reminderCalYear}
+                      </span>
+                      <button onClick={() => { if (reminderCalMonth === 11) { setReminderCalMonth(0); setReminderCalYear(y => y + 1) } else setReminderCalMonth(m => m + 1) }} className="p-1 rounded hover:bg-muted transition-colors">
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-0.5">
+                      {CAL_WEEKDAYS.map((d) => (
+                        <div key={d} className="text-center text-[9px] font-medium text-muted-foreground py-0.5">
+                          {d}
+                        </div>
+                      ))}
+                      {Array.from({ length: calFirstDayOfMonth(reminderCalYear, reminderCalMonth) }).map((_, i) => (
+                        <div key={`empty-${i}`} />
+                      ))}
+                      {Array.from({ length: calDaysInMonth(reminderCalYear, reminderCalMonth) }).map((_, i) => {
+                        const day = i + 1
+                        const isToday = day === new Date().getDate() && reminderCalMonth === new Date().getMonth() && reminderCalYear === new Date().getFullYear()
+                        const isSelected = day === reminderCalDay
+                        return (
+                          <button
+                            key={day}
+                            onClick={() => setReminderCalDay(day)}
+                            className={cn(
+                              "h-6 w-full text-[10px] rounded-full flex items-center justify-center transition-colors font-medium",
+                              isToday && "bg-[#1E0E6B] text-white font-bold",
+                              isSelected && !isToday && "bg-[#1E0E6B] text-white",
+                              !isSelected && !isToday && "hover:bg-muted text-foreground"
+                            )}
+                          >
+                            {day}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
                   <Input
-                    placeholder="What do you need to remember?"
+                    placeholder={isReminderPast ? "Reminders cannot be added to past dates." : "What do you need to remember?"}
                     value={reminderText}
                     onChange={(e) => setReminderText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") saveQuickReminder() }}
-                    autoFocus
-                    className="border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40"
+                    autoFocus={!isReminderPast}
+                    disabled={isReminderPast}
+                    className={cn("border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40", isReminderPast && "opacity-50 cursor-not-allowed")}
                   />
+                  {isReminderPast && (
+                    <p className="text-[10px] text-muted-foreground/60 text-center">You can only create reminders for today or future dates.</p>
+                  )}
                   <div className="flex items-center gap-2">
-                    <input
-                      type="date"
-                      value={reminderDate}
-                      onChange={(e) => setReminderDate(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-sm rounded-lg border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40 focus-visible:outline-none bg-background"
-                    />
                     <Button
                       size="sm"
                       onClick={saveQuickReminder}
-                      disabled={!reminderText.trim()}
+                      disabled={!reminderText.trim() || isReminderPast}
                       className="bg-[#1E0E6B] hover:bg-[#1E0E6B]/90 text-white"
                     >
                       Save

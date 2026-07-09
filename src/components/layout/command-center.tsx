@@ -236,16 +236,17 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   }
 
   const todayKey = toISODate(today)
-  const todayReminders = selectedDateKey === todayKey ? loadRemindersForDate(todayKey) : []
+  const isPastDate = selectedDateKey ? selectedDateKey < todayKey : false
+  const selectedReminders = selectedDateKey ? loadRemindersForDate(selectedDateKey) : []
 
   const handleSaveReminder = () => {
-    if (!reminderText.trim()) return
+    if (!reminderText.trim() || !selectedDateKey || isPastDate) return
     try {
       const existing = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
       const newReminder = {
         id: crypto.randomUUID(),
         title: reminderText.trim(),
-        date: todayKey,
+        date: selectedDateKey,
         createdAt: new Date().toISOString(),
       }
       existing.push(newReminder)
@@ -324,13 +325,13 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
               <p className="text-[11px] font-semibold text-muted-foreground mb-2">
                 {selectedDateKey === todayKey ? "Today's Reminders" : `${formatPrettyDay(selectedDateKey)}`}
               </p>
-              {todayReminders.length === 0 ? (
+              {selectedReminders.length === 0 ? (
                 <p className="text-[11px] text-muted-foreground/60 italic">
                   {selectedDateKey === todayKey ? "No reminders for today" : "No reminders"}
                 </p>
               ) : (
                 <div className="space-y-1">
-                  {todayReminders.map((r, i) => (
+                  {selectedReminders.map((r, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
                       <Bell className="h-3 w-3 text-muted-foreground/50" />
                       <span className="flex-1 truncate">{r.title}</span>
@@ -344,8 +345,9 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
               <div className="mt-2">
                 {!showReminderForm ? (
                   <button
-                    onClick={() => setShowReminderForm(true)}
-                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => { if (!isPastDate) setShowReminderForm(true) }}
+                    className={`flex items-center gap-1.5 text-[11px] transition-colors ${isPastDate ? "text-muted-foreground/40 cursor-not-allowed" : "text-muted-foreground hover:text-foreground"}`}
+                    disabled={isPastDate}
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add Quick Reminder
@@ -363,13 +365,17 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
                         type="text"
                         value={reminderText}
                         onChange={(e) => setReminderText(e.target.value)}
-                        placeholder="What would you like to remember?"
+                        placeholder={isPastDate ? "Reminders cannot be added to past dates." : "What would you like to remember?"}
                         className="w-full text-xs px-2.5 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
-                        autoFocus
+                        disabled={isPastDate}
+                        autoFocus={!isPastDate}
                         onKeyDown={(e) => { if (e.key === "Enter") handleSaveReminder(); if (e.key === "Escape") setShowReminderForm(false) }}
                       />
+                      {isPastDate && (
+                        <p className="text-[10px] text-muted-foreground/60">You can only create reminders for today or future dates.</p>
+                      )}
                       <div className="flex gap-1.5">
-                        <Button size="sm" className="h-6 text-[11px] px-2.5" onClick={handleSaveReminder}>
+                        <Button size="sm" className="h-6 text-[11px] px-2.5" onClick={handleSaveReminder} disabled={isPastDate || !reminderText.trim()}>
                           Save Reminder
                         </Button>
                         <Button size="sm" variant="ghost" className="h-6 text-[11px] px-2.5" onClick={() => { setShowReminderForm(false); setReminderText("") }}>
