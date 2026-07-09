@@ -4,9 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   CheckCircle2,
   Bell,
-  ArrowRight,
   X,
-  Search,
   CheckCheck,
   Target,
   Repeat,
@@ -178,7 +176,8 @@ function generateNotifications(): Notification[] {
   // Sort by most recent first
   notifications.sort((a, b) => b.sortTime - a.sortTime)
 
-  return notifications
+  // Cap at 30 notifications
+  return notifications.slice(0, 30)
 }
 
 export function getUnreadCount(): number {
@@ -190,12 +189,19 @@ export function getUnreadCount(): number {
 export function NotificationCenter({ open, onClose, triggerRef }: NotificationCenterProps) {
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
-  const [modalOpen, setModalOpen] = useState(false)
   const [readIds, setReadIds] = useState<string[]>([])
-  const [modalSearchQuery, setModalSearchQuery] = useState("")
+  const [expanded, setExpanded] = useState(false)
   const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null)
 
-  const notifications = useMemo(() => (open || modalOpen ? generateNotifications() : []), [open, modalOpen])
+  const notifications = useMemo(() => (open ? generateNotifications() : []), [open])
+
+  const INITIAL_COUNT = 5
+
+  const visibleNotifications = useMemo(() => {
+    return expanded ? notifications : notifications.slice(0, INITIAL_COUNT)
+  }, [notifications, expanded])
+
+  const hasMore = notifications.length > INITIAL_COUNT
 
   useEffect(() => {
     if (open && triggerRef?.current) {
@@ -205,7 +211,10 @@ export function NotificationCenter({ open, onClose, triggerRef }: NotificationCe
   }, [open, triggerRef])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setExpanded(false)
+      return
+    }
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node) && triggerRef?.current && !triggerRef.current.contains(e.target as Node)) onClose()
     }
@@ -215,11 +224,7 @@ export function NotificationCenter({ open, onClose, triggerRef }: NotificationCe
 
   useEffect(() => {
     setReadIds(getReadIds())
-  }, [open, modalOpen])
-
-  const unreadIds = useMemo(() => {
-    return notifications.filter((n) => !readIds.includes(n.id)).map((n) => n.id)
-  }, [notifications, readIds])
+  }, [open])
 
   const markAsRead = useCallback((id: string) => {
     setReadIds((prev) => {
@@ -237,192 +242,106 @@ export function NotificationCenter({ open, onClose, triggerRef }: NotificationCe
     })
   }, [notifications])
 
-  const filteredNotifications = useMemo(() => {
-    if (!modalSearchQuery.trim()) return notifications
-    const q = modalSearchQuery.toLowerCase()
-    return notifications.filter(
-      (n) =>
-        n.title.toLowerCase().includes(q) ||
-        n.subtitle.toLowerCase().includes(q)
-    )
-  }, [notifications, modalSearchQuery])
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [open, onClose])
-
-  useEffect(() => {
-    if (!modalOpen) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setModalOpen(false)
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [modalOpen])
+  const unreadCount = useMemo(() => {
+    return notifications.filter((n) => !readIds.includes(n.id)).length
+  }, [notifications, readIds])
 
   return (
-    <>
-      {/* Mini Dropdown */}
-      <AnimatePresence>
-        {open && dropdownPos && (
+    <AnimatePresence>
+      {open && dropdownPos && (
+        <motion.div
+          ref={ref}
+          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          className="fixed w-80 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[100]"
+          style={{ top: dropdownPos.top, right: dropdownPos.right }}
+        >
+          {/* Header */}
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">Notifications</span>
+              {unreadCount > 0 && (
+                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                  {unreadCount} unread
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" className="text-[11px] h-6 px-2 gap-1" onClick={markAllRead}>
+                  <CheckCheck className="h-3 w-3" />
+                  Read all
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Notifications list */}
           <motion.div
-            ref={ref}
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className="fixed w-80 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[100]"
-            style={{ top: dropdownPos.top, right: dropdownPos.right }}
+            animate={{ height: expanded ? 700 : 420 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="overflow-hidden"
           >
-            <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-semibold">Notifications</span>
-              </div>
+            <div className="h-full overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                  <span className="text-3xl mb-3">{"\u{1F389}"}</span>
+                  <p className="text-sm font-medium">You&apos;re all caught up.</p>
+                  <p className="text-xs text-muted-foreground mt-1">New reminders, achievements and updates will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-0.5 px-1 py-1">
+                  {visibleNotifications.map((notif) => (
+                    <button
+                      key={notif.id}
+                      onClick={() => {
+                        markAsRead(notif.id)
+                        router.push(notif.href)
+                        onClose()
+                      }}
+                      className={cn(
+                        "w-full flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors text-left",
+                        !readIds.includes(notif.id) ? "bg-muted/40" : "hover:bg-muted/30"
+                      )}
+                    >
+                      <div className="mt-0.5 shrink-0">
+                        <span className="text-muted-foreground">{notif.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm", !readIds.includes(notif.id) ? "font-semibold" : "font-medium")}>
+                          {notif.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{notif.subtitle}</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{notif.timestamp}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+          </motion.div>
 
-            <div className="max-h-72 overflow-y-auto">
-              {notifications.slice(0, 5).map((notif) => (
-                <button
-                  key={notif.id}
-                  onClick={() => {
-                    markAsRead(notif.id)
-                    router.push(notif.href)
-                    onClose()
-                  }}
-                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
-                >
-                  <div className="mt-0.5 shrink-0">
-                    <span className="text-muted-foreground">{notif.icon}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{notif.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{notif.subtitle}</p>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0">{notif.timestamp}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="border-t px-4 py-2.5">
+          {/* Footer */}
+          {hasMore && !expanded && (
+            <div className="border-t px-4 py-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full text-xs h-7 justify-between"
-                onClick={() => {
-                  setModalOpen(true)
-                  onClose()
-                }}
+                className="w-full text-xs h-7"
+                onClick={() => setExpanded(true)}
               >
-                View All Notifications
-                <ArrowRight className="h-3.5 w-3.5" />
+                Show Older Notifications
               </Button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Full Modal */}
-      <AnimatePresence>
-        {modalOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
-              onClick={() => setModalOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.96 }}
-              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-              className="fixed z-[61] w-full max-w-[520px] max-h-[80vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-              style={{
-                top: triggerRef?.current ? triggerRef.current.getBoundingClientRect().bottom + 8 : 72,
-                right: triggerRef?.current ? window.innerWidth - triggerRef.current.getBoundingClientRect().right : 16,
-              }}
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b">
-                <div className="flex items-center gap-3">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="text-lg font-semibold">Notifications</h2>
-                  {unreadIds.length > 0 && (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                      {unreadIds.length} unread
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" className="text-xs h-7 gap-1.5" onClick={markAllRead}>
-                    <CheckCheck className="h-3.5 w-3.5" />
-                    Mark All Read
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setModalOpen(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="px-6 pt-4 pb-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search notifications..."
-                    value={modalSearchQuery}
-                    onChange={(e) => setModalSearchQuery(e.target.value)}
-                    className="w-full h-9 pl-9 pr-4 text-sm bg-muted/50 border-0 rounded-lg focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-                  />
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto px-6 py-2">
-                {filteredNotifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                    <Bell className="h-10 w-10 mb-3 opacity-30" />
-                    <p className="text-sm font-medium">All caught up!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {filteredNotifications.map((notif) => (
-                      <button
-                        key={notif.id}
-                        onClick={() => {
-                          markAsRead(notif.id)
-                          router.push(notif.href)
-                          setModalOpen(false)
-                        }}
-                        className={cn(
-                          "w-full flex items-start gap-3 px-3 py-3 rounded-xl transition-colors text-left",
-                          !readIds.includes(notif.id) ? "bg-muted/40" : "hover:bg-muted/30"
-                        )}
-                      >
-                        <div className="mt-0.5 shrink-0">
-                          <span className="text-muted-foreground">{notif.icon}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("text-sm", !readIds.includes(notif.id) ? "font-semibold" : "font-medium")}>
-                            {notif.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{notif.subtitle}</p>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{notif.timestamp}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
