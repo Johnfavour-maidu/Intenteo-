@@ -20,7 +20,9 @@ import {
   ChevronDown,
   ChevronUp,
   Zap,
+  Bell,
 } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
 
 // Types
@@ -72,11 +74,40 @@ export function TodayDashboard() {
   const [quickActionsOpen, setQuickActionsOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [quickReminderOpen, setQuickReminderOpen] = useState(false)
+  const [reminderText, setReminderText] = useState("")
+  const [reminderTime, setReminderTime] = useState("")
+  const [reminderSaved, setReminderSaved] = useState(false)
 
   const addToast = useCallback((msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }, [])
+
+  const saveQuickReminder = useCallback(() => {
+    if (!reminderText.trim()) return
+    const today = new Date()
+    const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+    const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+    reminders.push({
+      id: crypto.randomUUID(),
+      title: reminderText.trim(),
+      time: reminderTime || "09:00",
+      date: dateKey,
+      category: "reminder",
+      color: "bg-amber-500",
+      createdAt: new Date().toISOString(),
+    })
+    localStorage.setItem("intenteo-reminders", JSON.stringify(reminders))
+    setReminderSaved(true)
+    setTimeout(() => {
+      setQuickReminderOpen(false)
+      setReminderText("")
+      setReminderTime("")
+      setReminderSaved(false)
+      addToast("Reminder saved!")
+    }, 600)
+  }, [reminderText, reminderTime, addToast])
 
   // Computed values
   const completedTasks = tasks.filter((t) => t.completed).length
@@ -118,7 +149,8 @@ export function TodayDashboard() {
   const quickActions = [
     { icon: <Plus className="h-4 w-4" />, label: "Add New Task", action: () => router.push("/tasks") },
     { icon: <PenLine className="h-4 w-4" />, label: "Write a Quick Thought", action: () => router.push("/journal?type=quick") },
-    { icon: <Calendar className="h-4 w-4" />, label: "Add Reminder", action: () => router.push("/calendar") },
+    { icon: <Bell className="h-4 w-4" />, label: "Quick Reminder", action: () => setQuickReminderOpen(true) },
+    { icon: <Calendar className="h-4 w-4" />, label: "Open Calendar", action: () => router.push("/calendar") },
     { icon: <Target className="h-4 w-4" />, label: "Add New Habit", action: () => router.push("/habits") },
     { icon: <Sparkles className="h-4 w-4" />, label: "Ask T\u00e9o", action: () => router.push("/coach") },
   ]
@@ -455,6 +487,78 @@ export function TodayDashboard() {
           }}
         />
       )}
+
+      {/* Quick Reminder Dialog */}
+      <AnimatePresence>
+        {quickReminderOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
+              onClick={() => { setQuickReminderOpen(false); setReminderText(""); setReminderTime(""); setReminderSaved(false) }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-5"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-8 w-8 rounded-full bg-[#EB9E5B]/10 flex items-center justify-center">
+                  <Bell className="h-4 w-4 text-[#EB9E5B]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Quick Reminder</h3>
+                  <p className="text-xs text-muted-foreground">Save a reminder in seconds</p>
+                </div>
+              </div>
+              {reminderSaved ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="py-8 text-center"
+                >
+                  <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium">Reminder saved!</p>
+                </motion.div>
+              ) : (
+                <div className="space-y-3">
+                  <Input
+                    placeholder="What do you need to remember?"
+                    value={reminderText}
+                    onChange={(e) => setReminderText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveQuickReminder() }}
+                    autoFocus
+                    className="border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      value={reminderTime}
+                      onChange={(e) => setReminderTime(e.target.value)}
+                      className="flex-1 border-2 border-[#1E0E6B]/20 focus-visible:border-[#1E0E6B]/40"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={saveQuickReminder}
+                      disabled={!reminderText.trim()}
+                      className="bg-[#1E0E6B] hover:bg-[#1E0E6B]/90 text-white"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Reminders appear in your Calendar
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
