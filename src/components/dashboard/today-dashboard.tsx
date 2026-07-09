@@ -261,7 +261,9 @@ export function TodayDashboard() {
                     <Clock className="h-5 w-5 text-primary" />
                     Today&apos;s Focus
                   </h2>
-                  <Badge variant="secondary">{focusTasks.length} priority</Badge>
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary" onClick={() => router.push("/tasks")}>
+                    View More
+                  </Button>
                 </div>
                 
                 {focusTasks.length === 0 ? (
