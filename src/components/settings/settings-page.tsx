@@ -23,6 +23,7 @@ import {
   Wifi, Cloud, RefreshCw, AlertTriangle, Lightbulb,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { BarChart3 } from "lucide-react"
 
 // ──────────────────── Types ────────────────────
 type SettingsTab = "profile" | "security" | "help"
@@ -78,6 +79,7 @@ export function SettingsPage() {
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" })
+  const [statsOpen, setStatsOpen] = useState(false)
 
   useEffect(() => { if (tabParam) setActiveTab(tabParam) }, [tabParam])
 
@@ -139,23 +141,13 @@ export function SettingsPage() {
               </div>
               <FieldRow label="Birthday" placeholder="dd/mm/yyyy" />
             </div>
-            <div className="mt-4 p-3 rounded-xl border bg-muted/30">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Personal Statistics</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { icon: "🔥", label: "Current Streak", value: "32 Days" },
-                  { icon: "✦", label: "Intent Score", value: "85" },
-                  { icon: "🎯", label: "Goals Completed", value: "12" },
-                  { icon: "📅", label: "Days Active", value: "156" },
-                ].map(s => (
-                  <div key={s.label} className="text-center p-2 rounded-lg bg-background/50">
-                    <span className="text-base">{s.icon}</span>
-                    <p className="text-sm font-bold">{s.value}</p>
-                    <p className="text-[10px] text-muted-foreground">{s.label}</p>
-                  </div>
-                ))}
+            <button onClick={() => setStatsOpen(true)} className="w-full flex items-center justify-between p-3 rounded-xl border bg-muted/20 hover:bg-muted/40 transition-colors mt-4">
+              <div className="flex items-center gap-3">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">View Personal Statistics</span>
               </div>
-            </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
             <div className="flex justify-end mt-2">
               <Button className="bg-[#EB9E5B] hover:bg-[#EB9E5B]/90 text-white px-6">Save Changes</Button>
             </div>
@@ -192,26 +184,37 @@ export function SettingsPage() {
             <ToggleRow label="High Contrast" desc="Increase contrast for accessibility" />
           </Section>
 
-          {/* Section 3: Calendar Preferences */}
-          <Section id="calendar-prefs" title="Calendar Preferences" isOpen={openSection === "calendar-prefs"} onToggle={() => toggleSection("calendar-prefs")}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Default Date Format</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>dd/mm/yyyy</option><option>mm/dd/yyyy</option><option>yyyy-mm-dd</option></select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Default Time Format</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>12 Hour</option><option>24 Hour</option></select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Week Starts</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Monday</option><option>Sunday</option></select>
-              </div>
-            </div>
+          {/* Section 3: Focus & Productivity */}
+          <Section id="focus-productivity" title="Focus & Productivity" isOpen={openSection === "focus-productivity"} onToggle={() => toggleSection("focus-productivity")}>
+            <ToggleRow label="Automatically Enter Focus Mode" desc="Activate Focus Mode when a scheduled session begins" />
+            <ToggleRow label="Play Completion Sound" desc="Play a subtle sound when a task or habit is completed" defaultChecked />
+            <ToggleRow label="Confirm Before Deleting" desc="Ask before permanently deleting items" defaultChecked />
+            <ToggleRow label="Carry Unfinished Tasks Forward" desc="Automatically move incomplete tasks to the next day" />
+            <ToggleRow label="Enable Daily Review" desc="Show the end-of-day Review Today experience" defaultChecked />
+            <ToggleRow label="Show Productivity Score" desc="Display your daily score throughout the app" defaultChecked />
+            <ToggleRow label="Show Streak Celebrations" desc="Celebrate streak milestones and achievements" defaultChecked />
           </Section>
 
-          {/* Section 4: Notification Preferences */}
-          <Section id="notif-prefs" title="Notification Preferences" isOpen={openSection === "notif-prefs"} onToggle={() => toggleSection("notif-prefs")}>
+          {/* Section 4: Calendar & Notifications (merged) */}
+          <Section id="calendar-notif" title="Calendar & Notifications" isOpen={openSection === "calendar-notif"} onToggle={() => toggleSection("calendar-notif")}>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Calendar</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Default Date Format</label>
+                  <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>dd/mm/yyyy</option><option>mm/dd/yyyy</option><option>yyyy-mm-dd</option></select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Default Time Format</label>
+                  <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>12 Hour</option><option>24 Hour</option></select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Week Starts</label>
+                  <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Monday</option><option>Sunday</option></select>
+                </div>
+              </div>
+            </div>
+            <Separator />
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Reminders</p>
               <ToggleRow label="Daily Review" desc="Morning and evening prompts" defaultChecked />
@@ -245,17 +248,6 @@ export function SettingsPage() {
             <ToggleRow label="Auto Summaries" desc="Automatic daily and weekly summaries" defaultChecked />
             <ToggleRow label="Context Memory" desc="Téo remembers your preferences" defaultChecked />
           </Section>
-
-          {/* Section 6: Focus & Productivity */}
-          <Section id="focus-productivity" title="Focus & Productivity" isOpen={openSection === "focus-productivity"} onToggle={() => toggleSection("focus-productivity")}>
-            <ToggleRow label="Automatically Enter Focus Mode" desc="Activate Focus Mode when a scheduled session begins" />
-            <ToggleRow label="Play Completion Sound" desc="Play a subtle sound when a task or habit is completed" defaultChecked />
-            <ToggleRow label="Confirm Before Deleting" desc="Ask before permanently deleting items" defaultChecked />
-            <ToggleRow label="Carry Unfinished Tasks Forward" desc="Automatically move incomplete tasks to the next day" />
-            <ToggleRow label="Enable Daily Review" desc="Show the end-of-day Review Today experience" defaultChecked />
-            <ToggleRow label="Show Productivity Score" desc="Display your daily score throughout the app" defaultChecked />
-            <ToggleRow label="Show Streak Celebrations" desc="Celebrate streak milestones and achievements" defaultChecked />
-          </Section>
         </TabsContent>
 
         {/* ═══════════════════════════════════════════════════ */}
@@ -263,152 +255,130 @@ export function SettingsPage() {
         {/* ═══════════════════════════════════════════════════ */}
         <TabsContent value="security" className="mt-6 space-y-4">
 
-          {/* Password */}
-          <Section id="password" title="Password" isOpen={openSection === "password"} onToggle={() => toggleSection("password")}>
-            <div className="space-y-3 max-w-md">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Current Password</label>
-                <input type="password" value={passwords.current} onChange={(e) => setPasswords({ ...passwords, current: e.target.value })} className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
+          {/* 1. Authentication */}
+          <Section id="auth" title="Authentication" isOpen={openSection === "auth"} onToggle={() => toggleSection("auth")}>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</p>
+                <div className="space-y-2 max-w-md">
+                  <input type="password" placeholder="Current password" value={passwords.current} onChange={(e) => setPasswords({ ...passwords, current: e.target.value })} className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <input type="password" placeholder="New password" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <input type="password" placeholder="Confirm password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
+                </div>
+                <Button size="sm"><Key className="mr-1 h-3.5 w-3.5" />Change Password</Button>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">New Password</label>
-                <input type="password" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
+              <Separator />
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Biometric Authentication</p>
+                <ToggleRow label="Enable biometric login" desc="Use Face ID, Touch ID, or Windows Hello to unlock" defaultChecked />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Confirm Password</label>
-                <input type="password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
+              <Separator />
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PIN Lock</p>
+                <ToggleRow label="Enable App PIN" desc="Require a 4-digit PIN to open the app" />
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline"><Lock className="mr-1 h-3.5 w-3.5" />Create PIN</Button>
+                  <Button size="sm" variant="outline"><Lock className="mr-1 h-3.5 w-3.5" />Change PIN</Button>
+                  <Button size="sm" variant="outline" className="text-red-500"><Lock className="mr-1 h-3.5 w-3.5" />Disable PIN</Button>
+                </div>
               </div>
-              <Button size="sm"><Key className="mr-1 h-3.5 w-3.5" />Change Password</Button>
             </div>
           </Section>
 
-          {/* PIN */}
-          <Section id="pin" title="PIN" isOpen={openSection === "pin"} onToggle={() => toggleSection("pin")}>
-            <ToggleRow label="Enable PIN" desc="Require PIN to open the app" />
-            <Button size="sm" variant="outline"><Lock className="mr-1 h-3.5 w-3.5" />Change PIN</Button>
-          </Section>
-
-          {/* Biometric */}
-          <Section id="biometric" title="Biometric" isOpen={openSection === "biometric"} onToggle={() => toggleSection("biometric")}>
-            <ToggleRow label="Fingerprint" desc="Use fingerprint to unlock" />
-            <ToggleRow label="Face ID" desc="Use face recognition to unlock" />
-            <ToggleRow label="Windows Hello" desc="Use Windows biometric auth" />
-            <ToggleRow label="Touch ID" desc="Use macOS biometric auth" />
-          </Section>
-
-          {/* Active Devices */}
-          <Section id="devices" title="Active Devices" isOpen={openSection === "devices"} onToggle={() => toggleSection("devices")}>
-            <div className="space-y-3">
-              {[
-                { name: "Windows Laptop", location: "Lagos, Nigeria", lastActive: "Now", icon: <Laptop className="h-4 w-4" /> },
-                { name: "Android Phone", location: "Lagos, Nigeria", lastActive: "2h ago", icon: <Phone className="h-4 w-4" /> },
-                { name: "iPad", location: "Abuja, Nigeria", lastActive: "3 days ago", icon: <Tablet className="h-4 w-4" /> },
-              ].map((d) => (
-                <div key={d.name} className="flex items-center justify-between p-3 rounded-lg border">
+          {/* 2. Devices & Sessions */}
+          <Section id="devices" title="Devices & Sessions" isOpen={openSection === "devices"} onToggle={() => toggleSection("devices")}>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Device</p>
+                <div className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">{d.icon}</div>
+                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center"><Laptop className="h-4 w-4" /></div>
                     <div>
-                      <p className="text-sm font-medium">{d.name}</p>
-                      <p className="text-xs text-muted-foreground">{d.location} &middot; {d.lastActive}</p>
+                      <p className="text-sm font-medium">Chrome</p>
+                      <p className="text-xs text-muted-foreground">Windows 11 &middot; Active now</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-red-500 text-xs">Remove</Button>
+                  <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 text-[10px]">Current</Badge>
                 </div>
-              ))}
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Other Devices</p>
+                {[
+                  { name: "Android Phone", os: "Android 14", lastActive: "2h ago", icon: <Phone className="h-4 w-4" /> },
+                  { name: "iPad", os: "iPadOS 17", lastActive: "3 days ago", icon: <Tablet className="h-4 w-4" /> },
+                ].map((d) => (
+                  <div key={d.name} className="flex items-center justify-between p-3 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">{d.icon}</div>
+                      <div>
+                        <p className="text-sm font-medium">{d.name}</p>
+                        <p className="text-xs text-muted-foreground">{d.os} &middot; {d.lastActive}</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-red-500 text-xs">Sign Out</Button>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" className="text-red-500"><AlertTriangle className="mr-1 h-3.5 w-3.5" />Sign Out Everywhere</Button>
             </div>
           </Section>
 
-          {/* Sessions */}
-          <Section id="sessions" title="Sessions" isOpen={openSection === "sessions"} onToggle={() => toggleSection("sessions")}>
-            <div className="space-y-3">
-              <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
-                <p className="text-sm font-medium">Current Session</p>
-                <p className="text-xs text-muted-foreground">Windows Laptop &middot; Lagos, Nigeria &middot; Active now</p>
-              </div>
-              <div className="p-3 rounded-lg border">
-                <p className="text-sm font-medium">Android Phone</p>
-                <p className="text-xs text-muted-foreground">Lagos, Nigeria &middot; 2 hours ago</p>
-              </div>
-            </div>
-            <Button size="sm" variant="outline" className="text-red-500"><AlertTriangle className="mr-1 h-3.5 w-3.5" />Sign out other devices</Button>
-          </Section>
-
-          {/* Connected Accounts */}
-          <Section id="connected-accounts" title="Connected Accounts" isOpen={openSection === "connected-accounts"} onToggle={() => toggleSection("connected-accounts")}>
-            <div className="space-y-3">
-              {[
-                { name: "Google", connected: true },
-                { name: "Apple", connected: false },
-                { name: "Microsoft", connected: false },
-                { name: "GitHub", connected: false },
-                { name: "Notion", connected: false, coming: true },
-                { name: "Slack", connected: false, coming: true },
-              ].map((a) => (
-                <div key={a.name} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center"><Globe className="h-4 w-4" /></div>
-                    <div>
+          {/* 3. Data & Accounts */}
+          <Section id="data" title="Data & Accounts" isOpen={openSection === "data"} onToggle={() => toggleSection("data")}>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Connected Accounts</p>
+                {[
+                  { name: "Google", connected: true },
+                  { name: "Apple", connected: false },
+                  { name: "GitHub", connected: false },
+                ].map((a) => (
+                  <div key={a.name} className="flex items-center justify-between p-3 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center"><Globe className="h-4 w-4" /></div>
                       <p className="text-sm font-medium">{a.name}</p>
-                      {a.coming && <p className="text-[10px] text-muted-foreground">Coming Soon</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {a.connected && <Badge variant="outline" className="text-emerald-500 border-emerald-500/30"><Check className="mr-1 h-3 w-3" />Connected</Badge>}
+                      <Button variant={a.connected ? "outline" : "default"} size="sm">{a.connected ? "Disconnect" : "Connect"}</Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {a.connected && <Badge variant="outline" className="text-emerald-500 border-emerald-500/30"><Check className="mr-1 h-3 w-3" />Connected</Badge>}
-                    <Button variant={a.connected ? "outline" : "default"} size="sm" disabled={a.coming}>
-                      {a.connected ? "Disconnect" : "Connect"}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <Separator />
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Backup</p>
+                <ToggleRow label="Cloud Backup" desc="Automatically back up my data" defaultChecked />
+                <p className="text-xs text-muted-foreground">Last backup: Today, 8:00 AM</p>
+                <Button size="sm" variant="outline"><Cloud className="mr-1 h-3.5 w-3.5" />Backup Now</Button>
+              </div>
+              <Separator />
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Export Data</p>
+                <Button size="sm" variant="outline"><Download className="mr-1 h-3.5 w-3.5" />Download My Data</Button>
+                <p className="text-xs text-muted-foreground">Export journals, goals, habits, reminders and account information.</p>
+              </div>
             </div>
           </Section>
 
-          {/* Backup & Sync */}
-          <Section id="backup" title="Backup & Sync" isOpen={openSection === "backup"} onToggle={() => toggleSection("backup")}>
-            <ToggleRow label="Automatic Backup" desc="Daily cloud backup" defaultChecked />
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline"><Cloud className="mr-1 h-3.5 w-3.5" />Manual Backup</Button>
-              <Button size="sm" variant="outline"><RefreshCw className="mr-1 h-3.5 w-3.5" />Restore Backup</Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Last backup: Today, 8:00 AM &middot; Cloud status: <span className="text-emerald-500">Synced</span></p>
+          {/* 4. Privacy */}
+          <Section id="privacy" title="Privacy" isOpen={openSection === "privacy"} onToggle={() => toggleSection("privacy")}>
+            <ToggleRow label="Allow anonymous analytics" desc="Help improve Intenteo with usage data" defaultChecked />
+            <ToggleRow label="Allow personalized recommendations" desc="Let Téo tailor suggestions to your patterns" defaultChecked />
+            <ToggleRow label="Allow Téo to use activity history" desc="Téo references past actions for smarter guidance" defaultChecked />
+            <ToggleRow label="Show profile to accountability partners" desc="Let partners see your progress" />
           </Section>
 
-          {/* Export Data */}
-          <Section id="export" title="Export Data" isOpen={openSection === "export"} onToggle={() => toggleSection("export")}>
-            <div className="grid gap-2 md:grid-cols-2">
-              {["Journal", "Habits", "Tasks", "Goals", "Projects", "Entire Account"].map((item) => (
-                <Button key={item} variant="outline" size="sm" className="justify-start"><Download className="mr-1 h-3.5 w-3.5" />Export {item}</Button>
-              ))}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Export Format</label>
-              <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>PDF</option><option>CSV</option><option>JSON</option></select>
-            </div>
-          </Section>
-
-          {/* Privacy Controls */}
-          <Section id="privacy" title="Privacy Controls" isOpen={openSection === "privacy"} onToggle={() => toggleSection("privacy")}>
-            <ToggleRow label="Personalized AI" desc="Allow Téo to learn from your patterns" defaultChecked />
-            <ToggleRow label="Analytics" desc="Help improve Intenteo with usage data" defaultChecked />
-            <ToggleRow label="Anonymous Usage" desc="Share anonymous usage statistics" />
-            <ToggleRow label="Location Access" desc="Allow location for context" />
-            <ToggleRow label="Camera Access" desc="Allow camera for photo journals" defaultChecked />
-            <ToggleRow label="Microphone Access" desc="Allow mic for voice journals" defaultChecked />
-            <ToggleRow label="Notifications" desc="Allow push notifications" defaultChecked />
-            <ToggleRow label="Cookies" desc="Accept tracking cookies" defaultChecked />
-            <ToggleRow label="Data Sharing" desc="Share data with partners" />
-          </Section>
-
-          {/* Danger Zone */}
-          <Section id="danger" title="Danger Zone" isOpen={openSection === "danger"} onToggle={() => toggleSection("danger")}>
-            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 space-y-3">
-              <p className="text-sm font-semibold text-red-500">Irreversible Actions</p>
-              <Button variant="outline" size="sm" className="w-full justify-start text-red-500 border-red-500/30 hover:bg-red-500/10"><Trash2 className="mr-2 h-3.5 w-3.5" />Delete all Data</Button>
-              <Button variant="outline" size="sm" className="w-full justify-start text-red-500 border-red-500/30 hover:bg-red-500/10"><Trash2 className="mr-2 h-3.5 w-3.5" />Delete Account</Button>
-              <Button variant="outline" size="sm" className="w-full justify-start text-red-500 border-red-500/30 hover:bg-red-500/10"><AlertTriangle className="mr-2 h-3.5 w-3.5" />Deactivate Account</Button>
-            </div>
-          </Section>
         </TabsContent>
+
+        {/* 5. Danger Zone — standalone card */}
+        <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/5 p-5 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-red-500">Danger Zone</p>
+            <p className="text-xs text-muted-foreground">Deleting your account permanently removes all your data and cannot be undone.</p>
+          </div>
+          <Button variant="outline" size="sm" className="text-red-500 border-red-500/30 hover:bg-red-500/10"><Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete Account</Button>
+        </div>
 
         {/* ═══════════════════════════════════════════════════ */}
         {/* ═══════════ TAB 3: HELP & SUPPORT ════════════════ */}
@@ -551,6 +521,33 @@ export function SettingsPage() {
           </Section>
         </TabsContent>
       </Tabs>
+
+      {/* Personal Statistics Modal */}
+      {statsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setStatsOpen(false)} />
+          <div className="relative z-10 w-full max-w-md mx-4 bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-base">Personal Statistics</h3>
+              <button onClick={() => setStatsOpen(false)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground text-sm">&times;</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: "🔥", label: "Current Streak", value: "32 Days" },
+                { icon: "✦", label: "Intent Score", value: "85" },
+                { icon: "🎯", label: "Goals Completed", value: "12" },
+                { icon: "📅", label: "Days Active", value: "156" },
+              ].map(s => (
+                <div key={s.label} className="text-center p-4 rounded-xl border bg-muted/20">
+                  <span className="text-xl block mb-1">{s.icon}</span>
+                  <p className="text-lg font-bold">{s.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
