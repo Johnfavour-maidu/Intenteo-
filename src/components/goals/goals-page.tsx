@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { ProgressRing } from "@/components/ui/progress-ring"
 import { GlassCard } from "@/components/ui/glass-card"
 import {
-  Plus, Target, TrendingUp, Calendar, ChevronRight, Sparkles,
+  Plus, Target, TrendingUp, Calendar, ChevronRight,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle, Info, Circle,
+  Link2, AlertTriangle, Info,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Switch } from "@/components/ui/switch"
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import type { GoalData, GoalProject, GoalHabit } from "./goal-utils"
 import {
   calcGoalHealth, GOAL_HEALTH_CONFIG, calcLifecycleStage, GOAL_LIFECYCLE_CONFIG,
@@ -23,6 +25,11 @@ import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 import { DateInput } from "@/components/ui/date-input"
 
 interface Milestone { id: string; title: string; completed: boolean }
+
+interface GoalProjectTimeline {
+  id: string; projectName: string; description: string; startDate: string; endDate: string
+  status: "not-started" | "in-progress" | "completed" | "on-hold"; progress: number; notes: string
+}
 
 interface ProjectTask {
   id: string; title: string; completed: boolean
@@ -46,6 +53,7 @@ interface Goal {
   notes: string; color: string; colorHex: string
   icon: string; trackingMethod: "manual" | "milestone" | "auto"
   weighting: { projects: number; habits: number; milestones: number; manual: number }
+  projectTimelines?: GoalProjectTimeline[]
   timeline?: string; status?: "not-started" | "in-progress" | "completed" | "overdue" | "archived"
   habitCompletionRate?: number; lastActivity?: string
   createdAt: string; updatedAt: string
@@ -59,7 +67,8 @@ interface Habit {
 
 interface LifeVision {
   vision: string; notes: string; whyItMatters: string; values: string[]
-  lifeAreas: string[]; reviewFrequency: string
+  lifeAreas: string[]; reviewFrequency: string; reminderEnabled: boolean
+  startDate: string; targetDate: string
 }
 
 type GoalFilterMode = "all" | "life-vision" | "10-year" | "5-year" | "annual" | "quarterly" | "monthly" | "weekly" | "daily" | "projects" | "completed" | "in-progress" | "not-started" | "overdue" | "archived"
@@ -194,40 +203,86 @@ const LifeVisionDrawer = ({ isOpen, onClose, vision, onSave }: {
   isOpen: boolean; onClose: () => void; vision: LifeVision; onSave: (v: LifeVision) => void
 }) => {
   const [data, setData] = useState(vision)
-  const [newVal, setNewVal] = useState("")
+  const [newValue, setNewValue] = useState("")
+  const [newLifeArea, setNewLifeArea] = useState("")
   useEffect(() => { setData(vision) }, [vision])
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    document.addEventListener("keydown", handleKey)
+    return () => document.removeEventListener("keydown", handleKey)
+  }, [isOpen, onClose])
   if (!isOpen) return null
-  const addArr = (field: "values" | "lifeAreas") => {
-    if (newVal.trim()) { setData({ ...data, [field]: [...data[field], newVal.trim()] }); setNewVal("") }
+
+  const addValue = () => {
+    if (newValue.trim()) { setData({ ...data, values: [...data.values, newValue.trim()] }); setNewValue("") }
   }
+  const addLifeArea = () => {
+    if (newLifeArea.trim()) { setData({ ...data, lifeAreas: [...data.lifeAreas, newLifeArea.trim()] }); setNewLifeArea("") }
+  }
+
+  const inputCls = "mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all"
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-white/20 p-4 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 space-y-5">
+        <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Life Vision</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
         </div>
-        <div className="p-6 space-y-5">
-          <div><label className="text-sm font-medium">Vision Statement</label>
-            <textarea value={data.vision} onChange={e => setData({...data, vision: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[80px]" /></div>
-          <div><label className="text-sm font-medium">Why It Matters</label>
-            <textarea value={data.whyItMatters} onChange={e => setData({...data, whyItMatters: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
-          <div><label className="text-sm font-medium">Notes</label>
-            <textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
-          <div><label className="text-sm font-medium">Review Frequency</label>
-            <select value={data.reviewFrequency} onChange={e => setData({...data, reviewFrequency: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm">
-              {["Weekly","Monthly","Quarterly","Yearly"].map(f => <option key={f} value={f}>{f}</option>)}</select></div>
-          {(["values","lifeAreas"] as const).map(field => (
-            <div key={field}><label className="text-sm font-medium capitalize">{field.replace(/([A-Z])/g," $1")}</label>
-              <div className="flex flex-wrap gap-2 mt-2">{data[field].map((item,i) => (
-                <Badge key={i} variant="secondary" className="gap-1">{item}<button onClick={() => setData({...data, [field]: data[field].filter((_,j) => j !== i)})}><X className="h-3 w-3" /></button></Badge>
-              ))}</div>
-              <div className="flex gap-2 mt-2"><Input value={newVal} onChange={e => setNewVal(e.target.value)} placeholder={`Add ${field}...`} onKeyDown={e => e.key === "Enter" && addArr(field)} className="text-sm" /><Button size="sm" onClick={() => addArr(field)}>Add</Button></div>
-            </div>
-          ))}
-          <Button onClick={() => { onSave(data); onClose() }} className="w-full bg-[#1E0E6B] text-white">Save Vision</Button>
+
+        <div><label className="text-sm font-medium">Vision Statement</label>
+          <textarea value={data.vision} onChange={e => setData({...data, vision: e.target.value})} className={inputCls + " min-h-[80px]"} /></div>
+
+        <div><label className="text-sm font-medium">Why It Matters</label>
+          <textarea value={data.whyItMatters} onChange={e => setData({...data, whyItMatters: e.target.value})} className={inputCls} /></div>
+
+        <div><label className="text-sm font-medium">Notes</label>
+          <textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className={inputCls} /></div>
+
+        <div><label className="text-sm font-medium">Review Frequency</label>
+          <select value={data.reviewFrequency} onChange={e => setData({...data, reviewFrequency: e.target.value})} className={inputCls + " cursor-pointer"}>
+            {["Weekly","Monthly","Quarterly","Yearly"].map(f => <option key={f} value={f}>{f}</option>)}</select></div>
+
+        <div>
+          <label className="text-sm font-medium">Reminder</label>
+          <div className="flex items-center gap-3 mt-2">
+            <Switch checked={data.reminderEnabled} onCheckedChange={(checked) => setData({...data, reminderEnabled: checked})} />
+            <span className="text-sm text-muted-foreground">{data.reminderEnabled ? "Reminder Enabled" : "Reminder Disabled"}</span>
+          </div>
         </div>
+
+        <div>
+          <label className="text-sm font-medium">Timeline</label>
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div><DateInput label="Start Date" value={data.startDate} onChange={(v) => setData({...data, startDate: v})} /></div>
+            <div><DateInput label="Target Date" value={data.targetDate} onChange={(v) => setData({...data, targetDate: v})} /></div>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Values</label>
+          <div className="flex flex-wrap gap-2 mt-2">{data.values.map((item,i) => (
+            <Badge key={i} variant="secondary" className="gap-1">{item}<button onClick={() => setData({...data, values: data.values.filter((_,j) => j !== i)})}><X className="h-3 w-3" /></button></Badge>
+          ))}</div>
+          <div className="flex gap-2 mt-2">
+            <Input value={newValue} onChange={e => setNewValue(e.target.value)} placeholder="Add value..." onKeyDown={e => e.key === "Enter" && addValue()} className="text-sm" />
+            <Button size="sm" onClick={addValue}>Add</Button>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Life Areas</label>
+          <div className="flex flex-wrap gap-2 mt-2">{data.lifeAreas.map((item,i) => (
+            <Badge key={i} variant="secondary" className="gap-1">{item}<button onClick={() => setData({...data, lifeAreas: data.lifeAreas.filter((_,j) => j !== i)})}><X className="h-3 w-3" /></button></Badge>
+          ))}</div>
+          <div className="flex gap-2 mt-2">
+            <Input value={newLifeArea} onChange={e => setNewLifeArea(e.target.value)} placeholder="Add life area..." onKeyDown={e => e.key === "Enter" && addLifeArea()} className="text-sm" />
+            <Button size="sm" onClick={addLifeArea}>Add</Button>
+          </div>
+        </div>
+
+        <Button onClick={() => { onSave(data); onClose() }} className="w-full bg-[#1E0E6B] text-white">Save Vision</Button>
       </div>
     </div>
   )
@@ -292,6 +347,16 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
   const [selectedHabits, setSelectedHabits] = useState<string[]>([])
   const [habitWeights, setHabitWeights] = useState<Record<string, number>>({})
   const [customizeContributions, setCustomizeContributions] = useState(false)
+  const [projectTimelines, setProjectTimelines] = useState<GoalProjectTimeline[]>([])
+  const [editingTimelineId, setEditingTimelineId] = useState<string | null>(null)
+  const [showTimelineForm, setShowTimelineForm] = useState(false)
+  const [newTimelineProjectName, setNewTimelineProjectName] = useState("")
+  const [newTimelineDesc, setNewTimelineDesc] = useState("")
+  const [newTimelineStart, setNewTimelineStart] = useState(getTodayISO())
+  const [newTimelineEnd, setNewTimelineEnd] = useState("")
+  const [newTimelineStatus, setNewTimelineStatus] = useState<"not-started"|"in-progress"|"completed"|"on-hold">("not-started")
+  const [newTimelineProgress, setNewTimelineProgress] = useState("0")
+  const [newTimelineNotes, setNewTimelineNotes] = useState("")
 
   useEffect(() => {
     if (type !== "custom") {
@@ -420,6 +485,64 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
             </div>
           </div>
           <div>
+            <label className="text-sm font-medium">Project Timelines</label>
+            <p className="text-xs text-muted-foreground mb-2">Add project timelines for this goal</p>
+            {projectTimelines.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {projectTimelines.map(pt => (
+                  <div key={pt.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-white/10">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{pt.projectName || "Untitled Project"}</p>
+                      <p className="text-[10px] text-muted-foreground">{pt.startDate || "No start"} → {pt.endDate || "No end"} · {pt.status.replace("-"," ")} · {pt.progress}%</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                      const ptToEdit = projectTimelines.find(p => p.id === pt.id)
+                      if (ptToEdit) { setEditingTimelineId(pt.id); setNewTimelineProjectName(ptToEdit.projectName); setNewTimelineDesc(ptToEdit.description); setNewTimelineStart(ptToEdit.startDate); setNewTimelineEnd(ptToEdit.endDate); setNewTimelineStatus(ptToEdit.status); setNewTimelineProgress(ptToEdit.progress.toString()); setNewTimelineNotes(ptToEdit.notes); setShowTimelineForm(true) }
+                    }}><span className="text-xs">✎</span></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500" onClick={() => setProjectTimelines(prev => prev.filter(p => p.id !== pt.id))}><Trash2 className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={() => { setEditingTimelineId(null); setNewTimelineProjectName(""); setNewTimelineDesc(""); setNewTimelineStart(getTodayISO()); setNewTimelineEnd(""); setNewTimelineStatus("not-started"); setNewTimelineProgress("0"); setNewTimelineNotes(""); setShowTimelineForm(true) }} className="text-xs">
+              <Plus className="h-3 w-3 mr-1" /> Add Project Timeline
+            </Button>
+            {showTimelineForm && (
+              <div className="mt-3 p-3 rounded-lg border border-[#1E0E6B]/20 bg-[#1E0E6B]/5 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div><label className="text-xs font-medium">Project Name</label><Input value={newTimelineProjectName} onChange={e => setNewTimelineProjectName(e.target.value)} placeholder="Project name" className="mt-1 text-xs h-8" /></div>
+                  <div><label className="text-xs font-medium">Status</label>
+                    <select value={newTimelineStatus} onChange={e => setNewTimelineStatus(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5">
+                      <option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="on-hold">On Hold</option>
+                    </select>
+                  </div>
+                </div>
+                <div><label className="text-xs font-medium">Description</label><textarea value={newTimelineDesc} onChange={e => setNewTimelineDesc(e.target.value)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 min-h-[40px]" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><label className="text-xs font-medium">Start Date</label><DateInput value={newTimelineStart} onChange={setNewTimelineStart} /></div>
+                  <div><label className="text-xs font-medium">End Date</label><DateInput value={newTimelineEnd} onChange={setNewTimelineEnd} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><label className="text-xs font-medium">Progress %</label><Input type="number" min="0" max="100" value={newTimelineProgress} onChange={e => setNewTimelineProgress(e.target.value)} className="mt-1 text-xs h-8" /></div>
+                  <div><label className="text-xs font-medium">Notes</label><Input value={newTimelineNotes} onChange={e => setNewTimelineNotes(e.target.value)} placeholder="Notes" className="mt-1 text-xs h-8" /></div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={() => setShowTimelineForm(false)} className="text-xs h-7">Cancel</Button>
+                  <Button size="sm" onClick={() => {
+                    if (newTimelineProjectName.trim()) {
+                      if (editingTimelineId) {
+                        setProjectTimelines(prev => prev.map(pt => pt.id === editingTimelineId ? {...pt, projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes} : pt))
+                      } else {
+                        setProjectTimelines(prev => [...prev, {id: Date.now().toString(), projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes}])
+                      }
+                      setShowTimelineForm(false)
+                    }
+                  }} className="text-xs h-7 bg-[#1E0E6B] text-white">{editingTimelineId ? "Update" : "Add"} Timeline</Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div>
             <label className="text-sm font-medium">Linked Habits</label>
             <p className="text-xs text-muted-foreground mb-2">Select habits that support this goal</p>
             {habits.length === 0 ? (
@@ -488,7 +611,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
             if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started" })
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started" })
               onClose()
             }
           }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
@@ -773,7 +896,7 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
   const nextAction = generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
 
   return (
-    <div onClick={onClick} className="group p-5 bg-white dark:bg-gray-950 rounded-2xl border border-white/20 hover:shadow-lg hover:shadow-black/5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+    <div onClick={onClick} className="group p-5 bg-white dark:bg-gray-950 rounded-2xl hover:shadow-lg hover:shadow-black/5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5" style={{ border: `2px solid ${goal.colorHex}40` }}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-xl">{goal.icon}</span>
@@ -845,36 +968,19 @@ export function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [habits, setHabits] = useState<Habit[]>([])
-  const [vision, setVision] = useState<LifeVision>({ vision: "Become a successful entrepreneur who helps millions live with intentionality", notes: "", whyItMatters: "Everyone deserves purpose", values: ["Integrity","Innovation","Impact"], lifeAreas: ["Career","Health","Relationships"], reviewFrequency: "Monthly" })
+  const [vision, setVision] = useState<LifeVision>({ vision: "Become a successful entrepreneur who helps millions live with intentionality", notes: "", whyItMatters: "Everyone deserves purpose", values: ["Integrity","Innovation","Impact"], lifeAreas: ["Career","Health","Relationships"], reviewFrequency: "Monthly", reminderEnabled: true, startDate: "", targetDate: "" })
   const [filter, setFilter] = useState<GoalFilterMode>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [healthFilter, setHealthFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<SortMode>("deadline")
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [goalsTab, setGoalsTab] = useState<"overview" | "vision">("overview")
   const [isVisionOpen, setIsVisionOpen] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [analyticsGoal, setAnalyticsGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
+  const [viewMode, setViewMode] = useState<"board" | "list">("board")
   const [isLoading, setIsLoading] = useState(true)
-
-  const lifeDimensions = [
-    { name: "Health", score: 75, icon: "💪", color: "from-emerald-400 to-green-500" },
-    { name: "Career", score: 85, icon: "💼", color: "from-blue-400 to-cyan-500" },
-    { name: "Finance", score: 60, icon: "💰", color: "from-amber-400 to-orange-500" },
-    { name: "Relationships", score: 80, icon: "❤️", color: "from-rose-400 to-red-500" },
-    { name: "Faith", score: 70, icon: "🙏", color: "from-violet-400 to-purple-500" },
-    { name: "Learning", score: 90, icon: "📚", color: "from-indigo-400 to-blue-500" },
-    { name: "Mental Wellbeing", score: 75, icon: "🧠", color: "from-cyan-400 to-blue-500" },
-    { name: "Fun", score: 65, icon: "🎮", color: "from-pink-400 to-rose-500" },
-  ]
-
-  const roadmap = [
-    { year: "2026", title: "Foundation Year", goals: ["Launch Intenteo MVP", "Build consistent habits", "Save $10,000"], progress: 45 },
-    { year: "2027", title: "Growth Year", goals: ["Scale Intenteo to 10k users", "Run a half marathon", "Expand to new markets"], progress: 0 },
-    { year: "2028", title: "Impact Year", goals: ["Help 100k people live intentionally", "Publish a book", "Speak at conferences"], progress: 0 },
-  ]
 
   useEffect(() => {
     try {
@@ -885,7 +991,7 @@ export function GoalsPage() {
       if (sg) { try { setGoals(JSON.parse(sg)) } catch { setGoals(createSampleGoals()) } } else setGoals(createSampleGoals())
       if (sp) { try { setProjects(JSON.parse(sp)) } catch { setProjects(createSampleProjects()) } } else setProjects(createSampleProjects())
       if (sh) { try { setHabits(JSON.parse(sh)) } catch { /* keep empty */ } }
-      if (sv) { try { setVision(JSON.parse(sv)) } catch { /* keep default */ } }
+      if (sv) { try { const parsed = JSON.parse(sv); setVision({ ...{ reminderEnabled: true, startDate: "", targetDate: "" }, ...parsed }) } catch { /* keep default */ } }
     } catch {
       setGoals(createSampleGoals())
       setProjects(createSampleProjects())
@@ -982,15 +1088,16 @@ export function GoalsPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div><h1 className="text-3xl font-bold tracking-tight">Goals</h1><p className="text-muted-foreground">Your life vision in action</p></div>
         <div className="flex items-center gap-2">
-          <Button variant={goalsTab === "overview" ? "default" : "outline"} size="sm" onClick={() => setGoalsTab("overview")} className={goalsTab === "overview" ? "bg-[#1E0E6B] text-white" : ""}>Overview</Button>
-          <Button variant={goalsTab === "vision" ? "default" : "outline"} size="sm" onClick={() => setGoalsTab("vision")} className={goalsTab === "vision" ? "bg-[#1E0E6B] text-white" : ""}>Vision</Button>
+          <div className="flex items-center border border-[#1E0E6B]/60 rounded-lg overflow-hidden">
+            <Button variant={viewMode === "board" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("board")} className={viewMode === "board" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>Board</Button>
+            <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className={viewMode === "list" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>List</Button>
+          </div>
           <Button onClick={() => setIsAddModalOpen(true)} className="glow h-9"><Plus className="mr-1 h-4 w-4" /> Add Goal</Button>
         </div>
       </div>
 
-      {goalsTab === "overview" ? (
-        <>
-          <div onClick={() => setIsVisionOpen(true)} className="cursor-pointer group">
+      <>
+        <div className="cursor-pointer group">
             <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200">
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-purple-600 shrink-0"><Target className="h-8 w-8 text-white" /></div>
@@ -1001,16 +1108,16 @@ export function GoalsPage() {
             </GlassCard>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-5">
             {[
-              { label: "Total Goals", value: goals.length, color: "text-[#1E0E6B]" },
-              { label: "Avg Health", value: `${avgHealth}`, color: avgHealth >= 80 ? "text-emerald-500" : avgHealth >= 60 ? "text-blue-500" : avgHealth >= 35 ? "text-amber-500" : "text-red-500" },
-              { label: "Avg Progress", value: `${avgProgress}%`, color: "text-orange-500" },
-              { label: "Excellent", value: excellentCount, color: "text-emerald-500" },
-              { label: "Overdue", value: overdueCount, color: "text-red-500" },
+              { label: "Total Goals", value: goals.length, color: "#1E0E6B" },
+              { label: "Avg Health", value: `${avgHealth}`, color: avgHealth >= 80 ? "#22C55E" : avgHealth >= 60 ? "#3B82F6" : avgHealth >= 35 ? "#F97316" : "#EF4444" },
+              { label: "Avg Progress", value: `${avgProgress}%`, color: "#F97316" },
+              { label: "Excellent", value: excellentCount, color: "#22C55E" },
+              { label: "Overdue", value: overdueCount, color: "#EF4444" },
             ].map((s, i) => (
-              <div key={i} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 text-center">
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              <div key={i} className="rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg bg-white dark:bg-gray-950 px-4 py-2.5" style={{ border: `2px solid ${s.color}30` }}>
+                <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
                 <p className="text-xs text-muted-foreground">{s.label}</p>
               </div>
             ))}
@@ -1018,165 +1125,109 @@ export function GoalsPage() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-white/20" /></div>
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
+              <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" /></div>
+            <select value={healthFilter !== "all" ? `health:${healthFilter}` : categoryFilter} onChange={e => {
+              const v = e.target.value
+              if (v.startsWith("health:")) { setHealthFilter(v.replace("health:", "")); setCategoryFilter("all") }
+              else { setCategoryFilter(v); setHealthFilter("all") }
+            }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
               <option value="all">All Categories</option>
               {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+              <option disabled>── Health ──</option>
+              <option value="health:excellent">🟢 Excellent</option>
+              <option value="health:on_track">🔵 On Track</option>
+              <option value="health:needs_attention">🟡 Needs Attention</option>
+              <option value="health:at_risk">🔴 At Risk</option>
             </select>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="px-3 py-2 text-sm border border-white/20 rounded-lg bg-white/50 dark:bg-white/5">
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
               <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
               <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
             </select>
           </div>
 
           <div className="flex gap-1 flex-wrap">
-            {([
-              { key: "all" as const, label: "All Goals" },
-              { key: "life-vision" as const, label: "Life Vision" },
-              { key: "10-year" as const, label: "10-Year" },
-              { key: "5-year" as const, label: "5-Year" },
-              { key: "annual" as const, label: "Annual" },
-              { key: "quarterly" as const, label: "Quarterly" },
-              { key: "monthly" as const, label: "Monthly" },
-              { key: "weekly" as const, label: "Weekly" },
-              { key: "daily" as const, label: "Daily" },
-              { key: "projects" as const, label: "Projects" },
-              { key: "completed" as const, label: "Completed" },
-              { key: "in-progress" as const, label: "In Progress" },
-              { key: "not-started" as const, label: "Not Started" },
-              { key: "overdue" as const, label: "Overdue" },
-              { key: "archived" as const, label: "Archived" },
-            ]).map(f => (
-              <Button key={f.key} variant={filter === f.key ? "default" : "outline"} size="sm" onClick={() => setFilter(f.key)} className={filter === f.key ? "bg-[#1E0E6B] text-white" : ""}>{f.label}</Button>
-            ))}
+            <select value={filter} onChange={e => setFilter(e.target.value as GoalFilterMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+              <optgroup label="Goal Types">
+                <option value="all">All Goals</option>
+                <option value="life-vision">Life Vision</option>
+                <option value="10-year">10-Year</option>
+                <option value="5-year">5-Year</option>
+                <option value="annual">Annual</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="daily">Daily</option>
+                <option value="projects">Projects</option>
+              </optgroup>
+              <optgroup label="Status">
+                <option value="completed">Completed</option>
+                <option value="in-progress">In Progress</option>
+                <option value="not-started">Not Started</option>
+                <option value="overdue">Overdue</option>
+                <option value="archived">Archived</option>
+              </optgroup>
+            </select>
           </div>
 
-          <div className="flex gap-1 flex-wrap">
-            {(["all", "excellent", "on_track", "needs_attention", "at_risk"] as const).map(h => (
-              <Button key={h} variant={healthFilter === h ? "default" : "outline"} size="sm" onClick={() => setHealthFilter(h)}
-                className={healthFilter === h ? "bg-[#1E0E6B] text-white" : ""}>
-                {h === "all" ? "All Health" : h === "excellent" ? "🟢 Excellent" : h === "on_track" ? "🔵 On Track" : h === "needs_attention" ? "🟡 Needs Attention" : "🔴 At Risk"}
-              </Button>
-            ))}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} onClick={() => setAnalyticsGoal(goal)} />)}
-          </div>
+          {viewMode === "board" ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} onClick={() => setAnalyticsGoal(goal)} />)}
+            </div>
+          ) : (
+            <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/20">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Goal</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Health</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Progress</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Projects</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSorted.map(goal => {
+                    const gp = projects.filter(p => p.goalId === goal.id)
+                    const progress = calcGoalProgress(goal, projects, habits)
+                    const health = calcGoalHealth(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+                    const healthCfg = GOAL_HEALTH_CONFIG[health]
+                    const daysRemaining = getDaysRemaining(goal.deadline)
+                    return (
+                      <tr key={goal.id} onClick={() => setAnalyticsGoal(goal)} className="border-b border-[#1E0E6B]/10 hover:bg-white/30 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span>{goal.icon}</span>
+                            <span className="font-medium">{goal.title}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3"><Badge variant="outline" className="text-[10px]" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge></td>
+                        <td className="px-4 py-3"><span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon} {healthCfg.label}</span></td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2"><div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div><span className="text-xs font-medium w-8">{progress}%</span></div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{gp.length}</td>
+                        <td className="px-4 py-3 text-xs">{daysRemaining}d</td>
+                        <td className="px-4 py-3"><Badge variant="secondary" className={`text-[10px] ${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : goal.priority === "low" ? "text-emerald-500 bg-emerald-50" : "text-muted-foreground bg-muted"}`}>{goal.priority === "none" ? "No priority" : goal.priority}</Badge></td>
+                        <td className="px-4 py-3 text-right">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setAnalyticsGoal(goal) }}><Info className="h-3.5 w-3.5" /></Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
           {filteredAndSorted.length === 0 && (
             <div className="text-center py-12"><Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium">No goals found</h3>
               <p className="text-muted-foreground mt-1">{searchQuery ? "Try a different search" : "Add your first goal"}</p>
               {!searchQuery && <Button onClick={() => setIsAddModalOpen(true)} className="mt-4 glow text-white"><Plus className="mr-2 h-4 w-4" /> Add Goal</Button>}
             </div>
           )}
-        </>
-      ) : (
-        /* ── Vision Tab ── */
-        <div className="space-y-6">
-          <GlassCard variant="primary" className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 shrink-0">
-                <Target className="h-8 w-8 text-white" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold">Future Self Vision</h2>
-                <p className="text-muted-foreground mt-2">{vision.vision}</p>
-                <div className="flex gap-2 mt-4 flex-wrap">
-                  {vision.values.length > 0 ? vision.values.map((v, i) => <Badge key={i} variant="outline">{v}</Badge>) : <Badge variant="outline">Growth</Badge>}
-                </div>
-                <Button variant="outline" size="sm" className="mt-4" onClick={() => setIsVisionOpen(true)}>
-                  <Target className="mr-2 h-4 w-4" /> Edit Vision
-                </Button>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Life Dimensions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Life Dimensions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {lifeDimensions.map((d) => (
-                  <div key={d.name} className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl">{d.icon}</span>
-                      <div>
-                        <p className="font-medium">{d.name}</p>
-                        <p className="text-sm text-muted-foreground">Score: {d.score}/100</p>
-                      </div>
-                    </div>
-                    <Progress value={d.score} className="h-2" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Life Roadmap */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Life Roadmap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {roadmap.map((year) => (
-                  <div key={year.year} className="relative">
-                    <div className="flex items-start gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${year.progress > 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                          <span className="text-sm font-bold">{year.year.slice(2)}</span>
-                        </div>
-                        {year !== roadmap[roadmap.length - 1] && <div className="w-0.5 h-16 bg-muted" />}
-                      </div>
-                      <div className="flex-1 pb-6">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{year.title}</h3>
-                          <span className="text-sm text-muted-foreground">{year.year}</span>
-                        </div>
-                        <div className="mt-2 space-y-1">
-                          {year.goals.map((g, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                              {year.progress > 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-                              <span className={year.progress > 0 ? "" : "text-muted-foreground"}>{g}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {year.progress > 0 && (
-                          <div className="mt-3">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                              <span>Progress</span><span>{year.progress}%</span>
-                            </div>
-                            <Progress value={year.progress} className="h-2" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Insight */}
-          <GlassCard variant="info" className="p-6">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-blue-600 dark:text-blue-400">Téo&apos;s Navigation Insight</p>
-                <p className="text-sm mt-1">
-                  You&apos;re making great progress on your career and learning dimensions. To improve your overall
-                  life score, consider focusing more on your finance and fun dimensions. Small consistent
-                  actions in these areas can create significant balance.
-                </p>
-              </div>
-            </div>
-          </GlassCard>
-        </div>
-      )}
+      </>
 
       {/* Celebration Overlay */}
       {celebration && (
@@ -1190,7 +1241,6 @@ export function GoalsPage() {
       )}
 
       <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} />
-      <LifeVisionDrawer isOpen={isVisionOpen} onClose={() => setIsVisionOpen(false)} vision={vision} onSave={setVision} />
       <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
 
       {/* Analytics Drawer */}
