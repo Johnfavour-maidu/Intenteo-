@@ -80,6 +80,8 @@ export function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" })
   const [statsOpen, setStatsOpen] = useState(false)
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2 | 3>(0)
+  const [deletePassword, setDeletePassword] = useState("")
 
   useEffect(() => { if (tabParam) setActiveTab(tabParam) }, [tabParam])
 
@@ -248,6 +250,13 @@ export function SettingsPage() {
             <ToggleRow label="Auto Summaries" desc="Automatic daily and weekly summaries" defaultChecked />
             <ToggleRow label="Context Memory" desc="Téo remembers your preferences" defaultChecked />
           </Section>
+
+          {/* Delete Account */}
+          <div className="pt-4">
+            <Button variant="outline" size="sm" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteStep(1)}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete Account
+            </Button>
+          </div>
         </TabsContent>
 
         {/* ═══════════════════════════════════════════════════ */}
@@ -370,15 +379,6 @@ export function SettingsPage() {
           </Section>
 
         </TabsContent>
-
-        {/* 5. Danger Zone — standalone card */}
-        <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/5 p-5 space-y-3">
-          <div>
-            <p className="text-sm font-semibold text-red-500">Danger Zone</p>
-            <p className="text-xs text-muted-foreground">Deleting your account permanently removes all your data and cannot be undone.</p>
-          </div>
-          <Button variant="outline" size="sm" className="text-red-500 border-red-500/30 hover:bg-red-500/10"><Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete Account</Button>
-        </div>
 
         {/* ═══════════════════════════════════════════════════ */}
         {/* ═══════════ TAB 3: HELP & SUPPORT ════════════════ */}
@@ -544,6 +544,61 @@ export function SettingsPage() {
                   <p className="text-[10px] text-muted-foreground">{s.label}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account — Step 1: Confirmation */}
+      {deleteStep === 1 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setDeleteStep(0); setDeletePassword("") }} />
+          <div className="relative z-10 w-full max-w-sm mx-4 bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4">
+            <h3 className="font-semibold text-base">Delete Account?</h3>
+            <p className="text-sm text-muted-foreground">This action is permanent.</p>
+            <p className="text-sm text-muted-foreground">Deleting your Intenteo account will permanently remove your goals, tasks, habits, journals, reminders, settings, and all associated data.</p>
+            <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDeleteStep(0); setDeletePassword("") }}>Cancel</Button>
+              <Button variant="outline" size="sm" className="flex-1 text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteStep(2)}>Delete Account</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account — Step 2: Password */}
+      {deleteStep === 2 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setDeleteStep(0); setDeletePassword("") }} />
+          <div className="relative z-10 w-full max-w-sm mx-4 bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4">
+            <h3 className="font-semibold text-base">Confirm your password</h3>
+            <p className="text-sm text-muted-foreground">Enter your password to continue.</p>
+            <input
+              type="password"
+              placeholder="Password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDeleteStep(0); setDeletePassword("") }}>Cancel</Button>
+              <Button variant="outline" size="sm" className="flex-1 text-red-500 border-red-500/30 hover:bg-red-500/10" disabled={!deletePassword} onClick={() => setDeleteStep(3)}>Continue</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account — Step 3: Final Confirmation */}
+      {deleteStep === 3 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setDeleteStep(0); setDeletePassword("") }} />
+          <div className="relative z-10 w-full max-w-sm mx-4 bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4">
+            <h3 className="font-semibold text-base">Are you absolutely sure?</h3>
+            <p className="text-sm text-muted-foreground">This permanently deletes your Intenteo account and all data.</p>
+            <p className="text-sm text-muted-foreground">This cannot be reversed.</p>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDeleteStep(0); setDeletePassword("") }}>Keep My Account</Button>
+              <Button variant="outline" size="sm" className="flex-1 text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => { setDeleteStep(0); setDeletePassword("") }}>Permanently Delete</Button>
             </div>
           </div>
         </div>

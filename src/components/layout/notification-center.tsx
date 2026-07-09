@@ -258,7 +258,7 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute right-0 top-full mt-2 w-80 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-50"
+            className="absolute right-0 top-full mt-2 w-80 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[100]"
           >
             <div className="px-4 pt-4 pb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -278,10 +278,7 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
                   }}
                   className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
                 >
-                  <div className="relative mt-0.5 shrink-0">
-                    {!readIds.includes(notif.id) && (
-                      <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-blue-500" />
-                    )}
+                  <div className="mt-0.5 shrink-0">
                     <span className="text-muted-foreground">{notif.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -384,10 +381,7 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
                           !readIds.includes(notif.id) ? "bg-muted/40" : "hover:bg-muted/30"
                         )}
                       >
-                        <div className="relative mt-0.5 shrink-0">
-                          {!readIds.includes(notif.id) && (
-                            <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-blue-500" />
-                          )}
+                        <div className="mt-0.5 shrink-0">
                           <span className="text-muted-foreground">{notif.icon}</span>
                         </div>
                         <div className="flex-1 min-w-0">
