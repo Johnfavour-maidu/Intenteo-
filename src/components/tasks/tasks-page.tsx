@@ -591,6 +591,28 @@ export function TasksPage() {
     removeReminder(reminder.id)
   }, [removeReminder])
 
+  const getReminderSmartDate = useCallback((dateStr: string) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const target = new Date(dateStr + "T00:00:00")
+    target.setHours(0, 0, 0, 0)
+    const diffMs = target.getTime() - today.getTime()
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return { label: "Today", color: "text-emerald-600 dark:text-emerald-400" }
+    if (diffDays === 1) return { label: "Tomorrow", color: "text-orange-500 dark:text-orange-400" }
+    if (diffDays < 0) return { label: `Overdue \u2022 ${diffDays === -1 ? "Yesterday" : `${Math.abs(diffDays)} days ago`}`, color: "text-red-500 dark:text-red-400" }
+    const dayName = target.toLocaleDateString("en-US", { weekday: "short" })
+    const dayNum = target.getDate()
+    const monthName = target.toLocaleDateString("en-US", { month: "short" })
+    return { label: `${dayName}, ${dayNum} ${monthName}`, color: "text-blue-600 dark:text-blue-400" }
+  }, [])
+
+  const formatCreatedDate = useCallback((dateStr: string) => {
+    if (!dateStr) return ""
+    const d = new Date(dateStr)
+    return d.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+  }, [])
+
   // Feature: Focus Mode
   const [focusTask, setFocusTask] = useState<Task | null>(null)
 
@@ -2208,28 +2230,39 @@ export function TasksPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {reminders.map((r) => (
-                      <motion.div key={r.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        className="p-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
-                        <p className="text-sm font-medium mb-2">{r.title}</p>
-                        <div className="flex items-center gap-1.5">
-                          <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
-                            onClick={() => addReminderAsTask(r)}>
-                            <Plus className="h-3 w-3" />
-                            Add to Today&apos;s Tasks
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
-                            onClick={() => removeReminder(r.id)}>
-                            <CheckCircle2 className="h-3 w-3" />
-                            Done
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-[11px] px-2 gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => removeReminder(r.id)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ))}
+                    {reminders.map((r) => {
+                      const smartDate = getReminderSmartDate(r.date)
+                      const createdFormatted = formatCreatedDate(r.createdAt)
+                      return (
+                        <motion.div key={r.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                          className="p-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
+                          <p className="text-sm font-medium mb-1">{r.title}</p>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span className={`text-xs font-medium ${smartDate.color}`}>{smartDate.label}</span>
+                          </div>
+                          {createdFormatted && (
+                            <p className="text-[10px] text-muted-foreground/60 mb-2">Created: {createdFormatted}</p>
+                          )}
+                          <div className="flex items-center gap-1.5">
+                            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
+                              onClick={() => addReminderAsTask(r)}>
+                              <Plus className="h-3 w-3" />
+                              Add to Today&apos;s Tasks
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
+                              onClick={() => removeReminder(r.id)}>
+                              <CheckCircle2 className="h-3 w-3" />
+                              Done
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-[11px] px-2 gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => removeReminder(r.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

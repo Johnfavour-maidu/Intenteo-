@@ -7,32 +7,15 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { useTheme } from "next-themes"
 import { UniversalSearch } from "./universal-search"
 import { CommandCenter } from "./command-center"
-import { NotificationCenter } from "./notification-center"
+import { NotificationCenter, getUnreadCount } from "./notification-center"
 
 function NotificationBadge() {
   const [count, setCount] = React.useState(0)
 
   React.useEffect(() => {
-    const getUnreadCount = () => {
-      try {
-        const readIds: string[] = JSON.parse(localStorage.getItem("intenteo-notifications-read") || "[]")
-        const tasks = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
-        const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
-        const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
-        const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
-        const journal = JSON.parse(localStorage.getItem("intenteo-journal-entries") || "[]")
-        let total = 0
-        if (Array.isArray(tasks)) total += tasks.length
-        if (Array.isArray(habits)) total += habits.filter((h: any) => h.streak >= 7).length
-        if (Array.isArray(goals)) total += goals.filter((g: any) => g.progress >= 25).length
-        if (Array.isArray(reminders)) total += reminders.length
-        if (Array.isArray(journal)) total += journal.length
-        const unread = total - readIds.length
-        setCount(Math.max(0, unread))
-      } catch { setCount(0) }
-    }
-    getUnreadCount()
-    const interval = setInterval(getUnreadCount, 30000)
+    const update = () => setCount(getUnreadCount())
+    update()
+    const interval = setInterval(update, 15000)
     return () => clearInterval(interval)
   }, [])
 
