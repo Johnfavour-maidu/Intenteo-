@@ -78,6 +78,27 @@ export function Header() {
           <Menu className="h-5 w-5" />
         </Button>
 
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={!canUndo}
+          onClick={handleUndo}
+          className="h-9 w-9"
+          title="Undo"
+        >
+          <Undo2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={!canRedo}
+          onClick={handleRedo}
+          className="h-9 w-9"
+          title="Redo"
+        >
+          <Redo2 className="h-4 w-4" />
+        </Button>
+
         <div className="relative flex-1 max-w-md">
           <button
             onClick={toggleSearch}
@@ -89,27 +110,6 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={!canUndo}
-            onClick={handleUndo}
-            className="h-9 w-9"
-            title="Undo"
-          >
-            <Undo2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={!canRedo}
-            onClick={handleRedo}
-            className="h-9 w-9"
-            title="Redo"
-          >
-            <Redo2 className="h-4 w-4" />
-          </Button>
-
           <Button
             variant="ghost"
             size="icon"
