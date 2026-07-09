@@ -29,6 +29,7 @@ interface Notification {
 interface NotificationCenterProps {
   open: boolean
   onClose: () => void
+  triggerRef?: React.RefObject<HTMLButtonElement | null>
 }
 
 function getReadIds(): string[] {
@@ -186,14 +187,31 @@ export function getUnreadCount(): number {
   return notifications.filter((n) => !readIds.includes(n.id)).length
 }
 
-export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
+export function NotificationCenter({ open, onClose, triggerRef }: NotificationCenterProps) {
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [readIds, setReadIds] = useState<string[]>([])
   const [modalSearchQuery, setModalSearchQuery] = useState("")
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null)
 
   const notifications = useMemo(() => (open || modalOpen ? generateNotifications() : []), [open, modalOpen])
+
+  useEffect(() => {
+    if (open && triggerRef?.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+    }
+  }, [open, triggerRef])
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node) && triggerRef?.current && !triggerRef.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [open, onClose, triggerRef])
 
   useEffect(() => {
     setReadIds(getReadIds())
@@ -251,14 +269,15 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
     <>
       {/* Mini Dropdown */}
       <AnimatePresence>
-        {open && (
+        {open && dropdownPos && (
           <motion.div
             ref={ref}
             initial={{ opacity: 0, y: -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute right-0 top-full mt-2 w-80 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[100]"
+            className="fixed w-80 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[100]"
+            style={{ top: dropdownPos.top, right: dropdownPos.right }}
           >
             <div className="px-4 pt-4 pb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">

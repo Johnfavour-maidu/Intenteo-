@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { Bell, Moon, Sun, Menu, Search, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const notifTriggerRef = useRef<HTMLButtonElement>(null)
 
   const closeAll = useCallback(() => {
     setSearchOpen(false)
@@ -114,6 +115,7 @@ export function Header() {
 
           <div className="relative">
             <Button
+              ref={notifTriggerRef}
               variant="ghost"
               size="icon"
               onClick={toggleNotif}
@@ -122,7 +124,7 @@ export function Header() {
               <Bell className="h-5 w-5" />
               <NotificationBadge />
             </Button>
-            <NotificationCenter open={notifOpen} onClose={() => setNotifOpen(false)} />
+            <NotificationCenter open={notifOpen} onClose={() => setNotifOpen(false)} triggerRef={notifTriggerRef} />
           </div>
 
           <Link href="/settings?tab=profile">

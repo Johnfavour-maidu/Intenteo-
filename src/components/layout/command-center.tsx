@@ -15,6 +15,10 @@ import {
   CheckCircle,
   Plus,
   ListChecks,
+  Check,
+  Trash2,
+  Pencil,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -25,16 +29,6 @@ interface CommandCenterProps {
 }
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
-
-const TYPE_META: Record<string, { label: string; icon: React.ReactNode }> = {
-  task: { label: "Tasks", icon: <Target className="h-3 w-3" /> },
-  habit: { label: "Habits", icon: <Repeat className="h-3 w-3" /> },
-  goal: { label: "Goals", icon: <Flag className="h-3 w-3" /> },
-  milestone: { label: "Milestones", icon: <CheckCircle className="h-3 w-3" /> },
-  reminder: { label: "Reminders", icon: <Bell className="h-3 w-3" /> },
-  journal: { label: "Journal", icon: <BookOpen className="h-3 w-3" /> },
-  review: { label: "Review", icon: <ListChecks className="h-3 w-3" /> },
-}
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -58,118 +52,43 @@ function formatPrettyDay(dateKey: string): string {
   return dt.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
 }
 
-interface DayItem {
+interface ReminderItem {
+  id: string
   title: string
+  date: string
   time: string
-  type: string
+  completed: boolean
 }
 
-function loadItemsForDate(dateKey: string): DayItem[] {
-  const items: DayItem[] = []
-
-  try {
-    const tasks = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
-    if (Array.isArray(tasks)) {
-      for (const t of tasks) {
-        if (t.dueDate === dateKey || t.due === dateKey) {
-          items.push({ title: t.title || "Task", time: t.time || "", type: "task" })
-        }
-      }
-    }
-  } catch {}
-
-  try {
-    const habits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
-    if (Array.isArray(habits)) {
-      for (const h of habits) {
-        const schedule = h.schedule
-        if (Array.isArray(schedule)) {
-          if (schedule.includes(dateKey)) {
-            items.push({ title: h.name || "Habit", time: h.time || "", type: "habit" })
-          }
-        } else if (schedule && typeof schedule === "object") {
-          // recurring schedule object — show if today falls on matching day
-          const dt = new Date(dateKey)
-          const dayNum = dt.getDay()
-          if (schedule.days && Array.isArray(schedule.days) && schedule.days.includes(dayNum)) {
-            items.push({ title: h.name || "Habit", time: schedule.time || h.time || "", type: "habit" })
-          }
-        }
-      }
-    }
-  } catch {}
-
-  try {
-    const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
-    if (Array.isArray(goals)) {
-      for (const g of goals) {
-        if (g.deadline === dateKey) {
-          items.push({ title: g.title || g.name || "Goal", time: "", type: "goal" })
-        }
-        if (Array.isArray(g.milestones)) {
-          for (const m of g.milestones) {
-            if (m.dueDate === dateKey) {
-              items.push({ title: m.title || "Milestone", time: m.time || "", type: "milestone" })
-            }
-          }
-        }
-        if (Array.isArray(g.projects)) {
-          for (const p of g.projects) {
-            if (p.deadline === dateKey) {
-              items.push({ title: `${p.title || "Project"} deadline`, time: "", type: "goal" })
-            }
-          }
-        }
-      }
-    }
-  } catch {}
-
-  try {
-    const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
-    if (Array.isArray(reminders)) {
-      for (const r of reminders) {
-        if (r.date === dateKey) {
-          items.push({ title: r.title || r.text || "Reminder", time: r.time || "", type: "reminder" })
-        }
-      }
-    }
-  } catch {}
-
-  try {
-    const entries = JSON.parse(localStorage.getItem("intenteo-journal-entries") || "[]")
-    if (Array.isArray(entries)) {
-      for (const e of entries) {
-        if (e.date === dateKey) {
-          items.push({ title: e.title || e.prompt || "Journal Entry", time: e.time || "", type: "journal" })
-        }
-      }
-    }
-  } catch {}
-
-  try {
-    const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
-    if (Array.isArray(reviews)) {
-      for (const r of reviews) {
-        if (r.date === dateKey) {
-          items.push({ title: "Daily Review", time: r.time || "", type: "review" })
-        }
-      }
-    }
-  } catch {}
-
-  return items
-}
-
-function loadRemindersForDate(dateKey: string): DayItem[] {
+function loadRemindersForDate(dateKey: string): ReminderItem[] {
   try {
     const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
     if (Array.isArray(reminders)) {
       return reminders
         .filter((r: any) => r.date === dateKey)
-        .map((r: any) => ({ title: r.title || r.text || "Reminder", time: r.time || "", type: "reminder" }))
+        .map((r: any) => ({
+          id: r.id || crypto.randomUUID(),
+          title: r.title || r.text || "Reminder",
+          date: r.date || dateKey,
+          time: r.time || "",
+          completed: r.completed || false,
+        }))
     }
   } catch {}
   return []
+}
+
+function saveReminders(reminders: any[]) {
+  localStorage.setItem("intenteo-reminders", JSON.stringify(reminders))
+}
+
+function loadAllReminders(): any[] {
+  try {
+    const raw = localStorage.getItem("intenteo-reminders")
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
 }
 
 export function CommandCenter({ open, onClose }: CommandCenterProps) {
@@ -182,6 +101,8 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [showReminderForm, setShowReminderForm] = useState(false)
   const [reminderText, setReminderText] = useState("")
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState("")
 
   useEffect(() => {
     if (open) {
@@ -228,13 +149,6 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
         )
       : null
 
-  const dayItems = selectedDateKey ? loadItemsForDate(selectedDateKey) : []
-  const groupedItems: Record<string, DayItem[]> = {}
-  for (const item of dayItems) {
-    if (!groupedItems[item.type]) groupedItems[item.type] = []
-    groupedItems[item.type].push(item)
-  }
-
   const todayKey = toISODate(today)
   const isPastDate = selectedDateKey ? selectedDateKey < todayKey : false
   const selectedReminders = selectedDateKey ? loadRemindersForDate(selectedDateKey) : []
@@ -242,18 +156,39 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   const handleSaveReminder = () => {
     if (!reminderText.trim() || !selectedDateKey || isPastDate) return
     try {
-      const existing = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
-      const newReminder = {
+      const existing = loadAllReminders()
+      existing.push({
         id: crypto.randomUUID(),
         title: reminderText.trim(),
         date: selectedDateKey,
         createdAt: new Date().toISOString(),
-      }
-      existing.push(newReminder)
-      localStorage.setItem("intenteo-reminders", JSON.stringify(existing))
+      })
+      saveReminders(existing)
     } catch {}
     setReminderText("")
     setShowReminderForm(false)
+    setRefreshKey((k) => k + 1)
+  }
+
+  const handleToggleDone = (id: string) => {
+    const all = loadAllReminders()
+    const updated = all.map((r) => r.id === id ? { ...r, completed: !r.completed } : r)
+    saveReminders(updated)
+    setRefreshKey((k) => k + 1)
+  }
+
+  const handleDelete = (id: string) => {
+    const all = loadAllReminders()
+    saveReminders(all.filter((r) => r.id !== id))
+    setRefreshKey((k) => k + 1)
+  }
+
+  const handleEditSave = (id: string) => {
+    if (!editText.trim()) return
+    const all = loadAllReminders()
+    saveReminders(all.map((r) => r.id === id ? { ...r, title: editText.trim() } : r))
+    setEditingId(null)
+    setEditText("")
     setRefreshKey((k) => k + 1)
   }
 
@@ -331,11 +266,43 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
                 </p>
               ) : (
                 <div className="space-y-1">
-                  {selectedReminders.map((r, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                      <Bell className="h-3 w-3 text-muted-foreground/50" />
-                      <span className="flex-1 truncate">{r.title}</span>
-                      {r.time && <span className="text-muted-foreground text-[10px]">{r.time}</span>}
+                  {selectedReminders.map((r) => (
+                    <div key={r.id} className="flex items-center gap-2 text-xs group">
+                      <button
+                        onClick={() => handleToggleDone(r.id)}
+                        className={cn(
+                          "shrink-0 h-4 w-4 rounded-full border flex items-center justify-center transition-colors",
+                          r.completed
+                            ? "bg-green-500 border-green-500 text-white"
+                            : "border-muted-foreground/40 hover:border-green-500"
+                        )}
+                      >
+                        {r.completed && <Check className="h-2.5 w-2.5" />}
+                      </button>
+                      {editingId === r.id ? (
+                        <input
+                          type="text"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleEditSave(r.id); if (e.key === "Escape") setEditingId(null) }}
+                          onBlur={() => handleEditSave(r.id)}
+                          className="flex-1 text-xs px-1.5 py-0.5 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className={cn("flex-1 truncate", r.completed && "line-through text-muted-foreground")}>{r.title}</span>
+                      )}
+                      {r.time && <span className="text-muted-foreground text-[10px] shrink-0">{r.time}</span>}
+                      {editingId !== r.id && (
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button onClick={() => { setEditingId(r.id); setEditText(r.title) }} className="p-0.5 rounded hover:bg-muted text-muted-foreground">
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button onClick={() => handleDelete(r.id)} className="p-0.5 rounded hover:bg-red-100 text-muted-foreground hover:text-red-500">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
