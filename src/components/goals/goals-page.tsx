@@ -14,6 +14,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
+import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import type { GoalData, GoalProject, GoalHabit } from "./goal-utils"
 import {
@@ -1045,6 +1046,7 @@ function SummaryCard({ label, value, color, infoText }: { label: string; value: 
 }
 
 export function GoalsPage() {
+  const { showUndoSnackbar } = useUndoRedo()
   const [goals, setGoals] = useState<Goal[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [habits, setHabits] = useState<Habit[]>([])
@@ -1097,7 +1099,19 @@ export function GoalsPage() {
       setTimeout(() => setCelebration(null), 3000)
     }
   }, [projects, habits])
-  const deleteGoal = useCallback((id: string) => { if (confirm("Delete this goal?")) setGoals(prev => prev.filter(g => g.id !== id)) }, [])
+  const deleteGoal = useCallback((id: string) => {
+    if (!confirm("Delete this goal?")) return
+    const goal = goals.find(g => g.id === id)
+    if (!goal) return
+    const deleted = { ...goal }
+    setGoals(prev => prev.filter(g => g.id !== id))
+    showUndoSnackbar("Goal deleted.", () => {
+      setGoals(prev => {
+        if (prev.some(g => g.id === deleted.id)) return prev
+        return [...prev, deleted]
+      })
+    })
+  }, [goals, showUndoSnackbar])
   const saveProject = useCallback((p: Project) => {
     setProjects(prev => {
       const exists = prev.find(x => x.id === p.id)

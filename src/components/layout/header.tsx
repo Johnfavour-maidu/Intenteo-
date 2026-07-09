@@ -1,15 +1,13 @@
 "use client"
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Bell, Moon, Sun, Menu, Undo2, Redo2, Search, Calendar } from "lucide-react"
+import { Bell, Moon, Sun, Menu, Search, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useTheme } from "next-themes"
-import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { UniversalSearch } from "./universal-search"
 import { CommandCenter } from "./command-center"
 import { NotificationCenter } from "./notification-center"
-import { motion, AnimatePresence } from "framer-motion"
 
 function NotificationBadge() {
   const [count, setCount] = React.useState(0)
@@ -48,27 +46,10 @@ function NotificationBadge() {
 
 export function Header() {
   const { theme, setTheme } = useTheme()
-  const { canUndo, canRedo, undo, redo } = useUndoRedo()
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2000)
-  }, [])
-
-  const handleUndo = useCallback(() => {
-    undo()
-    showToast("Undo successful")
-  }, [undo, showToast])
-
-  const handleRedo = useCallback(() => {
-    redo()
-    showToast("Redo successful")
-  }, [redo, showToast])
 
   const closeAll = useCallback(() => {
     setSearchOpen(false)
@@ -129,26 +110,6 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            disabled={!canUndo}
-            onClick={handleUndo}
-            className="h-9 w-9"
-            title="Undo"
-          >
-            <Undo2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={!canRedo}
-            onClick={handleRedo}
-            className="h-9 w-9"
-            title="Redo"
-          >
-            <Redo2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -188,19 +149,6 @@ export function Header() {
       </header>
 
       <UniversalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
-
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-foreground text-background text-sm px-4 py-2 rounded-full shadow-lg"
-          >
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   )
 }

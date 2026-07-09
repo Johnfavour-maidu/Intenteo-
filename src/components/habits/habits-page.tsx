@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, Component, ty
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import {
   Plus,
@@ -1647,6 +1648,7 @@ const HabitModal = ({
 /* ─── Main Page ─── */
 
 export function HabitsPage() {
+  const { showUndoSnackbar } = useUndoRedo()
   const [habits, setHabits] = useState<Habit[]>([])
   const [linkedGoals, setLinkedGoals] = useState<{ id: string; title: string; linkedHabits: string[]; colorHex: string }[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -1827,8 +1829,17 @@ export function HabitsPage() {
   }, [editingHabit])
 
   const deleteHabit = useCallback((id: string) => {
+    const habit = habits.find(h => h.id === id)
+    if (!habit) return
+    const deleted = { ...habit }
     setHabits(prev => prev.filter(h => h.id !== id))
-  }, [])
+    showUndoSnackbar("Habit deleted.", () => {
+      setHabits(prev => {
+        if (prev.some(h => h.id === deleted.id)) return prev
+        return [...prev, deleted]
+      })
+    })
+  }, [habits, showUndoSnackbar])
 
   const handleHabitDragStart = useCallback((id: string) => {
     setDraggedId(id)

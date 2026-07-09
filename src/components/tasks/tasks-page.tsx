@@ -7,6 +7,7 @@ import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { AutosuggestInput } from "@/components/ui/autosuggest-input"
 import { TeoAssistant } from "@/components/teo/teo-assistant"
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion"
@@ -483,6 +484,7 @@ function EmptyState({ onCreate, viewingDate }: { onCreate: () => void; viewingDa
 export function TasksPage() {
   const pathname = usePathname()
   const router = useRouter()
+  const { showUndoSnackbar } = useUndoRedo()
 
   const [tasks, setTasks] = useState<Task[]>(() => {
     if (typeof window === "undefined") return sampleTasks
@@ -813,8 +815,15 @@ export function TasksPage() {
       setDeleteConfirmModal({ task })
       return
     }
+    const deleted = { ...task }
     setTasks((prev) => prev.filter((t) => t.id !== id))
-  }, [tasks])
+    showUndoSnackbar("Task deleted.", () => {
+      setTasks((prev) => {
+        if (prev.some(t => t.id === deleted.id)) return prev
+        return [...prev, deleted]
+      })
+    })
+  }, [tasks, showUndoSnackbar])
 
   const handleConfirmDelete = useCallback((scope: "today" | "series") => {
     if (!deleteConfirmModal) return
@@ -839,11 +848,18 @@ export function TasksPage() {
       }
       addToast(`Deleted "${task.title}" for today only.`)
     } else {
+      const deleted = { ...task }
       setTasks((prev) => prev.filter((t) => t.id !== task.id))
       addToast(`Deleted entire series: "${task.title}".`)
+      showUndoSnackbar("Task deleted.", () => {
+        setTasks((prev) => {
+          if (prev.some(t => t.id === deleted.id)) return prev
+          return [...prev, deleted]
+        })
+      })
     }
     setDeleteConfirmModal(null)
-  }, [deleteConfirmModal, selectedDate, todayISO, addToast])
+  }, [deleteConfirmModal, selectedDate, todayISO, addToast, showUndoSnackbar])
 
   const duplicateTask = useCallback((task: Task) => {
     const newTask: Task = {
@@ -894,12 +910,20 @@ export function TasksPage() {
   }, [])
 
   const handleMoveToToday = useCallback((movedTasks: Task[]) => {
+    const originals = movedTasks.map(t => ({ id: t.id, date: t.date, deadline: t.deadline }))
     setTasks((prev) => prev.map((t) => {
       if (movedTasks.some((m) => m.id === t.id)) return { ...t, deadline: "Today", date: todayISO }
       return t
     }))
     addToast(`${movedTasks.length} unfinished task${movedTasks.length !== 1 ? "s" : ""} moved to today.`)
-  }, [addToast, todayISO])
+    showUndoSnackbar("Carry-over completed.", () => {
+      setTasks((prev) => prev.map((t) => {
+        const orig = originals.find(o => o.id === t.id)
+        if (orig) return { ...t, date: orig.date, deadline: orig.deadline }
+        return t
+      }))
+    })
+  }, [addToast, todayISO, showUndoSnackbar])
 
   const handleCreateTask = useCallback(() => {
     if (!formTitle.trim()) return

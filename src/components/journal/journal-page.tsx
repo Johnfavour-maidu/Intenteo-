@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect, memo, forward
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -3367,6 +3368,7 @@ function EntryReader({
 
 export function JournalPage() {
   const searchParams = useSearchParams()
+  const { showUndoSnackbar } = useUndoRedo()
   const initialJournalType = (searchParams.get("type") as JournalType) || undefined
   const [entries, setEntries] = useState<JournalEntry[]>(() => {
     if (typeof window === "undefined") return sampleEntries
@@ -3446,11 +3448,19 @@ export function JournalPage() {
   }, [addToast])
 
   const handleDeleteEntry = useCallback((id: string) => {
+    const entry = entries.find(e => e.id === id)
+    if (!entry) return
+    const deleted = { ...entry }
+    const wasEditing = editingEntry?.id === id
     setEntries((prev) => prev.filter((e) => e.id !== id))
-    if (editingEntry && editingEntry.id === id) {
-      setEditingEntry(null)
-    }
-  }, [editingEntry])
+    if (wasEditing) setEditingEntry(null)
+    showUndoSnackbar("Journal deleted.", () => {
+      setEntries((prev) => {
+        if (prev.some(e => e.id === deleted.id)) return prev
+        return [...prev, deleted]
+      })
+    })
+  }, [editingEntry, showUndoSnackbar])
 
   const handleToggleFavorite = useCallback((id: string) => {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, favorited: !e.favorited } : e)))
