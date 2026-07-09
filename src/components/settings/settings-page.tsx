@@ -81,17 +81,6 @@ export function SettingsPage() {
 
   useEffect(() => { if (tabParam) setActiveTab(tabParam) }, [tabParam])
 
-  const stats = [
-    { label: "Current Streak", value: "32 Days", icon: "🔥" },
-    { label: "Intent Score", value: "85", icon: "✦" },
-    { label: "Goals Completed", value: "12", icon: "🎯" },
-    { label: "Journal Entries", value: "156", icon: "📖" },
-    { label: "Tasks Completed", value: "423", icon: "✅" },
-    { label: "Habits Built", value: "28", icon: "💪" },
-    { label: "Projects Completed", value: "8", icon: "🚀" },
-    { label: "Achievements", value: "24", icon: "🏆" },
-  ]
-
   const toggleSection = (id: string) => {
     setOpenSection(prev => prev === id ? null : id)
   }
@@ -149,10 +138,26 @@ export function SettingsPage() {
                 <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>English</option><option>French</option><option>Spanish</option></select>
               </div>
               <FieldRow label="Birthday" placeholder="dd/mm/yyyy" />
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Week Starts On</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Monday</option><option>Sunday</option></select>
+            </div>
+            <div className="mt-4 p-3 rounded-xl border bg-muted/30">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Personal Statistics</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { icon: "🔥", label: "Current Streak", value: "32 Days" },
+                  { icon: "✦", label: "Intent Score", value: "85" },
+                  { icon: "🎯", label: "Goals Completed", value: "12" },
+                  { icon: "📅", label: "Days Active", value: "156" },
+                ].map(s => (
+                  <div key={s.label} className="text-center p-2 rounded-lg bg-background/50">
+                    <span className="text-base">{s.icon}</span>
+                    <p className="text-sm font-bold">{s.value}</p>
+                    <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                  </div>
+                ))}
               </div>
+            </div>
+            <div className="flex justify-end mt-2">
+              <Button className="bg-[#EB9E5B] hover:bg-[#EB9E5B]/90 text-white px-6">Save Changes</Button>
             </div>
           </Section>
 
@@ -202,13 +207,6 @@ export function SettingsPage() {
                 <label className="text-sm font-medium">Week Starts</label>
                 <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Monday</option><option>Sunday</option></select>
               </div>
-              <FieldRow label="Default Reminder Time" placeholder="9:00 AM" />
-              <FieldRow label="Default Task Duration" placeholder="30 mins" />
-              <FieldRow label="Timezone" placeholder="WAT (UTC+1)" />
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Working Days</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Monday - Friday</option><option>Monday - Saturday</option><option>Custom</option></select>
-              </div>
             </div>
           </Section>
 
@@ -257,22 +255,6 @@ export function SettingsPage() {
             <ToggleRow label="Enable Daily Review" desc="Show the end-of-day Review Today experience" defaultChecked />
             <ToggleRow label="Show Productivity Score" desc="Display your daily score throughout the app" defaultChecked />
             <ToggleRow label="Show Streak Celebrations" desc="Celebrate streak milestones and achievements" defaultChecked />
-          </Section>
-
-          {/* Section 7: Personal Statistics */}
-          <Section id="personal-stats" title="Personal Statistics" isOpen={openSection === "personal-stats"} onToggle={() => toggleSection("personal-stats")}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {stats.map((s) => (
-                <div key={s.label} className="p-3 rounded-xl border text-center">
-                  <span className="text-xl">{s.icon}</span>
-                  <p className="text-lg font-bold mt-1">{s.value}</p>
-                  <p className="text-[11px] text-muted-foreground">{s.label}</p>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => window.location.href = "/journey"}>
-              <Sparkles className="mr-2 h-4 w-4" />View My Journey
-            </Button>
           </Section>
         </TabsContent>
 

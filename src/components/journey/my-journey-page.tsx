@@ -1129,6 +1129,115 @@ export function MyJourneyPage() {
           )}
         </div>
       </div>
+
+      {/* ── Personal Statistics ── */}
+      <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
+        <div className="p-4 border-b border-white/10">
+          <h3 className="text-lg font-semibold">Personal Statistics</h3>
+          <p className="text-xs text-muted-foreground">Your lifetime metrics and progress</p>
+        </div>
+        <div className="p-4 space-y-6">
+
+          {/* Overview */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Overview</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { icon: "✦", label: "Intent Score", value: String(overallIntentScore) },
+                { icon: "🔥", label: "Current Streak", value: `${Math.max(...habits.map(h => h.streak), 0)} Days` },
+                { icon: "🏆", label: "Longest Streak", value: `${Math.max(...habits.map(h => h.bestStreak || h.streak), 0)} Days` },
+                { icon: "📅", label: "Days Active", value: String(new Set([...habits.flatMap(h => Object.keys(h.completions)), ...tasks.map(t => t.date), ...journal.map(e => e.dateISO), ...reviews.map(r => r.date)].filter(Boolean)).size) },
+              ].map(s => (
+                <div key={s.label} className="p-3 rounded-xl border text-center">
+                  <span className="text-xl">{s.icon}</span>
+                  <p className="text-lg font-bold mt-1">{s.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Productivity */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Productivity</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { icon: "✅", label: "Tasks Completed", value: String(tasks.filter(t => t.completed || (t.dailyCompletions && Object.values(t.dailyCompletions).some(Boolean))).length) },
+                { icon: "💪", label: "Habits Completed", value: String(habits.reduce((sum, h) => sum + Object.values(h.completions).filter(c => c.completed).length, 0)) },
+                { icon: "🎯", label: "Goals Completed", value: String(goals.filter(g => g.status === "completed" || g.progress >= 100).length) },
+                { icon: "📖", label: "Journal Entries", value: String(journal.length) },
+              ].map(s => (
+                <div key={s.label} className="p-3 rounded-xl border text-center">
+                  <span className="text-xl">{s.icon}</span>
+                  <p className="text-lg font-bold mt-1">{s.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Growth */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Growth</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { icon: "📊", label: "Monthly Progress", value: reviews.length > 0 ? `${Math.round(reviews.reduce((s, r) => s + (r.productivity || 0), 0) / reviews.length)}%` : "0%" },
+                { icon: "📈", label: "Habit Consistency", value: habits.length > 0 ? `${Math.round(habits.filter(h => h.habitScore >= 70).length / habits.length * 100)}%` : "0%" },
+                { icon: "🎯", label: "Goal Completion", value: goals.length > 0 ? `${Math.round(goals.filter(g => g.progress >= 100).length / goals.length * 100)}%` : "0%" },
+                { icon: "📝", label: "Reviews Completed", value: String(reviews.length) },
+              ].map(s => (
+                <div key={s.label} className="p-3 rounded-xl border text-center">
+                  <span className="text-xl">{s.icon}</span>
+                  <p className="text-lg font-bold mt-1">{s.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Achievements */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Achievements</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {detectMilestones(habits, tasks, journal, goals).slice(0, 6).map(m => (
+                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border">
+                  <span className="text-xl">{m.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium">{m.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{m.description}</p>
+                  </div>
+                </div>
+              ))}
+              {detectMilestones(habits, tasks, journal, goals).length === 0 && (
+                <p className="text-sm text-muted-foreground col-span-3 text-center py-4">Keep going to unlock achievements!</p>
+              )}
+            </div>
+          </div>
+
+          {/* Insights */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Insights</p>
+            <div className="space-y-2">
+              {generateInsights(habits, tasks, journal, goals).map((insight, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 rounded-xl border">
+                  <span className="text-lg">{insight.icon}</span>
+                  <p className="text-sm">{insight.text}</p>
+                </div>
+              ))}
+              {generateRecommendations(habits, tasks, journal, goals).slice(0, 2).map((rec, i) => (
+                <div key={`rec-${i}`} className="flex items-start gap-3 p-3 rounded-xl border border-dashed">
+                  <span className="text-lg">{rec.icon}</span>
+                  <p className="text-sm">{rec.text}</p>
+                </div>
+              ))}
+              {generateInsights(habits, tasks, journal, goals).length === 0 && generateRecommendations(habits, tasks, journal, goals).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Use Intenteo more to unlock personalized insights.</p>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   )
 }
