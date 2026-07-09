@@ -6,14 +6,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { IntentScoreBadge } from "@/components/ui/intent-score-badge"
-import { StreakDisplay } from "@/components/ui/streak-display"
-import { MoodSelector } from "@/components/ui/mood-selector"
 import { GlassCard } from "@/components/ui/glass-card"
-import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import { DailyReviewModal } from "@/components/tasks/tasks-page"
 import {
-  Sun,
   Target,
   CheckCircle2,
   Circle,
@@ -25,11 +20,6 @@ import {
   ChevronDown,
   ChevronUp,
   Zap,
-  BookOpen,
-  Mic,
-  Timer,
-  MapPin,
-  Bell,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -91,11 +81,10 @@ export function TodayDashboard() {
   // Computed values
   const completedTasks = tasks.filter((t) => t.completed).length
   const completedHabits = habits.filter((h) => h.completed).length
-  const totalXP = habits.filter((h) => h.completed).reduce((a, b) => a + b.xp, 0)
   const intentScore = Math.round((completedTasks * 25 + completedHabits * 15) / (tasks.length * 25 + habits.length * 15) * 100)
 
-  // Only active priority tasks for Focus Today
-  const focusTasks = tasks.filter((t) => !completedTasks || !t.completed).filter((t) => t.priority === "high" && !t.completed)
+  // Only active priority tasks for Today's Focus
+  const focusTasks = tasks.filter((t) => t.priority === "high" && !t.completed)
 
   // Handlers
   const toggleTask = useCallback((id: string) => {
@@ -118,7 +107,13 @@ export function TodayDashboard() {
     return "Good evening"
   }
 
-  const currentDate = formatDateDDMMYYYY(new Date().toISOString().split("T")[0])
+  // Formatted date: "Wednesday, 9 July 2026"
+  const getFormattedDate = () => {
+    const now = new Date()
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
+  }
 
   const quickActions = [
     { icon: <Plus className="h-4 w-4" />, label: "Add New Task", action: () => router.push("/tasks") },
@@ -133,25 +128,26 @@ export function TodayDashboard() {
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b">
         <div className="flex items-center justify-between px-4 md:px-6 py-3">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <div>
               <h1 className="text-xl font-semibold">
                 {getGreeting()}, <span className="text-gradient">John</span>
               </h1>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span>{currentDate}</span>
-                <span className="flex items-center gap-1">
-                  <Sun className="h-4 w-4 text-amber-500" />
-                  72\u00b0F
-                </span>
+              <p className="text-sm text-muted-foreground">{getFormattedDate()}</p>
+            </div>
+            <div className="flex items-center gap-2 pl-6 border-l">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg shadow-orange-500/25">
+                <span className="text-lg">{"\u{1F525}"}</span>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Current Streak</div>
+                <div className="text-lg font-bold leading-tight">32 Days</div>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <IntentScoreBadge score={intentScore} size="md" />
-            <StreakDisplay count={32} />
+          <div className="flex items-center gap-2">
             <div className="relative">
-              <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setQuickActionsOpen(!quickActionsOpen)}>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5" onClick={() => setQuickActionsOpen(!quickActionsOpen)}>
                 <Zap className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline text-xs">Quick Actions</span>
                 <ChevronDown className="h-3 w-3" />
@@ -181,7 +177,7 @@ export function TodayDashboard() {
                 )}
               </AnimatePresence>
             </div>
-            <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setReviewOpen(true)}>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5" onClick={() => setReviewOpen(true)}>
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline text-xs">Review Today</span>
             </Button>
@@ -190,7 +186,7 @@ export function TodayDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="px-4 md:px-6 py-6 max-w-3xl mx-auto space-y-6">
+      <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto space-y-6">
         
         {/* Section 1: Today's Intention - Hero */}
         <motion.div
@@ -250,185 +246,179 @@ export function TodayDashboard() {
           </GlassCard>
         </motion.div>
 
-        {/* Section 2: Focus Today */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  Focus Today
-                </h2>
-                <Badge variant="secondary">{focusTasks.length} priority</Badge>
-              </div>
-              
-              {focusTasks.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No priority tasks for today. Well done!</p>
+        {/* Section 2 & 3: Two-column layout - Today's Focus + Today's Habits */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Today's Focus */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <Card className="h-full">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    Today&apos;s Focus
+                  </h2>
+                  <Badge variant="secondary">{focusTasks.length} priority</Badge>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {focusTasks.map((task) => (
-                    <motion.div
-                      key={task.id}
-                      layout
-                      className={`group rounded-xl transition-all duration-200 ${
-                        task.completed ? "opacity-60" : ""
-                      } ${expandedTask === task.id ? "bg-muted/50" : "hover:bg-muted/30"}`}
-                    >
-                      <div className="flex items-center gap-3 p-3">
-                        <button onClick={() => toggleTask(task.id)} className="shrink-0">
-                          {task.completed ? (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            >
-                              <CheckCircle2 className="h-5 w-5 text-primary" />
-                            </motion.div>
-                          ) : (
-                            <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
-                          )}
-                        </button>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}>
-                              {task.title}
-                            </span>
-                            {task.priority === "high" && (
-                              <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                
+                {focusTasks.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No priority tasks for today. Well done!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {focusTasks.map((task) => (
+                      <motion.div
+                        key={task.id}
+                        layout
+                        className={`group rounded-xl transition-all duration-200 ${
+                          task.completed ? "opacity-60" : ""
+                        } ${expandedTask === task.id ? "bg-muted/50" : "hover:bg-muted/30"}`}
+                      >
+                        <div className="flex items-center gap-3 p-3">
+                          <button onClick={() => toggleTask(task.id)} className="shrink-0">
+                            {task.completed ? (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              >
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
+                              </motion.div>
+                            ) : (
+                              <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
                             )}
+                          </button>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-medium text-sm ${task.completed ? "line-through text-muted-foreground" : ""}`}>
+                                {task.title}
+                              </span>
+                              {task.priority === "high" && (
+                                <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {task.time}
+                              </span>
+                              {task.duration && (
+                                <span>{task.duration}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {task.time}
-                            </span>
-                            {task.duration && (
-                              <span className="flex items-center gap-1">
-                                <Timer className="h-3 w-3" />
-                                {task.duration}
-                              </span>
-                            )}
-                            {task.location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {task.location}
-                              </span>
-                            )}
+                          
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                            >
+                              {expandedTask === task.id ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                        <AnimatePresence>
+                          {expandedTask === task.id && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="px-3 pb-3 pt-0 border-t">
+                                <div className="flex gap-2 mt-3">
+                                  <Button size="sm" variant="outline" onClick={() => toggleTask(task.id)}>
+                                    {task.completed ? "Undo" : "Complete"}
+                                  </Button>
+                                  <Button size="sm" variant="outline">
+                                    <PenLine className="mr-1 h-3 w-3" />
+                                    Edit
+                                  </Button>
+                                  <Button size="sm" variant="outline">
+                                    <Calendar className="mr-1 h-3 w-3" />
+                                    Reschedule
+                                  </Button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Today's Habits */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card className="h-full">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-semibold flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-primary" />
+                    Today&apos;s Habits
+                  </h2>
+                  <Badge variant="secondary">{completedHabits}/{habits.length}</Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  {habits.map((habit) => (
+                    <motion.div
+                      key={habit.id}
+                      layout
+                      className={`flex items-center gap-3 p-2 rounded-lg transition-all duration-200 ${
+                        habit.completed ? "bg-primary/5" : "hover:bg-muted/30"
+                      }`}
+                    >
+                      <button onClick={() => toggleHabit(habit.id)} className="shrink-0">
+                        {habit.completed ? (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
                           >
-                            {expandedTask === task.id ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </Button>
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                          </motion.div>
+                        ) : (
+                          <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                        )}
+                      </button>
+                      <span className="text-lg">{habit.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-sm font-medium ${habit.completed ? "line-through text-muted-foreground" : ""}`}>
+                          {habit.name}
+                        </span>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{habit.streak} day streak</span>
+                          <span>+{habit.xp} XP</span>
                         </div>
                       </div>
-                      
-                      <AnimatePresence>
-                        {expandedTask === task.id && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="px-3 pb-3 pt-0 border-t">
-                              <div className="flex gap-2 mt-3">
-                                <Button size="sm" variant="outline" onClick={() => toggleTask(task.id)}>
-                                  {task.completed ? "Undo" : "Complete"}
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  <PenLine className="mr-1 h-3 w-3" />
-                                  Edit
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  <Calendar className="mr-1 h-3 w-3" />
-                                  Reschedule
-                                </Button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </motion.div>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Section 3: Today's Habits */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  Today&apos;s Habits
-                </h2>
-                <Badge variant="secondary">{completedHabits}/{habits.length}</Badge>
-              </div>
-              
-              <div className="space-y-2">
-                {habits.map((habit) => (
-                  <motion.div
-                    key={habit.id}
-                    layout
-                    className={`flex items-center gap-3 p-2 rounded-lg transition-all duration-200 ${
-                      habit.completed ? "bg-primary/5" : "hover:bg-muted/30"
-                    }`}
-                  >
-                    <button onClick={() => toggleHabit(habit.id)} className="shrink-0">
-                      {habit.completed ? (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                        >
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                        </motion.div>
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
-                      )}
-                    </button>
-                    <span className="text-lg">{habit.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-sm font-medium ${habit.completed ? "line-through text-muted-foreground" : ""}`}>
-                        {habit.name}
-                      </span>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{habit.streak} day streak</span>
-                        <span>+{habit.xp} XP</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </div>
 
       {/* Floating Téo Button */}
@@ -444,7 +434,7 @@ export function TodayDashboard() {
         >
           <Sparkles className="h-6 w-6 text-white" />
           <span className="absolute right-full mr-3 px-3 py-1.5 bg-foreground text-background text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Talk with T\u00e9o
+            Talk with T{"\u00e9"}o
           </span>
         </button>
       </motion.div>

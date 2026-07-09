@@ -930,15 +930,17 @@ const TrackerCalendar = ({
         </div>
       )}
       {period === "year" && (
-        <select value={currentYear} onChange={(e) => {
-          const newDate = new Date(selectedDate)
-          newDate.setFullYear(parseInt(e.target.value))
-          onDateSelect(newDate)
-        }}
-          className="appearance-none px-2 py-1 text-xs border border-[#1E0E6B]/40 rounded-lg bg-white/50 dark:bg-white/5 cursor-pointer pr-6"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.375rem center" }}>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+        <div className="relative">
+          <select value={currentYear} onChange={(e) => {
+            const newDate = new Date(selectedDate)
+            newDate.setFullYear(parseInt(e.target.value))
+            onDateSelect(newDate)
+          }}
+            className="appearance-none px-2 py-1 text-xs border border-[#1E0E6B]/40 rounded-lg bg-white/50 dark:bg-white/5 cursor-pointer pr-6">
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+        </div>
       )}
       <span className="text-sm font-medium min-w-[120px] text-center">{formatMonthYear(selectedDate)}</span>
       <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
@@ -1327,9 +1329,9 @@ const HabitModal = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium">Recurrence</label>
-              <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as string)}
-                className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
-                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}>
+              <div className="relative">
+                <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as string)}
+                  className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8">
                 <option value="daily">Daily (Recommended)</option>
                 <option value="weekdays">Weekdays</option>
                 <option value="weekends">Weekends</option>
@@ -1341,18 +1343,20 @@ const HabitModal = ({
                 <option value="every_x_days">Every X Days</option>
                 <option value="every_x_weeks">Every X Weeks</option>
                 <option value="monthly">Monthly</option>
-              </select>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium">Habit Duration</label>
-              <select value={totalDuration === "No end date" ? "indefinite" : totalDuration} onChange={(e) => {
-                const val = e.target.value
-                if (val === "indefinite") setTotalDuration("No end date")
-                else if (val === "custom") setTotalDuration("custom")
-                else setTotalDuration(val)
-              }}
-                className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
-                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}>
+              <div className="relative">
+                <select value={totalDuration === "No end date" ? "indefinite" : totalDuration} onChange={(e) => {
+                  const val = e.target.value
+                  if (val === "indefinite") setTotalDuration("No end date")
+                  else if (val === "custom") setTotalDuration("custom")
+                  else setTotalDuration(val)
+                }}
+                  className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8">
                 <option value="7 days">7 Days</option>
                 <option value="14 days">14 Days</option>
                 <option value="21 days">21 Days</option>
@@ -1363,7 +1367,9 @@ const HabitModal = ({
                 <option value="365 days">365 Days (Recommended)</option>
                 <option value="indefinite">Indefinite</option>
                 <option value="custom">Custom...</option>
-              </select>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div>
               {totalDuration === "custom" && (
                 <Input value={totalDurationCustom} onChange={(e) => setTotalDurationCustom(e.target.value)}
                   placeholder="e.g., 50 days, 73 days" className="mt-2" />
@@ -1524,17 +1530,19 @@ const HabitModal = ({
               </div>
             ) : (
               <div className="mt-1">
-                <select
-                  value={linkedGoalId}
-                  onChange={(e) => setLinkedGoalId(e.target.value)}
-                  className="w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
-                  style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.75rem center" }}
-                >
-                  <option value="">Select Goal</option>
-                  {goals.map(g => (
-                    <option key={g.id} value={g.title}>{g.title}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={linkedGoalId}
+                    onChange={(e) => setLinkedGoalId(e.target.value)}
+                    className="w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8"
+                  >
+                    <option value="">Select Goal</option>
+                    {goals.map(g => (
+                      <option key={g.id} value={g.title}>{g.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+                </div>
                 <div className="flex gap-2 mt-2">
                   <Button size="sm" className="glow text-white text-xs h-7" onClick={onCreateGoal}>Create Goal</Button>
                   <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setLinkedGoalId("")}>Skip for now</Button>
@@ -1986,6 +1994,7 @@ export function HabitsPage() {
             <option value="list">List View</option>
           </select>
           <LayoutList className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
         </div>
         {activeFilter && (
           <button
@@ -2020,6 +2029,7 @@ export function HabitsPage() {
             <option value="schedule_type">Schedule Type</option>
           </select>
           <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
         </div>
         <TrackerCalendar
           selectedDate={selectedDate}

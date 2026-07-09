@@ -3106,15 +3106,18 @@ function WritingArea({
         />
 
         <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as JournalType)}
-            className="text-xs px-2.5 py-1.5 rounded-lg border bg-muted/30 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            {Object.entries(journalTypeConfig).map(([key, cfg]) => (
-              <option key={key} value={key}>{cfg.label}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as JournalType)}
+              className="text-xs px-2.5 py-1.5 pr-7 rounded-lg border bg-muted/30 text-foreground focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
+            >
+              {Object.entries(journalTypeConfig).map(([key, cfg]) => (
+                <option key={key} value={key}>{cfg.label}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+          </div>
 
           <div ref={moodRef}>
             <MoodPicker
