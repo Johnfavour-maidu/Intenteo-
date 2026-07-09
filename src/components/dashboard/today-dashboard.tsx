@@ -172,7 +172,7 @@ export function TodayDashboard() {
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline text-xs">Review Today</span>
             </Button>
-            <div className="flex items-center gap-2 px-3 border-l border-r">
+            <div className="flex items-center gap-2 px-3">
               <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg shadow-orange-500/25">
                 <span className="text-base">{"\u{1F525}"}</span>
               </div>
@@ -422,24 +422,6 @@ export function TodayDashboard() {
           </motion.div>
         </div>
       </div>
-
-      {/* Floating Téo Button */}
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 500, damping: 30, delay: 0.5 }}
-        className="fixed bottom-6 right-6 z-50"
-      >
-        <button
-          onClick={() => router.push("/coach")}
-          className="group relative h-14 w-14 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center"
-        >
-          <Sparkles className="h-6 w-6 text-white" />
-          <span className="absolute right-full mr-3 px-3 py-1.5 bg-foreground text-background text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Talk with T{"\u00e9"}o
-          </span>
-        </button>
-      </motion.div>
 
       {/* Review Today toast */}
       {toast && (

@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar"
 import { Header } from "./header"
 import { useSidebar } from "./sidebar-context"
 import { cn } from "@/lib/utils"
+import { GlobalFloatingTeo } from "@/components/teo/global-floating-teo"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -27,6 +28,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           {children}
         </main>
       </div>
+      <GlobalFloatingTeo />
     </div>
   )
 }
