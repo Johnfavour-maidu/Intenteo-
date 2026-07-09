@@ -339,11 +339,15 @@ export function NotificationCenter({ open, onClose, triggerRef }: NotificationCe
               onClick={() => setModalOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
               transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-              className="fixed left-1/2 top-1/2 z-[61] -translate-x-1/2 -translate-y-1/2 w-full max-w-[520px] max-h-[85vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+              className="fixed z-[61] w-full max-w-[520px] max-h-[80vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+              style={{
+                top: triggerRef?.current ? triggerRef.current.getBoundingClientRect().bottom + 8 : 72,
+                right: triggerRef?.current ? window.innerWidth - triggerRef.current.getBoundingClientRect().right : 16,
+              }}
             >
               <div className="flex items-center justify-between px-6 py-4 border-b">
                 <div className="flex items-center gap-3">

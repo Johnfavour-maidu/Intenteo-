@@ -83,7 +83,12 @@ export function SettingsPage() {
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2 | 3>(0)
   const [deletePassword, setDeletePassword] = useState("")
 
-  useEffect(() => { if (tabParam) setActiveTab(tabParam) }, [tabParam])
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam)
+      if (tabParam === "security") setOpenSection("auth")
+    }
+  }, [tabParam])
 
   const toggleSection = (id: string) => {
     setOpenSection(prev => prev === id ? null : id)
@@ -98,7 +103,7 @@ export function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SettingsTab)} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as SettingsTab); if (v === "security") setOpenSection("auth") }} className="w-full">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" />Profile & Personalization</TabsTrigger>
           <TabsTrigger value="security"><Shield className="mr-2 h-4 w-4" />Privacy & Security</TabsTrigger>
@@ -142,16 +147,6 @@ export function SettingsPage() {
                 <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>English</option><option>French</option><option>Spanish</option></select>
               </div>
               <FieldRow label="Birthday" placeholder="dd/mm/yyyy" />
-            </div>
-            <button onClick={() => setStatsOpen(true)} className="w-full flex items-center justify-between p-3 rounded-xl border bg-muted/20 hover:bg-muted/40 transition-colors mt-4">
-              <div className="flex items-center gap-3">
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">View Personal Statistics</span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-            <div className="flex justify-end mt-2">
-              <Button className="bg-[#EB9E5B] hover:bg-[#EB9E5B]/90 text-white px-6">Save Changes</Button>
             </div>
           </Section>
 
@@ -251,11 +246,12 @@ export function SettingsPage() {
             <ToggleRow label="Context Memory" desc="Téo remembers your preferences" defaultChecked />
           </Section>
 
-          {/* Delete Account */}
-          <div className="pt-4">
+          {/* Bottom Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4">
             <Button variant="outline" size="sm" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteStep(1)}>
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete Account
             </Button>
+            <Button size="sm" className="bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70 text-white px-6 shadow-sm">Save Changes</Button>
           </div>
         </TabsContent>
 
