@@ -910,11 +910,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
 
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
         </div>
-        <div className="p-4 border-t">
-          <Button variant="outline" className="w-full" onClick={() => { onClose(); window.location.href = "/journey" }}>
-            <Map className="h-4 w-4 mr-2" /> View My Journey
-          </Button>
-        </div>
       </div>
       <AddProjectModal isOpen={showAddProject} onClose={() => setShowAddProject(false)} onSave={(p) => { onSaveProject({ ...p, id: Date.now().toString(), createdAt: getTodayISO(), updatedAt: getTodayISO() }) }} goalId={data.id} />
     </div>
@@ -1277,6 +1272,13 @@ export function GoalsPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+          {filteredAndSorted.length > 0 && (
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => window.location.href = "/journey"} className="gap-1.5">
+                <Map className="h-3.5 w-3.5" /> View My Journey
+              </Button>
             </div>
           )}
           {filteredAndSorted.length === 0 && (
