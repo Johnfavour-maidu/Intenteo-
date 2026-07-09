@@ -114,6 +114,10 @@ const createSampleGoals = (): Goal[] => [
   { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-05-15" },
   { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
   { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-04-01" },
+  { id:"5", title:"Deepen Faith Walk", description:"Build a consistent devotional and prayer life", category:"Faith", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Spiritual growth anchors everything", milestones:[{id:"m13",title:"Daily devotion habit",completed:true},{id:"m14",title:"Complete Bible reading plan",completed:false},{id:"m15",title:"Join small group",completed:false}], linkedHabits:["Morning Devotion"], linkedHabitWeights:[{habitId:"h5",habitName:"Morning Devotion",weight:100}], notes:"", color:"Purple", colorHex:"#8B5CF6", icon:"\u{1F64F}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-02-01", updatedAt:"2026-06-01" },
+  { id:"6", title:"Strengthen Relationships", description:"Be more intentional with family and friends", category:"Relationships", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Relationships are life's greatest treasure", milestones:[{id:"m16",title:"Weekly family dinner",completed:true},{id:"m17",title:"Monthly friend hangout",completed:false},{id:"m18",title:"Plan family trip",completed:false}], linkedHabits:["Call a Friend"], linkedHabitWeights:[{habitId:"h6",habitName:"Call a Friend",weight:100}], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u2764\uFE0F", trackingMethod:"milestone", weighting:{projects:30,habits:30,milestones:20,manual:20}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-15", updatedAt:"2026-05-20" },
+  { id:"7", title:"Master TypeScript", description:"Become an expert in TypeScript and advanced patterns", category:"Learning", priority:"low", progress:0, deadline:"2026-09-30", startDate:"2026-04-01", type:"quarterly", whyItMatters:"Better code quality and career growth", milestones:[{id:"m19",title:"Complete advanced course",completed:false},{id:"m20",title:"Build 3 practice projects",completed:false},{id:"m21",title:"Contribute to open source",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F4BB}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Quarterly", status:"not-started", createdAt:"2026-04-01", updatedAt:"2026-04-01" },
+  { id:"8", title:"Launch Side Project", description:"Build and ship a profitable SaaS product", category:"Business", priority:"high", progress:0, deadline:"2026-10-31", startDate:"2026-03-01", type:"quarterly", whyItMatters:"Create additional income and impact", milestones:[{id:"m22",title:"Validate idea",completed:true},{id:"m23",title:"Build MVP",completed:false},{id:"m24",title:"Get first 10 paying users",completed:false},{id:"m25",title:"Reach $1k MRR",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-03-01", updatedAt:"2026-06-15" },
 ]
 
 const createSampleProjects = (): Project[] => [
@@ -979,7 +983,7 @@ export function GoalsPage() {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [analyticsGoal, setAnalyticsGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
-  const [viewMode, setViewMode] = useState<"board" | "list">("board")
+  const [viewMode, setViewMode] = useState<"board" | "list">("list")
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -1097,7 +1101,7 @@ export function GoalsPage() {
       </div>
 
       <>
-        <div className="cursor-pointer group">
+        <div onClick={() => setIsVisionOpen(true)} className="cursor-pointer group">
             <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200">
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-purple-600 shrink-0"><Target className="h-8 w-8 text-white" /></div>
@@ -1126,26 +1130,6 @@ export function GoalsPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" /></div>
-            <select value={healthFilter !== "all" ? `health:${healthFilter}` : categoryFilter} onChange={e => {
-              const v = e.target.value
-              if (v.startsWith("health:")) { setHealthFilter(v.replace("health:", "")); setCategoryFilter("all") }
-              else { setCategoryFilter(v); setHealthFilter("all") }
-            }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
-              <option value="all">All Categories</option>
-              {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-              <option disabled>── Health ──</option>
-              <option value="health:excellent">🟢 Excellent</option>
-              <option value="health:on_track">🔵 On Track</option>
-              <option value="health:needs_attention">🟡 Needs Attention</option>
-              <option value="health:at_risk">🔴 At Risk</option>
-            </select>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
-              <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
-              <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
-            </select>
-          </div>
-
-          <div className="flex gap-1 flex-wrap">
             <select value={filter} onChange={e => setFilter(e.target.value as GoalFilterMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
               <optgroup label="Goal Types">
                 <option value="all">All Goals</option>
@@ -1166,6 +1150,23 @@ export function GoalsPage() {
                 <option value="overdue">Overdue</option>
                 <option value="archived">Archived</option>
               </optgroup>
+            </select>
+            <select value={healthFilter !== "all" ? `health:${healthFilter}` : categoryFilter} onChange={e => {
+              const v = e.target.value
+              if (v.startsWith("health:")) { setHealthFilter(v.replace("health:", "")); setCategoryFilter("all") }
+              else { setCategoryFilter(v); setHealthFilter("all") }
+            }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+              <option value="all">All Categories</option>
+              {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+              <option disabled>── Health ──</option>
+              <option value="health:excellent">🟢 Excellent</option>
+              <option value="health:on_track">🔵 On Track</option>
+              <option value="health:needs_attention">🟡 Needs Attention</option>
+              <option value="health:at_risk">🔴 At Risk</option>
+            </select>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+              <option value="deadline">Deadline</option><option value="progress">Progress</option><option value="updated">Recently Updated</option>
+              <option value="priority">Priority</option><option value="name">Alphabetical</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
             </select>
           </div>
 
