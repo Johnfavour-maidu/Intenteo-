@@ -182,15 +182,12 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [showReminderForm, setShowReminderForm] = useState(false)
   const [reminderText, setReminderText] = useState("")
-  const [reminderDate, setReminderDate] = useState("")
-  const [reminderTime, setReminderTime] = useState("")
 
   useEffect(() => {
     if (open) {
       setCurrentMonth(today.getMonth())
       setCurrentYear(today.getFullYear())
       setSelectedDay(today.getDate())
-      setReminderDate(toISODate(today))
     }
   }, [open])
 
@@ -248,15 +245,13 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
       const newReminder = {
         id: crypto.randomUUID(),
         title: reminderText.trim(),
-        date: reminderDate || todayKey,
-        time: reminderTime || "",
+        date: todayKey,
         createdAt: new Date().toISOString(),
       }
       existing.push(newReminder)
       localStorage.setItem("intenteo-reminders", JSON.stringify(existing))
     } catch {}
     setReminderText("")
-    setReminderTime("")
     setShowReminderForm(false)
     setRefreshKey((k) => k + 1)
   }
@@ -349,7 +344,7 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
               <div className="mt-2">
                 {!showReminderForm ? (
                   <button
-                    onClick={() => { setShowReminderForm(true); setReminderDate(todayKey) }}
+                    onClick={() => setShowReminderForm(true)}
                     className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -368,30 +363,16 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
                         type="text"
                         value={reminderText}
                         onChange={(e) => setReminderText(e.target.value)}
-                        placeholder="Reminder text..."
+                        placeholder="What would you like to remember?"
                         className="w-full text-xs px-2.5 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
                         autoFocus
                         onKeyDown={(e) => { if (e.key === "Enter") handleSaveReminder(); if (e.key === "Escape") setShowReminderForm(false) }}
                       />
                       <div className="flex gap-1.5">
-                        <input
-                          type="date"
-                          value={reminderDate}
-                          onChange={(e) => setReminderDate(e.target.value)}
-                          className="flex-1 text-[11px] px-2 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
-                        />
-                        <input
-                          type="time"
-                          value={reminderTime}
-                          onChange={(e) => setReminderTime(e.target.value)}
-                          className="flex-1 text-[11px] px-2 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]/30"
-                        />
-                      </div>
-                      <div className="flex gap-1.5">
                         <Button size="sm" className="h-6 text-[11px] px-2.5" onClick={handleSaveReminder}>
-                          Save
+                          Save Reminder
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-6 text-[11px] px-2.5" onClick={() => setShowReminderForm(false)}>
+                        <Button size="sm" variant="ghost" className="h-6 text-[11px] px-2.5" onClick={() => { setShowReminderForm(false); setReminderText("") }}>
                           Cancel
                         </Button>
                       </div>

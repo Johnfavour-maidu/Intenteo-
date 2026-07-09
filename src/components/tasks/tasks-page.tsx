@@ -28,6 +28,7 @@ import {
   Volume2,
   Copy,
   Target,
+  Bell,
   Crosshair,
   Pause,
   Play,
@@ -545,6 +546,50 @@ export function TasksPage() {
   const [formMonthlyRepeatMode, setFormMonthlyRepeatMode] = useState<import("./types").MonthlyRepeatMode>("dayOfMonth")
   const [formMonthlyWeekdayIndex, setFormMonthlyWeekdayIndex] = useState(0)
   const [formMonthlyWeekdayOrdinal, setFormMonthlyWeekdayOrdinal] = useState(1)
+
+  // Feature: Reminders Panel
+  const [remindersPanelOpen, setRemindersPanelOpen] = useState(false)
+  const [reminders, setReminders] = useState<{ id: string; title: string; date: string; createdAt: string }[]>([])
+
+  const loadReminders = useCallback(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+      if (Array.isArray(stored)) setReminders(stored)
+    } catch { setReminders([]) }
+  }, [])
+
+  useEffect(() => { loadReminders() }, [loadReminders])
+
+  const removeReminder = useCallback((id: string) => {
+    setReminders(prev => {
+      const next = prev.filter(r => r.id !== id)
+      localStorage.setItem("intenteo-reminders", JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const addReminderAsTask = useCallback((reminder: { id: string; title: string }) => {
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      title: reminder.title,
+      whyItMatters: "",
+      priority: "progress",
+      deadline: "",
+      date: new Date().toISOString().split("T")[0],
+      dueTime: "",
+      timeRange: "",
+      timeRangeType: "anytime",
+      estimatedDuration: 0,
+      notes: "",
+      subtasks: [],
+      recurrence: "none",
+      completed: false,
+      order: 0,
+      createdAt: new Date().toISOString(),
+    }
+    setTasks(prev => [newTask, ...prev])
+    removeReminder(reminder.id)
+  }, [removeReminder])
 
   // Feature: Focus Mode
   const [focusTask, setFocusTask] = useState<Task | null>(null)
@@ -1623,24 +1668,42 @@ export function TasksPage() {
             )}
           </div>
 
-          {/* Sort */}
-          <div className="relative">
-            <select
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
-              className="h-8 px-2 pr-7 rounded-lg border border-[#1E0E6B]/30 bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/50 cursor-pointer appearance-none">
-              <option value="manual">Sort: Manual</option>
-              <option value="time-asc">Sort: Earliest First</option>
-              <option value="time-desc">Sort: Latest First</option>
-              <option value="priority">Sort: Priority</option>
-              <option value="completion">Sort: Incomplete First</option>
-              <option value="dueDate">Sort: Due Date</option>
-              <option value="alpha-asc">Sort: A-Z</option>
-              <option value="alpha-desc">Sort: Z-A</option>
-              <option value="duration">Sort: Shortest First</option>
-              <option value="recentlyEdited">Sort: Recently Edited</option>
-            </select>
-            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+          <div className="flex items-center gap-2 shrink-0">
+            {/* View Reminders */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 border-[#1E0E6B]/30 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 text-xs"
+              onClick={() => { setRemindersPanelOpen(true); loadReminders() }}
+            >
+              <Bell className="h-3.5 w-3.5" />
+              View Reminders
+              {reminders.length > 0 && (
+                <span className="ml-1 h-5 min-w-[20px] px-1 rounded-full bg-[#1E0E6B] text-white text-[10px] font-medium flex items-center justify-center">
+                  {reminders.length}
+                </span>
+              )}
+            </Button>
+
+            {/* Sort */}
+            <div className="relative">
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as import("./types").SortMode)}
+                className="h-8 px-2 pr-7 rounded-lg border border-[#1E0E6B]/30 bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/50 cursor-pointer appearance-none">
+                <option value="manual">Sort: Manual</option>
+                <option value="time-asc">Sort: Earliest First</option>
+                <option value="time-desc">Sort: Latest First</option>
+                <option value="priority">Sort: Priority</option>
+                <option value="completion">Sort: Incomplete First</option>
+                <option value="dueDate">Sort: Due Date</option>
+                <option value="alpha-asc">Sort: A-Z</option>
+                <option value="alpha-desc">Sort: Z-A</option>
+                <option value="duration">Sort: Shortest First</option>
+                <option value="recentlyEdited">Sort: Recently Edited</option>
+              </select>
+              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+            </div>
           </div>
         </div>
 
@@ -2110,6 +2173,70 @@ export function TasksPage() {
           }}
         />
       )}
+
+      {/* Reminder Panel */}
+      <AnimatePresence>
+        {remindersPanelOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => setRemindersPanelOpen(false)} />
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed right-0 top-0 h-full w-full max-w-sm z-50 bg-background border-l shadow-2xl overflow-y-auto">
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold">Reminders</h2>
+                    {reminders.length > 0 && (
+                      <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center">
+                        {reminders.length}
+                      </span>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRemindersPanelOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {reminders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Bell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">No reminders yet</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">Quick reminders appear here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {reminders.map((r) => (
+                      <motion.div key={r.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                        className="p-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
+                        <p className="text-sm font-medium mb-2">{r.title}</p>
+                        <div className="flex items-center gap-1.5">
+                          <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
+                            onClick={() => addReminderAsTask(r)}>
+                            <Plus className="h-3 w-3" />
+                            Add to Today&apos;s Tasks
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
+                            onClick={() => removeReminder(r.id)}>
+                            <CheckCircle2 className="h-3 w-3" />
+                            Done
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-[11px] px-2 gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => removeReminder(r.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <TeoAssistant
         open={teoOpen}

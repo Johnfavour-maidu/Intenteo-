@@ -250,79 +250,13 @@ export function SettingsPage() {
 
           {/* Section 6: Focus & Productivity */}
           <Section id="focus-productivity" title="Focus & Productivity" isOpen={openSection === "focus-productivity"} onToggle={() => toggleSection("focus-productivity")}>
-            {/* Section 1 — Focus Mode */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Focus Mode</p>
-              <ToggleRow label="Automatically Enter Focus Mode" desc="Automatically activate Focus Mode when a scheduled focus session begins" />
-            </div>
-            <Separator />
-
-            {/* Section 2 — Task Experience */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Task Experience</p>
-              <ToggleRow label="Play Completion Sound" desc="Play a subtle sound whenever a task or habit is completed" defaultChecked />
-              <ToggleRow label="Confirm Before Deleting" desc="Ask for confirmation before permanently deleting tasks, habits, journals, reminders, or goals" defaultChecked />
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Automatically Archive Completed Tasks</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Never</option><option>After 7 Days</option><option>After 30 Days</option></select>
-                <p className="text-xs text-muted-foreground">Automatically move completed tasks to the archive after the selected period</p>
-              </div>
-            </div>
-            <Separator />
-
-            {/* Section 3 — Daily Productivity */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Daily Productivity</p>
-              <ToggleRow label="Show Productivity Score" desc="Display your daily Productivity Score throughout the app" defaultChecked />
-              <ToggleRow label="Enable Daily Review" desc="Enable the end-of-day Review Today experience" defaultChecked />
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Auto-open Review Today</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Never</option><option>Every Evening</option><option>Only If Tasks Remain</option><option>Ask Me First</option></select>
-                <p className="text-xs text-muted-foreground">Decide when Intenteo should remind you to complete your daily review</p>
-              </div>
-              <ToggleRow label="Carry Unfinished Tasks Forward Automatically" desc="Automatically carry unfinished tasks into the next day" />
-            </div>
-            <Separator />
-
-            {/* Section 4 — Motivation */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Motivation</p>
-              <ToggleRow label="Show Streak Celebrations" desc="Celebrate streak milestones and important achievements" defaultChecked />
-            </div>
-            <Separator />
-
-            {/* Section 5 — Productivity Shortcuts */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Productivity Shortcuts</p>
-              <ToggleRow label="Enable Keyboard Shortcuts" desc="Enable productivity shortcuts throughout the application" defaultChecked />
-            </div>
-            <Separator />
-
-            {/* Section 6 — Default Views */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Default Views</p>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Default Task Sorting</label>
-                <select className="w-full px-3 py-2 text-sm rounded-lg border bg-background"><option>Manual</option><option>Earliest First</option><option>Latest First</option><option>Highest Priority</option><option>Alphabetical</option></select>
-                <p className="text-xs text-muted-foreground">Choose how tasks are sorted when opening the Tasks page</p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Default Task View</label>
-                <div className="flex gap-2">
-                  <button className="flex-1 px-3 py-2 text-sm rounded-lg border-2 border-primary bg-primary/5 font-medium">List</button>
-                  <button className="flex-1 px-3 py-2 text-sm rounded-lg border hover:bg-muted/30 transition-colors">Board</button>
-                </div>
-                <p className="text-xs text-muted-foreground">Choose how the Tasks page opens</p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Default Goal View</label>
-                <div className="flex gap-2">
-                  <button className="flex-1 px-3 py-2 text-sm rounded-lg border-2 border-primary bg-primary/5 font-medium">List</button>
-                  <button className="flex-1 px-3 py-2 text-sm rounded-lg border hover:bg-muted/30 transition-colors">Board</button>
-                </div>
-                <p className="text-xs text-muted-foreground">Choose how the Goals page opens</p>
-              </div>
-            </div>
+            <ToggleRow label="Automatically Enter Focus Mode" desc="Activate Focus Mode when a scheduled session begins" />
+            <ToggleRow label="Play Completion Sound" desc="Play a subtle sound when a task or habit is completed" defaultChecked />
+            <ToggleRow label="Confirm Before Deleting" desc="Ask before permanently deleting items" defaultChecked />
+            <ToggleRow label="Carry Unfinished Tasks Forward" desc="Automatically move incomplete tasks to the next day" />
+            <ToggleRow label="Enable Daily Review" desc="Show the end-of-day Review Today experience" defaultChecked />
+            <ToggleRow label="Show Productivity Score" desc="Display your daily score throughout the app" defaultChecked />
+            <ToggleRow label="Show Streak Celebrations" desc="Celebrate streak milestones and achievements" defaultChecked />
           </Section>
 
           {/* Section 7: Personal Statistics */}
