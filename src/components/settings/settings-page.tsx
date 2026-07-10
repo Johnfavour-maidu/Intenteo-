@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
+import React, { useEffect, useState, useRef, useCallback, useMemo, type PointerEvent as ReactPointerEvent } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -705,7 +705,7 @@ export function SettingsPage() {
               <FieldRow label="Birthday" value={profileBirthday} onChange={setProfileBirthday} placeholder="dd/mm/yyyy" error={birthdayError} />
             </div>
             <div className="flex justify-end pt-2">
-              <GradientButton size="sm" disabled={!isDirty} loading={profileSaving} loadingText="Saving..." onClick={handleSaveProfile}>
+              <GradientButton size="sm" gradient="orange" disabled={!isDirty} loading={profileSaving} loadingText="Saving..." onClick={handleSaveProfile}>
                 Save Changes
               </GradientButton>
             </div>

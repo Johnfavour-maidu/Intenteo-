@@ -1194,7 +1194,7 @@ export function GoalsPage() {
         <div onClick={() => setIsVisionOpen(true)} className="cursor-pointer group">
             <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-purple-600 shrink-0"><Target className="h-8 w-8 text-white" /></div>
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1E0E6B] shrink-0"><Target className="h-8 w-8 text-white" /></div>
                 <div className="flex-1 min-w-0"><h2 className="text-xl font-bold">Life Vision</h2><p className="text-muted-foreground text-sm line-clamp-2">{vision.vision}</p>
                   {vision.values.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{vision.values.slice(0,4).map((v,i) => <Badge key={i} variant="secondary" className="text-[10px]">{v}</Badge>)}</div>}</div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-[#1E0E6B] transition-colors shrink-0" />

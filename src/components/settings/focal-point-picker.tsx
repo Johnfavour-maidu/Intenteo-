@@ -72,6 +72,8 @@ export function FocalPointPicker({
     [isDragging, updateFocalPoint]
   )
 
+  const circleSize = 120
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -84,7 +86,7 @@ export function FocalPointPicker({
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Click or drag on the image to choose which part should be the focal point of your profile photo.
+          Drag the circle to position it over your face or the area you want as your profile photo.
         </p>
 
         <div
@@ -98,17 +100,37 @@ export function FocalPointPicker({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleMouseUp}
         >
+          {/* Full image */}
           <img
             src={src}
             alt="Profile photo preview"
             className="w-full h-full object-cover pointer-events-none select-none"
-            style={{
-              objectPosition: `${focalPoint.x * 100}% ${focalPoint.y * 100}%`,
-            }}
             draggable={false}
           />
 
-          {/* Focal point indicator */}
+          {/* Dark overlay outside circle */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(circle ${circleSize / 2}px at ${focalPoint.x * 100}% ${focalPoint.y * 100}%, transparent ${circleSize / 2}px, rgba(0,0,0,0.55) ${circleSize / 2}px)`,
+            }}
+          />
+
+          {/* Circle border ring */}
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              left: `${focalPoint.x * 100}%`,
+              top: `${focalPoint.y * 100}%`,
+              width: circleSize,
+              height: circleSize,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div className="w-full h-full rounded-full border-[3px] border-white shadow-[0_0_0_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.4)]" />
+          </div>
+
+          {/* Drag handle */}
           <div
             className="absolute pointer-events-none"
             style={{
@@ -117,23 +139,14 @@ export function FocalPointPicker({
               transform: "translate(-50%, -50%)",
             }}
           >
-            <div className="h-8 w-8 rounded-full border-2 border-white bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <Move className="h-4 w-4 text-white" />
+            <div className="h-10 w-10 rounded-full border-2 border-white bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing">
+              <Move className="h-5 w-5 text-white drop-shadow-md" />
             </div>
-            <div className="absolute inset-0 h-8 w-8 rounded-full border-2 border-white/50 animate-ping" />
           </div>
-
-          {/* Circular preview mask */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(circle 40px at ${focalPoint.x * 100}% ${focalPoint.y * 100}%, transparent 100%, rgba(0,0,0,0.4) 100%)`,
-            }}
-          />
         </div>
 
         <p className="text-xs text-muted-foreground text-center">
-          This point will be centered in your circular profile photo
+          This area will be centered in your circular profile photo
         </p>
 
         <div className="flex gap-2 pt-2">
@@ -145,7 +158,7 @@ export function FocalPointPicker({
           </button>
           <button
             onClick={() => onSave(focalPoint)}
-            className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-[#1E0E6B] to-[#2d1a8a] text-white hover:from-[#1E0E6B]/90 hover:to-[#2d1a8a]/90 shadow-md transition-all"
+            className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 text-white hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70 shadow-md transition-all"
           >
             Save Photo
           </button>

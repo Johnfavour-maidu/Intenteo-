@@ -212,7 +212,7 @@ function Waveform({ active }: { active: boolean }) {
       {bars.map((_, i) => (
         <motion.span
           key={i}
-          className="w-[3px] rounded-full bg-gradient-to-t from-primary to-purple-400"
+          className="w-[3px] rounded-full bg-gradient-to-t from-primary to-primary/60"
           style={{ transformOrigin: "bottom", height: 6 }}
           animate={active ? { height: [6, 34, 14, 40, 10, 28, 6] } : { height: 6 }}
           transition={
@@ -646,7 +646,7 @@ export function TeoAssistant({ open, onOpenChange, tasks, onAddTask, onStartFocu
               aria-label={listening ? "Stop listening" : "Talk with Téo"}
               className={cn(
                 "h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                listening ? "bg-red-500 animate-pulse" : "bg-gradient-to-br from-primary to-purple-600"
+                listening ? "bg-red-500 animate-pulse" : "bg-[#1E0E6B]"
               )}
             >
               {listening ? <Volume2 className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -673,7 +673,7 @@ export function TeoAssistant({ open, onOpenChange, tasks, onAddTask, onStartFocu
 
 function AvatarBubble() {
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-600 text-white text-xs font-semibold">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1E0E6B] text-white text-xs font-semibold">
       T
     </div>
   )

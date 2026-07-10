@@ -37,7 +37,7 @@ const promptChips = [
   { icon: <Calendar className="h-4 w-4" />, label: "Plan my day", color: "from-blue-400 to-cyan-500" },
   { icon: <RefreshCw className="h-4 w-4" />, label: "Review my habits", color: "from-emerald-400 to-green-500" },
   { icon: <Target className="h-4 w-4" />, label: "Help me reach my goals", color: "from-amber-400 to-orange-500" },
-  { icon: <BookOpen className="h-4 w-4" />, label: "Summarize my journal", color: "from-violet-400 to-purple-500" },
+  { icon: <BookOpen className="h-4 w-4" />, label: "Summarize my journal", color: "from-[#1E0E6B]/80 to-[#1E0E6B]" },
   { icon: <Zap className="h-4 w-4" />, label: "What's my next best action?", color: "from-rose-400 to-red-500" },
   { icon: <BarChart3 className="h-4 w-4" />, label: "How can I improve my Intent Score?", color: "from-indigo-400 to-blue-500" },
   { icon: <Brain className="h-4 w-4" />, label: "Help me build a better routine", color: "from-cyan-400 to-teal-500" },
@@ -181,7 +181,7 @@ export function CoachPage() {
                       >
                         {message.role === "assistant" && (
                           <Avatar className="h-8 w-8 shrink-0">
-                            <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white text-xs">
+                            <AvatarFallback className="bg-[#1E0E6B] text-white text-xs">
                               T
                             </AvatarFallback>
                           </Avatar>
@@ -257,7 +257,7 @@ export function CoachPage() {
                     className="h-auto py-3 flex flex-col items-center gap-2"
                     onClick={() => handleChipClick(action.label)}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-purple-600/20 text-primary">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E0E6B]/10 text-primary">
                       {action.icon}
                     </div>
                     <span className="text-xs text-center">{action.label}</span>

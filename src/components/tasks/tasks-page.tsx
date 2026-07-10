@@ -2705,7 +2705,7 @@ export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivit
           {/* 12. Téo Reflection */}
           <div className="p-3 rounded-xl bg-muted/40 border">
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-4 w-4 text-purple-500" />
+              <Sparkles className="h-4 w-4 text-[#1E0E6B]" />
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Téo Reflection</span>
             </div>
             <p className="text-sm">{teoReflection}</p>

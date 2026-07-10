@@ -233,7 +233,7 @@ export function GlobalFloatingTeo() {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
           onClick={handleToggle}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#1E0E6B] to-[#2d1a8a] text-white shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 hover:scale-105 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E0E6B]/50 focus-visible:ring-offset-2"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#1E0E6B] text-white shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 hover:scale-105 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E0E6B]/50 focus-visible:ring-offset-2"
           aria-label="Talk with Téo"
         >
           <TeoIcon size="fab" />
@@ -312,7 +312,7 @@ export function GlobalFloatingTeo() {
                 {/* Empty state */}
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-[#2d1a8a] mb-3 shadow-md shadow-[#1E0E6B]/10">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1E0E6B] mb-3 shadow-md shadow-[#1E0E6B]/10">
                       <TeoIcon size="lg" />
                     </div>
                     <p className="text-sm font-medium text-[#1E0E6B]">Hi, I&apos;m Téo.</p>

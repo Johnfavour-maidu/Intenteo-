@@ -999,7 +999,7 @@ export function MyJourneyPage() {
           {/* Story Summary */}
           <div className="p-3 rounded-xl bg-muted/40 border">
             <div className="flex items-center gap-2 mb-1">
-              <BookOpen className="h-4 w-4 text-purple-500" />
+              <BookOpen className="h-4 w-4 text-[#1E0E6B]" />
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Story Summary</span>
             </div>
             <p className="text-sm">{activeChapter.storySummary}</p>
@@ -1062,7 +1062,7 @@ export function MyJourneyPage() {
           {/* Téo Insight */}
           <div className="p-3 rounded-xl bg-muted/40 border">
             <div className="flex items-center gap-2 mb-1">
-              <Zap className="h-4 w-4 text-purple-500" />
+              <Zap className="h-4 w-4 text-[#1E0E6B]" />
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Téo Insight</span>
             </div>
             <p className="text-sm">{activeChapter.teoInsight}</p>
@@ -1111,7 +1111,7 @@ export function MyJourneyPage() {
                           <div key={dayISO} className="flex items-center gap-2 p-2 rounded-lg text-xs">
                             <span className="font-medium w-8">{new Date(dayISO + "T12:00:00").getDate()}</span>
                             <div className="flex items-center gap-1.5">
-                              {hasReview && <span className="flex items-center gap-0.5 text-[10px]"><BookOpen className="h-3 w-3 text-purple-500" />review</span>}
+                              {hasReview && <span className="flex items-center gap-0.5 text-[10px]"><BookOpen className="h-3 w-3 text-[#1E0E6B]" />review</span>}
                               {dayHabits > 0 && <span className="flex items-center gap-0.5 text-[10px]"><CheckCircle2 className="h-3 w-3 text-green-500" />{dayHabits}</span>}
                               {dayTasks > 0 && <span className="flex items-center gap-0.5 text-[10px]"><CheckSquare className="h-3 w-3 text-blue-500" />{dayTasks}</span>}
                             </div>
