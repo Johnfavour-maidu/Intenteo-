@@ -61,7 +61,7 @@ export function Sidebar() {
                 src="/logo.png"
                 alt="Intenteo — Live with Intentionality"
                 className="h-auto transition-opacity duration-200 ease-in-out"
-                style={{ width: '170px' }}
+                style={{ width: '220px' }}
               />
             </Link>
             <Button
