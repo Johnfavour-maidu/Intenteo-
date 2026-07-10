@@ -754,9 +754,7 @@ export function SettingsPage() {
 
           {/* Section 3: Focus & Productivity */}
           <Section id="focus-productivity" title="Focus & Productivity" isOpen={openSection === "focus-productivity"} onToggle={() => toggleSection("focus-productivity")}>
-            <ToggleRow id="auto-focus" label="Automatically Enter Focus Mode" desc="Activate Focus Mode when a scheduled session begins" checked={autoFocusMode} onCheckedChange={(v) => handleFocusToggle(setAutoFocusMode, v)} />
             <ToggleRow id="completion-sound" label="Play Completion Sound" desc="Play a subtle sound when a task or habit is completed" checked={completionSound} onCheckedChange={(v) => handleFocusToggle(setCompletionSound, v)} />
-            <ToggleRow id="confirm-delete" label="Confirm Before Deleting" desc="Ask before permanently deleting items" checked={confirmBeforeDelete} onCheckedChange={(v) => handleFocusToggle(setConfirmBeforeDelete, v)} />
             <ToggleRow id="carry-tasks" label="Carry Unfinished Tasks Forward" desc="Automatically move incomplete tasks to the next day" checked={carryTasksForward} onCheckedChange={(v) => handleFocusToggle(setCarryTasksForward, v)} />
             <ToggleRow id="daily-review" label="Enable Daily Review" desc="Show the end-of-day Review Today experience" checked={enableDailyReview} onCheckedChange={(v) => handleFocusToggle(setEnableDailyReview, v)} />
             <ToggleRow id="productivity-score" label="Show Productivity Score" desc="Display your daily score throughout the app" checked={showProductivityScore} onCheckedChange={(v) => handleFocusToggle(setShowProductivityScore, v)} />
