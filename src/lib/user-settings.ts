@@ -21,11 +21,6 @@ export interface ProfileSettings {
 export interface AppearanceSettings {
   theme: "light" | "dark" | "system"
   backgroundColor: string
-  glassMode: boolean
-  animations: boolean
-  compactMode: boolean
-  reducedMotion: boolean
-  highContrast: boolean
 }
 
 export interface FocusProductivitySettings {
@@ -89,11 +84,6 @@ export function getDefaultUserSettings(): UserSettings {
     appearance: {
       theme: "system",
       backgroundColor: "#FAFBFF",
-      glassMode: true,
-      animations: true,
-      compactMode: false,
-      reducedMotion: false,
-      highContrast: false,
     },
     focusProductivity: {
       autoFocusMode: false,

@@ -162,11 +162,6 @@ export function SettingsPage() {
 
   // Appearance
   const [backgroundColor, setBackgroundColor] = useState("#FAFBFF")
-  const [glassMode, setGlassMode] = useState(true)
-  const [animations, setAnimations] = useState(true)
-  const [compactMode, setCompactMode] = useState(false)
-  const [reducedMotion, setReducedMotion] = useState(false)
-  const [highContrast, setHighContrast] = useState(false)
 
   // Focus & Productivity
   const [autoFocusMode, setAutoFocusMode] = useState(false)
@@ -254,11 +249,6 @@ export function SettingsPage() {
 
     // Populate appearance
     setBackgroundColor(s.appearance.backgroundColor)
-    setGlassMode(s.appearance.glassMode)
-    setAnimations(s.appearance.animations)
-    setCompactMode(s.appearance.compactMode)
-    setReducedMotion(s.appearance.reducedMotion)
-    setHighContrast(s.appearance.highContrast)
 
     // Populate focus
     setAutoFocusMode(s.focusProductivity.autoFocusMode)
@@ -331,12 +321,7 @@ export function SettingsPage() {
       savedUserSettings.profile
     )
     const appearanceDirty =
-      backgroundColor !== savedUserSettings.appearance.backgroundColor ||
-      glassMode !== savedUserSettings.appearance.glassMode ||
-      animations !== savedUserSettings.appearance.animations ||
-      compactMode !== savedUserSettings.appearance.compactMode ||
-      reducedMotion !== savedUserSettings.appearance.reducedMotion ||
-      highContrast !== savedUserSettings.appearance.highContrast
+      backgroundColor !== savedUserSettings.appearance.backgroundColor
     const focusDirty =
       autoFocusMode !== savedUserSettings.focusProductivity.autoFocusMode ||
       completionSound !== savedUserSettings.focusProductivity.completionSound ||
@@ -375,7 +360,7 @@ export function SettingsPage() {
     return profileDirty || appearanceDirty || focusDirty || calendarDirty || teoDirty
   }, [
     profileName, profileUsername, profileEmail, profileBirthday, profileLanguage, profileAvatar, profileFocalPoint,
-    backgroundColor, glassMode, animations, compactMode, reducedMotion, highContrast,
+    backgroundColor,
     autoFocusMode, completionSound, confirmBeforeDelete, showProductivityScore,
     enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts,
     dateFormat, weekStarts, reminderDailyReview, reminderHabits, reminderGoals,
@@ -445,7 +430,7 @@ export function SettingsPage() {
   // ─── Save all non-profile settings (optimistic) ───
   const saveNonProfileSettings = useCallback(() => {
     const updated = updateUserSettings({
-      appearance: { theme: (theme || "system") as "light" | "dark" | "system", backgroundColor, glassMode, animations, compactMode, reducedMotion, highContrast },
+      appearance: { theme: (theme || "system") as "light" | "dark" | "system", backgroundColor },
       focusProductivity: { autoFocusMode, completionSound, confirmBeforeDelete, showProductivityScore, enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts },
       calendarNotifications: { dateFormat: dateFormat as "dd/mm/yyyy" | "mm/dd/yyyy" | "yyyy-mm-dd", weekStarts: weekStarts as "monday" | "sunday", reminders: { dailyReview: reminderDailyReview, habits: reminderHabits, goals: reminderGoals, projects: reminderProjects, calendar: reminderCalendar, teo: reminderTeo }, marketing: { push: marketingPush, email: marketingEmail, sms: marketingSms } },
       teoPreferences: { enabled: teoEnabled, coachStyle: teoCoachStyle as "friendly" | "direct" | "motivational" | "analytical", responseLength: teoResponseLength as "brief" | "balanced" | "detailed", morningBriefing: teoMorningBriefing, eveningReview: teoEveningReview, weeklyInsights: teoWeeklyInsights, voiceReplies: teoVoiceReplies, proactiveSuggestions: teoProactiveSuggestions, autoSummaries: teoAutoSummaries, contextMemory: teoContextMemory, dailyMotivation: teoDailyMotivation, reflectionReminders: teoReflectionReminders, coachingIntensity: teoCoachingIntensity as "gentle" | "moderate" | "intensive" },
@@ -453,7 +438,7 @@ export function SettingsPage() {
     setSavedUserSettings(updated)
     setUserSettings(updated)
   }, [
-    theme, backgroundColor, glassMode, animations, compactMode, reducedMotion, highContrast,
+    theme, backgroundColor,
     autoFocusMode, completionSound, confirmBeforeDelete, showProductivityScore,
     enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts,
     dateFormat, weekStarts, reminderDailyReview, reminderHabits, reminderGoals,
@@ -765,11 +750,6 @@ export function SettingsPage() {
                 ))}
               </div>
             </div>
-            <ToggleRow id="glass-mode" label="Glass Mode" desc="Enable glassmorphism effects" checked={glassMode} onCheckedChange={(v) => handleFocusToggle(setGlassMode, v)} />
-            <ToggleRow id="animations" label="Animations" desc="Enable smooth transitions" checked={animations} onCheckedChange={(v) => handleFocusToggle(setAnimations, v)} />
-            <ToggleRow id="compact-mode" label="Compact Mode" desc="Reduce spacing for more content" checked={compactMode} onCheckedChange={(v) => handleFocusToggle(setCompactMode, v)} />
-            <ToggleRow id="reduced-motion" label="Reduced Motion" desc="Minimize animations" checked={reducedMotion} onCheckedChange={(v) => handleFocusToggle(setReducedMotion, v)} />
-            <ToggleRow id="high-contrast" label="High Contrast" desc="Increase contrast for accessibility" checked={highContrast} onCheckedChange={(v) => handleFocusToggle(setHighContrast, v)} />
           </Section>
 
           {/* Section 3: Focus & Productivity */}

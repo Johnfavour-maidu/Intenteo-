@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { GlobalFloatingTeo } from "@/components/teo/global-floating-teo"
 import { UserProfileProvider } from "@/lib/user-profile-context"
 import { loadUserSettings } from "@/lib/user-settings"
+import { useTheme } from "next-themes"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -15,7 +16,10 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { collapsed } = useSidebar()
+  const { resolvedTheme } = useTheme()
   const [bgColor, setBgColor] = useState("#FAFBFF")
+
+  const isDark = resolvedTheme === "dark"
 
   useEffect(() => {
     const settings = loadUserSettings()
@@ -33,7 +37,6 @@ export function MainLayout({ children }: MainLayoutProps) {
     return () => window.removeEventListener("storage", handler)
   }, [])
 
-  // Poll for same-tab changes
   useEffect(() => {
     const interval = setInterval(() => {
       try {
@@ -46,7 +49,10 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <UserProfileProvider>
-      <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: bgColor }}>
+      <div
+        className="min-h-screen bg-background transition-colors duration-300"
+        style={!isDark ? { backgroundColor: bgColor } : undefined}
+      >
         <Sidebar />
         <div
           className={cn(

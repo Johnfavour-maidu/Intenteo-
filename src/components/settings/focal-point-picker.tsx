@@ -72,7 +72,7 @@ export function FocalPointPicker({
     [isDragging, updateFocalPoint]
   )
 
-  const circleSize = 120
+  const circleSize = 180
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
