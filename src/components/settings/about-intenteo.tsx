@@ -50,9 +50,11 @@ export function AboutIntenteo() {
     <div className="space-y-4">
       <GlassCard className="p-4">
         <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-[#1E0E6B] to-[#1E0E6B]/80 flex items-center justify-center text-white text-xl font-bold shrink-0">
-            I
-          </div>
+          <img
+            src="/favicon-40.png"
+            alt="Intenteo"
+            className="h-14 w-14 rounded-xl shrink-0"
+          />
           <div>
             <h3 className="font-bold text-lg">Intenteo</h3>
             <p className="text-xs text-muted-foreground">The world&apos;s first AI-powered Intentional Living Platform</p>

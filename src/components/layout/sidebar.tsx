@@ -58,7 +58,7 @@ export function Sidebar() {
           <div className="flex h-16 items-center justify-between px-4">
             <Link href="/" className="flex items-center">
               <img
-                src="/logo-sidebar.png"
+                src="/logo.png"
                 alt="Intenteo — Live with Intentionality"
                 className="h-auto transition-opacity duration-200 ease-in-out"
                 width={220}
