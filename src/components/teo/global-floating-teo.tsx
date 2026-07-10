@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Sparkles,
   Send,
   Mic,
   Paperclip,
@@ -18,6 +17,7 @@ import {
   BookOpen,
   Repeat,
 } from "lucide-react"
+import { TeoIcon } from "@/components/ui/teo-icon"
 
 type MessageRole = "user" | "teo"
 
@@ -45,7 +45,7 @@ const CONTEXT_SUGGESTIONS: Record<string, { prompt: string; icon: React.ReactNod
   ],
   "/goals": [
     { prompt: "Help me break down my goals", icon: <Target className="h-3.5 w-3.5" /> },
-    { prompt: "How are my goals progressing?", icon: <Sparkles className="h-3.5 w-3.5" /> },
+    { prompt: "How are my goals progressing?", icon: <TeoIcon size="xs" /> },
     { prompt: "Create a new goal", icon: <Target className="h-3.5 w-3.5" /> },
     { prompt: "What goal should I focus on?", icon: <CheckSquare className="h-3.5 w-3.5" /> },
   ],
@@ -66,7 +66,7 @@ const CONTEXT_SUGGESTIONS: Record<string, { prompt: string; icon: React.ReactNod
     { prompt: "Review my habits", icon: <Repeat className="h-3.5 w-3.5" /> },
     { prompt: "Help me plan my day", icon: <CheckSquare className="h-3.5 w-3.5" /> },
     { prompt: "Reflect on today", icon: <BookOpen className="h-3.5 w-3.5" /> },
-    { prompt: "How's my progress?", icon: <Sparkles className="h-3.5 w-3.5" /> },
+    { prompt: "How's my progress?", icon: <TeoIcon size="xs" /> },
     { prompt: "What are my top priorities?", icon: <Target className="h-3.5 w-3.5" /> },
   ],
 }
@@ -218,7 +218,7 @@ export function GlobalFloatingTeo() {
             className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-[#1E0E6B] px-4 py-3 text-white text-sm font-medium shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 transition-shadow cursor-pointer"
             aria-label={pillMessage}
           >
-            <Sparkles className="h-4 w-4 shrink-0" />
+            <TeoIcon size="xs" className="shrink-0" />
             <span className="whitespace-nowrap">{pillMessage}</span>
           </motion.button>
         )}
@@ -236,7 +236,7 @@ export function GlobalFloatingTeo() {
           className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#1E0E6B] to-[#2d1a8a] text-white shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 hover:scale-105 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E0E6B]/50 focus-visible:ring-offset-2"
           aria-label="Talk with Téo"
         >
-          <Sparkles className="h-6 w-6" />
+          <TeoIcon size="fab" />
         </motion.button>
       )}
 
@@ -283,7 +283,7 @@ export function GlobalFloatingTeo() {
               {/* Header */}
               <div className="flex items-center gap-3 bg-[#1E0E6B] px-5 py-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                  <Sparkles className="h-5 w-5 text-white" />
+                  <TeoIcon size="sm" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-sm font-semibold text-white leading-tight">Talk with Téo</h2>
@@ -313,7 +313,7 @@ export function GlobalFloatingTeo() {
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-[#2d1a8a] mb-3 shadow-md shadow-[#1E0E6B]/10">
-                      <Sparkles className="h-7 w-7 text-white" />
+                      <TeoIcon size="lg" />
                     </div>
                     <p className="text-sm font-medium text-[#1E0E6B]">Hi, I&apos;m Téo.</p>
                     <p className="text-xs text-gray-500 mt-1">Your intentional living companion.</p>
@@ -324,8 +324,8 @@ export function GlobalFloatingTeo() {
                 {messages.map((m) => (
                   <div key={m.id} className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     {m.role === "teo" && (
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1E0E6B] to-[#2d1a8a] text-white mt-1">
-                        <Sparkles className="h-3.5 w-3.5" />
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden mt-1">
+                        <TeoIcon size="sm" />
                       </div>
                     )}
                     <div
@@ -346,8 +346,8 @@ export function GlobalFloatingTeo() {
                 {/* Typing indicator */}
                 {typing && (
                   <div className="flex gap-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1E0E6B] to-[#2d1a8a] text-white mt-1">
-                      <Sparkles className="h-3.5 w-3.5" />
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden mt-1">
+                      <TeoIcon size="sm" />
                     </div>
                     <div className="rounded-2xl rounded-tl-sm bg-[#1E0E6B]/5 px-4 py-3 text-sm">
                       <div className="flex items-center gap-1.5">

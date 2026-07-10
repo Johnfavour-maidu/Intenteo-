@@ -9,7 +9,6 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
-  Sparkles,
   Send,
   Lightbulb,
   Target,
@@ -25,6 +24,7 @@ import {
   ListChecks,
   Zap,
 } from "lucide-react"
+import { TeoIcon } from "@/components/ui/teo-icon"
 
 interface Message {
   id: string
@@ -141,7 +141,7 @@ export function CoachPage() {
           <p className="text-muted-foreground">Your personal guide for intentional living.</p>
         </div>
         <Badge variant="outline" className="w-fit">
-          <Sparkles className="mr-2 h-4 w-4 text-primary" />
+          <TeoIcon size="xs" className="mr-2" />
           Téo
         </Badge>
       </div>
@@ -152,8 +152,8 @@ export function CoachPage() {
           <Card className="h-[600px] flex flex-col">
             <CardHeader className="border-b">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-purple-600">
-                  <Sparkles className="h-5 w-5 text-white" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+                  <TeoIcon size="sm" />
                 </div>
                 <div>
                   <CardTitle className="text-lg">Téo</CardTitle>
@@ -167,8 +167,8 @@ export function CoachPage() {
                   {messages.length === 0 ? (
                     /* Empty State */
                     <div className="flex flex-col items-center justify-center h-[400px] text-center px-6">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 mb-4">
-                        <Sparkles className="h-8 w-8 text-white" />
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl mb-4 overflow-hidden">
+                        <TeoIcon size="xl" />
                       </div>
                       <h3 className="text-xl font-semibold mb-2">Every intentional life starts with one conversation.</h3>
                       <p className="text-muted-foreground">What would you like to work on today?</p>
@@ -295,8 +295,8 @@ export function CoachPage() {
           {/* Téo's Status */}
           <GlassCard variant="primary" className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-purple-600">
-                <Sparkles className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+                <TeoIcon size="sm" />
               </div>
               <div>
                 <p className="font-medium">Téo is learning</p>

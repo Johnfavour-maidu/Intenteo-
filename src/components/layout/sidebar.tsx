@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useSidebar } from "./sidebar-context"
+import { useUserProfile } from "@/lib/user-profile-context"
 
 interface NavItem {
   title: string
@@ -42,6 +43,7 @@ const bottomNav: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname()
   const { collapsed, toggleCollapsed } = useSidebar()
+  const { name, username, avatar, avatarFocalPoint } = useUserProfile()
 
   return (
     <aside
@@ -96,11 +98,22 @@ export function Sidebar() {
 
         {/* User Profile — links to Settings Profile */}
         <Link href="/settings?tab=profile" className={cn("flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors", collapsed && "justify-center")}>
-          <UserAvatar size="md" fallback="JD" status="online" />
+          {avatar ? (
+            <div className="h-10 w-10 rounded-full overflow-hidden shrink-0">
+              <img
+                src={avatar}
+                alt={name || "User"}
+                className="h-full w-full object-cover"
+                style={{ objectPosition: `${avatarFocalPoint.x * 100}% ${avatarFocalPoint.y * 100}%` }}
+              />
+            </div>
+          ) : (
+            <UserAvatar size="md" fallback={name ? name.charAt(0).toUpperCase() : "U"} status="online" />
+          )}
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">John Doe</p>
-              <p className="text-xs text-muted-foreground truncate">Live with Intentionality</p>
+              <p className="text-sm font-medium truncate">{name || "User"}</p>
+              <p className="text-xs text-muted-foreground truncate">{username ? `@${username}` : "Live with Intentionality"}</p>
             </div>
           )}
         </Link>

@@ -15,11 +15,12 @@ export interface ProfileSettings {
   birthday: string
   language: string
   avatar: string
+  avatarFocalPoint: { x: number; y: number }
 }
 
 export interface AppearanceSettings {
   theme: "light" | "dark" | "system"
-  accentColor: string
+  backgroundColor: string
   glassMode: boolean
   animations: boolean
   compactMode: boolean
@@ -31,19 +32,15 @@ export interface FocusProductivitySettings {
   autoFocusMode: boolean
   completionSound: boolean
   confirmBeforeDelete: boolean
-  archivePeriod: "never" | "7days" | "30days"
   showProductivityScore: boolean
   enableDailyReview: boolean
   carryTasksForward: boolean
   showStreakCelebrations: boolean
   keyboardShortcuts: boolean
-  defaultTaskSort: "date" | "priority" | "name" | "created"
-  defaultTaskView: "list" | "board"
 }
 
 export interface CalendarNotificationSettings {
   dateFormat: "dd/mm/yyyy" | "mm/dd/yyyy" | "yyyy-mm-dd"
-  timeFormat: "12hour" | "24hour"
   weekStarts: "monday" | "sunday"
   reminders: {
     dailyReview: boolean
@@ -63,6 +60,7 @@ export interface CalendarNotificationSettings {
 export interface TeoPreferencesSettings {
   enabled: boolean
   coachStyle: "friendly" | "direct" | "motivational" | "analytical"
+  responseLength: "brief" | "balanced" | "detailed"
   morningBriefing: boolean
   eveningReview: boolean
   weeklyInsights: boolean
@@ -70,6 +68,9 @@ export interface TeoPreferencesSettings {
   proactiveSuggestions: boolean
   autoSummaries: boolean
   contextMemory: boolean
+  dailyMotivation: boolean
+  reflectionReminders: boolean
+  coachingIntensity: "gentle" | "moderate" | "intensive"
 }
 
 const STORAGE_KEY = "intenteo-user-settings"
@@ -83,10 +84,11 @@ export function getDefaultUserSettings(): UserSettings {
       birthday: "",
       language: "English",
       avatar: "",
+      avatarFocalPoint: { x: 0.5, y: 0.5 },
     },
     appearance: {
       theme: "system",
-      accentColor: "var(--brand-primary)",
+      backgroundColor: "#FAFBFF",
       glassMode: true,
       animations: true,
       compactMode: false,
@@ -97,18 +99,14 @@ export function getDefaultUserSettings(): UserSettings {
       autoFocusMode: false,
       completionSound: true,
       confirmBeforeDelete: true,
-      archivePeriod: "never",
       showProductivityScore: true,
       enableDailyReview: true,
       carryTasksForward: false,
       showStreakCelebrations: true,
       keyboardShortcuts: true,
-      defaultTaskSort: "date",
-      defaultTaskView: "list",
     },
     calendarNotifications: {
       dateFormat: "dd/mm/yyyy",
-      timeFormat: "12hour",
       weekStarts: "monday",
       reminders: {
         dailyReview: true,
@@ -127,6 +125,7 @@ export function getDefaultUserSettings(): UserSettings {
     teoPreferences: {
       enabled: true,
       coachStyle: "friendly",
+      responseLength: "balanced",
       morningBriefing: true,
       eveningReview: true,
       weeklyInsights: true,
@@ -134,6 +133,9 @@ export function getDefaultUserSettings(): UserSettings {
       proactiveSuggestions: true,
       autoSummaries: true,
       contextMemory: true,
+      dailyMotivation: true,
+      reflectionReminders: true,
+      coachingIntensity: "moderate",
     },
   }
 }
@@ -228,7 +230,9 @@ export function hasProfileChanges(current: ProfileSettings, saved: ProfileSettin
     current.email !== saved.email ||
     current.birthday !== saved.birthday ||
     current.language !== saved.language ||
-    current.avatar !== saved.avatar
+    current.avatar !== saved.avatar ||
+    current.avatarFocalPoint.x !== saved.avatarFocalPoint.x ||
+    current.avatarFocalPoint.y !== saved.avatarFocalPoint.y
   )
 }
 

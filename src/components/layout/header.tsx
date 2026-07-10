@@ -8,6 +8,7 @@ import { useTheme } from "next-themes"
 import { UniversalSearch } from "./universal-search"
 import { CommandCenter } from "./command-center"
 import { NotificationCenter, getUnreadCount } from "./notification-center"
+import { useUserProfile } from "@/lib/user-profile-context"
 
 function NotificationBadge() {
   const [count, setCount] = React.useState(0)
@@ -50,6 +51,7 @@ function Tooltip({ children, label }: { children: React.ReactNode; label: string
 
 export function Header() {
   const { theme, setTheme } = useTheme()
+  const { name, avatar, avatarFocalPoint } = useUserProfile()
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
@@ -159,7 +161,18 @@ export function Header() {
 
           <Tooltip label="My Profile">
             <Link href="/settings?tab=profile" aria-label="My Profile">
-              <UserAvatar size="sm" fallback="JD" />
+              {avatar ? (
+                <div className="h-8 w-8 rounded-full overflow-hidden">
+                  <img
+                    src={avatar}
+                    alt={name || "User"}
+                    className="h-full w-full object-cover"
+                    style={{ objectPosition: `${avatarFocalPoint.x * 100}% ${avatarFocalPoint.y * 100}%` }}
+                  />
+                </div>
+              ) : (
+                <UserAvatar size="sm" fallback={name ? name.charAt(0).toUpperCase() : "U"} />
+              )}
             </Link>
           </Tooltip>
         </div>

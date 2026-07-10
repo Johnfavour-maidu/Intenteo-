@@ -9,13 +9,13 @@ import {
   Send,
   Paperclip,
   X,
-  Sparkles,
   FileText,
   Image as ImageIcon,
   Volume2,
   CornerDownLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TeoIcon } from "@/components/ui/teo-icon"
 
 /* ────────────────────────────────────────────────────── */
 /* Types                                                    */
@@ -491,8 +491,8 @@ export function TeoAssistant({ open, onOpenChange, tasks, onAddTask, onStartFocu
         >
           {/* Header */}
           <div className="flex items-center gap-3 px-5 py-4 border-b">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-purple-600 shadow-md shrink-0">
-              <Sparkles className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0 overflow-hidden">
+              <TeoIcon size="sm" />
             </div>
             <div className="flex-1 min-w-0">
               <Dialog.Title className="text-base font-semibold leading-tight">Talk with Téo</Dialog.Title>

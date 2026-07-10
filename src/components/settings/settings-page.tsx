@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { Separator } from "@/components/ui/separator"
+import { GradientButton } from "@/components/ui/gradient-button"
+import { FocalPointPicker } from "./focal-point-picker"
 import {
   User, Bell, Shield, Globe, Moon, Sun, Monitor,
   Lock, Key, Download, Trash2, Mail, Check, Camera,
@@ -55,6 +57,7 @@ import {
   type UserSettings,
   type ProfileSettings,
 } from "@/lib/user-settings"
+import { useUserProfile } from "@/lib/user-profile-context"
 
 type SettingsTab = "profile" | "security" | "help"
 
@@ -126,6 +129,7 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>(tabParam || "profile")
   const [openSection, setOpenSection] = useState<string | null>("personal-info")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { refresh: refreshProfile } = useUserProfile()
 
   const { toasts, addToast, removeToast } = useSettingsToast()
 
@@ -142,6 +146,9 @@ export function SettingsPage() {
   const [profileBirthday, setProfileBirthday] = useState("")
   const [profileLanguage, setProfileLanguage] = useState("English")
   const [profileAvatar, setProfileAvatar] = useState("")
+  const [profileFocalPoint, setProfileFocalPoint] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 })
+  const [focalPointOpen, setFocalPointOpen] = useState(false)
+  const [pendingAvatarSrc, setPendingAvatarSrc] = useState("")
 
   // Profile validation
   const [nameError, setNameError] = useState("")
@@ -154,7 +161,7 @@ export function SettingsPage() {
   const [pendingEmail, setPendingEmail] = useState("")
 
   // Appearance
-  const [accentColor, setAccentColor] = useState("var(--brand-primary)")
+  const [backgroundColor, setBackgroundColor] = useState("#FAFBFF")
   const [glassMode, setGlassMode] = useState(true)
   const [animations, setAnimations] = useState(true)
   const [compactMode, setCompactMode] = useState(false)
@@ -165,18 +172,14 @@ export function SettingsPage() {
   const [autoFocusMode, setAutoFocusMode] = useState(false)
   const [completionSound, setCompletionSound] = useState(true)
   const [confirmBeforeDelete, setConfirmBeforeDelete] = useState(true)
-  const [archivePeriod, setArchivePeriod] = useState("never")
   const [showProductivityScore, setShowProductivityScore] = useState(true)
   const [enableDailyReview, setEnableDailyReview] = useState(true)
   const [carryTasksForward, setCarryTasksForward] = useState(false)
   const [showStreakCelebrations, setShowStreakCelebrations] = useState(true)
   const [keyboardShortcuts, setKeyboardShortcuts] = useState(true)
-  const [defaultTaskSort, setDefaultTaskSort] = useState("date")
-  const [defaultTaskView, setDefaultTaskView] = useState("list")
 
   // Calendar & Notifications
   const [dateFormat, setDateFormat] = useState("dd/mm/yyyy")
-  const [timeFormat, setTimeFormat] = useState("12hour")
   const [weekStarts, setWeekStarts] = useState("monday")
   const [reminderDailyReview, setReminderDailyReview] = useState(true)
   const [reminderHabits, setReminderHabits] = useState(true)
@@ -191,6 +194,7 @@ export function SettingsPage() {
   // Teo Preferences
   const [teoEnabled, setTeoEnabled] = useState(true)
   const [teoCoachStyle, setTeoCoachStyle] = useState("friendly")
+  const [teoResponseLength, setTeoResponseLength] = useState("balanced")
   const [teoMorningBriefing, setTeoMorningBriefing] = useState(true)
   const [teoEveningReview, setTeoEveningReview] = useState(true)
   const [teoWeeklyInsights, setTeoWeeklyInsights] = useState(true)
@@ -198,6 +202,9 @@ export function SettingsPage() {
   const [teoProactiveSuggestions, setTeoProactiveSuggestions] = useState(true)
   const [teoAutoSummaries, setTeoAutoSummaries] = useState(true)
   const [teoContextMemory, setTeoContextMemory] = useState(true)
+  const [teoDailyMotivation, setTeoDailyMotivation] = useState(true)
+  const [teoReflectionReminders, setTeoReflectionReminders] = useState(true)
+  const [teoCoachingIntensity, setTeoCoachingIntensity] = useState("moderate")
 
   // Security settings (existing)
   const [secSettings, setSecSettings] = useState<SecuritySettings>(() => loadSecuritySettings())
@@ -243,9 +250,10 @@ export function SettingsPage() {
     setProfileBirthday(s.profile.birthday)
     setProfileLanguage(s.profile.language)
     setProfileAvatar(s.profile.avatar)
+    setProfileFocalPoint(s.profile.avatarFocalPoint || { x: 0.5, y: 0.5 })
 
     // Populate appearance
-    setAccentColor(s.appearance.accentColor)
+    setBackgroundColor(s.appearance.backgroundColor)
     setGlassMode(s.appearance.glassMode)
     setAnimations(s.appearance.animations)
     setCompactMode(s.appearance.compactMode)
@@ -256,18 +264,14 @@ export function SettingsPage() {
     setAutoFocusMode(s.focusProductivity.autoFocusMode)
     setCompletionSound(s.focusProductivity.completionSound)
     setConfirmBeforeDelete(s.focusProductivity.confirmBeforeDelete)
-    setArchivePeriod(s.focusProductivity.archivePeriod)
     setShowProductivityScore(s.focusProductivity.showProductivityScore)
     setEnableDailyReview(s.focusProductivity.enableDailyReview)
     setCarryTasksForward(s.focusProductivity.carryTasksForward)
     setShowStreakCelebrations(s.focusProductivity.showStreakCelebrations)
     setKeyboardShortcuts(s.focusProductivity.keyboardShortcuts)
-    setDefaultTaskSort(s.focusProductivity.defaultTaskSort)
-    setDefaultTaskView(s.focusProductivity.defaultTaskView)
 
     // Populate calendar
     setDateFormat(s.calendarNotifications.dateFormat)
-    setTimeFormat(s.calendarNotifications.timeFormat)
     setWeekStarts(s.calendarNotifications.weekStarts)
     setReminderDailyReview(s.calendarNotifications.reminders.dailyReview)
     setReminderHabits(s.calendarNotifications.reminders.habits)
@@ -282,6 +286,7 @@ export function SettingsPage() {
     // Populate Teo
     setTeoEnabled(s.teoPreferences.enabled)
     setTeoCoachStyle(s.teoPreferences.coachStyle)
+    setTeoResponseLength(s.teoPreferences.responseLength)
     setTeoMorningBriefing(s.teoPreferences.morningBriefing)
     setTeoEveningReview(s.teoPreferences.eveningReview)
     setTeoWeeklyInsights(s.teoPreferences.weeklyInsights)
@@ -289,6 +294,9 @@ export function SettingsPage() {
     setTeoProactiveSuggestions(s.teoPreferences.proactiveSuggestions)
     setTeoAutoSummaries(s.teoPreferences.autoSummaries)
     setTeoContextMemory(s.teoPreferences.contextMemory)
+    setTeoDailyMotivation(s.teoPreferences.dailyMotivation)
+    setTeoReflectionReminders(s.teoPreferences.reflectionReminders)
+    setTeoCoachingIntensity(s.teoPreferences.coachingIntensity)
 
     setSettingsLoading(false)
   }, [])
@@ -319,11 +327,11 @@ export function SettingsPage() {
   // ─── Dirty tracking ───
   const isDirty = useMemo(() => {
     const profileDirty = hasProfileChanges(
-      { name: profileName, username: profileUsername, email: profileEmail, birthday: profileBirthday, language: profileLanguage, avatar: profileAvatar },
+      { name: profileName, username: profileUsername, email: profileEmail, birthday: profileBirthday, language: profileLanguage, avatar: profileAvatar, avatarFocalPoint: profileFocalPoint },
       savedUserSettings.profile
     )
     const appearanceDirty =
-      accentColor !== savedUserSettings.appearance.accentColor ||
+      backgroundColor !== savedUserSettings.appearance.backgroundColor ||
       glassMode !== savedUserSettings.appearance.glassMode ||
       animations !== savedUserSettings.appearance.animations ||
       compactMode !== savedUserSettings.appearance.compactMode ||
@@ -333,17 +341,13 @@ export function SettingsPage() {
       autoFocusMode !== savedUserSettings.focusProductivity.autoFocusMode ||
       completionSound !== savedUserSettings.focusProductivity.completionSound ||
       confirmBeforeDelete !== savedUserSettings.focusProductivity.confirmBeforeDelete ||
-      archivePeriod !== savedUserSettings.focusProductivity.archivePeriod ||
       showProductivityScore !== savedUserSettings.focusProductivity.showProductivityScore ||
       enableDailyReview !== savedUserSettings.focusProductivity.enableDailyReview ||
       carryTasksForward !== savedUserSettings.focusProductivity.carryTasksForward ||
       showStreakCelebrations !== savedUserSettings.focusProductivity.showStreakCelebrations ||
-      keyboardShortcuts !== savedUserSettings.focusProductivity.keyboardShortcuts ||
-      defaultTaskSort !== savedUserSettings.focusProductivity.defaultTaskSort ||
-      defaultTaskView !== savedUserSettings.focusProductivity.defaultTaskView
+      keyboardShortcuts !== savedUserSettings.focusProductivity.keyboardShortcuts
     const calendarDirty =
       dateFormat !== savedUserSettings.calendarNotifications.dateFormat ||
-      timeFormat !== savedUserSettings.calendarNotifications.timeFormat ||
       weekStarts !== savedUserSettings.calendarNotifications.weekStarts ||
       reminderDailyReview !== savedUserSettings.calendarNotifications.reminders.dailyReview ||
       reminderHabits !== savedUserSettings.calendarNotifications.reminders.habits ||
@@ -357,23 +361,28 @@ export function SettingsPage() {
     const teoDirty =
       teoEnabled !== savedUserSettings.teoPreferences.enabled ||
       teoCoachStyle !== savedUserSettings.teoPreferences.coachStyle ||
+      teoResponseLength !== savedUserSettings.teoPreferences.responseLength ||
       teoMorningBriefing !== savedUserSettings.teoPreferences.morningBriefing ||
       teoEveningReview !== savedUserSettings.teoPreferences.eveningReview ||
       teoWeeklyInsights !== savedUserSettings.teoPreferences.weeklyInsights ||
       teoVoiceReplies !== savedUserSettings.teoPreferences.voiceReplies ||
       teoProactiveSuggestions !== savedUserSettings.teoPreferences.proactiveSuggestions ||
       teoAutoSummaries !== savedUserSettings.teoPreferences.autoSummaries ||
-      teoContextMemory !== savedUserSettings.teoPreferences.contextMemory
+      teoContextMemory !== savedUserSettings.teoPreferences.contextMemory ||
+      teoDailyMotivation !== savedUserSettings.teoPreferences.dailyMotivation ||
+      teoReflectionReminders !== savedUserSettings.teoPreferences.reflectionReminders ||
+      teoCoachingIntensity !== savedUserSettings.teoPreferences.coachingIntensity
     return profileDirty || appearanceDirty || focusDirty || calendarDirty || teoDirty
   }, [
-    profileName, profileUsername, profileEmail, profileBirthday, profileLanguage, profileAvatar,
-    accentColor, glassMode, animations, compactMode, reducedMotion, highContrast,
-    autoFocusMode, completionSound, confirmBeforeDelete, archivePeriod, showProductivityScore,
-    enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts, defaultTaskSort, defaultTaskView,
-    dateFormat, timeFormat, weekStarts, reminderDailyReview, reminderHabits, reminderGoals,
+    profileName, profileUsername, profileEmail, profileBirthday, profileLanguage, profileAvatar, profileFocalPoint,
+    backgroundColor, glassMode, animations, compactMode, reducedMotion, highContrast,
+    autoFocusMode, completionSound, confirmBeforeDelete, showProductivityScore,
+    enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts,
+    dateFormat, weekStarts, reminderDailyReview, reminderHabits, reminderGoals,
     reminderProjects, reminderCalendar, reminderTeo, marketingPush, marketingEmail, marketingSms,
-    teoEnabled, teoCoachStyle, teoMorningBriefing, teoEveningReview, teoWeeklyInsights,
+    teoEnabled, teoCoachStyle, teoResponseLength, teoMorningBriefing, teoEveningReview, teoWeeklyInsights,
     teoVoiceReplies, teoProactiveSuggestions, teoAutoSummaries, teoContextMemory,
+    teoDailyMotivation, teoReflectionReminders, teoCoachingIntensity,
     savedUserSettings,
   ])
 
@@ -419,36 +428,39 @@ export function SettingsPage() {
           birthday: profileBirthday.trim(),
           language: profileLanguage,
           avatar: profileAvatar,
+          avatarFocalPoint: profileFocalPoint,
         },
       })
       setSavedUserSettings(updated)
       setUserSettings(updated)
+      refreshProfile()
       addToast("Profile updated successfully.")
     } catch {
       addToast("Unable to save changes. Please try again.", "error")
     } finally {
       setProfileSaving(false)
     }
-  }, [profileName, profileUsername, profileEmail, profileBirthday, profileLanguage, profileAvatar, validateProfileFields, addToast])
+  }, [profileName, profileUsername, profileEmail, profileBirthday, profileLanguage, profileAvatar, profileFocalPoint, validateProfileFields, addToast, refreshProfile])
 
   // ─── Save all non-profile settings (optimistic) ───
   const saveNonProfileSettings = useCallback(() => {
     const updated = updateUserSettings({
-      appearance: { theme: (theme || "system") as "light" | "dark" | "system", accentColor, glassMode, animations, compactMode, reducedMotion, highContrast },
-      focusProductivity: { autoFocusMode, completionSound, confirmBeforeDelete, archivePeriod: archivePeriod as "never" | "7days" | "30days", showProductivityScore, enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts, defaultTaskSort: defaultTaskSort as "date" | "priority" | "name" | "created", defaultTaskView: defaultTaskView as "list" | "board" },
-      calendarNotifications: { dateFormat: dateFormat as "dd/mm/yyyy" | "mm/dd/yyyy" | "yyyy-mm-dd", timeFormat: timeFormat as "12hour" | "24hour", weekStarts: weekStarts as "monday" | "sunday", reminders: { dailyReview: reminderDailyReview, habits: reminderHabits, goals: reminderGoals, projects: reminderProjects, calendar: reminderCalendar, teo: reminderTeo }, marketing: { push: marketingPush, email: marketingEmail, sms: marketingSms } },
-      teoPreferences: { enabled: teoEnabled, coachStyle: teoCoachStyle as "friendly" | "direct" | "motivational" | "analytical", morningBriefing: teoMorningBriefing, eveningReview: teoEveningReview, weeklyInsights: teoWeeklyInsights, voiceReplies: teoVoiceReplies, proactiveSuggestions: teoProactiveSuggestions, autoSummaries: teoAutoSummaries, contextMemory: teoContextMemory },
+      appearance: { theme: (theme || "system") as "light" | "dark" | "system", backgroundColor, glassMode, animations, compactMode, reducedMotion, highContrast },
+      focusProductivity: { autoFocusMode, completionSound, confirmBeforeDelete, showProductivityScore, enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts },
+      calendarNotifications: { dateFormat: dateFormat as "dd/mm/yyyy" | "mm/dd/yyyy" | "yyyy-mm-dd", weekStarts: weekStarts as "monday" | "sunday", reminders: { dailyReview: reminderDailyReview, habits: reminderHabits, goals: reminderGoals, projects: reminderProjects, calendar: reminderCalendar, teo: reminderTeo }, marketing: { push: marketingPush, email: marketingEmail, sms: marketingSms } },
+      teoPreferences: { enabled: teoEnabled, coachStyle: teoCoachStyle as "friendly" | "direct" | "motivational" | "analytical", responseLength: teoResponseLength as "brief" | "balanced" | "detailed", morningBriefing: teoMorningBriefing, eveningReview: teoEveningReview, weeklyInsights: teoWeeklyInsights, voiceReplies: teoVoiceReplies, proactiveSuggestions: teoProactiveSuggestions, autoSummaries: teoAutoSummaries, contextMemory: teoContextMemory, dailyMotivation: teoDailyMotivation, reflectionReminders: teoReflectionReminders, coachingIntensity: teoCoachingIntensity as "gentle" | "moderate" | "intensive" },
     })
     setSavedUserSettings(updated)
     setUserSettings(updated)
   }, [
-    theme, accentColor, glassMode, animations, compactMode, reducedMotion, highContrast,
-    autoFocusMode, completionSound, confirmBeforeDelete, archivePeriod, showProductivityScore,
-    enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts, defaultTaskSort, defaultTaskView,
-    dateFormat, timeFormat, weekStarts, reminderDailyReview, reminderHabits, reminderGoals,
+    theme, backgroundColor, glassMode, animations, compactMode, reducedMotion, highContrast,
+    autoFocusMode, completionSound, confirmBeforeDelete, showProductivityScore,
+    enableDailyReview, carryTasksForward, showStreakCelebrations, keyboardShortcuts,
+    dateFormat, weekStarts, reminderDailyReview, reminderHabits, reminderGoals,
     reminderProjects, reminderCalendar, reminderTeo, marketingPush, marketingEmail, marketingSms,
-    teoEnabled, teoCoachStyle, teoMorningBriefing, teoEveningReview, teoWeeklyInsights,
+    teoEnabled, teoCoachStyle, teoResponseLength, teoMorningBriefing, teoEveningReview, teoWeeklyInsights,
     teoVoiceReplies, teoProactiveSuggestions, teoAutoSummaries, teoContextMemory,
+    teoDailyMotivation, teoReflectionReminders, teoCoachingIntensity,
   ])
 
   // ─── Appearance: save immediately on change ───
@@ -457,8 +469,8 @@ export function SettingsPage() {
     setTimeout(() => saveNonProfileSettings(), 0)
   }, [setTheme, saveNonProfileSettings])
 
-  const handleAccentColorChange = useCallback((c: string) => {
-    setAccentColor(c)
+  const handleBackgroundColorChange = useCallback((c: string) => {
+    setBackgroundColor(c)
     setTimeout(() => saveNonProfileSettings(), 0)
   }, [saveNonProfileSettings])
 
@@ -491,9 +503,28 @@ export function SettingsPage() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       const result = ev.target?.result as string
-      setProfileAvatar(result)
+      setPendingAvatarSrc(result)
+      setFocalPointOpen(true)
     }
     reader.readAsDataURL(file)
+    // Reset input so same file can be selected again
+    e.target.value = ""
+  }, [addToast])
+
+  const handleFocalPointSave = useCallback((focalPoint: { x: number; y: number }) => {
+    setProfileAvatar(pendingAvatarSrc)
+    setProfileFocalPoint(focalPoint)
+    setFocalPointOpen(false)
+    setPendingAvatarSrc("")
+    addToast("Profile photo updated.")
+  }, [pendingAvatarSrc, addToast])
+
+  const handleFocalPointRemove = useCallback(() => {
+    setProfileAvatar("")
+    setProfileFocalPoint({ x: 0.5, y: 0.5 })
+    setFocalPointOpen(false)
+    setPendingAvatarSrc("")
+    addToast("Profile photo removed.")
   }, [addToast])
 
   // ─── Email change confirmation ───
@@ -640,7 +671,14 @@ export function SettingsPage() {
             <div className="flex items-center gap-4 mb-4">
               <div className="relative">
                 {profileAvatar ? (
-                  <img src={profileAvatar} alt="Profile" className="h-16 w-16 rounded-full object-cover" />
+                  <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-border">
+                    <img
+                      src={profileAvatar}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                      style={{ objectPosition: `${profileFocalPoint.x * 100}% ${profileFocalPoint.y * 100}%` }}
+                    />
+                  </div>
                 ) : (
                   <UserAvatar size="lg" fallback={profileName ? profileName.charAt(0).toUpperCase() : "U"} />
                 )}
@@ -649,7 +687,7 @@ export function SettingsPage() {
               </div>
               <div>
                 <p className="font-semibold">Profile Picture</p>
-                <p className="text-xs text-muted-foreground">JPG, PNG, or WEBP</p>
+                <p className="text-xs text-muted-foreground">JPG, PNG, or WEBP — click to choose focal point</p>
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -667,9 +705,9 @@ export function SettingsPage() {
               <FieldRow label="Birthday" value={profileBirthday} onChange={setProfileBirthday} placeholder="dd/mm/yyyy" error={birthdayError} />
             </div>
             <div className="flex justify-end pt-2">
-              <Button size="sm" disabled={profileSaving || !isDirty} onClick={handleSaveProfile} className="bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70 text-white px-6 shadow-sm disabled:opacity-50">
-                {profileSaving ? "Saving..." : "Save Changes"}
-              </Button>
+              <GradientButton size="sm" disabled={!isDirty} loading={profileSaving} loadingText="Saving..." onClick={handleSaveProfile}>
+                Save Changes
+              </GradientButton>
             </div>
           </Section>
 
@@ -690,10 +728,40 @@ export function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Accent Colour</label>
-              <div className="flex gap-2.5">
-                {["var(--brand-primary)", "var(--brand-secondary)", "#16A34A", "#F59E0B", "#EF4444", "#EC4899"].map((c) => (
-                  <button key={c} onClick={() => handleAccentColorChange(c)} className={`h-9 w-9 rounded-full border-2 transition-transform hover:scale-110 ${accentColor === c ? "border-foreground scale-110" : "border-transparent"}`} style={{ backgroundColor: c }} />
+              <label className="text-sm font-medium mb-2 block">Background Colour</label>
+              <p className="text-xs text-muted-foreground mb-3">Choose a background colour for pages across the app</p>
+              <div className="grid grid-cols-6 gap-2">
+                {[
+                  { value: "#FAFBFF", label: "Default", border: true },
+                  { value: "#FFFFFF", label: "White", border: true },
+                  { value: "#F3F0FF", label: "Lavender" },
+                  { value: "#EFF6FF", label: "Sky" },
+                  { value: "#F0FDFA", label: "Mint" },
+                  { value: "#FFF7ED", label: "Peach" },
+                  { value: "#FDF2F8", label: "Rose" },
+                  { value: "#FFFBEB", label: "Cream" },
+                  { value: "#F5F3FF", label: "Violet" },
+                  { value: "#ECFDF5", label: "Emerald" },
+                  { value: "#FEF2F2", label: "Blush" },
+                  { value: "#F8FAFC", label: "Slate" },
+                ].map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => handleBackgroundColorChange(c.value)}
+                    className={`group relative h-10 w-full rounded-lg border-2 transition-all hover:scale-105 ${backgroundColor === c.value ? "border-[#1E0E6B] ring-2 ring-[#1E0E6B]/20 scale-105" : "border-border hover:border-[#1E0E6B]/40"}`}
+                    style={{ backgroundColor: c.value }}
+                    title={c.label}
+                  >
+                    {backgroundColor === c.value && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-4 w-4 rounded-full bg-[#1E0E6B] flex items-center justify-center">
+                          <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
@@ -714,18 +782,6 @@ export function SettingsPage() {
             <ToggleRow id="productivity-score" label="Show Productivity Score" desc="Display your daily score throughout the app" checked={showProductivityScore} onCheckedChange={(v) => handleFocusToggle(setShowProductivityScore, v)} />
             <ToggleRow id="streak-celebrations" label="Show Streak Celebrations" desc="Celebrate streak milestones and achievements" checked={showStreakCelebrations} onCheckedChange={(v) => handleFocusToggle(setShowStreakCelebrations, v)} />
             <ToggleRow id="keyboard-shortcuts" label="Keyboard Shortcuts" desc="Enable Ctrl+K, Ctrl+/, Ctrl+N shortcuts" checked={keyboardShortcuts} onCheckedChange={(v) => handleFocusToggle(setKeyboardShortcuts, v)} />
-            <div className="grid gap-4 md:grid-cols-2">
-              <SelectRow label="Default Task Sorting" value={defaultTaskSort} onChange={(v) => handleCalendarChange(setDefaultTaskSort, v)} options={[{ value: "date", label: "By Date" }, { value: "priority", label: "By Priority" }, { value: "name", label: "By Name" }, { value: "created", label: "By Created" }]} />
-              <SelectRow label="Default Task View" value={defaultTaskView} onChange={(v) => handleCalendarChange(setDefaultTaskView, v)} options={[{ value: "list", label: "List" }, { value: "board", label: "Board" }]} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Auto-Archive Completed Tasks</label>
-              <select value={archivePeriod} onChange={(e) => handleCalendarChange(setArchivePeriod, e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                <option value="never">Never</option>
-                <option value="7days">After 7 Days</option>
-                <option value="30days">After 30 Days</option>
-              </select>
-            </div>
           </Section>
 
           {/* Section 4: Calendar & Notifications */}
@@ -734,7 +790,6 @@ export function SettingsPage() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Calendar</p>
               <div className="grid gap-4 md:grid-cols-2">
                 <SelectRow label="Default Date Format" value={dateFormat} onChange={(v) => handleCalendarChange(setDateFormat, v)} options={[{ value: "dd/mm/yyyy", label: "dd/mm/yyyy" }, { value: "mm/dd/yyyy", label: "mm/dd/yyyy" }, { value: "yyyy-mm-dd", label: "yyyy-mm-dd" }]} />
-                <SelectRow label="Default Time Format" value={timeFormat} onChange={(v) => handleCalendarChange(setTimeFormat, v)} options={[{ value: "12hour", label: "12 Hour" }, { value: "24hour", label: "24 Hour" }]} />
                 <SelectRow label="Week Starts" value={weekStarts} onChange={(v) => handleCalendarChange(setWeekStarts, v)} options={[{ value: "monday", label: "Monday" }, { value: "sunday", label: "Sunday" }]} />
               </div>
             </div>
@@ -761,9 +816,13 @@ export function SettingsPage() {
           <Section id="teo-prefs" title="Téo Preferences" isOpen={openSection === "teo-prefs"} onToggle={() => toggleSection("teo-prefs")}>
             <ToggleRow id="teo-enabled" label="Enable Téo" desc="Receive personalized guidance from Téo" checked={teoEnabled} onCheckedChange={(v) => handleTeoToggle(setTeoEnabled, v)} />
             <SelectRow label="Coach Style" value={teoCoachStyle} onChange={(v) => handleCalendarChange(setTeoCoachStyle, v)} options={[{ value: "friendly", label: "Friendly" }, { value: "direct", label: "Direct" }, { value: "motivational", label: "Motivational" }, { value: "analytical", label: "Analytical" }]} />
+            <SelectRow label="Response Length" value={teoResponseLength} onChange={(v) => handleCalendarChange(setTeoResponseLength, v)} options={[{ value: "brief", label: "Brief" }, { value: "balanced", label: "Balanced" }, { value: "detailed", label: "Detailed" }]} />
+            <SelectRow label="Coaching Intensity" value={teoCoachingIntensity} onChange={(v) => handleCalendarChange(setTeoCoachingIntensity, v)} options={[{ value: "gentle", label: "Gentle" }, { value: "moderate", label: "Moderate" }, { value: "intensive", label: "Intensive" }]} />
             <ToggleRow id="teo-morning" label="Morning Briefing" desc="Daily morning insights from Téo" checked={teoMorningBriefing} onCheckedChange={(v) => handleTeoToggle(setTeoMorningBriefing, v)} />
             <ToggleRow id="teo-evening" label="Evening Review" desc="End-of-day reflection prompts" checked={teoEveningReview} onCheckedChange={(v) => handleTeoToggle(setTeoEveningReview, v)} />
             <ToggleRow id="teo-weekly" label="Weekly Insights" desc="Weekly progress summaries" checked={teoWeeklyInsights} onCheckedChange={(v) => handleTeoToggle(setTeoWeeklyInsights, v)} />
+            <ToggleRow id="teo-motivation" label="Daily Motivation" desc="Receive daily motivational messages" checked={teoDailyMotivation} onCheckedChange={(v) => handleTeoToggle(setTeoDailyMotivation, v)} />
+            <ToggleRow id="teo-reflection" label="Reflection Reminders" desc="Prompts for self-reflection" checked={teoReflectionReminders} onCheckedChange={(v) => handleTeoToggle(setTeoReflectionReminders, v)} />
             <ToggleRow id="teo-voice" label="Voice Replies" desc="Téo can respond with voice" checked={teoVoiceReplies} onCheckedChange={(v) => handleTeoToggle(setTeoVoiceReplies, v)} />
             <ToggleRow id="teo-proactive" label="Proactive Suggestions" desc="Téo suggests actions proactively" checked={teoProactiveSuggestions} onCheckedChange={(v) => handleTeoToggle(setTeoProactiveSuggestions, v)} />
             <ToggleRow id="teo-summaries" label="Auto Summaries" desc="Automatic daily and weekly summaries" checked={teoAutoSummaries} onCheckedChange={(v) => handleTeoToggle(setTeoAutoSummaries, v)} />
@@ -1083,6 +1142,18 @@ export function SettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Focal Point Picker */}
+      {focalPointOpen && pendingAvatarSrc && (
+        <FocalPointPicker
+          src={pendingAvatarSrc}
+          focalPoint={profileFocalPoint}
+          onFocalPointChange={setProfileFocalPoint}
+          onRemove={handleFocalPointRemove}
+          onClose={() => { setFocalPointOpen(false); setPendingAvatarSrc("") }}
+          onSave={handleFocalPointSave}
+        />
       )}
     </div>
   )
