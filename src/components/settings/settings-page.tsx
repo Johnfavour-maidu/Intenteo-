@@ -1001,86 +1001,19 @@ export function SettingsPage() {
         <TabsContent value="help" className="mt-6 space-y-4">
 
           <Section id="help-center" title="Help Center" isOpen={openSection === "help-center"} onToggle={() => toggleSection("help-center")}>
-            <div className="space-y-1">
-              {[
-                { icon: <BookOpen className="h-4 w-4" />, label: "Getting Started", desc: "New to Intenteo? Start here" },
-                { icon: <Search className="h-4 w-4" />, label: "Search Help Articles", desc: "Find answers to common questions" },
-                { icon: <Video className="h-4 w-4" />, label: "Video Tutorials", desc: "Step-by-step video guides" },
-                { icon: <HelpCircle className="h-4 w-4" />, label: "Frequently Asked Questions", desc: "Quick answers to popular questions" },
-              ].map((item) => (
-                <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
-                  <span className="text-muted-foreground">{item.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <HelpCenter />
           </Section>
 
           <Section id="contact" title="Contact Us" isOpen={openSection === "contact"} onToggle={() => toggleSection("contact")}>
-            <div className="space-y-1">
-              {[
-                { icon: <MessageSquare className="h-4 w-4" />, label: "Email Support", desc: "support@intenteo.app" },
-                { icon: <Send className="h-4 w-4" />, label: "Live Chat", desc: "Coming Soon" },
-                { icon: <AlertTriangle className="h-4 w-4" />, label: "Report a Bug", desc: "Help us improve Intenteo" },
-                { icon: <Lightbulb className="h-4 w-4" />, label: "Send Feedback", desc: "Share your thoughts and suggestions" },
-              ].map((item) => (
-                <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
-                  <span className="text-muted-foreground">{item.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <ContactUs />
           </Section>
 
           <Section id="community" title="Community" isOpen={openSection === "community"} onToggle={() => toggleSection("community")}>
-            <div className="space-y-1">
-              {[
-                { label: "Discord", desc: "Join our community" },
-                { label: "X (Twitter)" },
-                { label: "Instagram" },
-                { label: "LinkedIn" },
-              ].map((item) => (
-                <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
-                  <span className="text-muted-foreground"><Globe className="h-4 w-4" /></span>
-                  <div>
-                    <p className="text-sm font-medium">{item.label}</p>
-                    {item.desc && <p className="text-xs text-muted-foreground">{item.desc}</p>}
-                  </div>
-                </button>
-              ))}
-            </div>
+            <Community />
           </Section>
 
           <Section id="about" title="About Intenteo" isOpen={openSection === "about"} onToggle={() => toggleSection("about")}>
-            <div className="space-y-1">
-              {[
-                { label: "Current App Version", value: "0.1.0" },
-                { label: "What's New", value: "July 10, 2026" },
-                { label: "Privacy Policy", external: true },
-                { label: "Terms & Conditions", external: true },
-                { label: "Open Source Licenses", external: true },
-              ].map((item) => (
-                <button key={item.label} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors text-left">
-                  <span className="text-sm font-medium">{item.label}</span>
-                  {item.value ? (
-                    <span className="text-sm text-muted-foreground">{item.value}</span>
-                  ) : (
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t text-center">
-              <p className="text-sm font-semibold">Intenteo</p>
-              <p className="text-[11px] text-muted-foreground">Version 0.1.0</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Live with Intentionality.</p>
-            </div>
+            <AboutIntenteo />
           </Section>
         </TabsContent>
       </Tabs>
