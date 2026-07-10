@@ -24,6 +24,7 @@ import {
 } from "./goal-utils"
 import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 import { DateInput } from "@/components/ui/date-input"
+import type { Vision } from "./types"
 
 interface Milestone { id: string; title: string; completed: boolean }
 
@@ -67,18 +68,6 @@ interface Habit {
   id: string; name: string; color: string; colorHex: string; icon: string
   completions: Record<string, { completed: boolean; time?: string; notes?: string }>
   streak: number; habitScore: number; createdAt?: string
-}
-
-interface VisionBoardItem {
-  id: string; type: "image" | "quote" | "bible-verse" | "video" | "link" | "note"
-  content: string; title?: string; url?: string; createdAt: string
-}
-
-interface Vision {
-  id: string; title: string; description: string; category: string
-  icon: string; archived: boolean
-  boardItems: VisionBoardItem[]
-  createdAt: string; updatedAt: string
 }
 
 type GoalFilterMode = "all" | "life-vision" | "10-year" | "5-year" | "annual" | "quarterly" | "monthly" | "weekly" | "daily" | "projects" | "completed" | "in-progress" | "not-started" | "overdue" | "archived"
@@ -245,125 +234,6 @@ function getGoalBreakdown(g: Goal, projects: Project[], habits: Habit[]) {
   }
   if (g.progress > 0) sources.push({ name: "Manual", score: g.progress, type: "manual" })
   return sources
-}
-
-const VisionDrawer = ({ isOpen, onClose, vision, onSave, onDelete }: {
-  isOpen: boolean; onClose: () => void; vision: Vision | null; onSave: (v: Vision) => void; onDelete?: (id: string) => void
-}) => {
-  const [data, setData] = useState<Vision | null>(vision)
-  const [newBoardItemContent, setNewBoardItemContent] = useState("")
-  const [newBoardItemType, setNewBoardItemType] = useState<VisionBoardItem["type"]>("note")
-  useEffect(() => { setData(vision) }, [vision])
-  useEffect(() => {
-    if (!isOpen) return
-    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
-    document.addEventListener("keydown", handleKey)
-    return () => document.removeEventListener("keydown", handleKey)
-  }, [isOpen, onClose])
-  if (!isOpen || !data) return null
-
-  const inputCls = "mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all"
-
-  const addBoardItem = () => {
-    if (!newBoardItemContent.trim()) return
-    const item: VisionBoardItem = {
-      id: Date.now().toString(), type: newBoardItemType, content: newBoardItemContent.trim(),
-      createdAt: getTodayISO(),
-    }
-    setData({ ...data, boardItems: [...data.boardItems, item] })
-    setNewBoardItemContent("")
-  }
-
-  const removeBoardItem = (id: string) => {
-    setData({ ...data, boardItems: data.boardItems.filter(i => i.id !== id) })
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Edit Vision</h2>
-          <div className="flex gap-1">
-            {onDelete && <Button variant="ghost" size="icon" onClick={() => { onDelete(data.id); onClose() }} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>}
-            <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className="text-sm font-medium">Vision Title</label>
-            <Input value={data.title} onChange={e => setData({...data, title: e.target.value})} className="mt-1" placeholder="e.g., Career Vision" /></div>
-          <div><label className="text-sm font-medium">Category</label>
-            <div className="relative">
-              <select value={data.category} onChange={e => {
-                const cat = VISION_CATEGORIES.find(c => c.name === e.target.value)
-                setData({...data, category: e.target.value, icon: cat?.icon || data.icon})
-              }} className={inputCls + " cursor-pointer appearance-none pr-8"}>
-                {VISION_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-            </div>
-          </div>
-        </div>
-
-        <div><label className="text-sm font-medium">Icon</label>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {VISION_CATEGORIES.map(c => (
-              <button key={c.name} onClick={() => setData({...data, icon: c.icon, category: c.name})}
-                className={`text-2xl p-2 rounded-lg transition-all ${data.icon === c.icon ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{c.icon}</button>
-            ))}
-          </div>
-        </div>
-
-        <div><label className="text-sm font-medium">Description</label>
-          <textarea value={data.description} onChange={e => setData({...data, description: e.target.value})} className={inputCls + " min-h-[80px]"} placeholder="Describe your vision for this area of life..." /></div>
-
-        <div>
-          <label className="text-sm font-medium">Vision Board</label>
-          <p className="text-xs text-muted-foreground mb-2">Add images, quotes, Bible verses, videos, links, or notes for inspiration</p>
-          {data.boardItems.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {data.boardItems.map(item => (
-                <div key={item.id} className="p-3 rounded-lg bg-white/50 dark:bg-white/5 border border-white/20 group">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-medium text-muted-foreground uppercase">{item.type.replace("-", " ")}</span>
-                      {item.type === "quote" || item.type === "bible-verse" ? (
-                        <p className="text-sm italic mt-1 line-clamp-3">&ldquo;{item.content}&rdquo;</p>
-                      ) : item.type === "link" || item.type === "video" ? (
-                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-1 truncate">{item.content}</p>
-                      ) : item.type === "image" ? (
-                        <p className="text-sm mt-1 truncate">{item.content}</p>
-                      ) : (
-                        <p className="text-sm mt-1 line-clamp-3">{item.content}</p>
-                      )}
-                    </div>
-                    <button onClick={() => removeBoardItem(item.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all ml-1"><X className="h-3 w-3" /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2 mb-2">
-            <select value={newBoardItemType} onChange={e => setNewBoardItemType(e.target.value as VisionBoardItem["type"])}
-              className="px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm appearance-none pr-8 cursor-pointer">
-              <option value="note">Note</option>
-              <option value="quote">Quote</option>
-              <option value="bible-verse">Bible Verse</option>
-              <option value="link">Link</option>
-              <option value="video">Video</option>
-              <option value="image">Image URL</option>
-            </select>
-            <Input value={newBoardItemContent} onChange={e => setNewBoardItemContent(e.target.value)}
-              placeholder={newBoardItemType === "link" || newBoardItemType === "video" || newBoardItemType === "image" ? "Enter URL..." : "Enter content..."}
-              className="flex-1" onKeyDown={e => e.key === "Enter" && addBoardItem()} />
-            <Button size="sm" onClick={addBoardItem}>Add</Button>
-          </div>
-        </div>
-
-        <Button onClick={() => { onSave({...data, updatedAt: getTodayISO()}); onClose() }} className="w-full bg-[#1E0E6B] text-white">Save Vision</Button>
-      </div>
-    </div>
-  )
 }
 
 const GOAL_TIMELINES = ["Life Vision", "10-Year", "5-Year", "Annual", "Quarterly", "Monthly", "Weekly", "Daily"]
@@ -1140,7 +1010,6 @@ export function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [habits, setHabits] = useState<Habit[]>([])
-  const [visions, setVisions] = useState<Vision[]>([])
   const [filter, setFilter] = useState<GoalFilterMode>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [healthFilter, setHealthFilter] = useState<string>("all")
@@ -1148,8 +1017,6 @@ export function GoalsPage() {
   const [sortBy, setSortBy] = useState<SortMode>("deadline")
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isVisionOpen, setIsVisionOpen] = useState(false)
-  const [selectedVision, setSelectedVision] = useState<Vision | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [analyticsGoal, setAnalyticsGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
@@ -1161,24 +1028,9 @@ export function GoalsPage() {
       const sg = localStorage.getItem("intenteo-goals")
       const sp = localStorage.getItem("intenteo-projects")
       const sh = localStorage.getItem("intenteo-habits")
-      const sv = localStorage.getItem("intenteo-vision")
-      const svs = localStorage.getItem("intenteo-visions")
       if (sg) { try { setGoals(JSON.parse(sg)) } catch { setGoals(createSampleGoals()) } } else setGoals(createSampleGoals())
       if (sp) { try { setProjects(JSON.parse(sp)) } catch { setProjects(createSampleProjects()) } } else setProjects(createSampleProjects())
       if (sh) { try { setHabits(JSON.parse(sh)) } catch { /* keep empty */ } }
-      if (svs) {
-        try { setVisions(JSON.parse(svs)) } catch { /* fallback */ }
-      } else if (sv) {
-        try {
-          const old = JSON.parse(sv)
-          const migrated: Vision = {
-            id: "v1", title: "Life Vision", description: old.vision || "", category: "Personal Growth",
-            icon: "\u{1F3AF}", archived: false, boardItems: [],
-            createdAt: old.startDate || getTodayISO(), updatedAt: getTodayISO(),
-          }
-          setVisions([migrated])
-        } catch { /* keep empty */ }
-      }
     } catch {
       setGoals(createSampleGoals())
       setProjects(createSampleProjects())
@@ -1189,7 +1041,6 @@ export function GoalsPage() {
 
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-goals", JSON.stringify(goals)) }, [goals, isLoading])
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-projects", JSON.stringify(projects)) }, [projects, isLoading])
-  useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-visions", JSON.stringify(visions)) }, [visions, isLoading])
 
   const saveGoal = useCallback((g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => {
     const now = getTodayISO()
@@ -1286,7 +1137,7 @@ export function GoalsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div><h1 className="text-3xl font-bold tracking-tight">Visions & Goals</h1><p className="text-muted-foreground">Your life vision in action</p></div>
+        <div><h1 className="text-3xl font-bold tracking-tight">Goals</h1><p className="text-muted-foreground">Your life vision in action</p></div>
         <div className="flex items-center gap-2">
           <div className="flex items-center border border-[#1E0E6B]/60 rounded-lg overflow-hidden">
             <Button variant={viewMode === "board" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("board")} className={viewMode === "board" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>Board</Button>
@@ -1297,69 +1148,6 @@ export function GoalsPage() {
       </div>
 
       <>
-        {/* My Visions Section */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-lg font-bold">My Visions</h2>
-              <p className="text-xs text-muted-foreground">{visions.length} vision{visions.length !== 1 ? "s" : ""} defined</p>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => {
-              const newVision: Vision = {
-                id: Date.now().toString(), title: "New Vision", description: "", category: "Personal Growth",
-                icon: "\u2B50", archived: false, boardItems: [], createdAt: getTodayISO(), updatedAt: getTodayISO(),
-              }
-              setVisions(prev => [...prev, newVision])
-              setSelectedVision(newVision)
-              setIsVisionOpen(true)
-            }}><Plus className="h-3.5 w-3.5 mr-1" /> Add Vision</Button>
-          </div>
-          {visions.length === 0 ? (
-            <div onClick={() => {
-              const newVision: Vision = {
-                id: Date.now().toString(), title: "Life Vision", description: "Become a successful entrepreneur who helps millions live with intentionality", category: "Personal Growth",
-                icon: "\u{1F3AF}", archived: false, boardItems: [], createdAt: getTodayISO(), updatedAt: getTodayISO(),
-              }
-              setVisions([newVision])
-              setSelectedVision(newVision)
-              setIsVisionOpen(true)
-            }} className="cursor-pointer group">
-              <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200" style={{ borderColor: "#1E0E6B" }}>
-                <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1E0E6B] shrink-0"><Target className="h-8 w-8 text-white" /></div>
-                  <div className="flex-1 min-w-0"><h2 className="text-xl font-bold">Create Your First Vision</h2><p className="text-muted-foreground text-sm">Define what you want to achieve in different areas of your life</p></div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-[#1E0E6B] transition-colors shrink-0" />
-                </div>
-              </GlassCard>
-            </div>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {visions.filter(v => !v.archived).map(v => {
-                const linkedGoals = goals.filter(g => g.visionId === v.id)
-                return (
-                  <div key={v.id} onClick={() => { setSelectedVision(v); setIsVisionOpen(true) }} className="cursor-pointer group p-5 bg-white dark:bg-gray-950 rounded-2xl hover:shadow-lg hover:shadow-black/5 transition-all duration-200 hover:-translate-y-0.5" style={{ border: `2px solid ${VISION_CATEGORIES.find(c => c.name === v.category)?.color || "#1E0E6B"}40` }}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{v.icon}</span>
-                        <div>
-                          <h3 className="font-semibold text-sm">{v.title}</h3>
-                          <Badge variant="outline" className="text-[10px] mt-0.5">{v.category}</Badge>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-[#1E0E6B] transition-colors" />
-                    </div>
-                    {v.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{v.description}</p>}
-                    <div className="flex items-center justify-between pt-3 border-t border-white/10 text-xs text-muted-foreground">
-                      <span>{linkedGoals.length} goal{linkedGoals.length !== 1 ? "s" : ""}</span>
-                      <span>{v.boardItems.length} board item{v.boardItems.length !== 1 ? "s" : ""}</span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
           <div className="grid gap-3 md:grid-cols-5">
             {[
               { label: "Total Goals", value: goals.length, color: "#1E0E6B", info: `Total number of goals you've created. Currently tracking ${goals.length} goal${goals.length !== 1 ? "s" : ""} across all categories.` },
@@ -1497,16 +1285,6 @@ export function GoalsPage() {
       )}
 
       <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} />
-      <VisionDrawer isOpen={isVisionOpen} onClose={() => { setIsVisionOpen(false); setSelectedVision(null) }} vision={selectedVision} onSave={(v) => {
-        setVisions(prev => {
-          const exists = prev.find(x => x.id === v.id)
-          if (exists) return prev.map(x => x.id === v.id ? v : x)
-          return [...prev, v]
-        })
-      }} onDelete={(id) => {
-        setVisions(prev => prev.filter(v => v.id !== id))
-        setGoals(prev => prev.map(g => g.visionId === id ? { ...g, visionId: undefined } : g))
-      }} />
       <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
 
       {/* Analytics Drawer */}

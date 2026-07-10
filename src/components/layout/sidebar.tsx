@@ -13,6 +13,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Star,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -33,7 +34,8 @@ const mainNav: NavItem[] = [
   { title: "Tasks", href: "/tasks", icon: CheckSquare },
   { title: "Journal", href: "/journal", icon: BookOpen },
   { title: "Habits", href: "/habits", icon: Repeat },
-  { title: "Visions & Goals", href: "/goals", icon: Target },
+  { title: "Visions", href: "/visions", icon: Star },
+  { title: "Goals", href: "/goals", icon: Target },
 ]
 
 const bottomNav: NavItem[] = [
@@ -52,46 +54,41 @@ export function Sidebar() {
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
+      {/* Collapse/Expand Arrow — positioned outside logo area */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleCollapsed}
+        className="absolute -right-3 top-6 z-50 h-6 w-6 rounded-full border bg-card shadow-md hover:bg-muted"
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3 w-3" />
+        ) : (
+          <ChevronLeft className="h-3 w-3" />
+        )}
+      </Button>
+
       <div className="flex h-full flex-col">
         {/* Logo Section */}
         {!collapsed ? (
-          <div className="flex h-16 items-center justify-between px-4">
+          <div className="flex h-16 items-center px-4">
             <Link href="/" className="flex items-center">
               <img
                 src="/logo.png"
                 alt="Intenteo — Live with Intentionality"
-                className="h-auto transition-opacity duration-200 ease-in-out"
-                width={220}
-                height={55}
+                className="h-14 w-auto transition-opacity duration-200 ease-in-out"
               />
             </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleCollapsed}
-              className="h-8 w-8 shrink-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
           </div>
         ) : (
-          <div className="flex h-16 items-center justify-center px-4 gap-2">
-            <Link href="/" className="flex items-center justify-center w-10 h-10">
+          <div className="flex h-16 items-center justify-center px-4">
+            <Link href="/" className="flex items-center justify-center">
               <img
                 src="/favicon-40.png"
                 alt="Intenteo"
-                className="transition-opacity duration-200 ease-in-out"
-                style={{ width: '40px', height: '40px' }}
+                className="h-10 w-10 transition-opacity duration-200 ease-in-out"
               />
             </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleCollapsed}
-              className="h-8 w-8 shrink-0"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         )}
 
