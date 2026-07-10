@@ -18,7 +18,8 @@ export interface GoalData {
   notes: string; color: string; colorHex: string
   icon: string; trackingMethod: string
   weighting: { projects: number; habits: number; milestones: number; manual: number }
-  timeline?: string; status?: string; habitCompletionRate?: number; lastActivity?: string
+  timeline?: string; status?: string; timeHorizon?: string; visionId?: string
+  habitCompletionRate?: number; lastActivity?: string
   createdAt: string; updatedAt: string
 }
 

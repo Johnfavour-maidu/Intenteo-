@@ -5,7 +5,7 @@ import { ExternalLink, Globe, Mail, Code, FileText } from "lucide-react"
 import { GlassCard } from "@/components/ui/glass-card"
 
 const RELEASE_NOTES = [
-  { version: "0.1.0", date: "July 9, 2026", notes: ["Initial release", "Core features: Tasks, Goals, Habits, Journal, Calendar", "Téo AI coach", "Review Today system", "Focus Mode"] },
+  { version: "0.1.0", date: "July 9, 2026", notes: ["Initial release", "Core features: Tasks, Visions & Goals, Habits, Journal, Calendar", "Téo AI coach", "Review Today system", "Focus Mode"] },
 ]
 
 const LEGAL_LINKS = [

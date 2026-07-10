@@ -347,6 +347,7 @@ export function performBackup(): { success: boolean; size: string } {
     reminders: localStorage.getItem("intenteo-reminders"),
     reviews: localStorage.getItem("intenteo-reviews"),
     vision: localStorage.getItem("intenteo-vision"),
+    visions: localStorage.getItem("intenteo-visions"),
   })
   const size = `${(new Blob([data]).size / 1024).toFixed(1)} KB`
   settings.lastBackup = new Date().toISOString()
@@ -359,7 +360,7 @@ export function performBackup(): { success: boolean; size: string } {
 
 export function exportData(format: "json" | "csv"): void {
   const data: Record<string, unknown> = {}
-  const keys = ["intenteo-tasks", "intenteo-habits", "intenteo-goals", "intenteo-journal-entries", "intenteo-reminders", "intenteo-reviews", "intenteo-vision"]
+  const keys = ["intenteo-tasks", "intenteo-habits", "intenteo-goals", "intenteo-journal-entries", "intenteo-reminders", "intenteo-reviews", "intenteo-vision", "intenteo-visions"]
   keys.forEach((key) => {
     const raw = localStorage.getItem(key)
     if (raw) {

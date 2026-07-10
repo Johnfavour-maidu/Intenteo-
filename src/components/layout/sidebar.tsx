@@ -33,7 +33,7 @@ const mainNav: NavItem[] = [
   { title: "Tasks", href: "/tasks", icon: CheckSquare },
   { title: "Journal", href: "/journal", icon: BookOpen },
   { title: "Habits", href: "/habits", icon: Repeat },
-  { title: "Goals", href: "/goals", icon: Target },
+  { title: "Visions & Goals", href: "/goals", icon: Target },
 ]
 
 const bottomNav: NavItem[] = [

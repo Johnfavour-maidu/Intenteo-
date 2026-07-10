@@ -239,6 +239,7 @@ export function deleteAllUserData(): void {
     "intenteo-reminders",
     "intenteo-reviews",
     "intenteo-vision",
+    "intenteo-visions",
     "intenteo-notifications-read",
     "intenteo-habits-period",
     "intenteo-habits-view",
