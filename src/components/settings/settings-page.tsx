@@ -715,19 +715,13 @@ export function SettingsPage() {
             <div>
               <label className="text-sm font-medium mb-2 block">Background Colour</label>
               <p className="text-xs text-muted-foreground mb-3">Choose a background colour for pages across the app</p>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: "#FAFBFF", label: "Default", border: true },
-                  { value: "#FFFFFF", label: "White", border: true },
+                  { value: "#FAFBFF", label: "Default" },
                   { value: "#F3F0FF", label: "Lavender" },
-                  { value: "#EFF6FF", label: "Sky" },
+                  { value: "#FFF7ED", label: "Warm Cream" },
+                  { value: "#FDF2F8", label: "Soft Rose" },
                   { value: "#F0FDFA", label: "Mint" },
-                  { value: "#FFF7ED", label: "Peach" },
-                  { value: "#FDF2F8", label: "Rose" },
-                  { value: "#FFFBEB", label: "Cream" },
-                  { value: "#F5F3FF", label: "Violet" },
-                  { value: "#ECFDF5", label: "Emerald" },
-                  { value: "#FEF2F2", label: "Blush" },
                   { value: "#F8FAFC", label: "Slate" },
                 ].map((c) => (
                   <button
