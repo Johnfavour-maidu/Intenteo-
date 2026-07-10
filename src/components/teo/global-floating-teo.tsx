@@ -98,6 +98,16 @@ function getContextSuggestions(pathname: string) {
   return CONTEXT_SUGGESTIONS[key || "default"]
 }
 
+const STORAGE_KEY = "intenteo-teo-position"
+
+function loadSavedPosition(): { x: number; y: number } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return null
+}
+
 export function GlobalFloatingTeo() {
   const router = useRouter()
   const pathname = usePathname()
@@ -110,12 +120,64 @@ export function GlobalFloatingTeo() {
   const [pillMessage, setPillMessage] = useState("")
   const [isHovering, setIsHovering] = useState(false)
 
+  const [btnPos, setBtnPos] = useState<{ x: number; y: number } | null>(null)
+  const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number; moved: boolean } | null>(null)
+
+  useEffect(() => {
+    const saved = loadSavedPosition()
+    if (saved) setBtnPos(saved)
+  }, [])
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const pillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasTriggeredPill = useRef(false)
   const lastActivityRef = useRef(Date.now())
+
+  const BUTTON_SIZE = 56
+  const MARGIN = 24
+
+  const clampToViewport = useCallback((x: number, y: number) => {
+    const maxX = window.innerWidth - BUTTON_SIZE - MARGIN
+    const maxY = window.innerHeight - BUTTON_SIZE - MARGIN
+    return { x: Math.max(MARGIN, Math.min(x, maxX)), y: Math.max(MARGIN, Math.min(y, maxY)) }
+  }, [])
+
+  const onDragStart = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    const currentPos = btnPos || { x: window.innerWidth - BUTTON_SIZE - MARGIN, y: window.innerHeight - BUTTON_SIZE - MARGIN }
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startPosX: currentPos.x, startPosY: currentPos.y, moved: false }
+    const target = e.currentTarget as HTMLElement
+    target.setPointerCapture(e.pointerId)
+  }, [btnPos])
+
+  const onDragMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current) return
+    const dx = e.clientX - dragRef.current.startX
+    const dy = e.clientY - dragRef.current.startY
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragRef.current.moved = true
+    const newPos = clampToViewport(dragRef.current.startPosX + dx, dragRef.current.startPosY + dy)
+    setBtnPos(newPos)
+  }, [clampToViewport])
+
+  const onDragEnd = useCallback((e: React.PointerEvent) => {
+    if (dragRef.current?.moved) {
+      e.preventDefault()
+      e.stopPropagation()
+      const target = e.currentTarget as HTMLElement
+      try { target.releasePointerCapture(e.pointerId) } catch {}
+      const currentPos = btnPos
+      if (currentPos) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(currentPos)) } catch {}
+      }
+    }
+    dragRef.current = null
+  }, [btnPos])
+
+  const btnStyle = btnPos ? { left: btnPos.x, top: btnPos.y } : { right: 24, bottom: 24 }
+  const pillStyle = btnPos ? { left: btnPos.x, top: btnPos.y - 8 } : { right: 24, bottom: 80 }
+  const tooltipStyle = btnPos ? { left: btnPos.x, top: btnPos.y - 16 } : { right: 24, bottom: 80 }
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -215,7 +277,11 @@ export function GlobalFloatingTeo() {
             exit={{ opacity: 0, scale: 0.8, width: 56 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             onClick={handleToggle}
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-[#1E0E6B] px-4 py-3 text-white text-sm font-medium shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 transition-shadow cursor-pointer"
+            onPointerDown={onDragStart}
+            onPointerMove={onDragMove}
+            onPointerUp={onDragEnd}
+            className="fixed z-50 flex items-center gap-2 rounded-full bg-[#1E0E6B] px-4 py-3 text-white text-sm font-medium shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 transition-shadow cursor-pointer touch-none"
+            style={pillStyle}
             aria-label={pillMessage}
           >
             <TeoIcon size="xs" className="shrink-0" />
@@ -232,8 +298,12 @@ export function GlobalFloatingTeo() {
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
           onClick={handleToggle}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#1E0E6B] text-white shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 hover:scale-105 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E0E6B]/50 focus-visible:ring-offset-2"
+          className="fixed z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#1E0E6B] text-white shadow-lg shadow-[#1E0E6B]/20 hover:shadow-xl hover:shadow-[#1E0E6B]/30 hover:scale-105 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E0E6B]/50 focus-visible:ring-offset-2 touch-none"
+          style={btnStyle}
           aria-label="Talk with Téo"
         >
           <TeoIcon size="fab" />
@@ -248,7 +318,8 @@ export function GlobalFloatingTeo() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 8 }}
             transition={{ duration: 0.15 }}
-            className="fixed bottom-20 right-6 z-50 whitespace-nowrap rounded-lg bg-[#1E0E6B] px-3 py-1.5 text-xs font-medium text-white shadow-md pointer-events-none"
+            className="fixed z-50 whitespace-nowrap rounded-lg bg-[#1E0E6B] px-3 py-1.5 text-xs font-medium text-white shadow-md pointer-events-none"
+            style={tooltipStyle}
           >
             Talk with Téo
             <div className="absolute -bottom-1 right-5 h-2 w-2 rotate-45 bg-[#1E0E6B]" />

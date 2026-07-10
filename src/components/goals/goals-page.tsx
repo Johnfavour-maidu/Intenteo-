@@ -780,6 +780,10 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
               <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
                 <span>{daysCompleted}d active</span><span>{daysRemaining}d left</span><span>{completedMilestones}/{data.milestones.length} milestones</span>
               </div>
+              <div className="flex gap-3 mt-3">
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "excellent" ? "bg-emerald-50 text-emerald-600" : calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "on_track" ? "bg-blue-50 text-blue-600" : calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "needs_attention" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{GOAL_HEALTH_CONFIG[calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])].icon} {GOAL_HEALTH_CONFIG[calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])].label}</span>
+                {data.status && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{data.status.replace("-", " ")}</span>}
+              </div>
             </div>
           </div>
 
@@ -1030,7 +1034,7 @@ function SummaryCard({ label, value, color, infoText }: { label: string; value: 
     return () => document.removeEventListener("mousedown", handleClick)
   }, [showInfo])
   return (
-    <div className="relative rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg bg-white dark:bg-gray-950 px-4 py-2.5" style={{ border: `2px solid ${color}80` }}>
+    <div className="relative rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg bg-white dark:bg-gray-950 px-4 py-2.5" style={{ border: "2px solid #1E0E6B" }}>
       <p className="text-2xl font-bold" style={{ color }}>{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
       <button onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }} className="absolute bottom-2 right-2 text-muted-foreground/60 hover:text-muted-foreground transition-colors">
@@ -1192,7 +1196,7 @@ export function GoalsPage() {
 
       <>
         <div onClick={() => setIsVisionOpen(true)} className="cursor-pointer group">
-            <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200">
+            <GlassCard variant="primary" className="p-6 hover:shadow-lg transition-all duration-200" style={{ borderColor: "#1E0E6B" }}>
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1E0E6B] shrink-0"><Target className="h-8 w-8 text-white" /></div>
                 <div className="flex-1 min-w-0"><h2 className="text-xl font-bold">Life Vision</h2><p className="text-muted-foreground text-sm line-clamp-2">{vision.vision}</p>
@@ -1277,11 +1281,9 @@ export function GoalsPage() {
                   <tr className="border-b border-white/20">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Goal</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Health</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Progress</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Projects</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -1289,8 +1291,6 @@ export function GoalsPage() {
                   {filteredAndSorted.map(goal => {
                     const gp = projects.filter(p => p.goalId === goal.id)
                     const progress = calcGoalProgress(goal, projects, habits)
-                    const health = calcGoalHealth(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
-                    const healthCfg = GOAL_HEALTH_CONFIG[health]
                     const daysRemaining = getDaysRemaining(goal.deadline)
                     return (
                       <tr key={goal.id} onClick={() => setAnalyticsGoal(goal)} className="border-b border-[#1E0E6B]/10 hover:bg-white/30 dark:hover:bg-white/5 cursor-pointer transition-colors">
@@ -1301,13 +1301,11 @@ export function GoalsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3"><Badge variant="outline" className="text-[10px]" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge></td>
-                        <td className="px-4 py-3"><span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon} {healthCfg.label}</span></td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2"><div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div><span className="text-xs font-medium w-8">{progress}%</span></div>
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">{gp.length}</td>
                         <td className="px-4 py-3 text-xs">{daysRemaining}d</td>
-                        <td className="px-4 py-3"><Badge variant="secondary" className={`text-[10px] ${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : goal.priority === "low" ? "text-emerald-500 bg-emerald-50" : "text-muted-foreground bg-muted"}`}>{goal.priority === "none" ? "No priority" : goal.priority}</Badge></td>
                         <td className="px-4 py-3 text-right">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setAnalyticsGoal(goal) }}><Info className="h-3.5 w-3.5" /></Button>
                         </td>
@@ -1320,7 +1318,7 @@ export function GoalsPage() {
           )}
           {filteredAndSorted.length > 0 && (
             <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => window.location.href = "/journey"} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => window.location.href = "/journey"} className="gap-1.5 bg-white dark:bg-gray-950 border border-[#1E0E6B] text-[#1E0E6B] hover:bg-[#1E0E6B]/5 hover:border-[#1E0E6B]">
                 <Map className="h-3.5 w-3.5" /> View My Journey
               </Button>
             </div>
