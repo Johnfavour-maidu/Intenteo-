@@ -123,10 +123,10 @@ interface AudioRecording {
 const journalTypeConfig: Record<JournalType, { label: string; icon: React.ReactNode; color: string; accent: string; prompt: string }> = {
   morning: { label: "Morning Journal", icon: <PenLine className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FEF3C7", prompt: "What are you looking forward to today?" },
   daily: { label: "Daily Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF", prompt: "What have you been up to today?" },
-  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#7C3AED", accent: "#EDE9FE", prompt: "What challenged you today, and what did you learn?" },
+  reflection: { label: "Reflection", icon: <Lightbulb className="h-3.5 w-3.5" />, color: "#1E0E6B", accent: "#EDE9FE", prompt: "What challenged you today, and what did you learn?" },
   gratitude: { label: "Gratitude", icon: <Heart className="h-3.5 w-3.5" />, color: "#EC4899", accent: "#FCE7F3", prompt: "What are you grateful for today?" },
   decision: { label: "Decision Journal", icon: <Brain className="h-3.5 w-3.5" />, color: "var(--brand-primary)", accent: "#E0E7FF", prompt: "What important decision are you thinking about?" },
-  dream: { label: "Dream Journal", icon: <Sparkles className="h-3.5 w-3.5" />, color: "#A855F7", accent: "#F3E8FF", prompt: "What dream or vision do you want to remember?" },
+  dream: { label: "Dream Journal", icon: <Sparkles className="h-3.5 w-3.5" />, color: "#1E0E6B", accent: "#EDE9FE", prompt: "What dream or vision do you want to remember?" },
   prayer: { label: "Prayer Journal", icon: <Heart className="h-3.5 w-3.5" />, color: "#14B8A6", accent: "#CCFBF1", prompt: "What have you been praying about?" },
   legacy: { label: "Legacy Journal", icon: <BookOpen className="h-3.5 w-3.5" />, color: "#16A34A", accent: "#D1FAE5", prompt: "What do you want to leave behind?" },
   travel: { label: "Travel Journal", icon: <MapPin className="h-3.5 w-3.5" />, color: "var(--brand-secondary)", accent: "#FFEDD5", prompt: "What made today memorable?" },
@@ -345,7 +345,7 @@ const TEXT_COLOURS = [
   { name: "Teal", value: "#0D9488" },
   { name: "Blue", value: "#2563EB" },
   { name: "Indigo", value: "#1E0E6B" },
-  { name: "Purple", value: "#7C3AED" },
+  { name: "Purple", value: "#1E0E6B" },
   { name: "Brown", value: "#92400E" },
 ]
 
@@ -1898,8 +1898,8 @@ function DropdownButton({
                   onChange(opt)
                   setOpen(false)
                 }}
-                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-violet-50 transition-colors ${
-                  opt === value ? "bg-violet-50 text-violet-700 font-medium" : "text-slate-700"
+                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-purple-50 transition-colors ${
+                  opt === value ? "bg-purple-50 text-purple-700 font-medium" : "text-slate-700"
                 }`}
               >
                 {opt}

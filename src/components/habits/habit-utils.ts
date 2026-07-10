@@ -53,7 +53,7 @@ export const LIFECYCLE_CONFIG: Record<LifecycleStage, { label: string; color: st
   planning: { label: "Planning", color: "text-gray-500", bg: "bg-gray-100" },
   active: { label: "Active", color: "text-emerald-600", bg: "bg-emerald-50" },
   building: { label: "Building", color: "text-blue-600", bg: "bg-blue-50" },
-  automatic: { label: "Automatic", color: "text-purple-600", bg: "bg-purple-50" },
+  automatic: { label: "Automatic", color: "text-[#1E0E6B]", bg: "bg-purple-50" },
   mastered: { label: "Mastered", color: "text-amber-600", bg: "bg-amber-50" },
   paused: { label: "Paused", color: "text-orange-500", bg: "bg-orange-50" },
   archived: { label: "Archived", color: "text-gray-400", bg: "bg-gray-50" },
@@ -309,7 +309,7 @@ export function getScoreBreakdown(habit: Habit): { label: string; points: number
     { label: "Consistency", points: consistencyPoints, max: 20, raw: `${consistencyPoints} / 20`, color: "bg-blue-500" },
   ]
   if (!flexSchedule && timeAccuracy !== null) {
-    items.push({ label: "Time Accuracy", points: timeAccuracyPoints, max: 10, raw: `${timeAccuracyPoints} / 10`, color: "bg-purple-500" })
+    items.push({ label: "Time Accuracy", points: timeAccuracyPoints, max: 10, raw: `${timeAccuracyPoints} / 10`, color: "bg-[#1E0E6B]" })
   }
   items.push({ label: "Difficulty", points: difficultyPoints, max: 5, raw: `${difficultyPoints} / 5`, color: "bg-red-500" })
   return items

@@ -45,7 +45,7 @@ export const GOAL_LIFECYCLE_CONFIG: Record<GoalLifecycleStage, { label: string; 
   active: { label: "Active", color: "text-blue-600", bg: "bg-blue-50" },
   building: { label: "Building", color: "text-emerald-600", bg: "bg-emerald-50" },
   on_track: { label: "On Track", color: "text-teal-600", bg: "bg-teal-50" },
-  near_completion: { label: "Near Completion", color: "text-purple-600", bg: "bg-purple-50" },
+  near_completion: { label: "Near Completion", color: "text-[#1E0E6B]", bg: "bg-purple-50" },
   completed: { label: "Completed", color: "text-emerald-600", bg: "bg-emerald-50" },
   archived: { label: "Archived", color: "text-gray-400", bg: "bg-gray-50" },
 }
@@ -258,7 +258,7 @@ export function getGoalScoreBreakdown(
     { label: "Progress", points: progressPoints, max: 40, raw: `${progressPoints} / 40`, color: "bg-emerald-500" },
     { label: "Deadline", points: deadlinePoints, max: 15, raw: `${deadlinePoints} / 15`, color: "bg-blue-500" },
     { label: "Linked Habits", points: habitPoints, max: 15, raw: `${habitPoints} / 15`, color: "bg-orange-500" },
-    { label: "Projects", points: projectPoints, max: 10, raw: `${projectPoints} / 10`, color: "bg-purple-500" },
+    { label: "Projects", points: projectPoints, max: 10, raw: `${projectPoints} / 10`, color: "bg-[#1E0E6B]" },
     { label: "Milestones", points: milestonePoints, max: 10, raw: `${milestonePoints} / 10`, color: "bg-teal-500" },
     { label: "Consistency", points: consistencyPoints, max: 10, raw: `${consistencyPoints} / 10`, color: "bg-pink-500" },
   ]

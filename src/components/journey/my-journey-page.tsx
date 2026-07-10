@@ -110,7 +110,7 @@ function loadHabits(): HabitRecord[] {
     return parsed.map((h: Record<string, unknown>) => ({
       id: (h.id as string) || "", name: (h.name as string) || "Habit",
       description: (h.description as string) || "", category: (h.category as string) || "General",
-      colorHex: (h.colorHex as string) || "#8B5CF6", icon: (h.icon as string) || "",
+      colorHex: (h.colorHex as string) || "#1E0E6B", icon: (h.icon as string) || "",
       goal: (h.goal as string) || "", streak: (h.streak as number) || 0,
       habitScore: (h.habitScore as number) || 0, paused: (h.paused as boolean) || false,
       completions: (h.completions && typeof h.completions === "object")
@@ -174,7 +174,7 @@ function loadGoals(): GoalRecord[] {
       id: (g.id as string) || "", title: (g.title as string) || "Goal",
       description: (g.description as string) || "", category: (g.category as string) || "General",
       progress: (g.progress as number) || 0,
-      colorHex: (g.colorHex as string) || "#8B5CF6", icon: (g.icon as string) || "",
+      colorHex: (g.colorHex as string) || "#1E0E6B", icon: (g.icon as string) || "",
       milestones: Array.isArray(g.milestones)
         ? g.milestones as { id: string; title: string; completed: boolean }[] : [],
       linkedHabits: Array.isArray(g.linkedHabits) ? g.linkedHabits as string[] : [],
@@ -203,7 +203,7 @@ function getDayActivityColor(dateISO: string, habits: HabitRecord[], tasks: Task
   })
   const total = habitCompletions + taskCompletions
 
-  if (hasJournal) return { color: "#8B5CF6", level: "journal" }
+  if (hasJournal) return { color: "#1E0E6B", level: "journal" }
   if (goalMilestone) return { color: "#3B82F6", level: "milestone" }
   if (total >= 5) return { color: "#22C55E", level: "excellent" }
   if (total >= 2) return { color: "#F97316", level: "average" }
@@ -285,7 +285,7 @@ function buildTimeline(dateISO: string, habits: HabitRecord[], tasks: TaskRecord
       title: e.title || "Journal Entry",
       description: e.content ? e.content.slice(0, 120) + (e.content.length > 120 ? "..." : "") : undefined,
       icon: e.type === "reflection" ? "💭" : e.type === "gratitude" ? "🙏" : "📝",
-      color: "#8B5CF6",
+      color: "#1E0E6B",
       data: { entryId: e.id, type: e.type, mood: e.mood, tags: e.tags, hasImages: !!(e.images?.length), hasAudio: !!(e.audioRecordings?.length), sourceType: "journal" },
     })
     // Mood from journal
@@ -401,7 +401,7 @@ function generateInsights(habits: HabitRecord[], tasks: TaskRecord[], journal: J
     if (journalDays.size >= 7) {
       insights.push({
         type: "insight", icon: "📊",
-        color: "#8B5CF6",
+        color: "#1E0E6B",
         text: `You are more productive on days you journal — your completion rates are higher on those days.`,
       })
     }
@@ -517,7 +517,7 @@ function generateRecommendations(habits: HabitRecord[], tasks: TaskRecord[], jou
   if (recentJournalCount < 3) {
     recs.push({
       type: "recommendation", icon: "📝",
-      color: "#8B5CF6",
+      color: "#1E0E6B",
       text: `You've journaled ${recentJournalCount}/${recentDays} recent days. Try to journal daily for better self-awareness.`,
     })
   }
@@ -566,7 +566,7 @@ function detectMilestones(habits: HabitRecord[], tasks: TaskRecord[], journal: J
     milestones.push({
       id: "journal-100", title: "100 Journal Entries",
       description: "A remarkable commitment to self-reflection",
-      icon: "📝", color: "#8B5CF6", date: today,
+      icon: "📝", color: "#1E0E6B", date: today,
     })
   }
 
@@ -595,7 +595,7 @@ function detectMilestones(habits: HabitRecord[], tasks: TaskRecord[], journal: J
     milestones.push({
       id: `recovery-${h.id}`, title: `Recovered "${h.name}"`,
       description: `Used streak recovery ${h.recoveriesUsed} time${(h.recoveriesUsed || 0) > 1 ? "s" : ""}`,
-      icon: "🔄", color: "#8B5CF6", date: today,
+      icon: "🔄", color: "#1E0E6B", date: today,
     })
   })
 

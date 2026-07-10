@@ -39,7 +39,7 @@ const promptChips = [
   { icon: <Target className="h-4 w-4" />, label: "Help me reach my goals", color: "from-amber-400 to-orange-500" },
   { icon: <BookOpen className="h-4 w-4" />, label: "Summarize my journal", color: "from-[#1E0E6B]/80 to-[#1E0E6B]" },
   { icon: <Zap className="h-4 w-4" />, label: "What's my next best action?", color: "from-rose-400 to-red-500" },
-  { icon: <BarChart3 className="h-4 w-4" />, label: "How can I improve my Intent Score?", color: "from-indigo-400 to-blue-500" },
+  { icon: <BarChart3 className="h-4 w-4" />, label: "How can I improve my Intent Score?", color: "from-[#1E0E6B] to-blue-500" },
   { icon: <Brain className="h-4 w-4" />, label: "Help me build a better routine", color: "from-cyan-400 to-teal-500" },
   { icon: <ListChecks className="h-4 w-4" />, label: "Review my week", color: "from-pink-400 to-rose-500" },
 ]

@@ -179,7 +179,7 @@ function normalizeHabit(h: Record<string, unknown>): Habit {
     timeAccuracy: typeof h.timeAccuracy === "number" || h.timeAccuracy === null ? (h.timeAccuracy as number | null) : null,
     habitScore: typeof h.habitScore === "number" ? h.habitScore : 0,
     color: (h.color as string) || "Purple",
-    colorHex: (h.colorHex as string) || "#8B5CF6",
+    colorHex: (h.colorHex as string) || "#1E0E6B",
     icon: (h.icon as string) || "",
     completions: (h.completions && typeof h.completions === "object") ? h.completions as Record<string, { completed: boolean; time?: string; notes?: string }> : {},
     createdAt: (h.createdAt as string) || getTodayISO(),
@@ -214,7 +214,7 @@ const getMonthDates = (year: number, month: number): Date[] => {
 }
 
 const HABIT_COLORS: { name: string; hex: string }[] = [
-  { name: "Purple", hex: "#8B5CF6" },
+  { name: "Purple", hex: "#1E0E6B" },
   { name: "Blue", hex: "#3B82F6" },
   { name: "Orange", hex: "#F97316" },
   { name: "Green", hex: "#22C55E" },
@@ -423,7 +423,7 @@ const createSampleHabits = (): Habit[] => {
     if (Math.random() > 0.3) completions[dateStr] = { completed: true, time: "08:" + String(Math.floor(Math.random() * 60)).padStart(2, "0") }
   }
   const habits: Omit<Habit, "streak" | "bestStreak" | "completionRate" | "consistency" | "timeAccuracy" | "habitScore">[] = [
-    { id: "1", name: "Morning Journal", description: "Write for 10 minutes about intentions and gratitude", category: "Mindfulness", duration: "10 mins", totalDuration: "No end date", recurrence: { type: "daily" }, schedule: { type: "preferred", slot: "morning", time: "07:00" }, reminder: { enabled: false }, goal: "Write daily", whyItMatters: "Start each day with intention", completedToday: true, color: "Purple", colorHex: "#8B5CF6", icon: "📝", completions, createdAt: "2025-01-01" },
+    { id: "1", name: "Morning Journal", description: "Write for 10 minutes about intentions and gratitude", category: "Mindfulness", duration: "10 mins", totalDuration: "No end date", recurrence: { type: "daily" }, schedule: { type: "preferred", slot: "morning", time: "07:00" }, reminder: { enabled: false }, goal: "Write daily", whyItMatters: "Start each day with intention", completedToday: true, color: "Purple", colorHex: "#1E0E6B", icon: "📝", completions, createdAt: "2025-01-01" },
     { id: "2", name: "Meditate", description: "10 minutes of guided meditation", category: "Mental Health", duration: "10 mins", totalDuration: "90 days", recurrence: { type: "daily" }, schedule: { type: "preferred", slot: "morning", time: "06:30" }, reminder: { enabled: false }, goal: "Daily practice", whyItMatters: "Inner peace and clarity", completedToday: true, color: "Blue", colorHex: "#3B82F6", icon: "🧘", completions, createdAt: "2025-01-05" },
     { id: "3", name: "Exercise", description: "30 minutes of physical activity", category: "Health", duration: "30 mins", totalDuration: "60 days", recurrence: { type: "weekdays" }, schedule: { type: "preferred", slot: "evening", time: "17:00" }, reminder: { enabled: false }, goal: "Stay fit", whyItMatters: "Physical health is foundational", completedToday: true, color: "Green", colorHex: "#22C55E", icon: "💪", completions, createdAt: "2025-01-10" },
     { id: "4", name: "Read 30 Minutes", description: "Read books on personal growth", category: "Learning", duration: "30 mins", totalDuration: "365 days", recurrence: { type: "daily" }, schedule: { type: "anytime" }, reminder: { enabled: false }, goal: "Read more", whyItMatters: "Knowledge compounds", completedToday: true, color: "Orange", colorHex: "#F97316", icon: "📚", completions, createdAt: "2025-01-03" },
@@ -821,7 +821,7 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         primary={totalCount === 0 ? "--" : `${monthPercent}%`}
         secondary={totalCount === 0 ? "No data yet" : `${monthCompleted}/${monthMax} completed`}
         gradient="from-purple-400 to-pink-500"
-        accentColor="#8B5CF6"
+        accentColor="#1E0E6B"
         icon={<TrendingUp className="h-5 w-5 text-white" />}
         isActive={activeFilter === "score"}
         onClick={() => { onFilterChange(activeFilter === "score" ? null : "score"); onSortChange("highest_score") }}
@@ -864,7 +864,7 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         label="Active Habits"
         primary={totalCount === 0 ? "0" : `${activeCount}`}
         secondary={totalCount === 0 ? "Create your first habit" : "Currently active"}
-        gradient="from-indigo-400 to-blue-500"
+        gradient="from-[#1E0E6B] to-blue-500"
         accentColor="#1E0E6B"
         icon={<Target className="h-5 w-5 text-white" />}
         isActive={activeFilter === "all"}

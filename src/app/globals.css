@@ -73,7 +73,7 @@
   --chart-2: #EB9E5B;
   --chart-3: #16A34A;
   --chart-4: #3B82F6;
-  --chart-5: #8B5CF6;
+  --chart-5: #1E0E6B;
 
   --sidebar-background: #FFFFFF;
   --sidebar-foreground: #111827;
@@ -86,17 +86,17 @@
 
   /* Task Priority Colours */
   --task-priority: #F97316;
-  --task-progress: #7C3AED;
+  --task-progress: #1E0E6B;
   --task-maintenance: #14B8A6;
 
   /* Task Tints */
   --task-tint-priority: #FFF7ED;
-  --task-tint-progress: #F5F3FF;
+  --task-tint-progress: #EDE9FE;
   --task-tint-maintenance: #F0FDFA;
 
   /* Task Rail Gradients */
   --task-rail-priority: linear-gradient(180deg, #FFB86B 0%, #EA580C 100%);
-  --task-rail-progress: linear-gradient(180deg, #A78BFA 0%, #6D28D9 100%);
+  --task-rail-progress: linear-gradient(180deg, #3D1FA0 0%, #1E0E6B 100%);
   --task-rail-maintenance: linear-gradient(180deg, #5EEAD4 0%, #0F766E 100%);
 }
 
@@ -133,7 +133,7 @@
   --chart-2: #EB9E5B;
   --chart-3: #22C55E;
   --chart-4: #60A5FA;
-  --chart-5: #A78BFA;
+  --chart-5: #1E0E6B;
 
   --sidebar-background: #141225;
   --sidebar-foreground: #F8FAFC;
