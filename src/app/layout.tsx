@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Intenteo — Live with Intentionality",
   description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
+  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/favicon-40.png", sizes: "40x40", type: "image/png" },

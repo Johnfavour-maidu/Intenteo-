@@ -1,0 +1,29 @@
+{
+  "name": "Intenteo — Live with Intentionality",
+  "short_name": "Intenteo",
+  "description": "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
+  "icons": [
+    {
+      "src": "/favicon-40.png",
+      "sizes": "40x40",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-40.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-40.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#1E0E6B",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
+}
