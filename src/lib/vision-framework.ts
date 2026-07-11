@@ -203,7 +203,7 @@ export function loadVisions(): Vision[] {
         const oldItems = JSON.parse(oldRaw) as Array<{ id: string; title: string; description: string; category: string; icon: string; archived: boolean; boardItems: Array<{ id: string; type: string; content: string; title?: string; url?: string; createdAt: string }>; createdAt: string; updatedAt: string }>
         const migrated: Vision[] = oldItems.map((v) => ({
           ...v,
-          boardItems: v.boardItems.map((b) => ({ ...b, type: b.type as VisionBoardItem["type"] })),
+          boardItems: v.boardItems.map((b) => ({ ...b, type: b.type as VisionBoardItem["type"], title: b.title || "", url: b.url || "" })),
           purposeAlignment: "",
           relatedValueIds: [],
           relatedCommitmentIds: [],

@@ -3563,8 +3563,6 @@ export function JournalPage() {
             onSaveSuccess={(msg) => addToast(msg, "info")}
             resetKey={resetKey}
             initialType={initialJournalType}
-            pinnedEntries={pinnedEntries}
-            onOpenPinned={(entry) => setEditingEntry(entry)}
           />
         </div>
 
