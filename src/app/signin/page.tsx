@@ -1,9 +1,13 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { TeoIcon } from "@/components/ui/teo-icon"
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, ArrowRight, User } from "lucide-react"
+import { loadUserSettings, saveUserSettings } from "@/lib/user-settings"
+
+const DEMO_EMAIL = "john@intenteo.com"
+const DEMO_PASSWORD = "intenteo2026"
 
 export default function SignInPage() {
   const { isSignedIn, signIn } = useAuth()
@@ -11,23 +15,62 @@ export default function SignInPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [profileName, setProfileName] = useState("")
+  const [profileUsername, setProfileUsername] = useState("")
+
+  useEffect(() => {
+    try {
+      const settings = loadUserSettings()
+      setProfileName(settings.profile.name || "John Favour")
+      setProfileUsername(settings.profile.username || "Favourite")
+    } catch {
+      setProfileName("John Favour")
+      setProfileUsername("Favourite")
+    }
+  }, [])
 
   if (isSignedIn) return null
 
   const handleDemoLogin = () => {
     setLoading(true)
+    setError("")
+    // Set demo profile on first login
+    try {
+      const settings = loadUserSettings()
+      if (!settings.profile.name) {
+        saveUserSettings({
+          profile: {
+            ...settings.profile,
+            name: "John Favour",
+            username: "Favourite",
+            email: DEMO_EMAIL,
+          },
+        })
+      }
+    } catch {}
     setTimeout(() => {
       signIn()
-    }, 600)
+    }, 800)
   }
 
   const handleEmailLogin = (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     if (!email || !password) return
     setLoading(true)
+    // Accept demo credentials or any email/password combo
     setTimeout(() => {
-      signIn()
-    }, 600)
+      if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+        signIn()
+      } else if (email && password) {
+        // Accept any credentials for demo purposes
+        signIn()
+      } else {
+        setError("Invalid credentials. Try the demo login below.")
+        setLoading(false)
+      }
+    }, 800)
   }
 
   return (
@@ -46,6 +89,19 @@ export default function SignInPage() {
 
         {/* Sign In Card */}
         <div className="bg-white dark:bg-gray-950 rounded-2xl shadow-xl shadow-black/5 border border-[#1E0E6B]/10 p-6 space-y-5">
+          {/* Profile Preview */}
+          {profileName && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1E0E6B] text-white shrink-0">
+                <User className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{profileName}</p>
+                <p className="text-xs text-muted-foreground truncate">@{profileUsername}</p>
+              </div>
+            </div>
+          )}
+
           <div>
             <h2 className="text-lg font-semibold">Welcome back</h2>
             <p className="text-sm text-muted-foreground mt-0.5">Sign in to continue your journey</p>
@@ -60,8 +116,8 @@ export default function SignInPage() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  onChange={(e) => { setEmail(e.target.value); setError("") }}
+                  placeholder={DEMO_EMAIL}
                   className="w-full h-10 pl-10 pr-4 rounded-lg border border-[#1E0E6B]/20 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 focus:border-[#1E0E6B]/40 transition-all"
                 />
               </div>
@@ -74,7 +130,7 @@ export default function SignInPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setError("") }}
                   placeholder="Enter your password"
                   className="w-full h-10 pl-10 pr-10 rounded-lg border border-[#1E0E6B]/20 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 focus:border-[#1E0E6B]/40 transition-all"
                 />
@@ -87,6 +143,10 @@ export default function SignInPage() {
                 </button>
               </div>
             </div>
+
+            {error && (
+              <p className="text-xs text-red-500">{error}</p>
+            )}
 
             <button
               type="submit"
@@ -124,9 +184,18 @@ export default function SignInPage() {
             )}
           </button>
 
-          <p className="text-[11px] text-muted-foreground text-center">
-            Explore Intenteo with sample data. No account required.
-          </p>
+          {/* Demo Credentials */}
+          <div className="rounded-lg bg-muted/50 border border-[#1E0E6B]/5 p-3 space-y-1.5">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Demo Credentials</p>
+            <div className="flex items-center gap-2 text-xs">
+              <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
+              <span className="text-foreground font-mono">{DEMO_EMAIL}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+              <span className="text-foreground font-mono">{DEMO_PASSWORD}</span>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
