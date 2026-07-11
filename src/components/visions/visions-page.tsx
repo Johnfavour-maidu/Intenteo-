@@ -19,7 +19,7 @@ import {
   loadCommitments, addCommitment, updateCommitment, deleteCommitment,
   loadVisions, addVision, updateVision, deleteVision,
   loadRoadmapMilestones, addRoadmapMilestone, updateRoadmapMilestone, deleteRoadmapMilestone,
-  calculateAlignmentScore, searchVisionEntities,
+  calculateAlignmentScore, searchVisionEntities, seedDemoDataIfEmpty,
   VISION_CATEGORIES,
   type Purpose, type CoreValue, type Commitment, type Vision, type VisionBoardItem,
   type RoadmapMilestone, type RoadmapTimeHorizon, type MilestoneStatus,
@@ -191,7 +191,7 @@ function PurposeSection({ purpose, onSave }: { purpose: Purpose; onSave: (p: Pur
   }
 
   return (
-    <div className="rounded-xl border border-border p-6 bg-gradient-to-br from-primary/5 via-transparent to-primary/5">
+    <div className="rounded-2xl border border-border p-5 bg-gradient-to-br from-primary/5 via-white to-primary/5 shadow-sm">
       {editing ? (
         <div className="space-y-4">
           <div>
@@ -233,7 +233,10 @@ function PurposeSection({ purpose, onSave }: { purpose: Purpose; onSave: (p: Pur
             </Button>
           </div>
           {purpose.statement ? (
-            <p className="text-lg font-medium leading-relaxed">{purpose.statement}</p>
+            <div className="flex gap-2 items-start">
+              <span className="text-3xl text-primary/20 font-serif leading-none mt-0.5">&ldquo;</span>
+              <p className="text-xl font-medium leading-relaxed">{purpose.statement}</p>
+            </div>
           ) : (
             <p className="text-muted-foreground italic">Define your purpose — the reason you exist.</p>
           )}
@@ -308,16 +311,18 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
               <Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Value</Button>
             } />
           ) : (
-            <div className="grid gap-2">
-              {filtered.map((value) => (
-                <div
-                  key={value.id}
-                  draggable
-                  onDragStart={() => handleDragStart(value.id)}
-                  onDragOver={(e) => handleDragOver(e, value.id)}
-                  onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/30 transition-all group cursor-grab active:cursor-grabbing ${dragId === value.id ? "opacity-50" : ""} ${value.pinned ? "border-primary/30 bg-primary/5" : ""}`}
-                >
+            <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+              {filtered.map((value) => {
+                const borderColor = value.importance === "high" ? "border-t-red-500" : value.importance === "medium" ? "border-t-yellow-500" : "border-t-blue-500"
+                return (
+                  <div
+                    key={value.id}
+                    draggable
+                    onDragStart={() => handleDragStart(value.id)}
+                    onDragOver={(e) => handleDragOver(e, value.id)}
+                    onDragEnd={handleDragEnd}
+                    className={`flex items-center gap-3 p-4 rounded-2xl border border-t-2 ${borderColor} bg-card hover:shadow-md transition-all duration-200 group cursor-grab active:cursor-grabbing ${dragId === value.id ? "opacity-50" : ""} ${value.pinned ? "border-primary/30 bg-primary/5" : ""}`}
+                  >
                   <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                   <span className="text-xl shrink-0">{value.icon}</span>
                   <div className="flex-1 min-w-0">
@@ -345,7 +350,8 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
                     <ValueEditInline value={value} onSave={(updates) => { onUpdate(value.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -445,13 +451,12 @@ function CommitmentsSection({ commitments, values, visions, onAdd, onUpdate, onD
               <Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Commitment</Button>
             } />
           ) : (
-            <div className="grid gap-2">
-              {filtered.map((c) => (
-                <div key={c.id} className={`p-3 rounded-xl border bg-card hover:bg-muted/30 transition-all group ${c.archived ? "opacity-60" : ""}`}>
+            <div className="grid gap-3 md:grid-cols-2">
+              {filtered.map((c) => {
+                const priorityBorderColor = c.priority === "high" ? "border-l-red-500" : c.priority === "medium" ? "border-l-yellow-500" : "border-l-blue-500"
+                return (
+                <div key={c.id} className={`p-3 rounded-2xl border border-l-4 ${priorityBorderColor} bg-card shadow-sm hover:shadow-md transition-all duration-200 group ${c.archived ? "opacity-60" : ""}`}>
                   <div className="flex items-start gap-3">
-                    <div className="mt-1">
-                      <span className={`block h-2.5 w-2.5 rounded-full ${c.priority === "high" ? "bg-red-500" : c.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"}`} />
-                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{c.title}</span>
@@ -481,7 +486,8 @@ function CommitmentsSection({ commitments, values, visions, onAdd, onUpdate, onD
                     <CommitmentEditInline commitment={c} values={values} visions={visions} onSave={(updates) => { onUpdate(c.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -609,15 +615,19 @@ function VisionsSection({ visions, values, commitments, goals, onAdd, onUpdate, 
                 const cat = VISION_CATEGORIES.find((c) => c.name === v.category) || VISION_CATEGORIES[VISION_CATEGORIES.length - 1]
                 const linkedGoals = goals.filter((g) => g.visionId === v.id)
                 const alignment = calculateAlignmentScore({ valueIds: v.relatedValueIds, commitmentIds: v.relatedCommitmentIds, visionIds: [v.id] })
+                const ringRadius = 16
+                const ringCircumference = 2 * Math.PI * ringRadius
+                const ringOffset = ringCircumference - (alignment.score / 100) * ringCircumference
+                const ringColor = alignment.score >= 75 ? "#22C55E" : alignment.score >= 50 ? "#EAB308" : alignment.score >= 25 ? "#F97316" : "#EF4444"
                 return (
-                  <div key={v.id} className={`rounded-xl border bg-card hover:shadow-md transition-all cursor-pointer group ${v.archived ? "opacity-60" : ""}`}
+                  <div key={v.id} className={`rounded-2xl border-t-2 bg-card hover:shadow-lg transition-all duration-200 cursor-pointer group min-h-[200px] flex flex-col ${v.archived ? "opacity-60" : ""}`} style={{ borderTopColor: cat.color }}
                     onClick={() => onSelectVision(v)}>
                     {v.coverImage && (
-                      <div className="h-32 rounded-t-xl overflow-hidden">
+                      <div className="h-32 rounded-t-2xl overflow-hidden">
                         <img src={v.coverImage} alt="" className="w-full h-full object-cover" />
                       </div>
                     )}
-                    <div className="p-4">
+                    <div className="p-4 flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-2xl">{v.icon || cat.icon}</span>
@@ -626,10 +636,19 @@ function VisionsSection({ visions, values, commitments, goals, onAdd, onUpdate, 
                             <Badge variant="secondary" className="text-[9px]" style={{ color: cat.color, backgroundColor: `${cat.color}15` }}>{v.category}</Badge>
                           </div>
                         </div>
-                        <AlignmentBadge score={alignment.score} />
+                        <div className="relative w-10 h-10 shrink-0">
+                          <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                            <circle cx="20" cy="20" r={ringRadius} fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/50" />
+                            <circle cx="20" cy="20" r={ringRadius} fill="none" stroke={ringColor} strokeWidth="3" strokeLinecap="round"
+                              strokeDasharray={ringCircumference} strokeDashoffset={ringOffset} />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[8px] font-bold" style={{ color: ringColor }}>{alignment.score}%</span>
+                          </div>
+                        </div>
                       </div>
                       {v.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{v.description}</p>}
-                      <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-3 mt-auto pt-3 text-[10px] text-muted-foreground border-t border-border/50">
                         <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {linkedGoals.length} Goals</span>
                         <span className="flex items-center gap-1"><Image className="h-3 w-3" /> {v.boardItems.length} Board</span>
                         <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {v.relatedValueIds.length} Values</span>
@@ -767,13 +786,28 @@ function VisionBoardDrawer({ vision, onClose, onUpdate }: {
             <EmptyState icon={Image} title="Board is empty" desc="Add images, quotes, scriptures, and notes to inspire your vision." />
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {items.map((item) => (
-                <div key={item.id} className="rounded-xl border bg-card p-3 space-y-2 group relative">
+              {items.map((item) => {
+                const typeBgColors: Record<string, string> = {
+                  image: "bg-blue-500/10 text-blue-600",
+                  quote: "bg-purple-500/10 text-purple-600",
+                  "bible-verse": "bg-amber-500/10 text-amber-600",
+                  video: "bg-red-500/10 text-red-600",
+                  link: "bg-emerald-500/10 text-emerald-600",
+                  note: "bg-gray-500/10 text-gray-600",
+                  voice: "bg-pink-500/10 text-pink-600",
+                }
+                return (
+                <div key={item.id} className="rounded-2xl border bg-card p-3 space-y-2 group relative shadow-sm hover:shadow-md transition-all duration-200">
                   <button onClick={() => handleRemove(item.id)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-destructive transition-opacity">
                     <Trash2 className="h-3 w-3" />
                   </button>
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-semibold">
-                    {typeIcons[item.type]} {item.type.replace("-", " ")}
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-flex items-center justify-center h-5 w-5 rounded-md ${typeBgColors[item.type] || "bg-muted text-muted-foreground"}`}>
+                      {typeIcons[item.type]}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                      {item.type.replace("-", " ")}
+                    </span>
                   </div>
                   {item.title && <p className="text-sm font-medium">{item.title}</p>}
                   {item.type === "image" && item.url && (
@@ -794,7 +828,8 @@ function VisionBoardDrawer({ vision, onClose, onUpdate }: {
                     </a>
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -1101,6 +1136,111 @@ function VisionDetailDrawer({ vision, values, commitments, goals, onClose, onUpd
 }
 
 // ══════════════════════════════════════════════════════════════
+// ROADMAP SECTION (timeline view across all visions)
+// ══════════════════════════════════════════════════════════════
+
+function RoadmapSection({ visions }: { visions: Vision[] }) {
+  const [expanded, setExpanded] = useState(true)
+  const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
+
+  useEffect(() => {
+    setMilestones(loadRoadmapMilestones())
+  }, [])
+
+  const horizonLabels: Record<RoadmapTimeHorizon, string> = { "1-year": "1 Year", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
+  const statusColors: Record<MilestoneStatus, string> = { "not-started": "bg-muted text-muted-foreground", "in-progress": "bg-blue-500/10 text-blue-600", "completed": "bg-emerald-500/10 text-emerald-600", "on-hold": "bg-yellow-500/10 text-yellow-600" }
+  const statusLabels: Record<MilestoneStatus, string> = { "not-started": "Not Started", "in-progress": "In Progress", "completed": "Completed", "on-hold": "On Hold" }
+
+  const groupedByVision = useMemo(() => {
+    const active = visions.filter((v) => !v.archived)
+    return active.map((v) => {
+      const visionMilestones = milestones.filter((m) => m.visionId === v.id)
+      const byHorizon: Record<RoadmapTimeHorizon, RoadmapMilestone[]> = {
+        "1-year": [], "5-years": [], "10-years": [], "20-years": [], "lifetime": [],
+      }
+      visionMilestones.forEach((m) => { byHorizon[m.timeHorizon].push(m) })
+      return { vision: v, byHorizon, total: visionMilestones.length }
+    }).filter((g) => g.total > 0)
+  }, [visions, milestones])
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        icon={Clock}
+        title="Life Roadmap"
+        subtitle="Your milestones across time horizons"
+        count={milestones.length}
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+      />
+      {expanded && (
+        <div className="space-y-6">
+          {groupedByVision.length === 0 ? (
+            <EmptyState icon={Clock} title="No roadmap milestones" desc="Add milestones from your vision details to build your life roadmap." />
+          ) : (
+            groupedByVision.map(({ vision, byHorizon, total }) => {
+              const cat = VISION_CATEGORIES.find((c) => c.name === vision.category) || VISION_CATEGORIES[VISION_CATEGORIES.length - 1]
+              return (
+                <div key={vision.id} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{vision.icon || cat.icon}</span>
+                    <h3 className="text-sm font-bold">{vision.title}</h3>
+                    <Badge variant="secondary" className="text-[9px]" style={{ color: cat.color }}>{total} milestones</Badge>
+                  </div>
+                  <div className="relative pl-6">
+                    <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-primary/20 rounded-full" />
+                    {(["1-year", "5-years", "10-years", "20-years", "lifetime"] as RoadmapTimeHorizon[]).map((horizon) => {
+                      const items = byHorizon[horizon]
+                      if (items.length === 0) return null
+                      return (
+                        <div key={horizon} className="relative space-y-2 mb-4 last:mb-0">
+                          <div className="flex items-center gap-2 mb-2 relative">
+                            <div className="absolute -left-6 w-3 h-3 rounded-full bg-primary border-2 border-background z-10" />
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{horizonLabels[horizon]}</h4>
+                          </div>
+                          <div className="space-y-2">
+                            {items.map((m) => (
+                              <div key={m.id} className="relative pl-2">
+                                <div className="absolute -left-[15px] top-3 w-2 h-2 rounded-full bg-primary/40 border border-primary z-10" />
+                                <div className="p-3 rounded-2xl border bg-card hover:bg-muted/30 transition-colors group">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-sm font-semibold">{m.title}</span>
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[m.status]}`}>{statusLabels[m.status]}</span>
+                                      </div>
+                                      {m.description && <p className="text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
+                                      <div className="flex items-center gap-3 mt-2">
+                                        <span className="text-[10px] text-muted-foreground">Target: {m.targetYear}</span>
+                                        <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
+                                          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${m.progress}%` }} />
+                                          </div>
+                                          <span className="text-[10px] text-muted-foreground">{m.progress}%</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
 // GOALS CONNECTED TO VISION
 // ══════════════════════════════════════════════════════════════
 
@@ -1329,6 +1469,7 @@ export function VisionsPage() {
 
   // Load data
   useEffect(() => {
+    seedDemoDataIfEmpty()
     setValues(loadCoreValues())
     setCommitments(loadCommitments())
     setVisions(loadVisions())
@@ -1439,7 +1580,7 @@ export function VisionsPage() {
   }
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-6 pb-16 animate-fadeIn">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -1508,6 +1649,11 @@ export function VisionsPage() {
 
       {/* 6. Goals Connected to Vision */}
       <GoalsByVisionSection visions={visions} goals={goals} />
+
+      <Separator />
+
+      {/* 7. Life Roadmap */}
+      <RoadmapSection visions={visions} />
 
       {/* Create Dialogs */}
       {createType === "value" && <CreateValueDialog onClose={() => setCreateType(null)} onSave={handleAddValue} />}
