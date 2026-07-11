@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
-import { Bell, Moon, Sun, Menu, Search, Calendar, User } from "lucide-react"
+import { Bell, Moon, Sun, Menu, Search, Calendar, User, Settings, Map, LogOut, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useTheme } from "next-themes"
@@ -51,7 +51,7 @@ function Tooltip({ children, label }: { children: React.ReactNode; label: string
 
 export function Header() {
   const { theme, setTheme } = useTheme()
-  const { name, avatar, avatarFocalPoint } = useUserProfile()
+  const { name, username, avatar, avatarFocalPoint } = useUserProfile()
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
@@ -93,6 +93,26 @@ export function Header() {
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [closeAll])
+
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!profileOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [profileOpen])
+
+  const handleSignOut = useCallback(() => {
+    try {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith("intenteo-"))
+      keys.forEach(k => localStorage.removeItem(k))
+    } catch {}
+    window.location.reload()
+  }, [])
 
   return (
     <>
@@ -159,8 +179,12 @@ export function Header() {
             </div>
           </Tooltip>
 
-          <Tooltip label="My Profile">
-            <Link href="/settings?tab=profile" aria-label="My Profile">
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-1.5 rounded-full p-0.5 transition-colors hover:bg-accent"
+              aria-label="Profile menu"
+            >
               {avatar ? (
                 <div className="h-8 w-8 rounded-full overflow-hidden">
                   <img
@@ -173,8 +197,34 @@ export function Header() {
               ) : (
                 <UserAvatar size="sm" fallback={name ? name.charAt(0).toUpperCase() : "U"} />
               )}
-            </Link>
-          </Tooltip>
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${profileOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-[#1E0E6B]/10 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-4 py-3 border-b border-[#1E0E6B]/10">
+                  <p className="text-sm font-semibold truncate">{name || "User"}</p>
+                  <p className="text-xs text-muted-foreground truncate">@{username || "user"}</p>
+                </div>
+                <div className="py-1">
+                  <Link href="/settings?tab=profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors">
+                    <User className="h-4 w-4 text-muted-foreground" /> My Profile
+                  </Link>
+                  <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors">
+                    <Settings className="h-4 w-4 text-muted-foreground" /> Settings
+                  </Link>
+                  <Link href="/journey" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors">
+                    <Map className="h-4 w-4 text-muted-foreground" /> My Journey
+                  </Link>
+                </div>
+                <div className="border-t border-[#1E0E6B]/10 py-1">
+                  <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors w-full">
+                    <LogOut className="h-4 w-4 text-muted-foreground" /> Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
