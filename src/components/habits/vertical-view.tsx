@@ -191,24 +191,30 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
                           const completion = habit.completions[dateISO]
                           const isCompleted = completion?.completed || false
                           const isFuture = dateISO > todayISO
+                          const isPast = dateISO < todayISO
+                          const isLocked = isFuture || isPast
                           const isPaused = habit.paused
                           const isHovered = hoveredCell?.habitId === habit.id && hoveredCell?.date === dateISO
                           const isDragOver = dragOverId === habit.id && dragOverId !== draggedId
                           return (
                             <td key={habit.id} className={`p-1 text-center border-r border-[#1E0E6B]/5 ${isDragOver ? "bg-[#1E0E6B]/10" : ""}`}>
                               <button
-                                draggable
-                                onDragStart={() => onDragStart?.(habit.id)}
-                                onDragOver={(e) => onDragOver?.(e, habit.id)}
-                                onDrop={() => onDrop?.(habit.id)}
+                                draggable={!isPast}
+                                onDragStart={() => !isPast && onDragStart?.(habit.id)}
+                                onDragOver={(e) => !isPast && onDragOver?.(e, habit.id)}
+                                onDrop={() => !isPast && onDrop?.(habit.id)}
                                 onDragEnd={onDragEnd}
-                                onClick={() => !isFuture && !isPaused && onToggleCell(habit.id, dateISO)}
-                                onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateISO })}
+                                onClick={() => !isLocked && !isPaused && onToggleCell(habit.id, dateISO)}
+                                onMouseEnter={() => !isPast && setHoveredCell({ habitId: habit.id, date: dateISO })}
                                 onMouseLeave={() => setHoveredCell(null)}
-                                disabled={isFuture || isPaused}
+                                disabled={isLocked || isPaused}
                                 className={`w-6 h-6 rounded-md transition-all mx-auto flex items-center justify-center ${
-                                  isFuture || isPaused
-                                    ? "cursor-not-allowed opacity-30"
+                                  isLocked || isPaused
+                                    ? isPast && isCompleted
+                                      ? "cursor-not-allowed opacity-50"
+                                      : isPast
+                                      ? "cursor-not-allowed opacity-30"
+                                      : "cursor-not-allowed opacity-30"
                                     : isCompleted
                                     ? "cursor-pointer hover:scale-110"
                                     : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"

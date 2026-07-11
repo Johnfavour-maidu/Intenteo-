@@ -1137,15 +1137,25 @@ const TrackerView = ({
                 const dateStr = formatDateISO(date)
                 const isCompleted = habit.completions[dateStr]?.completed || false
                 const isFuture = dateStr > today
+                const isPast = dateStr < today
+                const isLocked = isFuture || isPast
                 return (
                   <td key={dateStr} className="p-1 text-center">
                     <button
-                      onClick={() => !isFuture && !habit.paused && onToggleCell(habit.id, dateStr)}
-                      onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateStr })}
+                      onClick={() => !isLocked && !habit.paused && onToggleCell(habit.id, dateStr)}
+                      onMouseEnter={() => !isPast && setHoveredCell({ habitId: habit.id, date: dateStr })}
                       onMouseLeave={() => setHoveredCell(null)}
-                      disabled={isFuture || habit.paused}
+                      disabled={isLocked || habit.paused}
                       className={`w-7 h-7 rounded-md transition-all ${
-                        isFuture || habit.paused ? "cursor-not-allowed opacity-30" : isCompleted ? "cursor-pointer hover:scale-110" : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
+                        isLocked || habit.paused
+                          ? isPast && isCompleted
+                            ? "cursor-not-allowed opacity-50"
+                            : isPast
+                            ? "cursor-not-allowed opacity-30"
+                            : "cursor-not-allowed opacity-30"
+                          : isCompleted
+                          ? "cursor-pointer hover:scale-110"
+                          : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
                       }`}
                       style={isCompleted ? { backgroundColor: habit.colorHex } : undefined}
                     >
@@ -1715,6 +1725,7 @@ export function HabitsPage() {
   const toggleHabit = useCallback((id: string, dateStr?: string) => {
     const targetDate = dateStr || formatDateISO(selectedDate)
     const todayStr = getTodayISO()
+    if (targetDate < todayStr) return
     setHabits(prev => prev.map(habit => {
       if (habit.id !== id) return habit
       if (habit.paused) return habit
