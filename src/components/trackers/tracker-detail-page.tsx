@@ -48,7 +48,7 @@ export function TrackerDetailPage({ trackerId }: { trackerId: string }) {
       pinToQuickAccess({
         type: "tracker",
         id: trackerId,
-        title: tracker.name.replace(" Tracker", "").replace(" Calendar", ""),
+        title: tracker.name,
         icon: tracker.icon,
         route: `/browse-trackers/${trackerId}`,
       })

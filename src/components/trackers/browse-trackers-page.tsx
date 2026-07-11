@@ -64,7 +64,7 @@ export function BrowseTrackersPage() {
       pinToQuickAccess({
         type: "tracker",
         id: trackerId,
-        title: tmpl.name.replace(" Tracker", "").replace(" Calendar", ""),
+        title: tmpl.name,
         icon: tmpl.icon,
         route: `/browse-trackers/${trackerId}`,
       })

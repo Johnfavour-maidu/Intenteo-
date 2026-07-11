@@ -18,9 +18,12 @@ import {
   loadCoreValues, addCoreValue, updateCoreValue, deleteCoreValue, reorderCoreValues,
   loadCommitments, addCommitment, updateCommitment, deleteCommitment,
   loadVisions, addVision, updateVision, deleteVision,
-  calculateAlignmentScore,
+  loadRoadmapMilestones, addRoadmapMilestone, updateRoadmapMilestone, deleteRoadmapMilestone,
+  calculateAlignmentScore, searchVisionEntities,
   VISION_CATEGORIES,
   type Purpose, type CoreValue, type Commitment, type Vision, type VisionBoardItem,
+  type RoadmapMilestone, type RoadmapTimeHorizon, type MilestoneStatus,
+  type VisionSearchResult,
 } from "@/lib/vision-framework"
 
 // ══════════════════════════════════════════════════════════════
@@ -90,6 +93,84 @@ function AlignmentBadge({ score }: { score: number }) {
     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${color}`}>
       <Sparkles className="h-2.5 w-2.5" /> {score}%
     </span>
+  )
+}
+
+function AlignmentScoreCircular({ score, purpose, values, commitments, visions }: {
+  score: number; purpose: boolean; values: boolean; commitments: boolean; visions: boolean
+}) {
+  const radius = 40
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (score / 100) * circumference
+  const color = score >= 75 ? "#22C55E" : score >= 50 ? "#EAB308" : score >= 25 ? "#F97316" : "#EF4444"
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative w-28 h-28">
+        <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r={radius} fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/50" />
+          <circle cx="50" cy="50" r={radius} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+            strokeDasharray={circumference} strokeDashoffset={offset} className="transition-all duration-700 ease-out" />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold" style={{ color }}>{score}%</span>
+          <span className="text-[9px] text-muted-foreground">Aligned</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11px]">
+        <span className="flex items-center gap-1.5">{purpose ? <CheckSquare className="h-3 w-3 text-emerald-500" /> : <X className="h-3 w-3 text-muted-foreground/40" />} Purpose</span>
+        <span className="flex items-center gap-1.5">{values ? <CheckSquare className="h-3 w-3 text-emerald-500" /> : <X className="h-3 w-3 text-muted-foreground/40" />} Values</span>
+        <span className="flex items-center gap-1.5">{commitments ? <CheckSquare className="h-3 w-3 text-emerald-500" /> : <X className="h-3 w-3 text-muted-foreground/40" />} Commitments</span>
+        <span className="flex items-center gap-1.5">{visions ? <CheckSquare className="h-3 w-3 text-emerald-500" /> : <X className="h-3 w-3 text-muted-foreground/40" />} Visions</span>
+      </div>
+    </div>
+  )
+}
+
+function GlobalSearch({ onClose }: { onClose: () => void }) {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<VisionSearchResult[]>([])
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setResults([]); return }
+    const timer = setTimeout(() => setResults(searchVisionEntities(query)), 200)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  const typeLabels: Record<string, string> = { purpose: "Purpose", value: "Core Value", commitment: "Commitment", vision: "Vision", milestone: "Roadmap Milestone", "board-item": "Board Item" }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg mx-4 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-4 border-b">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search visions, values, commitments, milestones..."
+            className="flex-1 py-3 text-sm bg-transparent focus:outline-none" autoFocus />
+          <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="max-h-[50vh] overflow-y-auto p-2">
+          {query.trim().length < 2 ? (
+            <p className="text-xs text-muted-foreground text-center py-8">Type at least 2 characters to search...</p>
+          ) : results.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-8">No results found for &quot;{query}&quot;</p>
+          ) : (
+            <div className="space-y-0.5">
+              {results.map((r) => (
+                <div key={`${r.type}-${r.id}`} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                  <span className="text-lg shrink-0">{r.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{r.title}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{r.subtitle}</p>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">{typeLabels[r.type]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -723,6 +804,79 @@ function VisionBoardDrawer({ vision, onClose, onUpdate }: {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ROADMAP MILESTONE DIALOG
+// ══════════════════════════════════════════════════════════════
+
+function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate }: {
+  milestone: RoadmapMilestone | null; visionId: string; onClose: () => void
+  onSave: (m: Omit<RoadmapMilestone, "id" | "order" | "createdAt" | "updatedAt">) => void
+  onUpdate: (id: string, updates: Partial<RoadmapMilestone>) => void
+}) {
+  const [title, setTitle] = useState(milestone?.title || "")
+  const [description, setDescription] = useState(milestone?.description || "")
+  const [timeHorizon, setTimeHorizon] = useState<RoadmapTimeHorizon>(milestone?.timeHorizon || "1-year")
+  const [targetYear, setTargetYear] = useState(milestone?.targetYear || new Date().getFullYear() + 1)
+  const [progress, setProgress] = useState(milestone?.progress || 0)
+  const [status, setStatus] = useState<MilestoneStatus>(milestone?.status || "not-started")
+
+  const horizonLabels: Record<RoadmapTimeHorizon, string> = { "1-year": "1 Year", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
+
+  const handleSave = () => {
+    if (!title.trim()) return
+    const data = { title: title.trim(), description, timeHorizon, targetYear, progress, status, visionId, relatedGoalIds: milestone?.relatedGoalIds || [] }
+    if (milestone) {
+      onUpdate(milestone.id, data)
+    } else {
+      onSave(data)
+    }
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md mx-4 bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <h3 className="font-semibold text-base">{milestone ? "Edit Milestone" : "Add Roadmap Milestone"}</h3>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Milestone title" autoFocus />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time Horizon</label>
+            <select value={timeHorizon} onChange={(e) => setTimeHorizon(e.target.value as RoadmapTimeHorizon)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
+              {Object.entries(horizonLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Target Year</label>
+            <Input type="number" value={targetYear} onChange={(e) => setTargetYear(parseInt(e.target.value) || new Date().getFullYear())} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value as MilestoneStatus)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
+              <option value="not-started">Not Started</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="on-hold">On Hold</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Progress ({progress}%)</label>
+            <input type="range" min="0" max="100" value={progress} onChange={(e) => setProgress(parseInt(e.target.value))}
+              className="w-full h-2 rounded-full appearance-none bg-muted cursor-pointer accent-primary mt-2" />
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end pt-2">
+          <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button size="sm" disabled={!title.trim()} onClick={handleSave}>{milestone ? "Save Changes" : "Add Milestone"}</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
 // VISION DETAIL DRAWER (edit vision + board + relationships)
 // ══════════════════════════════════════════════════════════════
 
@@ -737,12 +891,35 @@ function VisionDetailDrawer({ vision, values, commitments, goals, onClose, onUpd
   const [relatedValueIds, setRelatedValueIds] = useState<string[]>(vision.relatedValueIds)
   const [relatedCommitmentIds, setRelatedCommitmentIds] = useState<string[]>(vision.relatedCommitmentIds)
   const [showBoard, setShowBoard] = useState(false)
-  const [tab, setTab] = useState<"details" | "goals" | "board">("details")
+  const [tab, setTab] = useState<"details" | "roadmap" | "goals" | "board">("details")
+  const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
+  const [showMilestoneDialog, setShowMilestoneDialog] = useState(false)
+  const [editingMilestone, setEditingMilestone] = useState<RoadmapMilestone | null>(null)
 
   const linkedGoals = goals.filter((g) => g.visionId === vision.id)
 
+  useEffect(() => {
+    setMilestones(loadRoadmapMilestones(vision.id))
+  }, [vision.id])
+
   const handleSave = () => {
     onUpdate(vision.id, { title, description, category, purposeAlignment, relatedValueIds, relatedCommitmentIds })
+  }
+
+  const handleAddMilestone = (m: Omit<RoadmapMilestone, "id" | "order" | "createdAt" | "updatedAt">) => {
+    addRoadmapMilestone({ ...m, visionId: vision.id })
+    setMilestones(loadRoadmapMilestones(vision.id))
+    setShowMilestoneDialog(false)
+  }
+
+  const handleUpdateMilestone = (id: string, updates: Partial<RoadmapMilestone>) => {
+    updateRoadmapMilestone(id, updates)
+    setMilestones(loadRoadmapMilestones(vision.id))
+  }
+
+  const handleDeleteMilestone = (id: string) => {
+    deleteRoadmapMilestone(id)
+    setMilestones(loadRoadmapMilestones(vision.id))
   }
 
   const cat = VISION_CATEGORIES.find((c) => c.name === category) || VISION_CATEGORIES[VISION_CATEGORIES.length - 1]
@@ -763,11 +940,11 @@ function VisionDetailDrawer({ vision, values, commitments, goals, onClose, onUpd
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b px-6">
-          {(["details", "goals", "board"] as const).map((t) => (
+        <div className="flex border-b px-6 overflow-x-auto">
+          {(["details", "roadmap", "goals", "board"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2.5 text-xs font-semibold capitalize border-b-2 transition-colors ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-              {t === "board" ? `Board (${vision.boardItems.length})` : t === "goals" ? `Goals (${linkedGoals.length})` : "Details"}
+              className={`px-4 py-2.5 text-xs font-semibold capitalize border-b-2 transition-colors whitespace-nowrap ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              {t === "board" ? `Board (${vision.boardItems.length})` : t === "goals" ? `Goals (${linkedGoals.length})` : t === "roadmap" ? `Roadmap (${milestones.length})` : "Details"}
             </button>
           ))}
         </div>
@@ -822,6 +999,73 @@ function VisionDetailDrawer({ vision, values, commitments, goals, onClose, onUpd
             </>
           )}
 
+          {tab === "roadmap" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Plan your milestones across time horizons</p>
+                <Button size="sm" variant="outline" onClick={() => setShowMilestoneDialog(true)} className="gap-1.5">
+                  <Plus className="h-3.5 w-3.5" /> Add Milestone
+                </Button>
+              </div>
+              {milestones.length === 0 ? (
+                <EmptyState icon={Clock} title="No roadmap milestones" desc="Add milestones to map out your journey for this vision." action={
+                  <Button size="sm" onClick={() => setShowMilestoneDialog(true)}><Plus className="h-3.5 w-3.5 mr-1" /> Add First Milestone</Button>
+                } />
+              ) : (
+                <div className="space-y-4">
+                  {(["1-year", "5-years", "10-years", "20-years", "lifetime"] as RoadmapTimeHorizon[]).map((horizon) => {
+                    const horizonMilestones = milestones.filter((m) => m.timeHorizon === horizon)
+                    if (horizonMilestones.length === 0) return null
+                    const horizonLabels: Record<RoadmapTimeHorizon, string> = { "1-year": "1 Year", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
+                    return (
+                      <div key={horizon} className="space-y-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                          <Calendar className="h-3 w-3" /> {horizonLabels[horizon]}
+                        </h4>
+                        <div className="space-y-2">
+                          {horizonMilestones.map((m) => {
+                            const statusColors: Record<MilestoneStatus, string> = { "not-started": "bg-muted text-muted-foreground", "in-progress": "bg-blue-500/10 text-blue-600", "completed": "bg-emerald-500/10 text-emerald-600", "on-hold": "bg-yellow-500/10 text-yellow-600" }
+                            const statusLabels: Record<MilestoneStatus, string> = { "not-started": "Not Started", "in-progress": "In Progress", "completed": "Completed", "on-hold": "On Hold" }
+                            return (
+                              <div key={m.id} className="p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors group">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-sm font-semibold">{m.title}</span>
+                                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[m.status]}`}>{statusLabels[m.status]}</span>
+                                    </div>
+                                    {m.description && <p className="text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
+                                    <div className="flex items-center gap-3 mt-2">
+                                      <span className="text-[10px] text-muted-foreground">Target: {m.targetYear}</span>
+                                      <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
+                                        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${m.progress}%` }} />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground">{m.progress}%</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    <button onClick={() => { setEditingMilestone(m); setShowMilestoneDialog(true) }} className="p-1 rounded hover:bg-muted">
+                                      <Edit3 className="h-3 w-3" />
+                                    </button>
+                                    <button onClick={() => handleDeleteMilestone(m.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive">
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {tab === "goals" && (
             <div className="space-y-2">
               {linkedGoals.length === 0 ? (
@@ -842,6 +1086,16 @@ function VisionDetailDrawer({ vision, values, commitments, goals, onClose, onUpd
           )}
         </div>
       </div>
+
+      {showMilestoneDialog && (
+        <RoadmapMilestoneDialog
+          milestone={editingMilestone}
+          visionId={vision.id}
+          onClose={() => { setShowMilestoneDialog(false); setEditingMilestone(null) }}
+          onSave={handleAddMilestone}
+          onUpdate={handleUpdateMilestone}
+        />
+      )}
     </div>
   )
 }
@@ -1071,6 +1325,7 @@ export function VisionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [createType, setCreateType] = useState<"value" | "commitment" | "vision" | null>(null)
   const [selectedVision, setSelectedVision] = useState<Vision | null>(null)
+  const [showSearch, setShowSearch] = useState(false)
 
   // Load data
   useEffect(() => {
@@ -1093,6 +1348,16 @@ export function VisionsPage() {
     }
     window.addEventListener("vision-framework-changed", handler)
     return () => window.removeEventListener("vision-framework-changed", handler)
+  }, [])
+
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setShowSearch(true) }
+      if (e.key === "Escape") setShowSearch(false)
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
   }, [])
 
   // Save handlers
@@ -1176,10 +1441,40 @@ export function VisionsPage() {
   return (
     <div className="space-y-8 pb-16">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Life Vision Framework</h1>
-        <p className="text-muted-foreground">Your future begins with clarity.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Life Vision Framework</h1>
+          <p className="text-muted-foreground">Your future begins with clarity.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => setShowSearch(true)} className="gap-1.5">
+            <Search className="h-3.5 w-3.5" /> Search
+          </Button>
+        </div>
       </div>
+
+      {/* Alignment Score Overview */}
+      {purpose.statement.trim() && (
+        <div className="rounded-xl border bg-card p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <AlignmentScoreCircular {...calculateAlignmentScore({
+              purposeAligned: purpose.statement.trim().length > 0,
+              valueIds: values.map((v) => v.id),
+              commitmentIds: commitments.filter((c) => !c.archived).map((c) => c.id),
+              visionIds: visions.filter((v) => !v.archived).map((v) => v.id),
+            })} />
+            <div className="flex-1 text-center sm:text-left">
+              <h3 className="text-sm font-bold mb-1">Overall Alignment Score</h3>
+              <p className="text-xs text-muted-foreground">How well your life framework is connected. Link values, commitments, and visions to your purpose for a higher score.</p>
+              <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
+                <span className="text-[10px] px-2 py-1 rounded-full bg-muted">{values.length} Values</span>
+                <span className="text-[10px] px-2 py-1 rounded-full bg-muted">{commitments.filter((c) => !c.archived).length} Commitments</span>
+                <span className="text-[10px] px-2 py-1 rounded-full bg-muted">{visions.filter((v) => !v.archived).length} Visions</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 1. Purpose */}
       <PurposeSection purpose={purpose} onSave={handleSavePurpose} />
@@ -1218,6 +1513,9 @@ export function VisionsPage() {
       {createType === "value" && <CreateValueDialog onClose={() => setCreateType(null)} onSave={handleAddValue} />}
       {createType === "commitment" && <CreateCommitmentDialog values={values} visions={visions} onClose={() => setCreateType(null)} onSave={handleAddCommitment} />}
       {createType === "vision" && <CreateVisionDialog onClose={() => setCreateType(null)} onSave={handleAddVision} />}
+
+      {/* Global Search */}
+      {showSearch && <GlobalSearch onClose={() => setShowSearch(false)} />}
     </div>
   )
 }

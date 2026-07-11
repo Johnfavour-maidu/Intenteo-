@@ -61,6 +61,24 @@ export interface VisionBoardItem {
   createdAt: string
 }
 
+export type RoadmapTimeHorizon = "1-year" | "5-years" | "10-years" | "20-years" | "lifetime"
+export type MilestoneStatus = "not-started" | "in-progress" | "completed" | "on-hold"
+
+export interface RoadmapMilestone {
+  id: string
+  visionId: string
+  title: string
+  description: string
+  timeHorizon: RoadmapTimeHorizon
+  targetYear: number
+  progress: number
+  status: MilestoneStatus
+  relatedGoalIds: string[]
+  order: number
+  createdAt: string
+  updatedAt: string
+}
+
 export const VISION_CATEGORIES = [
   { name: "Career", icon: "\u{1F4BC}", color: "#3B82F6" },
   { name: "Family", icon: "\u{1F3E0}", color: "#EF4444" },
@@ -282,4 +300,122 @@ export function calculateAlignmentScore(item: {
   const score = Math.round((checks / 4) * 100)
 
   return { score, purpose: purposeAligned, values: valuesAligned, commitments: commitmentsAligned, visions: visionsAligned }
+}
+
+// ─── Roadmap Milestones ───
+const ROADMAP_KEY = "intenteo-roadmap-milestones"
+
+export function loadRoadmapMilestones(visionId?: string): RoadmapMilestone[] {
+  try {
+    const raw = localStorage.getItem(ROADMAP_KEY)
+    if (!raw) return []
+    const items = JSON.parse(raw) as RoadmapMilestone[]
+    const filtered = visionId ? items.filter((m) => m.visionId === visionId) : items
+    return filtered.sort((a, b) => a.order - b.order)
+  } catch {
+    return []
+  }
+}
+
+function saveRoadmapMilestones(milestones: RoadmapMilestone[]): void {
+  localStorage.setItem(ROADMAP_KEY, JSON.stringify(milestones))
+  window.dispatchEvent(new Event("vision-framework-changed"))
+}
+
+export function addRoadmapMilestone(milestone: Omit<RoadmapMilestone, "id" | "order" | "createdAt" | "updatedAt">): RoadmapMilestone {
+  const all = loadRoadmapMilestones()
+  const sameVision = all.filter((m) => m.visionId === milestone.visionId)
+  const newItem: RoadmapMilestone = {
+    ...milestone,
+    id: generateId(),
+    order: sameVision.length,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+  saveRoadmapMilestones([...all, newItem])
+  return newItem
+}
+
+export function updateRoadmapMilestone(id: string, updates: Partial<RoadmapMilestone>): void {
+  const all = loadRoadmapMilestones()
+  const updated = all.map((m) => m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m)
+  saveRoadmapMilestones(updated)
+}
+
+export function deleteRoadmapMilestone(id: string): void {
+  const all = loadRoadmapMilestones()
+  saveRoadmapMilestones(all.filter((m) => m.id !== id))
+}
+
+export function reorderRoadmapMilestones(visionId: string, orderedIds: string[]): void {
+  const all = loadRoadmapMilestones()
+  const others = all.filter((m) => m.visionId !== visionId)
+  const reordered = orderedIds.map((id, idx) => {
+    const item = all.find((m) => m.id === id)
+    return item ? { ...item, order: idx } : null
+  }).filter(Boolean) as RoadmapMilestone[]
+  saveRoadmapMilestones([...others, ...reordered])
+}
+
+// ─── Search across all vision entities ───
+export interface VisionSearchResult {
+  type: "purpose" | "value" | "commitment" | "vision" | "milestone" | "board-item"
+  id: string
+  title: string
+  subtitle: string
+  icon: string
+  route?: string
+}
+
+export function searchVisionEntities(query: string): VisionSearchResult[] {
+  if (!query.trim()) return []
+  const q = query.toLowerCase()
+  const results: VisionSearchResult[] = []
+
+  // Search Purpose
+  const purpose = loadPurpose()
+  if (purpose.statement.toLowerCase().includes(q) || purpose.notes.toLowerCase().includes(q)) {
+    results.push({ type: "purpose", id: "purpose", title: "Purpose", subtitle: purpose.statement.slice(0, 80), icon: "🎯" })
+  }
+
+  // Search Core Values
+  const values = loadCoreValues()
+  values.forEach((v) => {
+    if (v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q) || v.example.toLowerCase().includes(q)) {
+      results.push({ type: "value", id: v.id, title: v.name, subtitle: v.description.slice(0, 80), icon: v.icon })
+    }
+  })
+
+  // Search Commitments
+  const commitments = loadCommitments()
+  commitments.forEach((c) => {
+    if (c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)) {
+      results.push({ type: "commitment", id: c.id, title: c.title, subtitle: c.description.slice(0, 80), icon: "🤝" })
+    }
+  })
+
+  // Search Visions
+  const visions = loadVisions()
+  visions.forEach((v) => {
+    if (v.title.toLowerCase().includes(q) || v.description.toLowerCase().includes(q) || v.category.toLowerCase().includes(q)) {
+      results.push({ type: "vision", id: v.id, title: v.title, subtitle: v.description.slice(0, 80), icon: v.icon })
+    }
+    // Search board items within each vision
+    v.boardItems.forEach((b) => {
+      if (b.title.toLowerCase().includes(q) || b.content.toLowerCase().includes(q)) {
+        results.push({ type: "board-item", id: b.id, title: b.title || "Board Item", subtitle: b.content.slice(0, 80), icon: "📌" })
+      }
+    })
+  })
+
+  // Search Roadmap Milestones
+  const milestones = loadRoadmapMilestones()
+  milestones.forEach((m) => {
+    if (m.title.toLowerCase().includes(q) || m.description.toLowerCase().includes(q)) {
+      const vision = visions.find((v) => v.id === m.visionId)
+      results.push({ type: "milestone", id: m.id, title: m.title, subtitle: `${vision?.icon || "🗺️"} ${vision?.title || "Unknown"} — ${m.timeHorizon}`, icon: "🗺️" })
+    }
+  })
+
+  return results
 }
