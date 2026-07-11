@@ -71,7 +71,7 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         {/* Logo Section */}
         {!collapsed ? (
-          <div className="flex h-16 items-center px-4">
+          <div className="flex h-16 items-center px-6">
             <Link href="/" className="flex items-center">
               <img
                 src="/logo.png"
