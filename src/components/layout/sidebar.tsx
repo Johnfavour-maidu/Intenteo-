@@ -89,18 +89,18 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         {/* Logo Section */}
         {!collapsed ? (
-          <div className="flex h-16 items-center px-6">
-            <Link href="/" className="flex items-center">
+          <div className="flex h-16 items-center px-4">
+            <Link href="/" className="flex items-center shrink-0">
               <img
                 src="/logo.png"
                 alt="Intenteo — Live with Intentionality"
-                className="h-14 w-auto transition-opacity duration-200 ease-in-out"
+                className="h-10 w-auto transition-opacity duration-200 ease-in-out"
               />
             </Link>
           </div>
         ) : (
-          <div className="flex h-16 items-center justify-center px-4">
-            <Link href="/" className="flex items-center justify-center">
+          <div className="flex h-16 items-center px-4">
+            <Link href="/" className="flex items-center shrink-0">
               <img
                 src="/favicon-40.png"
                 alt="Intenteo"
