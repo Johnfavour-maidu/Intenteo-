@@ -57,6 +57,7 @@ interface VerticalViewProps {
   onDrop?: (id: string) => void
   onDragEnd?: () => void
   onViewAnalytics?: (habit: Habit) => void
+  onShowToast?: (message: string, subtext?: string) => void
 }
 
 const getScoreColor = (score: number): string => {
@@ -90,6 +91,7 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
   onDrop,
   onDragEnd,
   onViewAnalytics,
+  onShowToast,
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
   const todayISO = new Date().toISOString().split("T")[0]
@@ -192,42 +194,44 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
                           const isCompleted = completion?.completed || false
                           const isFuture = dateISO > todayISO
                           const isPast = dateISO < todayISO
-                          const isLocked = isFuture || isPast
+                          const isToday = dateISO === todayISO
                           const isPaused = habit.paused
                           const isHovered = hoveredCell?.habitId === habit.id && hoveredCell?.date === dateISO
                           const isDragOver = dragOverId === habit.id && dragOverId !== draggedId
                           return (
                             <td key={habit.id} className={`p-1 text-center border-r border-[#1E0E6B]/5 ${isDragOver ? "bg-[#1E0E6B]/10" : ""}`}>
                               <button
-                                draggable={!isPast}
-                                onDragStart={() => !isPast && onDragStart?.(habit.id)}
-                                onDragOver={(e) => !isPast && onDragOver?.(e, habit.id)}
-                                onDrop={() => !isPast && onDrop?.(habit.id)}
+                                draggable={false}
+                                onDragStart={(e) => e.preventDefault()}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => e.preventDefault()}
                                 onDragEnd={onDragEnd}
-                                onClick={() => !isLocked && !isPaused && onToggleCell(habit.id, dateISO)}
-                                onMouseEnter={() => !isPast && setHoveredCell({ habitId: habit.id, date: dateISO })}
+                                onClick={() => !isPaused && onToggleCell(habit.id, dateISO)}
+                                onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateISO })}
                                 onMouseLeave={() => setHoveredCell(null)}
-                                disabled={isLocked || isPaused}
+                                disabled={isPaused}
                                 className={`w-6 h-6 rounded-md transition-all mx-auto flex items-center justify-center ${
-                                  isLocked || isPaused
-                                    ? isPast && isCompleted
-                                      ? "cursor-not-allowed opacity-50"
-                                      : isPast
-                                      ? "cursor-not-allowed opacity-30"
-                                      : "cursor-not-allowed opacity-30"
+                                  isPaused
+                                    ? "cursor-not-allowed opacity-30"
                                     : isCompleted
                                     ? "cursor-pointer hover:scale-110"
                                     : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
                                 }`}
                                 style={isCompleted ? { backgroundColor: habit.colorHex } : undefined}
                               >
-                                {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                                {isCompleted && <CheckCircle2 className="h-3.5 h-3.5 text-white" />}
                               </button>
-                              {isHovered && completion && (
+                              {isHovered && (
                                 <div className="absolute z-50 mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-white/20 text-xs whitespace-nowrap">
-                                  <div className="font-medium">{completion.completed ? "Completed" : "Missed"}</div>
-                                  {completion.time && <div className="text-muted-foreground">at {completion.time}</div>}
-                                  {completion.notes && <div className="text-muted-foreground mt-1 max-w-[150px] truncate">{completion.notes}</div>}
+                                  {isPast ? (
+                                    isCompleted ? <div className="font-medium">Completed</div> : <div className="font-medium">Missed</div>
+                                  ) : isFuture ? (
+                                    <div className="font-medium">Not available yet</div>
+                                  ) : (
+                                    <div className="font-medium">Click to mark complete</div>
+                                  )}
+                                  {isCompleted && completion?.time && <div className="text-muted-foreground">at {completion.time}</div>}
+                                  {isCompleted && completion?.notes && <div className="text-muted-foreground mt-1 max-w-[150px] truncate">{completion.notes}</div>}
                                 </div>
                               )}
                             </td>

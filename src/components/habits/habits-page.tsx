@@ -41,6 +41,7 @@ import {
 } from "lucide-react"
 import { VerticalView } from "./vertical-view"
 import { ListView } from "./list-view"
+import { useToast, ToastContainer } from "../tasks/task-toast"
 import { HabitAnalyticsDrawer } from "./habit-analytics-drawer"
 import {
   getHealthState, HEALTH_CONFIG, calcLifecycleStage, LIFECYCLE_CONFIG,
@@ -1138,21 +1139,17 @@ const TrackerView = ({
                 const isCompleted = habit.completions[dateStr]?.completed || false
                 const isFuture = dateStr > today
                 const isPast = dateStr < today
-                const isLocked = isFuture || isPast
+                const isToday = dateStr === today
                 return (
-                  <td key={dateStr} className="p-1 text-center">
+                  <td key={dateStr} className="p-1 text-center relative">
                     <button
-                      onClick={() => !isLocked && !habit.paused && onToggleCell(habit.id, dateStr)}
-                      onMouseEnter={() => !isPast && setHoveredCell({ habitId: habit.id, date: dateStr })}
+                      onClick={() => !habit.paused && onToggleCell(habit.id, dateStr)}
+                      onMouseEnter={() => setHoveredCell({ habitId: habit.id, date: dateStr })}
                       onMouseLeave={() => setHoveredCell(null)}
-                      disabled={isLocked || habit.paused}
+                      disabled={habit.paused}
                       className={`w-7 h-7 rounded-md transition-all ${
-                        isLocked || habit.paused
-                          ? isPast && isCompleted
-                            ? "cursor-not-allowed opacity-50"
-                            : isPast
-                            ? "cursor-not-allowed opacity-30"
-                            : "cursor-not-allowed opacity-30"
+                        habit.paused
+                          ? "cursor-not-allowed opacity-30"
                           : isCompleted
                           ? "cursor-pointer hover:scale-110"
                           : "cursor-pointer hover:bg-white/50 border border-dashed border-gray-300"
@@ -1161,6 +1158,17 @@ const TrackerView = ({
                     >
                       {isCompleted && <CheckCircle2 className="h-4 w-4 text-white mx-auto" />}
                     </button>
+                    {hoveredCell?.habitId === habit.id && hoveredCell?.date === dateStr && (
+                      <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-white/20 text-xs whitespace-nowrap pointer-events-none">
+                        {isPast ? (
+                          isCompleted ? <span className="font-medium">Completed</span> : <span className="font-medium">Missed</span>
+                        ) : isFuture ? (
+                          <span className="font-medium">Not available yet</span>
+                        ) : (
+                          <span className="font-medium">Click to mark complete</span>
+                        )}
+                      </div>
+                    )}
                   </td>
                 )
               })}
@@ -1676,6 +1684,7 @@ export function HabitsPage() {
   const [analyticsDrawerHabit, setAnalyticsDrawerHabit] = useState<Habit | null>(null)
   const [recoveryState, setRecoveryState] = useState<{ habitId: string; date: string; habitName: string } | null>(null)
   const [activeView, setActiveView] = useState<ViewMode>("table")
+  const { toasts, addToast, removeToast } = useToast()
 
   useEffect(() => {
     try {
@@ -1725,7 +1734,14 @@ export function HabitsPage() {
   const toggleHabit = useCallback((id: string, dateStr?: string) => {
     const targetDate = dateStr || formatDateISO(selectedDate)
     const todayStr = getTodayISO()
-    if (targetDate < todayStr) return
+    if (targetDate < todayStr) {
+      addToast("This day has already passed.", "Focus on building today's streak instead. 🌱")
+      return
+    }
+    if (targetDate > todayStr) {
+      addToast("This habit isn't available yet.", "You'll be able to check it on the scheduled day.")
+      return
+    }
     setHabits(prev => prev.map(habit => {
       if (habit.id !== id) return habit
       if (habit.paused) return habit
@@ -2099,6 +2115,7 @@ export function HabitsPage() {
             onDrop={handleHabitDrop}
             onDragEnd={handleHabitDragEnd}
             onViewAnalytics={handleOpenAnalytics}
+            onShowToast={addToast}
           />
         </HabitsErrorBoundary>
       )}
@@ -2152,6 +2169,8 @@ export function HabitsPage() {
           onEdit={(h) => { setAnalyticsDrawerHabit(null); setEditingHabit(h); setIsModalOpen(true) }}
         />
       )}
+
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   )
 }
