@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,9 +11,14 @@ import {
 } from "lucide-react"
 import {
   TRACKER_TEMPLATES,
-  getPinnedTrackers, pinTracker, unpinTracker, isTrackerPinned,
+  getTrackerTemplate,
   type TrackerCategory, type TrackerTemplate,
 } from "./tracker-templates"
+import {
+  pinToQuickAccess,
+  unpinFromQuickAccess,
+  isInQuickAccess,
+} from "@/lib/quick-access"
 
 export function BrowseTrackersPage() {
   const router = useRouter()
@@ -22,15 +27,16 @@ export function BrowseTrackersPage() {
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
   const [viewMode, setViewMode] = useState<"board" | "list">("board")
 
-  useEffect(() => {
-    const updatePinned = () => {
-      const pinned = getPinnedTrackers()
-      setPinnedIds(new Set(pinned.map(p => p.trackerId)))
-    }
-    updatePinned()
-    window.addEventListener("pinned-trackers-changed", updatePinned)
-    return () => window.removeEventListener("pinned-trackers-changed", updatePinned)
+  const refreshPinned = useCallback(() => {
+    const items = JSON.parse(localStorage.getItem("intenteo-quick-access") || "[]") as { type: string; id: string }[]
+    setPinnedIds(new Set(items.filter((i) => i.type === "tracker").map((i) => i.id)))
   }, [])
+
+  useEffect(() => {
+    refreshPinned()
+    window.addEventListener("quick-access-changed", refreshPinned)
+    return () => window.removeEventListener("quick-access-changed", refreshPinned)
+  }, [refreshPinned])
 
   const filteredTrackers = useMemo(() => {
     let results = TRACKER_TEMPLATES
@@ -50,10 +56,18 @@ export function BrowseTrackersPage() {
 
   const handleTogglePin = (e: React.MouseEvent, trackerId: string) => {
     e.stopPropagation()
-    if (isTrackerPinned(trackerId)) {
-      unpinTracker(trackerId)
+    const tmpl = getTrackerTemplate(trackerId)
+    if (!tmpl) return
+    if (isInQuickAccess("tracker", trackerId)) {
+      unpinFromQuickAccess("tracker", trackerId)
     } else {
-      pinTracker(trackerId)
+      pinToQuickAccess({
+        type: "tracker",
+        id: trackerId,
+        title: tmpl.name.replace(" Tracker", "").replace(" Calendar", ""),
+        icon: tmpl.icon,
+        route: `/browse-trackers/${trackerId}`,
+      })
     }
   }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -25,11 +25,11 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { useSidebar } from "./sidebar-context"
 import { useUserProfile } from "@/lib/user-profile-context"
 import {
-  getPinnedTrackers,
-  getTrackerTemplate,
-  unpinTracker,
-  type PinnedTracker,
-} from "@/components/trackers/tracker-templates"
+  getQuickAccessItems,
+  isQuickAccessExpanded,
+  setQuickAccessExpanded,
+  type QuickAccessItem,
+} from "@/lib/quick-access"
 
 interface NavItem {
   title: string
@@ -56,14 +56,19 @@ export function Sidebar() {
   const pathname = usePathname()
   const { collapsed, toggleCollapsed } = useSidebar()
   const { name, username, avatar, avatarFocalPoint } = useUserProfile()
-  const [pinnedTrackers, setPinnedTrackers] = useState<PinnedTracker[]>([])
+  const [quickItems, setQuickItems] = useState<QuickAccessItem[]>([])
+  const [qaExpanded, setQaExpanded] = useState(true)
+
+  const refreshQuickItems = useCallback(() => {
+    setQuickItems(getQuickAccessItems())
+    setQaExpanded(isQuickAccessExpanded())
+  }, [])
 
   useEffect(() => {
-    const updatePinned = () => setPinnedTrackers(getPinnedTrackers())
-    updatePinned()
-    window.addEventListener("pinned-trackers-changed", updatePinned)
-    return () => window.removeEventListener("pinned-trackers-changed", updatePinned)
-  }, [])
+    refreshQuickItems()
+    window.addEventListener("quick-access-changed", refreshQuickItems)
+    return () => window.removeEventListener("quick-access-changed", refreshQuickItems)
+  }, [refreshQuickItems])
 
   return (
     <aside
@@ -89,18 +94,18 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         {/* Logo Section */}
         {!collapsed ? (
-          <div className="flex h-16 items-center px-4">
+          <div className="flex h-16 items-center justify-start px-4">
             <Link href="/" className="flex items-center shrink-0">
               <img
                 src="/logo.png"
                 alt="Intenteo — Live with Intentionality"
-                className="h-10 w-auto transition-opacity duration-200 ease-in-out"
+                className="h-10 w-auto max-w-[180px] object-contain transition-opacity duration-200 ease-in-out"
               />
             </Link>
           </div>
         ) : (
-          <div className="flex h-16 items-center px-4">
-            <Link href="/" className="flex items-center shrink-0">
+          <div className="flex h-16 items-center justify-center px-4">
+            <Link href="/" className="flex items-center justify-center">
               <img
                 src="/favicon-40.png"
                 alt="Intenteo"
@@ -166,52 +171,51 @@ export function Sidebar() {
             ))}
           </nav>
 
-          {/* My Trackers — Pinned Trackers */}
-          {pinnedTrackers.length > 0 && !collapsed && (
+          {/* Pinned Items — from Quick Access */}
+          {quickItems.length > 0 && !collapsed && (
             <div className="mt-4">
-              <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">My Trackers</p>
-              <nav className="space-y-0.5">
-                {pinnedTrackers.map((pt) => {
-                  const tmpl = getTrackerTemplate(pt.trackerId)
-                  if (!tmpl) return null
-                  return (
-                    <div key={pt.trackerId} className="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+              <button
+                onClick={() => {
+                  const next = !qaExpanded
+                  setQaExpanded(next)
+                  setQuickAccessExpanded(next)
+                }}
+                className="flex items-center gap-1 px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors w-full"
+              >
+                <Pin className="h-3 w-3" />
+                Pinned
+                <ChevronRight className={cn("h-3 w-3 ml-auto transition-transform", qaExpanded && "rotate-90")} />
+              </button>
+              {qaExpanded && (
+                <nav className="space-y-0.5">
+                  {quickItems.map((item) => (
+                    <div key={`${item.type}-${item.id}`} className="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                       <Link
-                        href={`/browse-trackers/${pt.trackerId}`}
+                        href={item.route}
                         className="flex items-center gap-2 flex-1 min-w-0"
                       >
-                        <span className="text-base shrink-0">{tmpl.icon}</span>
-                        <span className="text-xs font-medium truncate">{tmpl.name.replace(" Tracker", "").replace(" Calendar", "")}</span>
+                        <span className="text-base shrink-0">{item.icon}</span>
+                        <span className="text-xs font-medium truncate">{item.title}</span>
                       </Link>
-                      <button
-                        onClick={() => unpinTracker(pt.trackerId)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                      >
-                        <X className="h-3 w-3 text-muted-foreground" />
-                      </button>
                     </div>
-                  )
-                })}
-              </nav>
+                  ))}
+                </nav>
+              )}
             </div>
           )}
 
-          {pinnedTrackers.length > 0 && collapsed && (
+          {quickItems.length > 0 && collapsed && (
             <div className="mt-4 space-y-1">
-              {pinnedTrackers.map((pt) => {
-                const tmpl = getTrackerTemplate(pt.trackerId)
-                if (!tmpl) return null
-                return (
-                  <Link
-                    key={pt.trackerId}
-                    href={`/browse-trackers/${pt.trackerId}`}
-                    className="flex items-center justify-center py-1.5"
-                    title={tmpl.name}
-                  >
-                    <span className="text-lg">{tmpl.icon}</span>
-                  </Link>
-                )
-              })}
+              {quickItems.map((item) => (
+                <Link
+                  key={`${item.type}-${item.id}`}
+                  href={item.route}
+                  className="flex items-center justify-center py-1.5"
+                  title={item.title}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                </Link>
+              ))}
             </div>
           )}
         </ScrollArea>

@@ -3453,7 +3453,28 @@ export function JournalPage() {
   }, [])
 
   const handleTogglePin = useCallback((id: string) => {
-    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, pinned: !e.pinned } : e)))
+    setEntries((prev) => {
+      const updated = prev.map((e) => (e.id === id ? { ...e, pinned: !e.pinned } : e))
+      const entry = prev.find((e) => e.id === id)
+      if (entry) {
+        if (entry.pinned) {
+          import("@/lib/quick-access").then(({ unpinFromQuickAccess }) => {
+            unpinFromQuickAccess("journal", id)
+          })
+        } else {
+          import("@/lib/quick-access").then(({ pinToQuickAccess }) => {
+            pinToQuickAccess({
+              type: "journal",
+              id,
+              title: entry.title.slice(0, 30),
+              icon: "📖",
+              route: `/journal`,
+            })
+          })
+        }
+      }
+      return updated
+    })
   }, [])
 
   const handleDuplicateEntry = useCallback((entry: JournalEntry) => {
