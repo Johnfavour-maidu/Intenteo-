@@ -200,10 +200,15 @@ export function loadVisions(): Vision[] {
       // Migration from old key
       const oldRaw = localStorage.getItem("intenteo-visions")
       if (oldRaw) {
-        const oldItems = JSON.parse(oldRaw) as Array<{ id: string; title: string; description: string; category: string; icon: string; archived: boolean; boardItems: Array<{ id: string; type: string; content: string; title?: string; url?: string; createdAt: string }>; createdAt: string; updatedAt: string }>
+        const oldItems = JSON.parse(oldRaw) as Array<{ id: string; title: string; description: string; category: string; icon: string; archived: boolean; boardItems: Array<{ id: string; type: string; content: string; title?: string; url?: string; createdAt: string }>; createdAt?: string; updatedAt?: string }>
         const migrated: Vision[] = oldItems.map((v) => ({
-          ...v,
-          boardItems: v.boardItems.map((b) => ({ ...b, type: b.type as VisionBoardItem["type"], title: b.title || "", url: b.url || "" })),
+          id: v.id,
+          title: v.title,
+          description: v.description,
+          category: v.category,
+          icon: v.icon,
+          archived: v.archived,
+          boardItems: v.boardItems.map((b) => ({ id: b.id, type: b.type as VisionBoardItem["type"], content: b.content, title: b.title || "", url: b.url || "", createdAt: b.createdAt })) as VisionBoardItem[],
           purposeAlignment: "",
           relatedValueIds: [],
           relatedCommitmentIds: [],
@@ -212,6 +217,8 @@ export function loadVisions(): Vision[] {
           relatedHabitIds: [],
           coverImage: "",
           order: 0,
+          createdAt: v.createdAt || new Date().toISOString(),
+          updatedAt: v.updatedAt || new Date().toISOString(),
         }))
         localStorage.setItem(VISIONS_KEY, JSON.stringify(migrated))
         return migrated.sort((a, b) => a.order - b.order)
