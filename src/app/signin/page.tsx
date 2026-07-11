@@ -39,8 +39,7 @@ export default function SignInPage() {
     try {
       const settings = loadUserSettings()
       if (!settings.profile.name) {
-        saveUserSettings({
-          ...settings,
+        updateUserSettings({
           profile: {
             ...settings.profile,
             name: "John Favour",
