@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { TeoIcon } from "@/components/ui/teo-icon"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, User } from "lucide-react"
-import { loadUserSettings, saveUserSettings } from "@/lib/user-settings"
+import { loadUserSettings, updateUserSettings } from "@/lib/user-settings"
 
 const DEMO_EMAIL = "john@intenteo.com"
 const DEMO_PASSWORD = "intenteo2026"
@@ -40,6 +40,7 @@ export default function SignInPage() {
       const settings = loadUserSettings()
       if (!settings.profile.name) {
         saveUserSettings({
+          ...settings,
           profile: {
             ...settings.profile,
             name: "John Favour",
