@@ -2568,6 +2568,8 @@ function WritingArea({
   onSaveSuccess,
   resetKey,
   initialType,
+  pinnedEntries,
+  onOpenPinned,
 }: {
   editingEntry: JournalEntry | null
   onCreated: (entry: JournalEntry) => void
@@ -2577,6 +2579,8 @@ function WritingArea({
   onSaveSuccess: (message: string) => void
   resetKey: number
   initialType?: JournalType
+  pinnedEntries?: JournalEntry[]
+  onOpenPinned?: (entry: JournalEntry) => void
 }) {
   const draft = useMemo(() => autosave.load(), [autosave])
   const [title, setTitle] = useState((draft?.title as string) || "")
