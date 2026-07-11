@@ -2564,22 +2564,22 @@ function WritingArea({
   onUpdated,
   onCancelEdit,
   autosave,
-  pinnedEntries,
-  onOpenPinned,
   onSaveSuccess,
   resetKey,
   initialType,
+  pinnedEntries,
+  onOpenPinned,
 }: {
   editingEntry: JournalEntry | null
   onCreated: (entry: JournalEntry) => void
   onUpdated: (entry: JournalEntry) => void
   onCancelEdit: () => void
   autosave: { lastSaved: Date | null; isSaving: boolean; save: (data: unknown) => void; load: () => Record<string, unknown> | null; clear: () => void }
-  pinnedEntries: JournalEntry[]
-  onOpenPinned: (entry: JournalEntry) => void
   onSaveSuccess: (message: string) => void
   resetKey: number
   initialType?: JournalType
+  pinnedEntries?: JournalEntry[]
+  onOpenPinned?: (entry: JournalEntry) => void
 }) {
   const draft = useMemo(() => autosave.load(), [autosave])
   const [title, setTitle] = useState((draft?.title as string) || "")
@@ -3046,21 +3046,6 @@ function WritingArea({
             <button onClick={() => setLocation("")} className="ml-1 hover:text-foreground">
               <X className="h-3 w-3" />
             </button>
-          </div>
-        )}
-
-        {pinnedEntries.length > 0 && (
-          <div className="flex items-center gap-2 py-2 overflow-x-auto border-t border-border/30">
-            <span className="text-[10px] text-muted-foreground shrink-0 font-medium">Pinned:</span>
-            {pinnedEntries.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => onOpenPinned(entry)}
-                className="shrink-0 flex items-center gap-1 px-2 py-1 text-[11px] rounded-full bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors"
-              >
-                📌 {entry.title}
-              </button>
-            ))}
           </div>
         )}
 
@@ -3574,11 +3559,11 @@ export function JournalPage() {
             onUpdated={handleUpdateEntry}
             onCancelEdit={() => setEditingEntry(null)}
             autosave={draftAutosave}
-            pinnedEntries={pinnedEntries}
-            onOpenPinned={handleSelectEntryForEdit}
             onSaveSuccess={(msg) => addToast(msg, "info")}
             resetKey={resetKey}
             initialType={initialJournalType}
+            pinnedEntries={pinnedEntries}
+            onOpenPinned={(entry) => setEditingEntry(entry)}
           />
         </div>
 
