@@ -36,7 +36,7 @@ function saveQuickAccessItems(items: QuickAccessItem[]): void {
   window.dispatchEvent(new Event("quick-access-changed"))
 }
 
-export function pinToQuickAccess(item: Omit<QuickAccessItem, "id" | "order" | "pinnedAt">): QuickAccessItem {
+export function pinToQuickAccess(item: Omit<QuickAccessItem, "order" | "pinnedAt" | "createdAt">): QuickAccessItem {
   const existing = getQuickAccessItems()
   // Prevent duplicates
   const already = existing.find((i) => i.type === item.type && i.id === item.id)
@@ -44,9 +44,9 @@ export function pinToQuickAccess(item: Omit<QuickAccessItem, "id" | "order" | "p
 
   const newItem: QuickAccessItem = {
     ...item,
-    id: generateId(),
     order: existing.length,
     pinnedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
   }
   saveQuickAccessItems([...existing, newItem])
   return newItem

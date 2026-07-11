@@ -10,8 +10,11 @@ import {
   CheckCircle2, Clock, Flame, Target, Eye, EyeOff,
 } from "lucide-react"
 import {
-  getTrackerTemplate, pinTracker, unpinTracker, isTrackerPinned,
+  getTrackerTemplate,
 } from "./tracker-templates"
+import {
+  pinToQuickAccess, unpinFromQuickAccess, isInQuickAccess,
+} from "@/lib/quick-access"
 
 const PREVIEW_DATA: Record<string, {
   stats: { label: string; value: string; change: string; trend: "up" | "down" | "neutral" }[]
@@ -185,10 +188,10 @@ export function TrackerPreviewPage({ trackerId }: { trackerId: string }) {
   const preview = PREVIEW_DATA[trackerId] || PREVIEW_DATA.custom
 
   useEffect(() => {
-    setIsPinned(isTrackerPinned(trackerId))
-    const update = () => setIsPinned(isTrackerPinned(trackerId))
-    window.addEventListener("pinned-trackers-changed", update)
-    return () => window.removeEventListener("pinned-trackers-changed", update)
+    setIsPinned(isInQuickAccess("tracker", trackerId))
+    const update = () => setIsPinned(isInQuickAccess("tracker", trackerId))
+    window.addEventListener("quick-access-changed", update)
+    return () => window.removeEventListener("quick-access-changed", update)
   }, [trackerId])
 
   if (!tracker) {
@@ -204,9 +207,15 @@ export function TrackerPreviewPage({ trackerId }: { trackerId: string }) {
 
   const handleTogglePin = () => {
     if (isPinned) {
-      unpinTracker(trackerId)
+      unpinFromQuickAccess("tracker", trackerId)
     } else {
-      pinTracker(trackerId)
+      pinToQuickAccess({
+        type: "tracker",
+        id: trackerId,
+        title: tracker.name.replace(" Tracker", "").replace(" Calendar", ""),
+        icon: tracker.icon,
+        route: `/browse-trackers/${trackerId}`,
+      })
     }
   }
 
