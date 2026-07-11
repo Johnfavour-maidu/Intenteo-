@@ -967,7 +967,7 @@ function CalendarListPanel({
                                   <Star className="h-3 w-3" /> {entry.favorited ? "Unstar" : "Star"}
                                 </button>
                                 <button onClick={() => { onTogglePin(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                  <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin" : "Pin"}
+                                  <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin from Sidebar" : "Pin to Sidebar"}
                                 </button>
                                 <div className="h-px bg-border my-1" />
                                 <button onClick={() => { onDeleteEntry(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
