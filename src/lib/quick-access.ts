@@ -16,10 +16,6 @@ export interface QuickAccessItem {
 const STORAGE_KEY = "intenteo-quick-access"
 const EXPANDED_KEY = "intenteo-quick-access-expanded"
 
-function generateId(): string {
-  return crypto.randomUUID?.() || `qa-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-}
-
 export function getQuickAccessItems(): QuickAccessItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)

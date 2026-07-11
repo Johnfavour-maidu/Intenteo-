@@ -7,31 +7,28 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import {
-  Search, Pin, PinOff, Eye, Compass, ChevronDown,
+  Search, Pin, PinOff, Eye, ChevronRight, Compass, Sparkles,
 } from "lucide-react"
 import {
-  TRACKER_TEMPLATES,
-  getTrackerTemplate,
+  TRACKER_TEMPLATES, TRACKER_CATEGORIES,
+  getPinnedTrackers, pinTracker, unpinTracker, isTrackerPinned,
   type TrackerCategory, type TrackerTemplate,
 } from "./tracker-templates"
-import {
-  pinToQuickAccess, unpinFromQuickAccess, isInQuickAccess,
-} from "@/lib/quick-access"
 
 export function BrowseTrackersPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeCategory, setActiveCategory] = useState<TrackerCategory | "All">("All")
+  const [activeCategory, setActiveCategory] = useState<TrackerCategory>("All")
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const updatePinned = () => {
-      const items = JSON.parse(localStorage.getItem("intenteo-quick-access") || "[]") as { type: string; id: string }[]
-      setPinnedIds(new Set(items.filter((i) => i.type === "tracker").map((i) => i.id)))
+      const pinned = getPinnedTrackers()
+      setPinnedIds(new Set(pinned.map(p => p.trackerId)))
     }
     updatePinned()
-    window.addEventListener("quick-access-changed", updatePinned)
-    return () => window.removeEventListener("quick-access-changed", updatePinned)
+    window.addEventListener("pinned-trackers-changed", updatePinned)
+    return () => window.removeEventListener("pinned-trackers-changed", updatePinned)
   }, [])
 
   const filteredTrackers = useMemo(() => {
@@ -52,19 +49,24 @@ export function BrowseTrackersPage() {
 
   const handleTogglePin = (e: React.MouseEvent, trackerId: string) => {
     e.stopPropagation()
-    const tmpl = getTrackerTemplate(trackerId)
-    if (!tmpl) return
-    if (isInQuickAccess("tracker", trackerId)) {
-      unpinFromQuickAccess("tracker", trackerId)
+    if (isTrackerPinned(trackerId)) {
+      unpinTracker(trackerId)
     } else {
-      pinToQuickAccess({
-        type: "tracker",
-        id: trackerId,
-        title: tmpl.name.replace(" Tracker", "").replace(" Calendar", ""),
-        icon: tmpl.icon,
-        route: `/browse-trackers/${trackerId}`,
-      })
+      pinTracker(trackerId)
     }
+  }
+
+  const categoryColors: Record<string, string> = {
+    "All": "#1E0E6B",
+    "Mental Wellness": "#8B5CF6",
+    "Health": "#EC4899",
+    "Fitness": "#22C55E",
+    "Lifestyle": "#10B981",
+    "Business": "#14B8A6",
+    "Finance": "#EAB308",
+    "Education": "#6366F1",
+    "Content Creation": "#F97316",
+    "Custom": "#6B7280",
   }
 
   return (
@@ -76,12 +78,13 @@ export function BrowseTrackersPage() {
         </div>
         <p className="text-muted-foreground mt-1">
           Discover tracker templates to help you live intentionally.
+          <br />
           Choose a tracker, customize it, and pin it to your workspace.
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 sm:max-w-md">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search Trackers..."
@@ -90,25 +93,20 @@ export function BrowseTrackersPage() {
             className="pl-9"
           />
         </div>
-        <div className="relative shrink-0 sm:w-56">
-          <select
-            value={activeCategory}
-            onChange={(e) => setActiveCategory(e.target.value as TrackerCategory | "All")}
-            className="w-full appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer"
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {TRACKER_CATEGORIES.map((cat) => (
+          <Button
+            key={cat}
+            variant={activeCategory === cat ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveCategory(cat)}
+            className={activeCategory === cat ? "bg-[#1E0E6B] text-white hover:bg-[#1E0E6B]/90" : ""}
           >
-            <option value="All">All Categories</option>
-            <option value="Mental Wellness">Mental Wellness</option>
-            <option value="Health">Health</option>
-            <option value="Fitness">Fitness</option>
-            <option value="Lifestyle">Lifestyle</option>
-            <option value="Business">Business</option>
-            <option value="Finance">Finance</option>
-            <option value="Education">Education</option>
-            <option value="Content Creation">Content Creation</option>
-            <option value="Custom">Custom</option>
-          </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-        </div>
+            {cat}
+          </Button>
+        ))}
       </div>
 
       {filteredTrackers.length === 0 ? (
