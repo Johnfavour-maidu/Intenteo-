@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { SidebarProvider } from "@/components/layout/sidebar-context"
 import { UndoRedoProvider } from "@/components/providers/undo-redo-provider"
+import { AuthProviderWrapper } from "@/components/providers/auth-provider"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,11 +62,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider>
-            <UndoRedoProvider>
-              {children}
-            </UndoRedoProvider>
-          </SidebarProvider>
+          <AuthProviderWrapper>
+            <SidebarProvider>
+              <UndoRedoProvider>
+                {children}
+              </UndoRedoProvider>
+            </SidebarProvider>
+          </AuthProviderWrapper>
         </ThemeProvider>
       </body>
     </html>

@@ -9,6 +9,7 @@ import { UniversalSearch } from "./universal-search"
 import { CommandCenter } from "./command-center"
 import { NotificationCenter, getUnreadCount } from "./notification-center"
 import { useUserProfile } from "@/lib/user-profile-context"
+import { useAuth } from "@/lib/auth-context"
 
 function NotificationBadge() {
   const [count, setCount] = React.useState(0)
@@ -52,6 +53,7 @@ function Tooltip({ children, label }: { children: React.ReactNode; label: string
 export function Header() {
   const { theme, setTheme } = useTheme()
   const { name, username, avatar, avatarFocalPoint } = useUserProfile()
+  const { signOut } = useAuth()
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
@@ -105,14 +107,6 @@ export function Header() {
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
   }, [profileOpen])
-
-  const handleSignOut = useCallback(() => {
-    try {
-      const keys = Object.keys(localStorage).filter(k => k.startsWith("intenteo-"))
-      keys.forEach(k => localStorage.removeItem(k))
-    } catch {}
-    window.location.reload()
-  }, [])
 
   return (
     <>
@@ -218,7 +212,7 @@ export function Header() {
                   </Link>
                 </div>
                 <div className="border-t border-[#1E0E6B]/10 py-1">
-                  <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors w-full">
+                  <button onClick={signOut} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors w-full">
                     <LogOut className="h-4 w-4 text-muted-foreground" /> Sign Out
                   </button>
                 </div>

@@ -7,6 +7,7 @@ import { useSidebar } from "./sidebar-context"
 import { cn } from "@/lib/utils"
 import { GlobalFloatingTeo } from "@/components/teo/global-floating-teo"
 import { UserProfileProvider } from "@/lib/user-profile-context"
+import { useAuth } from "@/lib/auth-context"
 import { loadUserSettings } from "@/lib/user-settings"
 import { useTheme } from "next-themes"
 
@@ -18,6 +19,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { collapsed } = useSidebar()
   const { resolvedTheme } = useTheme()
   const [bgColor, setBgColor] = useState("#FAFBFF")
+  const { isSignedIn } = useAuth()
 
   const isDark = resolvedTheme === "dark"
 
@@ -46,6 +48,10 @@ export function MainLayout({ children }: MainLayoutProps) {
     }, 3000)
     return () => clearInterval(interval)
   }, [])
+
+  if (!isSignedIn) {
+    return <>{children}</>
+  }
 
   return (
     <UserProfileProvider>

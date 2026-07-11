@@ -19,6 +19,7 @@ import {
   Cloud, RefreshCw, Eye, EyeOff, Fingerprint, Info, LogOut,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/lib/auth-context"
 import { SettingsToastContainer, useSettingsToast } from "./settings-toast"
 import { HelpCenter } from "./help-center"
 import { ContactUs } from "./contact-us"
@@ -230,13 +231,7 @@ export function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState("")
 
   // Sign Out
-  const handleSignOut = useCallback(() => {
-    try {
-      const keys = Object.keys(localStorage).filter(k => k.startsWith("intenteo-"))
-      keys.forEach(k => localStorage.removeItem(k))
-    } catch {}
-    window.location.reload()
-  }, [])
+  const { signOut } = useAuth()
 
   // Stats modal
   const [statsOpen, setStatsOpen] = useState(false)
@@ -812,7 +807,7 @@ export function SettingsPage() {
 
           {/* Bottom Actions */}
           <div className="flex items-center justify-end gap-3 pt-4">
-            <Button variant="outline" size="sm" onClick={handleSignOut} className="border-[#1E0E6B] text-[#1E0E6B] hover:bg-[#1E0E6B]/5">
+            <Button variant="outline" size="sm" onClick={signOut} className="border-[#1E0E6B] text-[#1E0E6B] hover:bg-[#1E0E6B]/5">
               <LogOut className="mr-1.5 h-3.5 w-3.5" />Sign Out
             </Button>
             <Button variant="outline" size="sm" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteStep(1)}>
