@@ -9,7 +9,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle, Info, Map,
+  Link2, AlertTriangle, Info, Map, Eye,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -24,7 +24,8 @@ import {
 } from "./goal-utils"
 import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 import { DateInput } from "@/components/ui/date-input"
-import type { Vision } from "./types"
+import type { Vision } from "@/lib/vision-framework"
+import { loadVisions } from "@/lib/vision-framework"
 
 interface Milestone { id: string; title: string; completed: boolean }
 
@@ -275,8 +276,8 @@ const getAutoDeadline = (startDate: string, type: Goal["type"]): string => {
   return d.toISOString().split("T")[0]
 }
 
-const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
-  isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void; habits: Habit[]
+const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
+  isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void; habits: Habit[]; visions: Vision[]
 }) => {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -297,6 +298,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
   const [habitWeights, setHabitWeights] = useState<Record<string, number>>({})
   const [customizeContributions, setCustomizeContributions] = useState(false)
   const [projectTimelines, setProjectTimelines] = useState<GoalProjectTimeline[]>([])
+  const [selectedVisionId, setSelectedVisionId] = useState<string>("")
   const [editingTimelineId, setEditingTimelineId] = useState<string | null>(null)
   const [showTimelineForm, setShowTimelineForm] = useState(false)
   const [newTimelineProjectName, setNewTimelineProjectName] = useState("")
@@ -596,13 +598,35 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits }: {
             )}
           </div>
         </div>
+        <div>
+          <label className="text-sm font-medium">Linked Vision</label>
+          <p className="text-xs text-muted-foreground mb-2">Connect this goal to a life vision</p>
+          {visions.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">No visions created yet</p>
+          ) : (
+            <div className="space-y-1 max-h-[120px] overflow-y-auto border border-white/20 rounded-lg p-2">
+              <label className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer text-sm ${selectedVisionId === "" ? "bg-[#1E0E6B]/10" : "hover:bg-muted/50"}`}>
+                <input type="radio" name="vision" checked={selectedVisionId === ""} onChange={() => setSelectedVisionId("")} className="accent-[#1E0E6B]" />
+                <span className="text-muted-foreground">None</span>
+              </label>
+              {visions.filter(v => !v.archived).map(v => (
+                <label key={v.id} className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer text-sm ${selectedVisionId === v.id ? "bg-[#1E0E6B]/10" : "hover:bg-muted/50"}`}>
+                  <input type="radio" name="vision" checked={selectedVisionId === v.id} onChange={() => setSelectedVisionId(v.id)} className="accent-[#1E0E6B]" />
+                  <span>{v.icon}</span>
+                  <span className="flex-1">{v.title}</span>
+                  <span className="text-[10px] text-muted-foreground">{v.lifeAreaId || ""}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button onClick={() => {
             if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon })
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined })
               onClose()
             }
           }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
@@ -670,8 +694,8 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
   )
 }
 
-const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal, onSaveProject, onDeleteGoal }: {
-  isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]; habits: Habit[]
+const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, onSaveGoal, onSaveProject, onDeleteGoal }: {
+  isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]; habits: Habit[]; visions: Vision[]
   onSaveGoal: (g: Goal) => void; onSaveProject: (p: Project) => void; onDeleteGoal: (id: string) => void
 }) => {
   const [data, setData] = useState<Goal | null>(goal)
@@ -746,6 +770,21 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
               </div>
             ))}
           </div>
+
+          {/* Linked Vision */}
+          {data.visionId && (() => {
+            const linkedVision = visions.find(v => v.id === data!.visionId)
+            if (!linkedVision) return null
+            return (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/30">
+                <Eye className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-purple-600 dark:text-purple-400">Linked Vision</p>
+                  <p className="text-sm font-semibold">{linkedVision.icon} {linkedVision.title}</p>
+                </div>
+              </div>
+            )
+          })()}
 
           {breakdown.length > 0 && (
             <div>
@@ -895,7 +934,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, onSaveGoal,
   )
 }
 
-function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: Project[]; habits: Habit[]; onClick: () => void }) {
+function GoalCard({ goal, projects, habits, visions, onClick }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void }) {
   const goalProjects = projects.filter(p => p.goalId === goal.id)
   const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
@@ -962,6 +1001,18 @@ function GoalCard({ goal, projects, habits, onClick }: { goal: Goal; projects: P
         </div>
       )}
 
+      {/* Linked Vision */}
+      {goal.visionId && (() => {
+        const linkedVision = visions.find(v => v.id === goal.visionId)
+        if (!linkedVision) return null
+        return (
+          <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/30">
+            <Eye className="h-3 w-3 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span className="text-[10px] text-purple-600 dark:text-purple-400 truncate">{linkedVision.icon} {linkedVision.title}</span>
+          </div>
+        )
+      })()}
+
       {/* Progress bar */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-medium">{progress}%</span></div>
@@ -1010,6 +1061,7 @@ export function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [habits, setHabits] = useState<Habit[]>([])
+  const [visions, setVisions] = useState<Vision[]>([])
   const [filter, setFilter] = useState<GoalFilterMode>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [healthFilter, setHealthFilter] = useState<string>("all")
@@ -1031,6 +1083,7 @@ export function GoalsPage() {
       if (sg) { try { setGoals(JSON.parse(sg)) } catch { setGoals(createSampleGoals()) } } else setGoals(createSampleGoals())
       if (sp) { try { setProjects(JSON.parse(sp)) } catch { setProjects(createSampleProjects()) } } else setProjects(createSampleProjects())
       if (sh) { try { setHabits(JSON.parse(sh)) } catch { /* keep empty */ } }
+      setVisions(loadVisions())
     } catch {
       setGoals(createSampleGoals())
       setProjects(createSampleProjects())
@@ -1214,7 +1267,7 @@ export function GoalsPage() {
 
           {viewMode === "board" ? (
             <div className="grid gap-4 md:grid-cols-2">
-              {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} onClick={() => setAnalyticsGoal(goal)} />)}
+              {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} />)}
             </div>
           ) : (
             <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
@@ -1239,7 +1292,14 @@ export function GoalsPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span>{goal.icon}</span>
-                            <span className="font-medium">{goal.title}</span>
+                            <div>
+                              <span className="font-medium">{goal.title}</span>
+                              {goal.visionId && (() => {
+                                const linkedVision = visions.find(v => v.id === goal.visionId)
+                                if (!linkedVision) return null
+                                return <p className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center gap-1 mt-0.5"><Eye className="h-2.5 w-2.5" />{linkedVision.title}</p>
+                              })()}
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 py-3"><Badge variant="outline" className="text-[10px]" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge></td>
@@ -1284,8 +1344,8 @@ export function GoalsPage() {
         </div>
       )}
 
-      <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} />
-      <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
+      <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} visions={visions} />
+      <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} visions={visions} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
 
       {/* Analytics Drawer */}
       {analyticsGoal && (

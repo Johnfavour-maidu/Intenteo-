@@ -49,12 +49,12 @@ export interface Habit {
 }
 
 export interface VisionBoardItem {
-  id: string; type: "image" | "quote" | "bible-verse" | "video" | "link" | "note"
+  id: string; type: "image" | "quote" | "bible-verse" | "video" | "link" | "note" | "voice"
   content: string; title?: string; url?: string; createdAt: string
 }
 
 export interface Vision {
-  id: string; title: string; description: string; category: string
+  id: string; title: string; description: string; lifeAreaId: string
   icon: string; archived: boolean
   boardItems: VisionBoardItem[]
   createdAt: string; updatedAt: string
