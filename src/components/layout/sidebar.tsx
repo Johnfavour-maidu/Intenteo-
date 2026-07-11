@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -14,6 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
+  Compass,
+  Pin,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -21,6 +24,12 @@ import { Separator } from "@/components/ui/separator"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useSidebar } from "./sidebar-context"
 import { useUserProfile } from "@/lib/user-profile-context"
+import {
+  getPinnedTrackers,
+  getTrackerTemplate,
+  unpinTracker,
+  type PinnedTracker,
+} from "@/components/trackers/tracker-templates"
 
 interface NavItem {
   title: string
@@ -39,6 +48,7 @@ const mainNav: NavItem[] = [
 ]
 
 const bottomNav: NavItem[] = [
+  { title: "Browse Trackers", href: "/browse-trackers", icon: Compass },
   { title: "Settings", href: "/settings", icon: Settings },
 ]
 
@@ -46,6 +56,14 @@ export function Sidebar() {
   const pathname = usePathname()
   const { collapsed, toggleCollapsed } = useSidebar()
   const { name, username, avatar, avatarFocalPoint } = useUserProfile()
+  const [pinnedTrackers, setPinnedTrackers] = useState<PinnedTracker[]>([])
+
+  useEffect(() => {
+    const updatePinned = () => setPinnedTrackers(getPinnedTrackers())
+    updatePinned()
+    window.addEventListener("pinned-trackers-changed", updatePinned)
+    return () => window.removeEventListener("pinned-trackers-changed", updatePinned)
+  }, [])
 
   return (
     <aside
@@ -147,9 +165,58 @@ export function Sidebar() {
               </Link>
             ))}
           </nav>
+
+          {/* My Trackers — Pinned Trackers */}
+          {pinnedTrackers.length > 0 && !collapsed && (
+            <div className="mt-4">
+              <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">My Trackers</p>
+              <nav className="space-y-0.5">
+                {pinnedTrackers.map((pt) => {
+                  const tmpl = getTrackerTemplate(pt.trackerId)
+                  if (!tmpl) return null
+                  return (
+                    <div key={pt.trackerId} className="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                      <Link
+                        href={`/browse-trackers/${pt.trackerId}`}
+                        className="flex items-center gap-2 flex-1 min-w-0"
+                      >
+                        <span className="text-base shrink-0">{tmpl.icon}</span>
+                        <span className="text-xs font-medium truncate">{tmpl.name.replace(" Tracker", "").replace(" Calendar", "")}</span>
+                      </Link>
+                      <button
+                        onClick={() => unpinTracker(pt.trackerId)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                      >
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </nav>
+            </div>
+          )}
+
+          {pinnedTrackers.length > 0 && collapsed && (
+            <div className="mt-4 space-y-1">
+              {pinnedTrackers.map((pt) => {
+                const tmpl = getTrackerTemplate(pt.trackerId)
+                if (!tmpl) return null
+                return (
+                  <Link
+                    key={pt.trackerId}
+                    href={`/browse-trackers/${pt.trackerId}`}
+                    className="flex items-center justify-center py-1.5"
+                    title={tmpl.name}
+                  >
+                    <span className="text-lg">{tmpl.icon}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </ScrollArea>
 
-        {/* Bottom — Settings only */}
+        {/* Bottom — Browse Trackers + Settings */}
         <div className="border-t p-3">
           <nav className="space-y-1">
             {bottomNav.map((item) => (
