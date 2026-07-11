@@ -51,9 +51,10 @@ export function AboutIntenteo() {
       <GlassCard className="p-4">
         <div className="flex items-center gap-4">
           <img
-            src="/favicon-40.png"
+            src="/logo.png"
             alt="Intenteo"
-            className="h-14 w-14 rounded-xl shrink-0"
+            className="h-14 w-auto object-contain shrink-0"
+            style={{ imageRendering: "auto" }}
           />
           <div>
             <h3 className="font-bold text-lg">Intenteo</h3>

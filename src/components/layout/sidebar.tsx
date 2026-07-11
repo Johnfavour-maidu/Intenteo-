@@ -92,24 +92,26 @@ export function Sidebar() {
       </Button>
 
       <div className="flex h-full flex-col">
-        {/* Logo Section */}
+        {/* Logo Section — aligns with profile and nav left edge */}
         {!collapsed ? (
-          <div className="flex h-16 items-center justify-start px-4">
+          <div className="flex h-16 w-full items-center justify-start px-4">
             <Link href="/" className="flex items-center shrink-0">
               <img
                 src="/logo.png"
-                alt="Intenteo — Live with Intentionality"
-                className="h-10 w-auto max-w-[180px] object-contain transition-opacity duration-200 ease-in-out"
+                alt="Intenteo"
+                className="h-12 w-auto max-w-[220px] object-contain"
+                style={{ imageRendering: "auto" }}
               />
             </Link>
           </div>
         ) : (
-          <div className="flex h-16 items-center justify-center px-4">
+          <div className="flex h-16 items-center justify-center">
             <Link href="/" className="flex items-center justify-center">
               <img
-                src="/favicon-40.png"
+                src="/favicon.png"
                 alt="Intenteo"
-                className="h-10 w-10 transition-opacity duration-200 ease-in-out"
+                className="h-10 w-10 object-contain"
+                style={{ imageRendering: "auto" }}
               />
             </Link>
           </div>
@@ -142,7 +144,7 @@ export function Sidebar() {
         <Separator />
 
         {/* Main Navigation */}
-        <ScrollArea className="flex-1 px-3 py-4">
+        <ScrollArea className="flex-1 px-4 py-4">
           <nav className="space-y-1">
             {mainNav.map((item) => (
               <Link
@@ -205,7 +207,7 @@ export function Sidebar() {
           )}
 
           {quickItems.length > 0 && collapsed && (
-            <div className="mt-4 space-y-1">
+            <div className="mt-4 space-y-1 px-4">
               {quickItems.map((item) => (
                 <Link
                   key={`${item.type}-${item.id}`}
@@ -221,7 +223,7 @@ export function Sidebar() {
         </ScrollArea>
 
         {/* Bottom — Browse Trackers + Settings */}
-        <div className="border-t p-3">
+        <div className="border-t px-4 py-3">
           <nav className="space-y-1">
             {bottomNav.map((item) => (
               <Link
