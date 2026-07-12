@@ -319,6 +319,37 @@
     font-style: italic;
   }
 
+  /* Editor table styling */
+  [contenteditable] table.je-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: 8px 0;
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    overflow: hidden;
+    background: white;
+  }
+  [contenteditable] table.je-table td {
+    border: 1px solid #c7d2fe;
+    padding: 8px 12px;
+    min-width: 60px;
+    vertical-align: top;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1.5;
+    color: inherit;
+  }
+  [contenteditable] table.je-table td:focus {
+    outline: 2px solid var(--brand-primary, #1E0E6B);
+    outline-offset: -2px;
+    background: #f5f3ff;
+  }
+  [contenteditable] table.je-table tr:first-child td {
+    background: #eef2ff;
+    font-weight: 600;
+  }
+
   /* Journal Page Styles */
   .journal-page-lined {
     background-image: repeating-linear-gradient(

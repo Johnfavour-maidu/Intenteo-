@@ -51,7 +51,6 @@ import {
   CheckSquare,
   Palette,
   Highlighter,
-  Quote,
   Minus,
   Undo2,
   Redo2,
@@ -98,6 +97,7 @@ interface JournalEntry {
   id: string
   title: string
   content: string
+  contentHtml?: string
   type: JournalType
   date: string
   dateISO: string
@@ -1817,7 +1817,7 @@ interface FormattingToolbarProps {
   onAlignRight?: () => void
   onInsertUnorderedList?: () => void
   onInsertOrderedList?: () => void
-  onInsertBlockquote?: () => void
+  onInsertTable?: () => void
   onInsertHorizontalRule?: () => void
   onUndo?: () => void
   onRedo?: () => void
@@ -1923,7 +1923,7 @@ export function FormattingToolbar({
   onAlignRight,
   onInsertUnorderedList,
   onInsertOrderedList,
-  onInsertBlockquote,
+  onInsertTable,
   onInsertHorizontalRule,
   onUndo,
   onRedo,
@@ -1976,7 +1976,7 @@ export function FormattingToolbar({
       <Divider />
       <ToolbarButton icon={<List className="h-3.5 w-3.5" />} onClick={onInsertUnorderedList || (() => {})} active={activeFormats?.insertUnorderedList} tooltip="Bullet List" />
       <ToolbarButton icon={<ListOrdered className="h-3.5 w-3.5" />} onClick={onInsertOrderedList || (() => {})} active={activeFormats?.insertOrderedList} tooltip="Numbered List" />
-      <ToolbarButton icon={<Quote className="h-3.5 w-3.5" />} onClick={onInsertBlockquote || (() => {})} tooltip="Quote" />
+      <ToolbarButton icon={<Grid3X3 className="h-3.5 w-3.5" />} onClick={onInsertTable || (() => {})} tooltip="Insert Table" />
       <Divider />
 
       {/* Text Colour */}
@@ -2551,6 +2551,127 @@ function CameraModal({ onClose, onCapture, onChoose }: {
 }
 
 /* ────────────────────────────────────────────────────── */
+/* Table Helpers                                          */
+/* ────────────────────────────────────────────────────── */
+
+function generateTableHtml(rows: number, cols: number): string {
+  let html = '<table class="je-table"><tbody>'
+  for (let r = 0; r < rows; r++) {
+    html += "<tr>"
+    for (let c = 0; c < cols; c++) {
+      html += '<td><br></td>'
+    }
+    html += "</tr>"
+  }
+  html += "</tbody></table><p><br></p>"
+  return html
+}
+
+function getCellCoords(cell: HTMLTableCellElement): { row: number; col: number } | null {
+  const tr = cell.closest("tr")
+  const table = cell.closest("table")
+  if (!tr || !table) return null
+  const row = Array.from(table.querySelectorAll("tr")).indexOf(tr)
+  const col = Array.from(tr.querySelectorAll("td, th")).indexOf(cell)
+  return row >= 0 && col >= 0 ? { row, col } : null
+}
+
+function navigateCell(table: HTMLTableElement, row: number, col: number, shift: boolean = false) {
+  const rows = Array.from(table.querySelectorAll("tr"))
+  const targetRow = rows[row]
+  if (!targetRow) return
+  const cells = Array.from(targetRow.querySelectorAll("td, th"))
+  const targetCell = cells[col] || cells[shift ? 0 : cells.length - 1]
+  if (targetCell) {
+    const range = document.createRange()
+    range.selectNodeContents(targetCell)
+    range.collapse(false)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+    ;(targetCell as HTMLElement).focus()
+  }
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Insert Table Dialog                                    */
+/* ────────────────────────────────────────────────────── */
+
+function InsertTableDialog({ onClose, onInsert }: { onClose: () => void; onInsert: (rows: number, cols: number) => void }) {
+  const [rows, setRows] = useState(3)
+  const [cols, setCols] = useState(3)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <h3 className="font-semibold text-base">Insert Table</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rows</label>
+            <Input type="number" min={1} max={50} value={rows} onChange={(e) => setRows(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))} className="text-center" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Columns</label>
+            <Input type="number" min={1} max={20} value={cols} onChange={(e) => setCols(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))} className="text-center" />
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={() => onInsert(rows, cols)}>Insert Table</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Table Context Menu                                     */
+/* ────────────────────────────────────────────────────── */
+
+function TableContextMenu({ x, y, cell, onClose, editorRef, onContentChange }: {
+  x: number; y: number; cell: HTMLTableCellElement | null; onClose: () => void
+  editorRef: React.RefObject<HTMLDivElement | null>; onContentChange: () => void
+}) {
+  if (!cell) return null
+  const table = cell.closest("table") as HTMLTableElement | null
+  if (!table) return null
+  const tr = cell.closest("tr")
+  if (!tr) return null
+
+  const doAction = (fn: () => void) => { fn(); onClose(); onContentChange() }
+
+  return (
+    <div className="fixed z-50" style={{ left: x, top: y }}>
+      <div className="absolute inset-0 -m-40" onClick={onClose} />
+      <div className="relative bg-background border border-border rounded-xl shadow-2xl py-1.5 w-52 animate-in fade-in zoom-in-95 duration-100">
+        {[
+          { label: "Insert Row Above", action: () => { const newRow = tr!.cloneNode(true) as HTMLTableRowElement; newRow.querySelectorAll("td").forEach(td => { td.innerHTML = "<br>"; td.contentEditable = "true" }); tr!.parentNode!.insertBefore(newRow, tr) } },
+          { label: "Insert Row Below", action: () => { const newRow = tr!.cloneNode(true) as HTMLTableRowElement; newRow.querySelectorAll("td").forEach(td => { td.innerHTML = "<br>"; td.contentEditable = "true" }); tr!.nextSibling ? tr!.parentNode!.insertBefore(newRow, tr!.nextSibling) : tr!.parentNode!.appendChild(newRow) } },
+          { label: "Delete Row", action: () => { if (table.querySelectorAll("tr").length > 1) tr!.remove() } },
+          { divider: true } as const,
+          { label: "Insert Column Left", action: () => { const idx = Array.from(tr!.querySelectorAll("td, th")).indexOf(cell!); table.querySelectorAll("tr").forEach(r => { const newTd = document.createElement("td"); newTd.innerHTML = "<br>"; newTd.contentEditable = "true"; r.insertBefore(newTd, r.querySelectorAll("td")[idx]) }) } },
+          { label: "Insert Column Right", action: () => { const idx = Array.from(tr!.querySelectorAll("td, th")).indexOf(cell!); table.querySelectorAll("tr").forEach(r => { const newTd = document.createElement("td"); newTd.innerHTML = "<br>"; newTd.contentEditable = "true"; const cells = r.querySelectorAll("td"); r.insertBefore(newTd, cells[idx + 1] || null) }) } },
+          { label: "Delete Column", action: () => { const idx = Array.from(tr!.querySelectorAll("td, th")).indexOf(cell!); if (tr!.querySelectorAll("td").length <= 1) return; table.querySelectorAll("tr").forEach(r => { const cells = r.querySelectorAll("td, th"); if (cells[idx]) cells[idx].remove() }) } },
+          { divider: true } as const,
+          { label: "Delete Table", action: () => table!.remove(), danger: true },
+        ].map((item, i) => {
+          if ("divider" in item && item.divider) return <div key={i} className="h-px bg-border my-1.5" />
+          if ("action" in item) {
+            return (
+              <button key={i} onClick={() => doAction(item.action)} className={`w-full text-left px-3 py-1.5 text-xs rounded-lg mx-0.5 transition-colors ${"danger" in item && item.danger ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-950" : "hover:bg-muted"}`}>
+                {item.label}
+              </button>
+            )
+          }
+          return null
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
 /* Premium Journal Editor                                */
 /* ────────────────────────────────────────────────────── */
 
@@ -2602,6 +2723,8 @@ function WritingArea({
   const [cameraOpen, setCameraOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
+  const [tableDialogOpen, setTableDialogOpen] = useState(false)
+  const [tableContextMenu, setTableContextMenu] = useState<{ x: number; y: number; cell: HTMLTableCellElement | null }>({ x: 0, y: 0, cell: null })
 
   useEffect(() => {
     if (initialType) {
@@ -2646,7 +2769,7 @@ function WritingArea({
   useEffect(() => {
     if (editingEntry) {
       setTitle(editingEntry.title)
-      const html = textToEditorHtml(editingEntry.content)
+      const html = editingEntry.contentHtml || textToEditorHtml(editingEntry.content)
       setContentHtml(html)
       setContentText(editingEntry.content)
       setType(editingEntry.type)
@@ -2711,6 +2834,61 @@ function WritingArea({
     return () => document.removeEventListener("keydown", handler)
   }, [])
 
+  // Table context menu listener
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const cell = target.closest("td, th") as HTMLTableCellElement | null
+      if (cell && cell.closest("table.je-table")) {
+        e.preventDefault()
+        setTableContextMenu({ x: e.clientX, y: e.clientY, cell })
+      }
+    }
+    document.addEventListener("contextmenu", handler)
+    return () => document.removeEventListener("contextmenu", handler)
+  }, [])
+
+  // Close context menu on click outside
+  useEffect(() => {
+    if (!tableContextMenu.cell) return
+    const handler = () => setTableContextMenu({ x: 0, y: 0, cell: null })
+    document.addEventListener("click", handler)
+    return () => document.removeEventListener("click", handler)
+  }, [tableContextMenu.cell])
+
+  // Table keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) return
+      const cell = (sel.anchorNode as Node)?.parentElement?.closest("td, th") as HTMLTableCellElement | null
+      if (!cell || !cell.closest("table.je-table")) return
+      const table = cell.closest("table") as HTMLTableElement
+      const coords = getCellCoords(cell)
+      if (!coords) return
+
+      if (e.key === "Tab") {
+        e.preventDefault()
+        const rows = Array.from(table.querySelectorAll("tr"))
+        let { row, col } = coords
+        if (e.shiftKey) {
+          col--
+          if (col < 0) { row--; col = (rows[Math.max(0, row)]?.querySelectorAll("td, th").length || 1) - 1 }
+        } else {
+          col++
+          const maxCols = rows[row]?.querySelectorAll("td, th").length || 0
+          if (col >= maxCols) { row++; col = 0 }
+        }
+        if (row >= 0 && row < rows.length) navigateCell(table, row, col, e.shiftKey)
+      } else if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        document.execCommand("insertHTML", false, "<br>")
+      }
+    }
+    document.addEventListener("keydown", handler, true)
+    return () => document.removeEventListener("keydown", handler, true)
+  }, [])
+
   const handleContentChange = useCallback((html: string) => {
     setContentHtml(html)
     const tmp = document.createElement("div")
@@ -2736,6 +2914,7 @@ function WritingArea({
         ...editingEntry,
         title: title || "Untitled Entry",
         content: contentText,
+        contentHtml: contentHtml || undefined,
         type,
         mood: customMood ? `${customMood.emoji} ${customMood.label}` : mood,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -2754,6 +2933,7 @@ function WritingArea({
         id: `entry-${Date.now()}`,
         title: title || "Untitled Entry",
         content: contentText,
+        contentHtml: contentHtml || undefined,
         type,
         date: "Today",
         dateISO: todayISO(),
@@ -3060,23 +3240,7 @@ function WritingArea({
           onAlignRight={() => execFormat("justifyRight")}
           onInsertUnorderedList={() => execFormat("insertUnorderedList")}
           onInsertOrderedList={() => execFormat("insertOrderedList")}
-          onInsertBlockquote={() => {
-            if (editorRef.current) editorRef.current.focus()
-            const sel = window.getSelection()
-            if (sel && sel.rangeCount > 0) {
-              const range = sel.getRangeAt(0)
-              const selectedText = range.toString()
-              if (selectedText) {
-                document.execCommand("insertHTML", false, `<blockquote>${selectedText}</blockquote>`)
-              } else {
-                document.execCommand("insertHTML", false, `<blockquote>&nbsp;</blockquote>`)
-              }
-              if (editorRef.current) {
-                setContentHtml(editorRef.current.innerHTML)
-                setContentText(editorRef.current.innerText || "")
-              }
-            }
-          }}
+          onInsertTable={() => setTableDialogOpen(true)}
           onInsertHorizontalRule={() => execFormat("insertHorizontalRule")}
           onUndo={() => execFormat("undo")}
           onRedo={() => execFormat("redo")}
@@ -3232,6 +3396,37 @@ function WritingArea({
           />
         )}
       </AnimatePresence>
+
+      {tableDialogOpen && (
+        <InsertTableDialog
+          onClose={() => setTableDialogOpen(false)}
+          onInsert={(rows, cols) => {
+            if (editorRef.current) {
+              editorRef.current.focus()
+              document.execCommand("insertHTML", false, generateTableHtml(rows, cols))
+              setContentHtml(editorRef.current.innerHTML)
+              setContentText(editorRef.current.innerText || "")
+            }
+            setTableDialogOpen(false)
+          }}
+        />
+      )}
+
+      {tableContextMenu.cell && (
+        <TableContextMenu
+          x={tableContextMenu.x}
+          y={tableContextMenu.y}
+          cell={tableContextMenu.cell}
+          onClose={() => setTableContextMenu({ x: 0, y: 0, cell: null })}
+          editorRef={editorRef}
+          onContentChange={() => {
+            if (editorRef.current) {
+              setContentHtml(editorRef.current.innerHTML)
+              setContentText(editorRef.current.innerText || "")
+            }
+          }}
+        />
+      )}
     </>
   )
 }
@@ -3323,11 +3518,15 @@ function EntryReader({
         </div>
 
         <div className="prose prose-sm dark:prose-invert max-w-none">
-          {entry.content.split("\n").map((paragraph, i) => (
-            paragraph ? (
-              <p key={i} className="text-sm leading-relaxed text-foreground/90 mb-4">{paragraph}</p>
-            ) : <br key={i} />
-          ))}
+          {entry.contentHtml ? (
+            <div dangerouslySetInnerHTML={{ __html: entry.contentHtml }} className="text-sm leading-relaxed text-foreground/90 [&_table.je-table]:border-[#c7d2fe] [&_table.je-table]:rounded-[10px] [&_table.je-table]:overflow-hidden [&_table.je-table]:w-full [&_table.je-table]:my-2 [&_table.je-table]:border-collapse [&_table.je-table]:border-spacing-0 [&_table.je-table]:bg-white [&_table.je-table_td]:border [&_table.je-table_td]:border-[#c7d2fe] [&_table.je-table_td]:px-3 [&_table.je-table_td]:py-2 [&_table.je-table_td]:min-w-[60px] [&_table.je-table_td]:align-top [&_table.je-table_tr:first-child_td]:bg-indigo-50 [&_table.je-table_tr:first-child_td]:font-semibold" />
+          ) : (
+            entry.content.split("\n").map((paragraph, i) => (
+              paragraph ? (
+                <p key={i} className="text-sm leading-relaxed text-foreground/90 mb-4">{paragraph}</p>
+              ) : <br key={i} />
+            ))
+          )}
         </div>
 
         {entry.tags.length > 0 && (
