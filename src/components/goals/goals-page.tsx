@@ -10,7 +10,7 @@ import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
   Link2, AlertTriangle, Info, Map, Eye, Star, Edit3, ImagePlus,
-  ChevronLeft, GripVertical,
+  ChevronLeft, GripVertical, ArrowRight,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -50,6 +50,42 @@ interface Project {
 
 interface LinkedHabitWeight { habitId: string; habitName: string; weight: number }
 
+interface GoalReview {
+  id: string; date: string; goalId: string
+  priorityChanged: string; deadlineRealistic: string; obstacles: string
+  supportsVision: string; alignsValues: string; supportsPurpose: string
+  modifications: string; notes: string
+}
+
+type ReviewFrequency = "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly"
+
+const REVIEW_FREQUENCY_CONFIG: Record<ReviewFrequency, { label: string; days: number }> = {
+  weekly: { label: "Weekly", days: 7 },
+  biweekly: { label: "Every 2 Weeks", days: 14 },
+  monthly: { label: "Monthly", days: 30 },
+  bimonthly: { label: "Every 2 Months", days: 60 },
+  quarterly: { label: "Quarterly", days: 90 },
+}
+
+function isReviewDue(goal: Goal): boolean {
+  if (!goal.reviewFrequency) return false
+  const config = REVIEW_FREQUENCY_CONFIG[goal.reviewFrequency]
+  if (!config) return false
+  if (!goal.lastReviewedAt) return true
+  const lastReview = new Date(goal.lastReviewedAt)
+  const now = new Date()
+  const diffDays = Math.ceil((now.getTime() - lastReview.getTime()) / 86400000)
+  return diffDays >= config.days
+}
+
+function daysSinceReview(goal: Goal): number {
+  if (!goal.lastReviewedAt) {
+    const created = new Date(goal.createdAt)
+    return Math.ceil((Date.now() - created.getTime()) / 86400000)
+  }
+  return Math.ceil((Date.now() - new Date(goal.lastReviewedAt).getTime()) / 86400000)
+}
+
 interface Goal {
   id: string; title: string; description: string; category: string; customCategory?: string
   priority: "none" | "low" | "medium" | "high"; progress: number; deadline: string; startDate: string
@@ -65,6 +101,7 @@ interface Goal {
   habitCompletionRate?: number; lastActivity?: string
   focused?: boolean; focusOrder?: number
   heroImage?: string; supportingImages?: string[]
+  reviewFrequency: ReviewFrequency; lastReviewedAt?: string; reviews?: GoalReview[]
   createdAt: string; updatedAt: string
 }
 
@@ -157,17 +194,17 @@ const PROJECT_TEMPLATES = [
 ]
 
 const createSampleGoals = (): Goal[] => [
-  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-05-15" },
-  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01" },
-  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-04-01" },
-  { id:"5", title:"Deepen Faith Walk", description:"Build a consistent devotional and prayer life", category:"Faith", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Spiritual growth anchors everything", milestones:[{id:"m13",title:"Daily devotion habit",completed:true},{id:"m14",title:"Complete Bible reading plan",completed:false},{id:"m15",title:"Join small group",completed:false}], linkedHabits:["Morning Devotion"], linkedHabitWeights:[{habitId:"h5",habitName:"Morning Devotion",weight:100}], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F64F}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-02-01", updatedAt:"2026-06-01" },
-  { id:"6", title:"Strengthen Relationships", description:"Be more intentional with family and friends", category:"Relationships", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Relationships are life's greatest treasure", milestones:[{id:"m16",title:"Weekly family dinner",completed:true},{id:"m17",title:"Monthly friend hangout",completed:false},{id:"m18",title:"Plan family trip",completed:false}], linkedHabits:["Call a Friend"], linkedHabitWeights:[{habitId:"h6",habitName:"Call a Friend",weight:100}], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u2764\uFE0F", trackingMethod:"milestone", weighting:{projects:30,habits:30,milestones:20,manual:20}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-15", updatedAt:"2026-05-20" },
-  { id:"7", title:"Master TypeScript", description:"Become an expert in TypeScript and advanced patterns", category:"Learning", priority:"low", progress:0, deadline:"2026-09-30", startDate:"2026-04-01", type:"quarterly", whyItMatters:"Better code quality and career growth", milestones:[{id:"m19",title:"Complete advanced course",completed:false},{id:"m20",title:"Build 3 practice projects",completed:false},{id:"m21",title:"Contribute to open source",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F4BB}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Quarterly", status:"not-started", createdAt:"2026-04-01", updatedAt:"2026-04-01" },
-  { id:"8", title:"Launch Side Project", description:"Build and ship a profitable SaaS product", category:"Business", priority:"high", progress:0, deadline:"2026-10-31", startDate:"2026-03-01", type:"quarterly", whyItMatters:"Create additional income and impact", milestones:[{id:"m22",title:"Validate idea",completed:true},{id:"m23",title:"Build MVP",completed:false},{id:"m24",title:"Get first 10 paying users",completed:false},{id:"m25",title:"Reach $1k MRR",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-03-01", updatedAt:"2026-06-15" },
-  { id:"9", title:"Learn French", description:"Reach conversational fluency in French", category:"Learning", priority:"low", progress:0, deadline:"2027-06-30", startDate:"2026-07-01", type:"annual", whyItMatters:"Connecting with culture and opening travel opportunities", milestones:[{id:"m26",title:"Complete Duolingo streak 30 days",completed:true},{id:"m27",title:"Watch 5 French films",completed:false},{id:"m28",title:"Hold 10-min conversation",completed:false},{id:"m29",title:"Read a French book",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F30D}", trackingMethod:"milestone", weighting:{projects:30,habits:30,milestones:20,manual:20}, timeline:"Annual", status:"in-progress", createdAt:"2026-07-01", updatedAt:"2026-07-01" },
-  { id:"10", title:"Launch YouTube Channel", description:"Create and grow a personal development channel", category:"Business", priority:"medium", progress:0, deadline:"2027-03-31", startDate:"2026-08-01", type:"annual", whyItMatters:"Share knowledge and build a personal brand", milestones:[{id:"m30",title:"Plan 10 video topics",completed:false},{id:"m31",title:"Record first 3 videos",completed:false},{id:"m32",title:"Reach 100 subscribers",completed:false},{id:"m33",title:"Reach 1,000 subscribers",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u{1F3AC}", trackingMethod:"milestone", weighting:{projects:40,habits:10,milestones:30,manual:20}, timeline:"Annual", status:"not-started", createdAt:"2026-08-01", updatedAt:"2026-08-01" },
-  { id:"11", title:"Run a Marathon", description:"Complete a full 42km marathon", category:"Health", priority:"high", progress:0, deadline:"2027-04-30", startDate:"2026-09-01", type:"annual", whyItMatters:"Push physical limits and prove discipline", milestones:[{id:"m34",title:"Run 15km non-stop",completed:false},{id:"m35",title:"Run 21km half marathon",completed:false},{id:"m36",title:"Run 30km training run",completed:false},{id:"m37",title:"Complete marathon",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F3C3}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"not-started", createdAt:"2026-09-01", updatedAt:"2026-09-01" },
+  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:20,milestones:20,manual:10}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
+  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-05-15", reviewFrequency:"monthly" },
+  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
+  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-04-01", reviewFrequency:"monthly" },
+  { id:"5", title:"Deepen Faith Walk", description:"Build a consistent devotional and prayer life", category:"Faith", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Spiritual growth anchors everything", milestones:[{id:"m13",title:"Daily devotion habit",completed:true},{id:"m14",title:"Complete Bible reading plan",completed:false},{id:"m15",title:"Join small group",completed:false}], linkedHabits:["Morning Devotion"], linkedHabitWeights:[{habitId:"h5",habitName:"Morning Devotion",weight:100}], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F64F}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"in-progress", createdAt:"2026-02-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
+  { id:"6", title:"Strengthen Relationships", description:"Be more intentional with family and friends", category:"Relationships", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Relationships are life's greatest treasure", milestones:[{id:"m16",title:"Weekly family dinner",completed:true},{id:"m17",title:"Monthly friend hangout",completed:false},{id:"m18",title:"Plan family trip",completed:false}], linkedHabits:["Call a Friend"], linkedHabitWeights:[{habitId:"h6",habitName:"Call a Friend",weight:100}], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u2764\uFE0F", trackingMethod:"milestone", weighting:{projects:30,habits:30,milestones:20,manual:20}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-15", updatedAt:"2026-05-20", reviewFrequency:"monthly" },
+  { id:"7", title:"Master TypeScript", description:"Become an expert in TypeScript and advanced patterns", category:"Learning", priority:"low", progress:0, deadline:"2026-09-30", startDate:"2026-04-01", type:"quarterly", whyItMatters:"Better code quality and career growth", milestones:[{id:"m19",title:"Complete advanced course",completed:false},{id:"m20",title:"Build 3 practice projects",completed:false},{id:"m21",title:"Contribute to open source",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F4BB}", trackingMethod:"milestone", weighting:{projects:40,habits:30,milestones:20,manual:10}, timeline:"Quarterly", status:"not-started", createdAt:"2026-04-01", updatedAt:"2026-04-01", reviewFrequency:"weekly" },
+  { id:"8", title:"Launch Side Project", description:"Build and ship a profitable SaaS product", category:"Business", priority:"high", progress:0, deadline:"2026-10-31", startDate:"2026-03-01", type:"quarterly", whyItMatters:"Create additional income and impact", milestones:[{id:"m22",title:"Validate idea",completed:true},{id:"m23",title:"Build MVP",completed:false},{id:"m24",title:"Get first 10 paying users",completed:false},{id:"m25",title:"Reach $1k MRR",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{projects:50,habits:10,milestones:30,manual:10}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-03-01", updatedAt:"2026-06-15", reviewFrequency:"weekly" },
+  { id:"9", title:"Learn French", description:"Reach conversational fluency in French", category:"Learning", priority:"low", progress:0, deadline:"2027-06-30", startDate:"2026-07-01", type:"annual", whyItMatters:"Connecting with culture and opening travel opportunities", milestones:[{id:"m26",title:"Complete Duolingo streak 30 days",completed:true},{id:"m27",title:"Watch 5 French films",completed:false},{id:"m28",title:"Hold 10-min conversation",completed:false},{id:"m29",title:"Read a French book",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F30D}", trackingMethod:"milestone", weighting:{projects:30,habits:30,milestones:20,manual:20}, timeline:"Annual", status:"in-progress", createdAt:"2026-07-01", updatedAt:"2026-07-01", reviewFrequency:"monthly" },
+  { id:"10", title:"Launch YouTube Channel", description:"Create and grow a personal development channel", category:"Business", priority:"medium", progress:0, deadline:"2027-03-31", startDate:"2026-08-01", type:"annual", whyItMatters:"Share knowledge and build a personal brand", milestones:[{id:"m30",title:"Plan 10 video topics",completed:false},{id:"m31",title:"Record first 3 videos",completed:false},{id:"m32",title:"Reach 100 subscribers",completed:false},{id:"m33",title:"Reach 1,000 subscribers",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u{1F3AC}", trackingMethod:"milestone", weighting:{projects:40,habits:10,milestones:30,manual:20}, timeline:"Annual", status:"not-started", createdAt:"2026-08-01", updatedAt:"2026-08-01", reviewFrequency:"monthly" },
+  { id:"11", title:"Run a Marathon", description:"Complete a full 42km marathon", category:"Health", priority:"high", progress:0, deadline:"2027-04-30", startDate:"2026-09-01", type:"annual", whyItMatters:"Push physical limits and prove discipline", milestones:[{id:"m34",title:"Run 15km non-stop",completed:false},{id:"m35",title:"Run 21km half marathon",completed:false},{id:"m36",title:"Run 30km training run",completed:false},{id:"m37",title:"Complete marathon",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F3C3}", trackingMethod:"milestone", weighting:{projects:30,habits:40,milestones:20,manual:10}, timeline:"Annual", status:"not-started", createdAt:"2026-09-01", updatedAt:"2026-09-01", reviewFrequency:"monthly" },
 ]
 
 const createSampleProjects = (): Project[] => [
@@ -327,6 +364,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
   const [newTimelineMilestones, setNewTimelineMilestones] = useState<string[]>([])
   const [heroImage, setHeroImage] = useState<string | undefined>(undefined)
   const [supportingImages, setSupportingImages] = useState<string[] | undefined>(undefined)
+  const [reviewFrequency, setReviewFrequency] = useState<ReviewFrequency>("monthly")
 
   useEffect(() => {
     if (type !== "custom") {
@@ -638,6 +676,17 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
             </div>
           )}
         </div>
+        <div>
+          <label className="text-sm font-medium">Review Frequency</label>
+          <p className="text-xs text-muted-foreground mb-2">How often should this goal be reviewed?</p>
+          <div className="flex flex-wrap gap-2">
+            {(Object.entries(REVIEW_FREQUENCY_CONFIG) as [ReviewFrequency, { label: string; days: number }][]).map(([key, cfg]) => (
+              <Button key={key} variant={reviewFrequency === key ? "default" : "outline"} size="sm" onClick={() => setReviewFrequency(key)} className={reviewFrequency === key ? "bg-[#1E0E6B] text-white" : ""}>
+                {cfg.label}
+              </Button>
+            ))}
+          </div>
+        </div>
         <VisionImagesSection heroImage={heroImage} supportingImages={supportingImages} onChange={(hero, supporting) => { setHeroImage(hero); setSupportingImages(supporting) }} />
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
@@ -645,7 +694,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
             if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages })
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency })
               onClose()
             }
           }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
@@ -967,6 +1016,48 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
             </div>
           </div>
 
+          <div>
+            <label className="text-sm font-medium mb-2 block">Review Settings</label>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground mb-1">Frequency</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(Object.entries(REVIEW_FREQUENCY_CONFIG) as [ReviewFrequency, { label: string; days: number }][]).map(([key, cfg]) => (
+                    <Button key={key} variant={data.reviewFrequency === key ? "default" : "outline"} size="sm" onClick={() => setData({ ...data, reviewFrequency: key })} className={`text-xs ${data.reviewFrequency === key ? "bg-[#1E0E6B] text-white" : ""}`}>
+                      {cfg.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {data.lastReviewedAt && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Last Reviewed</p>
+                  <p className="text-sm font-medium">{new Date(data.lastReviewedAt).toLocaleDateString()}</p>
+                  {isReviewDue(data) && <p className="text-[10px] text-amber-600 font-medium">Review Due</p>}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {data.reviews && data.reviews.length > 0 && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Review History ({data.reviews.length})</label>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {[...data.reviews].reverse().map((review) => (
+                  <div key={review.id} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/10">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium">{new Date(review.date).toLocaleDateString()}</span>
+                    </div>
+                    {review.priorityChanged && <p className="text-xs text-muted-foreground"><span className="font-medium">Priority:</span> {review.priorityChanged}</p>}
+                    {review.deadlineRealistic && <p className="text-xs text-muted-foreground"><span className="font-medium">Deadline:</span> {review.deadlineRealistic}</p>}
+                    {review.obstacles && <p className="text-xs text-muted-foreground"><span className="font-medium">Obstacles:</span> {review.obstacles}</p>}
+                    {review.notes && <p className="text-xs text-muted-foreground"><span className="font-medium">Notes:</span> {review.notes}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <VisionImagesSection heroImage={data.heroImage} supportingImages={data.supportingImages} onChange={(hero, supporting) => setData({ ...data, heroImage: hero, supportingImages: supporting })} />
 
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
@@ -980,7 +1071,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
   )
 }
 
-function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggleFocus, focusCount, onEdit, onDelete }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number; onEdit?: (g: Goal) => void; onDelete?: (id: string) => void }) {
+function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggleFocus, focusCount, onEdit, onDelete, onReview }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number; onEdit?: (g: Goal) => void; onDelete?: (id: string) => void; onReview?: (g: Goal) => void }) {
   const goalProjects = projects.filter(p => p.goalId === goal.id)
   const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
@@ -1051,6 +1142,17 @@ function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggl
         </div>
       </div>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
+
+      {isReviewDue(goal) && onReview && (
+        <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="mb-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-left w-full">
+          <span className="text-base">📚</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Review Goal</p>
+            <p className="text-[10px] text-amber-600 dark:text-amber-400">Not reviewed in {daysSinceReview(goal)} days</p>
+          </div>
+          <ArrowRight className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+        </button>
+      )}
 
       {/* Next Action — compact */}
       <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
@@ -1216,6 +1318,108 @@ function VisionImagesSection({ heroImage, supportingImages, onChange }: {
   )
 }
 
+/* ────────────────────────────────────────────────────── */
+/* Goal Review Modal                                      */
+/* ────────────────────────────────────────────────────── */
+
+function GoalReviewModal({ goal, onClose, onSave }: { goal: Goal; onClose: () => void; onSave: (review: GoalReview) => void }) {
+  const [priorityChanged, setPriorityChanged] = useState("")
+  const [deadlineRealistic, setDeadlineRealistic] = useState("")
+  const [obstacles, setObstacles] = useState("")
+  const [supportsVision, setSupportsVision] = useState("")
+  const [alignsValues, setAlignsValues] = useState("")
+  const [supportsPurpose, setSupportsPurpose] = useState("")
+  const [modifications, setModifications] = useState("")
+  const [notes, setNotes] = useState("")
+
+  const days = daysSinceReview(goal)
+  const freqConfig = goal.reviewFrequency ? REVIEW_FREQUENCY_CONFIG[goal.reviewFrequency] : null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border border-border rounded-2xl shadow-2xl">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-border p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{goal.icon}</span>
+            <div>
+              <h2 className="text-lg font-bold">Review Goal</h2>
+              <p className="text-xs text-muted-foreground">{goal.title}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📚</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Review Goal</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">You haven&apos;t reviewed this goal in {days} day{days !== 1 ? "s" : ""}.{freqConfig ? ` (${freqConfig.label} review cycle)` : ""}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Has your priority changed?</label>
+            <textarea value={priorityChanged} onChange={e => setPriorityChanged(e.target.value)} placeholder="Describe any shifts in priority..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Is your deadline still realistic?</label>
+            <textarea value={deadlineRealistic} onChange={e => setDeadlineRealistic(e.target.value)} placeholder="Assess the timeline..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Any new obstacles?</label>
+            <textarea value={obstacles} onChange={e => setObstacles(e.target.value)} placeholder="Identify challenges..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Does this goal still support your Vision?</label>
+            <textarea value={supportsVision} onChange={e => setSupportsVision(e.target.value)} placeholder="How does this connect to your vision..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Does it still align with your Values?</label>
+            <textarea value={alignsValues} onChange={e => setAlignsValues(e.target.value)} placeholder="Check alignment with core values..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Does it still support your Purpose?</label>
+            <textarea value={supportsPurpose} onChange={e => setSupportsPurpose(e.target.value)} placeholder="Connect to your life purpose..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Would you like to modify this Goal?</label>
+            <textarea value={modifications} onChange={e => setModifications(e.target.value)} placeholder="Suggest changes..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Additional Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any other reflections..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-border p-4 flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button onClick={() => {
+            onSave({
+              id: `review-${Date.now()}`,
+              date: new Date().toISOString(),
+              goalId: goal.id,
+              priorityChanged, deadlineRealistic, obstacles,
+              supportsVision, alignsValues, supportsPurpose,
+              modifications, notes,
+            })
+          }} className="flex-1 glow text-white">Save Review</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function GoalsPage() {
   const { showUndoSnackbar } = useUndoRedo()
   const [goals, setGoals] = useState<Goal[]>([])
@@ -1233,6 +1437,7 @@ export function GoalsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
+  const [reviewGoal, setReviewGoal] = useState<Goal | null>(null)
   const [analyticsGoal, setAnalyticsGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
   const [viewMode, setViewMode] = useState<"board" | "list">("board")
@@ -1450,7 +1655,7 @@ export function GoalsPage() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => g.focused).sort((a, b) => (a.focusOrder ?? 0) - (b.focusOrder ?? 0)).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
                     ))}
                   </div>
                 </div>
@@ -1462,7 +1667,7 @@ export function GoalsPage() {
                   )}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => !g.focused).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
                     ))}
                   </div>
                 </div>
@@ -1536,6 +1741,12 @@ export function GoalsPage() {
 
       <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} visions={visions} />
       <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} visions={visions} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
+      {reviewGoal && (
+        <GoalReviewModal goal={reviewGoal} onClose={() => setReviewGoal(null)} onSave={(review) => {
+          setGoals(prev => prev.map(g => g.id === reviewGoal.id ? { ...g, reviews: [...(g.reviews || []), review], lastReviewedAt: review.date } : g))
+          setReviewGoal(null)
+        }} />
+      )}
 
       {/* Analytics Drawer */}
       {analyticsGoal && (

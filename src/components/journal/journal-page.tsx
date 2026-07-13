@@ -2626,12 +2626,129 @@ function InsertTableDialog({ onClose, onInsert }: { onClose: () => void; onInser
 }
 
 /* ────────────────────────────────────────────────────── */
+/* Table Helpers (extended)                               */
+/* ────────────────────────────────────────────────────── */
+
+function isTableEmpty(table: HTMLTableElement): boolean {
+  const cells = table.querySelectorAll("td, th")
+  return Array.from(cells).every(cell => (cell.textContent || "").trim() === "")
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Floating Table Toolbar                                 */
+/* ────────────────────────────────────────────────────── */
+
+function FloatingTableToolbar({ table, onClose, editorRef, onContentChange, onDeleteTable }: {
+  table: HTMLTableElement
+  onClose: () => void
+  editorRef: React.RefObject<HTMLDivElement | null>
+  onContentChange: () => void
+  onDeleteTable: () => void
+}) {
+  const toolbarRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    const rect = table.getBoundingClientRect()
+    setPos({ top: rect.top - 48 + window.scrollY, left: rect.left + rect.width / 2 + window.scrollX })
+  }, [table])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
+        const target = e.target as HTMLElement
+        if (!target.closest("table.je-table")) onClose()
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [onClose])
+
+  const doAction = (fn: () => void) => { fn(); onClose(); onContentChange() }
+
+  const getRow = () => {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return null
+    const cell = (sel.anchorNode as Node)?.parentElement?.closest("td, th") as HTMLTableCellElement | null
+    return cell?.closest("tr") as HTMLTableRowElement | null
+  }
+
+  const getCell = () => {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return null
+    return (sel.anchorNode as Node)?.parentElement?.closest("td, th") as HTMLTableCellElement | null
+  }
+
+  return (
+    <div ref={toolbarRef} className="absolute z-50" style={{ top: pos.top, left: pos.left, transform: "translateX(-50%)" }}>
+      <div className="bg-background border border-border rounded-xl shadow-2xl py-1.5 px-1 flex items-center gap-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
+        {[
+          { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5h18M3 12h18M3 19h18"/></svg>, label: "Row Above", action: () => { const tr = getRow(); if (!tr) return; const newRow = tr.cloneNode(true) as HTMLTableRowElement; newRow.querySelectorAll("td").forEach(td => { td.innerHTML = "<br>"; td.contentEditable = "true" }); tr.parentNode!.insertBefore(newRow, tr) } },
+          { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5h18M3 12h18M3 19h18"/><circle cx="12" cy="5" r="0" /><circle cx="12" cy="19" r="0" /></svg>, label: "Row Below", action: () => { const tr = getRow(); if (!tr) return; const newRow = tr.cloneNode(true) as HTMLTableRowElement; newRow.querySelectorAll("td").forEach(td => { td.innerHTML = "<br>"; td.contentEditable = "true" }); tr.nextSibling ? tr.parentNode!.insertBefore(newRow, tr.nextSibling) : tr.parentNode!.appendChild(newRow) } },
+          { icon: <Trash2 className="h-3.5 w-3.5" />, label: "Delete Row", action: () => { const tr = getRow(); const table = tr?.closest("table") as HTMLTableElement; if (tr && table && table.querySelectorAll("tr").length > 1) tr.remove() }, danger: false },
+        ].map((item, i) => (
+          <button key={`row-${i}`} onClick={() => doAction(item.action)} title={item.label} className={`inline-flex items-center justify-center h-7 w-7 rounded-lg transition-colors ${item.danger ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950" : "text-muted-foreground hover:bg-muted"}`}>
+            {item.icon}
+          </button>
+        ))}
+        <div className="w-px h-5 bg-border mx-0.5" />
+        {[
+          { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5v14M12 5v14M21 5v14"/></svg>, label: "Column Left", action: () => { const cell = getCell(); const table = cell?.closest("table") as HTMLTableElement; if (!cell || !table) return; const idx = Array.from(cell.closest("tr")!.querySelectorAll("td, th")).indexOf(cell); table.querySelectorAll("tr").forEach(r => { const newTd = document.createElement("td"); newTd.innerHTML = "<br>"; newTd.contentEditable = "true"; r.insertBefore(newTd, r.querySelectorAll("td")[idx]) }) } },
+          { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5v14M12 5v14M21 5v14"/><circle cx="3" cy="12" r="0" /><circle cx="21" cy="12" r="0" /></svg>, label: "Column Right", action: () => { const cell = getCell(); const table = cell?.closest("table") as HTMLTableElement; if (!cell || !table) return; const idx = Array.from(cell.closest("tr")!.querySelectorAll("td, th")).indexOf(cell); table.querySelectorAll("tr").forEach(r => { const newTd = document.createElement("td"); newTd.innerHTML = "<br>"; newTd.contentEditable = "true"; const cells = r.querySelectorAll("td"); r.insertBefore(newTd, cells[idx + 1] || null) }) } },
+          { icon: <Trash2 className="h-3.5 w-3.5 rotate-90" />, label: "Delete Column", action: () => { const cell = getCell(); const tr = cell?.closest("tr") as HTMLTableRowElement; const table = cell?.closest("table") as HTMLTableElement; if (!cell || !tr || !table) return; const idx = Array.from(tr.querySelectorAll("td, th")).indexOf(cell); if (tr.querySelectorAll("td").length <= 1) return; table.querySelectorAll("tr").forEach(r => { const cells = r.querySelectorAll("td, th"); if (cells[idx]) cells[idx].remove() }) }, danger: false },
+        ].map((item, i) => (
+          <button key={`col-${i}`} onClick={() => doAction(item.action)} title={item.label} className={`inline-flex items-center justify-center h-7 w-7 rounded-lg transition-colors ${item.danger ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950" : "text-muted-foreground hover:bg-muted"}`}>
+            {item.icon}
+          </button>
+        ))}
+        <div className="w-px h-5 bg-border mx-0.5" />
+        <button onClick={() => { onDeleteTable(); onClose() }} title="Delete Table" className="inline-flex items-center justify-center h-7 w-7 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Confirm Delete Table Dialog                            */
+/* ────────────────────────────────────────────────────── */
+
+function ConfirmDeleteTableDialog({ onConfirm, onCancel, empty }: { onConfirm: () => void; onCancel: () => void; empty?: boolean }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative z-10 w-full max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0">
+            <Trash2 className="h-5 w-5 text-red-500" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-base">{empty ? "Remove Empty Table?" : "Delete Table?"}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {empty
+                ? "This table has no content. It will be removed."
+                : "This will remove the entire table and all its contents."}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button size="sm" variant="destructive" onClick={onConfirm}>{empty ? "Remove" : "Delete"}</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
 /* Table Context Menu                                     */
 /* ────────────────────────────────────────────────────── */
 
-function TableContextMenu({ x, y, cell, onClose, editorRef, onContentChange }: {
+function TableContextMenu({ x, y, cell, onClose, editorRef, onContentChange, onDeleteTable }: {
   x: number; y: number; cell: HTMLTableCellElement | null; onClose: () => void
   editorRef: React.RefObject<HTMLDivElement | null>; onContentChange: () => void
+  onDeleteTable: () => void
 }) {
   if (!cell) return null
   const table = cell.closest("table") as HTMLTableElement | null
@@ -2725,6 +2842,8 @@ function WritingArea({
   const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
   const [tableContextMenu, setTableContextMenu] = useState<{ x: number; y: number; cell: HTMLTableCellElement | null }>({ x: 0, y: 0, cell: null })
+  const [floatingToolbarTable, setFloatingToolbarTable] = useState<HTMLTableElement | null>(null)
+  const [confirmDeleteTable, setConfirmDeleteTable] = useState<{ table: HTMLTableElement; empty: boolean } | null>(null)
 
   useEffect(() => {
     if (initialType) {
@@ -2888,6 +3007,63 @@ function WritingArea({
     document.addEventListener("keydown", handler, true)
     return () => document.removeEventListener("keydown", handler, true)
   }, [])
+
+  // Floating table toolbar — show when cursor is inside a table
+  useEffect(() => {
+    const handler = () => {
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) { setFloatingToolbarTable(null); return }
+      const cell = (sel.anchorNode as Node)?.parentElement?.closest("td, th") as HTMLTableCellElement | null
+      const table = cell?.closest("table.je-table") as HTMLTableElement | null
+      if (table) {
+        setFloatingToolbarTable(prev => prev === table ? prev : table)
+      } else {
+        setFloatingToolbarTable(null)
+      }
+    }
+    document.addEventListener("selectionchange", handler)
+    return () => document.removeEventListener("selectionchange", handler)
+  }, [])
+
+  // Empty table Backspace detection
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Backspace") return
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) return
+      const cell = (sel.anchorNode as Node)?.parentElement?.closest("td, th") as HTMLTableCellElement | null
+      if (!cell) return
+      const table = cell.closest("table.je-table") as HTMLTableElement | null
+      if (!table) return
+      const firstCell = table.querySelector("td, th") as HTMLTableCellElement
+      if (cell !== firstCell) return
+      if (!isTableEmpty(table)) return
+      const text = cell.textContent || ""
+      if (text.trim() !== "") return
+      e.preventDefault()
+      setConfirmDeleteTable({ table, empty: true })
+    }
+    document.addEventListener("keydown", handler, true)
+    return () => document.removeEventListener("keydown", handler, true)
+  }, [])
+
+  // Delete Table handler for floating toolbar
+  const handleDeleteTableRequest = useCallback((table: HTMLTableElement) => {
+    setConfirmDeleteTable({ table, empty: isTableEmpty(table) })
+  }, [])
+
+  // Confirm delete table
+  const handleConfirmDeleteTable = useCallback(() => {
+    if (confirmDeleteTable) {
+      confirmDeleteTable.table.remove()
+      setConfirmDeleteTable(null)
+      setFloatingToolbarTable(null)
+      if (editorRef.current) {
+        setContentHtml(editorRef.current.innerHTML)
+        setContentText(editorRef.current.innerText || "")
+      }
+    }
+  }, [confirmDeleteTable, editorRef])
 
   const handleContentChange = useCallback((html: string) => {
     setContentHtml(html)

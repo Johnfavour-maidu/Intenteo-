@@ -303,7 +303,13 @@ export function loadCommitments(): Commitment[] {
     const raw = localStorage.getItem(COMMITMENTS_KEY)
     if (!raw) return []
     const items = JSON.parse(raw) as Commitment[]
-    return items.sort((a, b) => a.order - b.order)
+    return items.map((c) => ({
+      ...c,
+      relatedValueIds: c.relatedValueIds || [],
+      relatedLifeAreaIds: c.relatedLifeAreaIds || [],
+      relatedVisionIds: c.relatedVisionIds || [],
+      healthStatus: c.healthStatus || "keeping" as const,
+    })).sort((a, b) => a.order - b.order)
   } catch {
     return []
   }
@@ -380,6 +386,12 @@ export function loadVisions(): Vision[] {
       ...v,
       lifeAreaId: v.lifeAreaId || "",
       reviewFrequency: v.reviewFrequency || "monthly" as const,
+      relatedValueIds: v.relatedValueIds || [],
+      relatedCommitmentIds: v.relatedCommitmentIds || [],
+      relatedGoalIds: v.relatedGoalIds || [],
+      relatedProjectIds: v.relatedProjectIds || [],
+      relatedHabitIds: v.relatedHabitIds || [],
+      boardItems: v.boardItems || [],
     }))
     return migrated.sort((a, b) => a.order - b.order)
   } catch {
