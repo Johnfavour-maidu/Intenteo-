@@ -19,9 +19,8 @@ import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import type { GoalData, GoalProject, GoalHabit } from "./goal-utils"
 import {
-  calcGoalHealth, GOAL_HEALTH_CONFIG, calcLifecycleStage, GOAL_LIFECYCLE_CONFIG,
-  calcTrend, GOAL_TREND_CONFIG, generateSmartNextAction, generateCoaching,
-  getGoalHealthScore, detectCelebration, getGoalScoreBreakdown,
+  calcTrend, GOAL_TREND_CONFIG, generateSmartNextAction,
+  detectCelebration,
   calcGoalForecast, calcCompletionProbability, calcGoalMomentum,
   getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
 } from "./goal-utils"
@@ -114,7 +113,7 @@ interface Habit {
   streak: number; habitScore: number; createdAt?: string
 }
 
-type GoalFilterMode = "all" | "life-vision" | "10-year" | "5-year" | "annual" | "quarterly" | "monthly" | "weekly" | "daily" | "projects" | "completed" | "in-progress" | "not-started" | "overdue" | "archived"
+type GoalFilterMode = "all" | "life-vision" | "10-year" | "5-year" | "annual" | "quarterly" | "monthly" | "weekly" | "daily" | "projects"
 
 type TimeHorizon = "this-year" | "2-years" | "5-years" | "10-years" | "lifetime"
 
@@ -846,7 +845,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
                 <span>{daysCompleted}d active</span><span>{daysRemaining}d left</span><span>{completedMilestones}/{data.milestones.length} milestones</span>
               </div>
               <div className="flex gap-3 mt-3">
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "excellent" ? "bg-emerald-50 text-emerald-600" : calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "on_track" ? "bg-blue-50 text-blue-600" : calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "needs_attention" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{GOAL_HEALTH_CONFIG[calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])].icon} {GOAL_HEALTH_CONFIG[calcGoalHealth(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])].label}</span>
                 {data.timeHorizon && TIME_HORIZON_BADGES[data.timeHorizon] && (
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TIME_HORIZON_BADGES[data.timeHorizon].bg} ${TIME_HORIZON_BADGES[data.timeHorizon].color}`}>{TIME_HORIZON_BADGES[data.timeHorizon].label}</span>
                 )}
@@ -1087,8 +1085,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
               </div>
             </div>
           )}
-
-          <VisionImagesSection heroImage={data.heroImage} supportingImages={data.supportingImages} onChange={(hero, supporting) => setData({ ...data, heroImage: hero, supportingImages: supporting })} />
 
           <div>
             <label className="text-sm font-medium mb-2 block">Core Values Alignment</label>
@@ -1370,8 +1366,6 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
   const goalProjects = projects.filter(p => p.goalId === goal.id)
   const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
-  const health = calcGoalHealth(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
-  const healthCfg = GOAL_HEALTH_CONFIG[health]
   const trend = calcTrend(goal as unknown as GoalData, projects as unknown as GoalProject[])
   const trendCfg = GOAL_TREND_CONFIG[trend]
 
@@ -1389,26 +1383,32 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
           <img src={goal.heroImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         </div>
       )}
-      <div className="p-5">
-      <div className="flex items-start justify-between mb-3">
+      <div className="p-4">
+      <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-xl shrink-0">{goal.icon}</span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B]">{goal.customCategory || goal.category}</Badge>
-              {health === "on_track" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">On Track</span>}
-              {health === "needs_attention" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">Needs Attention</span>}
-              {health === "at_risk" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">At Risk</span>}
-              {progress >= 100 && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600">Completed</span>}
-            </div>
-            <h3 className="font-semibold text-sm leading-tight">{goal.title}</h3>
+            <h3 className="font-semibold text-sm leading-tight">
+              {goal.title}
+              <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] ml-2 align-middle">{goal.customCategory || goal.category}</Badge>
+            </h3>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {onToggleFocus && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
+              className={`p-1.5 rounded-lg transition-colors ${isFocused ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
+              title={isFocused ? "Unpin from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Pin to Focus"}
+              disabled={!isFocused && (focusCount != null && focusCount >= 5)}
+            >
+              <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
+            </button>
+          )}
           {onEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
-              className="p-2 rounded-lg text-muted-foreground/30 hover:text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-all opacity-0 group-hover:opacity-100"
+              className="p-1.5 rounded-lg text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
               title="Edit Goal"
             >
               <Edit3 className="h-4 w-4" />
@@ -1417,44 +1417,27 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
           {onDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
-              className="p-2 rounded-lg text-muted-foreground/30 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
               title="Delete Goal"
             >
               <Trash2 className="h-4 w-4" />
             </button>
           )}
-          {onToggleFocus && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
-              className={`p-2 rounded-lg transition-all ${isFocused ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground/30 hover:text-amber-500"}`}
-              title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
-              disabled={!isFocused && (focusCount != null && focusCount >= 5)}
-            >
-              <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
-            </button>
-          )}
-          <ProgressRing value={progress} size={58} strokeWidth={5} showLabel={false} />
+          <div className="relative w-14 h-14 shrink-0">
+            <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+              <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="4" className="text-muted/30" />
+              <circle cx="28" cy="28" r="24" fill="none" stroke="#1E0E6B" strokeWidth="4" strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * (1 - progress / 100)}`}
+                className="transition-all duration-500" />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[#1E0E6B]">{progress}%</span>
+          </div>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
-
-      {(goal.linkedValueIds || []).length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {values.filter(v => (goal.linkedValueIds || []).includes(v.id)).slice(0, 3).map(v => (
-            <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1E0E6B]/8 text-[#1E0E6B] text-[10px] font-medium">
-              {v.icon} {v.name}
-            </span>
-          ))}
-          {(goal.linkedValueIds || []).length > 3 && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px]">
-              +{(goal.linkedValueIds || []).length - 3}
-            </span>
-          )}
-        </div>
-      )}
+      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{goal.description}</p>
 
       {isReviewDue(goal) && onReview && (
-        <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="mb-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-left w-full">
+        <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="mb-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-left w-full">
           <span className="text-base">📚</span>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Review Goal</p>
@@ -1465,7 +1448,7 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
       )}
 
       {/* Next Action — compact */}
-      <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
+      <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
         <Zap className="h-3.5 w-3.5 text-[#1E0E6B] shrink-0" />
         <p className="text-[11px] text-[#1E0E6B] font-medium truncate">{generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
       </div>
@@ -1476,7 +1459,7 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
         <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500 bg-[#1E0E6B]" style={{width: `${progress}%`}} /></div>
       </div>
       {/* Footer — simplified */}
-      <div className="flex items-center mt-3 pt-3 border-t border-[#1E0E6B]/5">
+      <div className="flex items-center mt-2 pt-2 border-t border-[#1E0E6B]/5">
         <span className={`flex items-center gap-1 text-xs text-muted-foreground ${daysRemaining <= 7 && daysRemaining > 0 ? "text-amber-600" : daysRemaining === 0 && new Date(goal.deadline) < new Date() ? "text-red-600" : ""}`}><Clock className="h-3 w-3" />{friendlyDueDate(goal.deadline)}</span>
       </div>
       </div>
@@ -1741,7 +1724,6 @@ export function GoalsPage() {
   const [commitments, setCommitments] = useState<Commitment[]>([])
   const [filter, setFilter] = useState<GoalFilterMode>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
-  const [healthFilter, setHealthFilter] = useState<string>("all")
   const [timeHorizonFilter, setTimeHorizonFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<SortMode>("deadline")
   const [searchQuery, setSearchQuery] = useState("")
@@ -1827,10 +1809,6 @@ export function GoalsPage() {
   const filteredAndSorted = useMemo(() => {
     let result = goals.filter(g => {
       if (categoryFilter !== "all" && (g.customCategory || g.category) !== categoryFilter) return false
-      if (healthFilter !== "all") {
-        const h = calcGoalHealth(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
-        if (h !== healthFilter) return false
-      }
       if (timeHorizonFilter !== "all" && g.timeHorizon !== timeHorizonFilter) return false
       switch (filter) {
         case "all": break
@@ -1843,11 +1821,6 @@ export function GoalsPage() {
         case "weekly": if (g.type !== "weekly") return false; break
         case "daily": if (g.timeline !== "Daily") return false; break
         case "projects": { const gp = projects.filter(p => p.goalId === g.id); if (gp.length === 0) return false; break }
-        case "completed": { const p = calcGoalProgress(g, projects, habits); if (p < 100) return false; break }
-        case "in-progress": { const p = calcGoalProgress(g, projects, habits); if (p === 0 || p >= 100) return false; break }
-        case "not-started": { const p = calcGoalProgress(g, projects, habits); if (p > 0) return false; break }
-        case "overdue": { if (new Date(g.deadline) < new Date() && calcGoalProgress(g, projects, habits) < 100) break; return false }
-        case "archived": if (g.status !== "archived") return false; break
       }
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
@@ -1909,7 +1882,7 @@ export function GoalsPage() {
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 justify-end">
             {goals.length >= 20 && (
               <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search goals..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" /></div>
@@ -1928,18 +1901,11 @@ export function GoalsPage() {
                   <option value="daily">Daily</option>
                   <option value="projects">Projects</option>
                 </optgroup>
-                <optgroup label="Status">
-                  <option value="completed">Completed</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="not-started">Not Started</option>
-                  <option value="overdue">Overdue</option>
-                  <option value="archived">Archived</option>
-                </optgroup>
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
             </div>
             <div className="relative">
-              <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setHealthFilter("all") }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+              <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
                 <option value="all">All Categories</option>
                 {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
               </select>
@@ -2014,7 +1980,20 @@ export function GoalsPage() {
                         </td>
                         <td className={`px-4 py-3 text-xs font-medium ${isOverdue ? "text-red-600" : days <= 7 ? "text-amber-600" : ""}`}>{friendlyDueDate(goal.deadline)}</td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setAnalyticsGoal(goal) }}><Info className="h-3.5 w-3.5" /></Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={(e) => { e.stopPropagation(); setAnalyticsGoal(goal) }} className="p-1.5 rounded-lg text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors" title="View Details">
+                              <Info className="h-4 w-4" />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); setSelectedGoal(goal) }} className="p-1.5 rounded-lg text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors" title="Edit Goal">
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); deleteGoal(goal.id) }} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Delete Goal">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); toggleFocusGoal(goal.id) }} className={`p-1.5 rounded-lg transition-colors ${goal.focused ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`} title={goal.focused ? "Unpin from Focus" : "Pin to Focus"}>
+                              <Star className={`h-4 w-4 ${goal.focused ? "fill-amber-400" : ""}`} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
