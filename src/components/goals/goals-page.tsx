@@ -22,6 +22,8 @@ import {
   calcGoalHealth, GOAL_HEALTH_CONFIG, calcLifecycleStage, GOAL_LIFECYCLE_CONFIG,
   calcTrend, GOAL_TREND_CONFIG, generateSmartNextAction, generateCoaching,
   getGoalHealthScore, detectCelebration, getGoalScoreBreakdown,
+  calcGoalForecast, calcCompletionProbability, calcGoalMomentum,
+  getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
 } from "./goal-utils"
 import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 import { DateInput } from "@/components/ui/date-input"
@@ -720,7 +722,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
       </div>
       {showValueLibrary && (
         <CoreValueLibrary existingValues={values} onAddValues={(newVals) => {
-          newVals.forEach(v => addCoreValue({ ...v, pinned: false }))
+          newVals.forEach(v => addCoreValue(v as any))
           onValuesAdded()
           const updated = loadCoreValues()
           const newIds = updated.filter(u => newVals.some(n => n.name === u.name)).map(u => u.id)
@@ -1104,6 +1106,8 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
             </Button>
           </div>
 
+          <GoalMotivationPanel goal={data} projects={projects} habits={habits} />
+
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
         </div>
       </div>
@@ -1113,12 +1117,100 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
       <AddProjectModal isOpen={showAddProject} onClose={() => setShowAddProject(false)} onSave={(p) => { onSaveProject({ ...p, id: Date.now().toString(), createdAt: getTodayISO(), updatedAt: getTodayISO() }) }} goalId={data.id} />
       {showValueLibrary && (
         <CoreValueLibrary existingValues={values} onAddValues={(newVals) => {
-          newVals.forEach(v => addCoreValue({ ...v, pinned: false }))
+          newVals.forEach(v => addCoreValue(v as any))
           onValuesAdded()
           const updated = loadCoreValues()
           const newIds = updated.filter(u => newVals.some(n => n.name === u.name)).map(u => u.id)
           setData({ ...data, linkedValueIds: [...(data.linkedValueIds || []), ...newIds] })
         }} onClose={() => setShowValueLibrary(false)} />
+      )}
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Goal Motivation Panel                                   */
+/* ────────────────────────────────────────────────────── */
+
+function GoalMotivationPanel({ goal, projects, habits }: { goal: Goal; projects: Project[]; habits: Habit[] }) {
+  const forecast = calcGoalForecast(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+  const probability = calcCompletionProbability(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+  const momentum = calcGoalMomentum(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+  const quote = getMotivationalQuote(goal as unknown as GoalData)
+  const nudge = getMotivationalNudge(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+  const daysRemaining = Math.max(0, Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / 86400000))
+
+  return (
+    <div className="space-y-3">
+      {/* Motivational Quote */}
+      <div className="p-3 rounded-xl bg-gradient-to-br from-[#1E0E6B]/5 to-purple-50 dark:from-[#1E0E6B]/10 dark:to-purple-950/20 border border-[#1E0E6B]/10">
+        <p className="text-xs italic text-[#1E0E6B]/80 dark:text-[#1E0E6B]/60">&ldquo;{quote.text}&rdquo;</p>
+        <p className="text-[10px] text-muted-foreground mt-1">— {quote.author}</p>
+      </div>
+
+      {/* Nudge */}
+      <div className="p-3 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200/50">
+        <div className="flex items-start gap-2">
+          <span className="text-base shrink-0">💡</span>
+          <p className="text-xs text-amber-800 dark:text-amber-200 font-medium">{nudge}</p>
+        </div>
+      </div>
+
+      {/* Forecast + Probability + Momentum Grid */}
+      <div className="grid grid-cols-3 gap-2">
+        {/* Forecast */}
+        <div className="p-2.5 rounded-xl bg-white/50 dark:bg-white/5 border border-white/10 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Forecast</p>
+          {forecast.predictedDate ? (
+            <>
+              <p className="text-xs font-bold">{new Date(forecast.predictedDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+              <p className={`text-[10px] font-medium ${forecast.onTrack ? "text-emerald-600" : "text-amber-600"}`}>{forecast.paceLabel}</p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">—</p>
+          )}
+        </div>
+
+        {/* Probability */}
+        <div className="p-2.5 rounded-xl bg-white/50 dark:bg-white/5 border border-white/10 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Likelihood</p>
+          <div className="relative w-10 h-10 mx-auto mb-1">
+            <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/30" />
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray={`${probability.score}, 100`} className={probability.color} />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">{probability.score}%</span>
+          </div>
+          <p className={`text-[10px] font-medium ${probability.color}`}>{probability.label}</p>
+        </div>
+
+        {/* Momentum */}
+        <div className="p-2.5 rounded-xl bg-white/50 dark:bg-white/5 border border-white/10 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Momentum</p>
+          <span className="text-xl">{momentum.icon}</span>
+          <p className={`text-[10px] font-medium ${momentum.color}`}>{momentum.label}</p>
+        </div>
+      </div>
+
+      {/* Probability Factors */}
+      {probability.factors.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {probability.factors.map((f, i) => (
+            <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              f.impact === "positive" ? "bg-emerald-100 text-emerald-700" : f.impact === "negative" ? "bg-red-100 text-red-700" : "bg-muted text-muted-foreground"
+            }`}>
+              {f.impact === "positive" ? "↑" : f.impact === "negative" ? "↓" : "→"} {f.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Days Remaining */}
+      {daysRemaining > 0 && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Time remaining</span>
+          <span className="font-semibold">{daysRemaining} day{daysRemaining !== 1 ? "s" : ""}</span>
+        </div>
       )}
     </div>
   )
@@ -1946,10 +2038,23 @@ export function GoalsPage() {
           )}
       </>
 
-      {/* Celebration Overlay */}
+      {/* Enhanced Celebration Overlay */}
       {celebration && (
         <div className="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center">
-          <div className="text-center animate-bounce">
+          <div className="absolute inset-0 overflow-hidden">
+            {[...Array(20)].map((_, i) => (
+              <div key={i} className="absolute animate-bounce" style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 0.5}s`,
+                animationDuration: `${0.5 + Math.random() * 0.5}s`,
+                fontSize: `${12 + Math.random() * 16}px`,
+              }}>
+                {["🎉", "⭐", "🎊", "✨", "🏆", "💪", "🎯"][i % 7]}
+              </div>
+            ))}
+          </div>
+          <div className="relative text-center animate-bounce">
             <div className="text-6xl mb-2">🎉</div>
             <div className="text-3xl font-bold text-[#1E0E6B]">{celebration.milestone} Complete!</div>
             <div className="text-sm text-muted-foreground mt-1">Keep the momentum going</div>

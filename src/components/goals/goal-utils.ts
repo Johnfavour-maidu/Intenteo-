@@ -438,3 +438,176 @@ export function calcValueAlignment(goal: GoalData, totalCoreValues: number): Val
   if (score >= 10) return { score, label: "Partially Aligned", color: "text-amber-600", linkedCount, totalValues: totalCoreValues }
   return { score, label: "Weakly Aligned", color: "text-red-600", linkedCount, totalValues: totalCoreValues }
 }
+
+/* ─── Phase 5: Visualization & Motivation Engine ─── */
+
+export interface GoalForecast {
+  predictedDate: string | null
+  daysAhead: number
+  onTrack: boolean
+  pace: "ahead" | "on-pace" | "behind" | "stalled"
+  paceLabel: string
+}
+
+export function calcGoalForecast(goal: GoalData, projects: GoalProject[], habits: GoalHabit[]): GoalForecast {
+  const now = Date.now()
+  const created = new Date(goal.startDate || goal.createdAt).getTime()
+  const deadline = new Date(goal.deadline).getTime()
+  const elapsed = Math.max(1, now - created)
+  const progress = calcGoalProgressForHealth(goal, projects, habits) / 100
+
+  if (progress <= 0 || progress >= 1) {
+    return {
+      predictedDate: progress >= 1 ? goal.deadline : null,
+      daysAhead: 0,
+      onTrack: progress >= 1,
+      pace: progress >= 1 ? "ahead" : "stalled",
+      paceLabel: progress >= 1 ? "Completed" : "Not started",
+    }
+  }
+
+  const totalSpan = deadline - created
+  const expectedPace = elapsed / totalSpan
+  const actualPace = progress
+  const paceRatio = actualPace / Math.max(0.001, expectedPace)
+
+  let pace: GoalForecast["pace"]
+  let paceLabel: string
+  if (paceRatio >= 1.15) { pace = "ahead"; paceLabel = "Ahead of schedule" }
+  else if (paceRatio >= 0.85) { pace = "on-pace"; paceLabel = "On pace" }
+  else if (paceRatio >= 0.3) { pace = "behind"; paceLabel = "Behind schedule" }
+  else { pace = "stalled"; paceLabel = "Needs attention" }
+
+  const msPerUnit = elapsed / progress
+  const remainingMs = msPerUnit * (1 - progress)
+  const predictedMs = now + remainingMs
+  const predictedDate = new Date(predictedMs).toISOString().split("T")[0]
+  const daysAhead = Math.round((deadline - predictedMs) / 86400000)
+
+  return { predictedDate, daysAhead, onTrack: predictedMs <= deadline, pace, paceLabel }
+}
+
+export interface GoalProbability {
+  score: number
+  label: string
+  color: string
+  factors: { label: string; impact: "positive" | "negative" | "neutral" }[]
+}
+
+export function calcCompletionProbability(goal: GoalData, projects: GoalProject[], habits: GoalHabit[]): GoalProbability {
+  const progress = calcGoalProgressForHealth(goal, projects, habits)
+  const daysRemaining = getDaysRemaining(goal.deadline)
+  const totalDays = getTotalDays(goal.startDate, goal.deadline)
+  const daysElapsed = totalDays - daysRemaining
+  const timeUsedPct = totalDays > 0 ? (daysElapsed / totalDays) * 100 : 0
+  const health = calcGoalHealth(goal, projects, habits)
+  const trend = calcTrend(goal, projects)
+
+  let score = 50
+  const factors: GoalProbability["factors"] = []
+
+  if (progress >= 75) { score += 20; factors.push({ label: "Strong progress", impact: "positive" }) }
+  else if (progress >= 50) { score += 10; factors.push({ label: "Good progress", impact: "positive" }) }
+  else if (progress < 20) { score -= 15; factors.push({ label: "Low progress", impact: "negative" }) }
+
+  if (trend === "up") { score += 15; factors.push({ label: "Momentum building", impact: "positive" }) }
+  else if (trend === "down") { score -= 15; factors.push({ label: "Momentum fading", impact: "negative" }) }
+
+  if (daysRemaining <= 0 && progress < 100) { score -= 30; factors.push({ label: "Overdue", impact: "negative" }) }
+  else if (daysRemaining <= 14 && progress < 50) { score -= 10; factors.push({ label: "Deadline crunch", impact: "negative" }) }
+  else if (daysRemaining > 60) { score += 5; factors.push({ label: "Ample time", impact: "positive" }) }
+
+  if (health === "excellent") { score += 10; factors.push({ label: "Excellent health", impact: "positive" }) }
+  else if (health === "at_risk") { score -= 10; factors.push({ label: "At risk", impact: "negative" }) }
+
+  if (goal.milestones.length > 0) {
+    const completedMilestones = goal.milestones.filter(m => m.completed).length
+    const milestonePct = (completedMilestones / goal.milestones.length) * 100
+    if (milestonePct > timeUsedPct + 10) { score += 5; factors.push({ label: "Ahead on milestones", impact: "positive" }) }
+    else if (milestonePct < timeUsedPct - 20) { score -= 5; factors.push({ label: "Behind on milestones", impact: "negative" }) }
+  }
+
+  if (goal.linkedHabits.length > 0) {
+    const linked = habits.filter(h => goal.linkedHabits.includes(h.name))
+    if (linked.length > 0) {
+      const avgScore = linked.reduce((s, h) => s + (h.habitScore || 0), 0) / linked.length
+      if (avgScore >= 80) { score += 5; factors.push({ label: "Strong habit support", impact: "positive" }) }
+      else if (avgScore < 40) { score -= 5; factors.push({ label: "Weak habit support", impact: "negative" }) }
+    }
+  }
+
+  score = Math.max(0, Math.min(100, score))
+
+  let label: string, color: string
+  if (score >= 80) { label = "Very Likely"; color = "text-emerald-600" }
+  else if (score >= 60) { label = "Likely"; color = "text-blue-600" }
+  else if (score >= 40) { label = "Uncertain"; color = "text-amber-600" }
+  else { label = "At Risk"; color = "text-red-600" }
+
+  return { score, label, color, factors: factors.slice(0, 5) }
+}
+
+export interface GoalMomentum {
+  direction: "building" | "steady" | "fading" | "stalled"
+  label: string
+  icon: string
+  color: string
+  description: string
+}
+
+export function calcGoalMomentum(goal: GoalData, projects: GoalProject[], habits: GoalHabit[]): GoalMomentum {
+  const trend = calcTrend(goal, projects)
+  const health = calcGoalHealth(goal, projects, habits)
+  const daysSinceActivity = goal.lastActivity
+    ? Math.floor((Date.now() - new Date(goal.lastActivity).getTime()) / 86400000)
+    : 999
+  const consistency = calcGoalConsistency(goal)
+
+  if (trend === "up" && consistency >= 70) {
+    return { direction: "building", label: "Building", icon: "🔥", color: "text-orange-500", description: "Strong momentum — keep the fire burning!" }
+  }
+  if (trend === "up" || (trend === "stable" && consistency >= 50)) {
+    return { direction: "steady", label: "Steady", icon: "➡️", color: "text-blue-500", description: "Steady progress — consistency is key." }
+  }
+  if (trend === "down" || daysSinceActivity > 14) {
+    return { direction: "fading", label: "Fading", icon: "📉", color: "text-amber-500", description: "Momentum is dropping — take action today." }
+  }
+  return { direction: "stalled", label: "Stalled", icon: "⏸️", color: "text-red-500", description: "No recent activity — reignite your progress." }
+}
+
+const MOTIVATIONAL_QUOTES = [
+  { text: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+  { text: "What you get by achieving your goals is not as important as what you become by achieving your goals.", author: "Zig Ziglar" },
+  { text: "Discipline is the bridge between goals and accomplishment.", author: "Jim Rohn" },
+  { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+  { text: "What we think, we become.", author: "Buddha" },
+  { text: "Faith is taking the first step even when you don't see the whole staircase.", author: "Martin Luther King Jr." },
+  { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+]
+
+export function getMotivationalQuote(goal: GoalData): { text: string; author: string } {
+  const hash = goal.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  return MOTIVATIONAL_QUOTES[hash % MOTIVATIONAL_QUOTES.length]
+}
+
+export function getMotivationalNudge(goal: GoalData, projects: GoalProject[], habits: GoalHabit[]): string {
+  const health = calcGoalHealth(goal, projects, habits)
+  const trend = calcTrend(goal, projects)
+  const daysRemaining = getDaysRemaining(goal.deadline)
+  const progress = calcGoalProgressForHealth(goal, projects, habits)
+  const momentum = calcGoalMomentum(goal, projects, habits)
+
+  if (progress >= 100) return "You did it! Take a moment to celebrate this achievement."
+  if (momentum.direction === "building") return "You're on fire! Ride this wave of momentum."
+  if (momentum.direction === "fading") return "Small steps count. Even 15 minutes today keeps you moving."
+  if (momentum.direction === "stalled") return "Restarting is not failing. Begin again today."
+  if (daysRemaining <= 7 && progress < 80) return "Final stretch! Give it everything you've got."
+  if (health === "at_risk") return "Reassess and adjust — every setback is a setup for a comeback."
+  if (trend === "down") return "Tough times don't last. Tough people do. Keep going."
+  return "Consistency over intensity. Show up for your goals daily."
+}

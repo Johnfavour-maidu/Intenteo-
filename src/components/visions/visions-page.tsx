@@ -41,12 +41,10 @@ function CountBadge({ count }: { count: number }) {
   )
 }
 
-function StarRating({ stars }: { stars: number }) {
-  return (
-    <span className="text-[11px] text-amber-500">
-      {"★".repeat(stars)}{"☆".repeat(5 - stars)}
-    </span>
-  )
+function formatDateDDMMYYYY(dateStr: string): string {
+  if (!dateStr) return ""
+  const d = new Date(dateStr)
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`
 }
 
 function RelationshipChip({ icon, label }: { icon: string; label: string }) {
@@ -225,7 +223,7 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
                 <Sparkles className="h-4 w-4 text-[#1E0E6B]" />
               </div>
               <span className="text-sm font-bold text-[#1E0E6B] uppercase tracking-wider">Purpose</span>
-              {purpose.updatedAt && <span className="text-[10px] text-muted-foreground">Updated {new Date(purpose.updatedAt).toLocaleDateString()}</span>}
+              {purpose.updatedAt && <span className="text-[10px] text-muted-foreground">Updated {formatDateDDMMYYYY(purpose.updatedAt)}</span>}
             </div>
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="gap-1 text-xs">
               <Edit3 className="h-3 w-3" /> Edit
@@ -235,6 +233,7 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
             <div className="flex gap-3 items-start my-2">
               <span className="text-4xl text-[#1E0E6B]/15 font-serif leading-none mt-1">&ldquo;</span>
               <p className="text-lg font-medium leading-relaxed text-foreground">{purpose.statement}</p>
+              <span className="text-4xl text-[#1E0E6B]/15 font-serif leading-none mt-1">&rdquo;</span>
             </div>
           ) : (
             <p className="text-muted-foreground italic text-lg">Define your purpose — the reason you exist.</p>
@@ -332,7 +331,6 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
                       {value.description && <p className="text-xs text-muted-foreground truncate mt-0.5">{value.description}</p>}
                       {value.purposeConnection && <p className="text-[10px] text-primary/70 mt-1 italic line-clamp-1">&ldquo;{value.purposeConnection}&rdquo;</p>}
                       <div className="flex items-center gap-2 mt-1.5">
-                        <StarRating stars={strength.stars} />
                         <span className="text-[9px] text-muted-foreground">{strength.label}</span>
                       </div>
                     </div>
@@ -1286,7 +1284,7 @@ function PurposeReviewsSection() {
                     <div className="flex-1 min-w-0">
                       {r.question && <p className="text-xs font-semibold text-primary mb-1">{r.question}</p>}
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">{r.reflection}</p>
-                      <p className="text-[10px] text-muted-foreground mt-2">{new Date(r.reviewDate).toLocaleDateString()}</p>
+                      <p className="text-[10px] text-muted-foreground mt-2">{formatDateDDMMYYYY(r.reviewDate)}</p>
                     </div>
                     <button onClick={() => handleDelete(r.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       <Trash2 className="h-3 w-3" />
@@ -1550,21 +1548,6 @@ export function VisionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Life Vision Framework</h1>
           <p className="text-muted-foreground">Your future begins with clarity.</p>
         </div>
-      </div>
-
-      {/* Life Framework Hierarchy */}
-      <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground/60 py-2">
-        <span>Purpose</span>
-        <span>→</span>
-        <span>Values</span>
-        <span>→</span>
-        <span>Commitments</span>
-        <span>→</span>
-        <span>Visions</span>
-        <span>→</span>
-        <span>Goals</span>
-        <span>→</span>
-        <span>Habits</span>
       </div>
 
       {/* Purpose Dashboard */}
