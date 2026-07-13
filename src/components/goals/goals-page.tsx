@@ -801,15 +801,14 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState(0)
   const [showValueLibrary, setShowValueLibrary] = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(true)
   useEffect(() => { if (goal) { const gp = calcGoalProgress(goal, projects, habits); setData({ ...goal, progress: gp }) } }, [goal, projects, habits])
   if (!isOpen || !data) return null
   const goalProjects = projects.filter(p => p.goalId === data.id)
   const daysRemaining = getDaysRemaining(data.deadline)
   const daysCompleted = getDaysCompleted(data.startDate)
   const completedMilestones = data.milestones.filter(m => m.completed).length
-  const totalTasks = goalProjects.reduce((s, p) => s + p.tasks.length, 0)
-  const completedTasks = goalProjects.reduce((s, p) => s + p.tasks.filter(t => t.completed).length, 0)
-  const breakdown = getGoalBreakdown(data, projects, habits)
+
 
   const toggleMilestone = (id: string) => {
     const updated = { ...data, milestones: data.milestones.map(m => m.id === id ? { ...m, completed: !m.completed } : m), updatedAt: getTodayISO() }
@@ -827,7 +826,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-white/20 p-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-white/20 p-3 flex items-center justify-between">
           <div className="flex items-center gap-3"><span className="text-2xl">{data.icon}</span><h2 className="text-xl font-bold">{data.title}</h2></div>
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" onClick={() => { onDeleteGoal(data.id); onClose() }} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
@@ -835,7 +834,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
             <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
           </div>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-5 space-y-5">
           <div className="flex items-center gap-6">
             <ProgressRing value={data.progress} size={90} strokeWidth={6} />
             <div className="flex-1">
@@ -853,20 +852,18 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
             </div>
           </div>
 
-          <div className="grid grid-cols-5 gap-2">
-            {[
-              { label: "Projects", value: goalProjects.length, icon: <Folder className="h-4 w-4" /> },
-              { label: "Tasks", value: `${completedTasks}/${totalTasks}`, icon: <ListChecks className="h-4 w-4" /> },
-              { label: "Milestones", value: `${completedMilestones}/${data.milestones.length}`, icon: <Target className="h-4 w-4" /> },
-              { label: "Habits", value: data.linkedHabits.length, icon: <Zap className="h-4 w-4" /> },
-              { label: "Days Left", value: daysRemaining, icon: <Clock className="h-4 w-4" /> },
-            ].map((s, i) => (
-              <div key={i} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 text-center">
-                <div className="flex justify-center text-muted-foreground mb-1">{s.icon}</div>
-                <p className="text-lg font-bold">{s.value}</p>
-                <p className="text-[10px] text-muted-foreground">{s.label}</p>
-              </div>
-            ))}
+          <div className="p-3 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="h-4 w-4 text-[#1E0E6B]" />
+              <p className="text-sm font-semibold text-[#1E0E6B]">Next Action</p>
+            </div>
+            <p className="text-xs text-muted-foreground">{generateSmartNextAction(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Start: {formatDateDDMMYYYY(data.startDate)}</span>
+            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Deadline: {formatDateDDMMYYYY(data.deadline)}</span>
+            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {daysRemaining}d left</span>
           </div>
 
           {/* Vision Images */}
@@ -886,37 +883,6 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Linked Vision */}
-          {data.visionId && (() => {
-            const linkedVision = visions.find(v => v.id === data!.visionId)
-            if (!linkedVision) return null
-            return (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/30">
-                <Eye className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-medium text-purple-600 dark:text-purple-400">Linked Vision</p>
-                  <p className="text-sm font-semibold">{linkedVision.icon} {linkedVision.title}</p>
-                </div>
-              </div>
-            )
-          })()}
-
-          {breakdown.length > 0 && (
-            <div>
-              <label className="text-sm font-medium mb-2 block">Progress Sources</label>
-              <div className="space-y-1.5">
-                {breakdown.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 bg-white/50 dark:bg-white/5 rounded-lg border border-white/10 text-sm">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    <span className="flex-1">{s.name}</span>
-                    <Badge variant="secondary" className={`text-[10px] ${s.type === "habit" ? "bg-blue-50 text-blue-600" : s.type === "project" ? "bg-purple-50 text-[#1E0E6B]" : s.type === "milestone" ? "bg-emerald-50 text-emerald-600" : "bg-muted"}`}>{s.type}</Badge>
-                    <span className="font-medium text-xs">{s.score}%</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
@@ -1005,43 +971,53 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium">Projects ({goalProjects.length})</label>
-              <Button size="sm" variant="outline" onClick={() => setShowAddProject(true)}><Plus className="h-3 w-3 mr-1" /> Add Project</Button>
-            </div>
-            <div className="space-y-2">
-              {goalProjects.map(p => (
-                <div key={p.id} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 hover:shadow-md transition-all cursor-pointer" onClick={() => setExpandedProject(expandedProject === p.id ? null : p.id)}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{p.icon}</span>
-                      <div>
-                        <p className="font-medium text-sm">{p.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{p.tasks.filter(t => t.completed).length}/{p.tasks.length} tasks</p>
+            <button onClick={() => setProjectsOpen(o => !o)} className="flex items-center justify-between w-full mb-3">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                {projectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                Projects ({goalProjects.length})
+              </span>
+              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setShowAddProject(true) }}><Plus className="h-3 w-3 mr-1" /> Add Project</Button>
+            </button>
+            {projectsOpen && (
+              <div className="space-y-2">
+                {goalProjects.map(p => (
+                  <div key={p.id} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 hover:shadow-md transition-all cursor-pointer" onClick={() => setExpandedProject(expandedProject === p.id ? null : p.id)}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg">{p.icon}</span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{p.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{p.tasks.filter(t => t.completed).length}/{p.tasks.length} tasks</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="secondary" className={`text-[10px] ${p.status === "completed" ? "bg-emerald-50 text-emerald-600" : p.status === "active" ? "bg-blue-50 text-blue-600" : "bg-muted"}`}>{p.status}</Badge>
+                        <ProgressRing value={calcProjectProgress(p)} size={36} strokeWidth={3} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className={`text-[10px] ${p.status === "completed" ? "bg-emerald-50 text-emerald-600" : p.status === "active" ? "bg-blue-50 text-blue-600" : "bg-muted"}`}>{p.status}</Badge>
-                      <ProgressRing value={calcProjectProgress(p)} size={36} strokeWidth={3} />
+                    <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+                      <span>Start: {formatDateDDMMYYYY(p.startDate)}</span>
+                      <span>Target: {formatDateDDMMYYYY(p.dueDate)}</span>
                     </div>
+                    <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all bg-[#1E0E6B]" style={{ width: `${calcProjectProgress(p)}%` }} /></div>
+                    {expandedProject === p.id && (
+                      <div className="mt-3 pt-3 border-t border-white/10 space-y-1" onClick={e => e.stopPropagation()}>
+                        {p.tasks.map(t => (
+                          <div key={t.id} className="flex items-center gap-2 text-xs">
+                            <button onClick={() => {
+                              const updated = { ...p, tasks: p.tasks.map(x => x.id === t.id ? { ...x, completed: !x.completed } : x), updatedAt: getTodayISO() }
+                              onSaveProject(updated)
+                            }}>{t.completed ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <div className="h-3 w-3 rounded-full border border-muted-foreground" />}</button>
+                            <span className={t.completed ? "line-through text-muted-foreground" : ""}>{t.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {expandedProject === p.id && (
-                    <div className="mt-3 pt-3 border-t border-white/10 space-y-1" onClick={e => e.stopPropagation()}>
-                      {p.tasks.map(t => (
-                        <div key={t.id} className="flex items-center gap-2 text-xs">
-                          <button onClick={() => {
-                            const updated = { ...p, tasks: p.tasks.map(x => x.id === t.id ? { ...x, completed: !x.completed } : x), updatedAt: getTodayISO() }
-                            onSaveProject(updated)
-                          }}>{t.completed ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <div className="h-3 w-3 rounded-full border border-muted-foreground" />}</button>
-                          <span className={t.completed ? "line-through text-muted-foreground" : ""}>{t.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {goalProjects.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No projects yet. Add one to get started.</p>}
-            </div>
+                ))}
+                {goalProjects.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No projects yet. Add one to get started.</p>}
+              </div>
+            )}
           </div>
 
           <div>
@@ -1086,6 +1062,8 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
             </div>
           )}
 
+          <VisionImagesSection heroImage={data.heroImage} supportingImages={data.supportingImages} onChange={(hero, supporting) => setData({ ...data, heroImage: hero, supportingImages: supporting })} />
+
           <div>
             <label className="text-sm font-medium mb-2 block">Core Values Alignment</label>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -1105,6 +1083,8 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
           <GoalMotivationPanel goal={data} projects={projects} habits={habits} />
 
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
+
+          <Button className="w-full bg-[#1E0E6B] text-white hover:bg-[#1E0E6B]/90" onClick={() => { data.progress = calcGoalProgress(data, projects, habits); onSaveGoal(data); onClose() }}>Edit Goal</Button>
         </div>
       </div>
       {lightboxOpen && data && (
@@ -1139,8 +1119,8 @@ function GoalMotivationPanel({ goal, projects, habits }: { goal: Goal; projects:
   return (
     <div className="space-y-3">
       {/* Motivational Quote */}
-      <div className="p-3 rounded-xl bg-gradient-to-br from-[#1E0E6B]/5 to-purple-50 dark:from-[#1E0E6B]/10 dark:to-purple-950/20 border border-[#1E0E6B]/10">
-        <p className="text-xs italic text-[#1E0E6B]/80 dark:text-[#1E0E6B]/60">&ldquo;{quote.text}&rdquo;</p>
+        <div className="p-3 rounded-xl bg-gradient-to-br from-[#1E0E6B]/5 to-[#1E0E6B]/10 border border-[#1E0E6B]/10">
+          <p className="text-xs italic text-[#1E0E6B]/80 dark:text-[#1E0E6B]/60">&ldquo;{quote.text}&rdquo;</p>
         <p className="text-[10px] text-muted-foreground mt-1">— {quote.author}</p>
       </div>
 
@@ -1384,84 +1364,92 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
         </div>
       )}
       <div className="p-4">
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-xl shrink-0">{goal.icon}</span>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-sm leading-tight">
-              {goal.title}
-              <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] ml-2 align-middle">{goal.customCategory || goal.category}</Badge>
-            </h3>
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-xl shrink-0">{goal.icon}</span>
+            <h3 className="font-semibold text-sm leading-tight truncate">{goal.title}</h3>
+            <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {onToggleFocus && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
+                className={`p-1.5 rounded-md transition-colors opacity-90 hover:opacity-100 hover:bg-muted/50 ${isFocused ? "text-amber-500" : "text-muted-foreground"}`}
+                title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
+                disabled={!isFocused && (focusCount != null && focusCount >= 5)}
+              >
+                <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
+              </button>
+            )}
+            {onEdit && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
+                className="p-1.5 rounded-md text-primary opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
+                title="Edit Goal"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
+                className="p-1.5 rounded-md text-destructive opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
+                title="Delete Goal"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {onToggleFocus && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
-              className={`p-1.5 rounded-lg transition-colors ${isFocused ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
-              title={isFocused ? "Unpin from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Pin to Focus"}
-              disabled={!isFocused && (focusCount != null && focusCount >= 5)}
-            >
-              <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
-            </button>
-          )}
-          {onEdit && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
-              className="p-1.5 rounded-lg text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
-              title="Edit Goal"
-            >
-              <Edit3 className="h-4 w-4" />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
-              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-              title="Delete Goal"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-          <div className="relative w-14 h-14 shrink-0">
-            <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
-              <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="4" className="text-muted/30" />
-              <circle cx="28" cy="28" r="24" fill="none" stroke="#1E0E6B" strokeWidth="4" strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * (1 - progress / 100)}`}
-                className="transition-all duration-500" />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[#1E0E6B]">{progress}%</span>
+
+        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
+
+        {(goal.linkedValueIds || []).length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {values.filter(v => (goal.linkedValueIds || []).includes(v.id)).slice(0, 3).map(v => (
+              <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1E0E6B]/8 text-[#1E0E6B] text-[10px] font-medium">
+                {v.icon} {v.name}
+              </span>
+            ))}
+            {(goal.linkedValueIds || []).length > 3 && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px]">
+                +{(goal.linkedValueIds || []).length - 3}
+              </span>
+            )}
           </div>
+        )}
+
+        {isReviewDue(goal) && onReview && (
+          <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="mb-3 w-full p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-left">
+            <span className="text-base">📚</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Review Goal</p>
+              <p className="text-[10px] text-amber-600 dark:text-amber-400">Not reviewed in {daysSinceReview(goal)} days</p>
+            </div>
+            <ArrowRight className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          </button>
+        )}
+
+        <div className="flex justify-center mb-3">
+          <ProgressRing value={progress} size={58} strokeWidth={5} showLabel={true} />
         </div>
-      </div>
-      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{goal.description}</p>
 
-      {isReviewDue(goal) && onReview && (
-        <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="mb-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-left w-full">
-          <span className="text-base">📚</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Review Goal</p>
-            <p className="text-[10px] text-amber-600 dark:text-amber-400">Not reviewed in {daysSinceReview(goal)} days</p>
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-        </button>
-      )}
+        {/* Progress bar */}
+        <div className="space-y-1.5 mb-3">
+          <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-semibold">{progress}%</span></div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500 bg-[#1E0E6B]" style={{width: `${progress}%`}} /></div>
+        </div>
 
-      {/* Next Action — compact */}
-      <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
-        <Zap className="h-3.5 w-3.5 text-[#1E0E6B] shrink-0" />
-        <p className="text-[11px] text-[#1E0E6B] font-medium truncate">{generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
-      </div>
+        {/* Next Action — compact */}
+        <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
+          <Zap className="h-3.5 w-3.5 text-[#1E0E6B] shrink-0" />
+          <p className="text-[11px] text-[#1E0E6B] font-medium truncate">{generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
+        </div>
 
-      {/* Progress bar */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-semibold">{progress}%</span></div>
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500 bg-[#1E0E6B]" style={{width: `${progress}%`}} /></div>
-      </div>
-      {/* Footer — simplified */}
-      <div className="flex items-center mt-2 pt-2 border-t border-[#1E0E6B]/5">
-        <span className={`flex items-center gap-1 text-xs text-muted-foreground ${daysRemaining <= 7 && daysRemaining > 0 ? "text-amber-600" : daysRemaining === 0 && new Date(goal.deadline) < new Date() ? "text-red-600" : ""}`}><Clock className="h-3 w-3" />{friendlyDueDate(goal.deadline)}</span>
-      </div>
+        {/* Footer — due date */}
+        <div className="flex items-center mt-3 pt-3 border-t border-[#1E0E6B]/5">
+          <span className={`flex items-center gap-1 text-xs text-muted-foreground ${daysRemaining <= 7 && daysRemaining > 0 ? "text-amber-600" : daysRemaining === 0 && new Date(goal.deadline) < new Date() ? "text-red-600" : ""}`}><Clock className="h-3 w-3" />{friendlyDueDate(goal.deadline)}</span>
+        </div>
       </div>
     </div>
   )
@@ -1821,6 +1809,7 @@ export function GoalsPage() {
         case "weekly": if (g.type !== "weekly") return false; break
         case "daily": if (g.timeline !== "Daily") return false; break
         case "projects": { const gp = projects.filter(p => p.goalId === g.id); if (gp.length === 0) return false; break }
+
       }
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
@@ -1882,7 +1871,7 @@ export function GoalsPage() {
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-end">
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-end sm:items-center">
             {goals.length >= 20 && (
               <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search goals..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" /></div>
@@ -1901,6 +1890,7 @@ export function GoalsPage() {
                   <option value="daily">Daily</option>
                   <option value="projects">Projects</option>
                 </optgroup>
+
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
             </div>
@@ -1981,17 +1971,27 @@ export function GoalsPage() {
                         <td className={`px-4 py-3 text-xs font-medium ${isOverdue ? "text-red-600" : days <= 7 ? "text-amber-600" : ""}`}>{friendlyDueDate(goal.deadline)}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={(e) => { e.stopPropagation(); setAnalyticsGoal(goal) }} className="p-1.5 rounded-lg text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors" title="View Details">
-                              <Info className="h-4 w-4" />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleFocusGoal(goal.id) }}
+                              className={`p-1.5 rounded-md hover:bg-muted/50 transition-colors ${goal.focused ? "text-amber-500" : "text-muted-foreground"}`}
+                              title={goal.focused ? "Remove from Focus" : "Add to Focus"}
+                              disabled={!goal.focused && goals.filter(g => g.focused).length >= 5}
+                            >
+                              <Star className={`h-4 w-4 ${goal.focused ? "fill-amber-400" : ""}`} />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setSelectedGoal(goal) }} className="p-1.5 rounded-lg text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors" title="Edit Goal">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedGoal(goal) }}
+                              className="p-1.5 rounded-md text-primary hover:bg-muted/50 transition-colors"
+                              title="Edit Goal"
+                            >
                               <Edit3 className="h-4 w-4" />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); deleteGoal(goal.id) }} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Delete Goal">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteGoal(goal.id) }}
+                              className="p-1.5 rounded-md text-destructive hover:bg-muted/50 transition-colors"
+                              title="Delete Goal"
+                            >
                               <Trash2 className="h-4 w-4" />
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); toggleFocusGoal(goal.id) }} className={`p-1.5 rounded-lg transition-colors ${goal.focused ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`} title={goal.focused ? "Unpin from Focus" : "Pin to Focus"}>
-                              <Star className={`h-4 w-4 ${goal.focused ? "fill-amber-400" : ""}`} />
                             </button>
                           </div>
                         </td>

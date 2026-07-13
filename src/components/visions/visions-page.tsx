@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,7 @@ import {
   Image, Quote, Video, StickyNote, Music,
   ExternalLink, Sparkles, LayoutGrid, List,
   Heart, Shield, Clock, Calendar, Info,
-  CheckCircle2, Circle, AlertCircle,
+  CheckCircle2, Circle, AlertCircle, Check,
 } from "lucide-react"
 import {
   loadPurpose, savePurpose,
@@ -203,7 +203,21 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
     a.name.toLowerCase().includes(lifeAreaSearch.toLowerCase())
   )
 
-  const connectedLifeAreas = lifeAreas.filter((a) => lifeAreaIds.includes(a.id))
+  const selectedLifeAreas = allLifeAreaOptions.filter((a) => lifeAreaIds.includes(a.id))
+
+  const lifeAreaDropdownRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!showLifeAreaDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (lifeAreaDropdownRef.current && !lifeAreaDropdownRef.current.contains(e.target as Node)) {
+        setShowLifeAreaDropdown(false)
+      }
+    }
+    const keyHandler = (e: KeyboardEvent) => { if (e.key === "Escape") setShowLifeAreaDropdown(false) }
+    document.addEventListener("mousedown", handler)
+    document.addEventListener("keydown", keyHandler)
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", keyHandler) }
+  }, [showLifeAreaDropdown])
 
   return (
     <div className="rounded-2xl border-2 border-[#1E0E6B]/15 p-8 bg-white dark:bg-gray-950 shadow-sm">
@@ -222,16 +236,78 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
               className="w-full mt-1.5 px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Life Influence</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Life Area</label>
             <p className="text-xs text-muted-foreground mt-0.5 mb-2">Which areas of life does your purpose touch?</p>
-            <div className="flex flex-wrap gap-1.5">
-              {lifeAreas.map((a) => (
-                <button key={a.id} onClick={() => toggleLifeArea(a.id)}
-                  className={`px-2.5 py-1 text-[11px] rounded-full border transition-colors ${lifeAreaIds.includes(a.id) ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-muted"}`}>
-                  {a.icon} {a.name}
-                </button>
-              ))}
+            <div className="relative" ref={lifeAreaDropdownRef}>
+              <div
+                tabIndex={0}
+                role="button"
+                aria-haspopup="listbox"
+                aria-expanded={showLifeAreaDropdown}
+                onClick={() => setShowLifeAreaDropdown((st) => !st)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowLifeAreaDropdown((st) => !st) } }}
+                className="flex items-center justify-between gap-2 w-full px-3 py-2.5 text-sm rounded-xl border border-[#1E0E6B]/25 bg-white dark:bg-gray-950 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+              >
+                <span className={lifeAreaIds.length > 0 ? "text-foreground" : "text-muted-foreground"}>
+                  {lifeAreaIds.length > 0 ? `${lifeAreaIds.length} selected` : "Choose one or more life areas"}
+                </span>
+                <ChevronDown className={`h-4 w-4 text-[#1E0E6B] transition-transform duration-200 ${showLifeAreaDropdown ? "rotate-180" : ""}`} />
+              </div>
+
+              {showLifeAreaDropdown && (
+                <div className="absolute z-30 mt-1.5 w-full rounded-xl border border-[#1E0E6B]/20 bg-white dark:bg-gray-950 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                  <div className="p-2 border-b border-[#1E0E6B]/10">
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/60">
+                      <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                      <input
+                        autoFocus
+                        value={lifeAreaSearch}
+                        onChange={(e) => setLifeAreaSearch(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setShowLifeAreaDropdown(false) } }}
+                        placeholder="Search life areas..."
+                        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto py-1">
+                    {filteredLifeAreas.length === 0 ? (
+                      <p className="px-3 py-3 text-xs text-muted-foreground text-center">No areas found</p>
+                    ) : (
+                      filteredLifeAreas.map((a) => {
+                        const selected = lifeAreaIds.includes(a.id)
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => toggleLifeArea(a.id)}
+                            className={`flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left transition-colors ${selected ? "bg-[#1E0E6B]/10" : "hover:bg-[#1E0E6B]/5"}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>{a.icon}</span>
+                              <span>{a.name}</span>
+                            </span>
+                            {selected && <Check className="h-4 w-4 text-[#1E0E6B]" />}
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {selectedLifeAreas.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {selectedLifeAreas.map((a) => (
+                  <span key={a.id} className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] border border-[#1E0E6B]/15">
+                    {a.icon} {a.name}
+                    <button type="button" onClick={() => toggleLifeArea(a.id)} className="ml-0.5 hover:text-[#EB9E5B] transition-colors" aria-label={`Remove ${a.name}`}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex gap-2 justify-end">
             <Button size="sm" variant="outline" onClick={() => { setEditing(false); setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds) }}>Cancel</Button>
@@ -262,47 +338,13 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
             <p className="text-muted-foreground italic text-lg">Define your purpose — the reason you exist.</p>
           )}
           {purpose.notes && <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">{purpose.notes}</p>}
-          {connectedLifeAreas.length > 0 && (
+          {selectedLifeAreas.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
-              {connectedLifeAreas.map((a) => <RelationshipChip key={a.id} icon={a.icon} label={a.name} />)}
+              {selectedLifeAreas.map((a) => <RelationshipChip key={a.id} icon={a.icon} label={a.name} />)}
             </div>
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════
-// PURPOSE DASHBOARD
-// ══════════════════════════════════════════════════════════════
-
-function PurposeDashboard({ purpose, values, commitments, lifeAreas, visions, goals }: {
-  purpose: Purpose; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; visions: Vision[]; goals: Array<{ id: string }>
-}) {
-  if (!purpose.statement.trim()) return null
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
-        <p className="text-2xl font-bold text-[#1E0E6B]">{values.length}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Core Values</p>
-      </div>
-      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
-        <p className="text-2xl font-bold text-[#1E0E6B]">{commitments.length}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Commitments</p>
-      </div>
-      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
-        <p className="text-2xl font-bold text-[#1E0E6B]">{lifeAreas.length}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Life Areas</p>
-      </div>
-      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
-        <p className="text-2xl font-bold text-[#1E0E6B]">{visions.length}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Visions</p>
-      </div>
-      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
-        <p className="text-2xl font-bold text-[#1E0E6B]">{goals.length}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Goals</p>
-      </div>
     </div>
   )
 }
@@ -1327,31 +1369,156 @@ function PurposeReviewsSection() {
 // CREATE DIALOGS
 // ══════════════════════════════════════════════════════════════
 
+const VALUE_LIBRARY: Array<{ name: string; category: string; description: string }> = [
+  { name: "Integrity", category: "Character", description: "Doing the right thing even when no one is watching." },
+  { name: "Honesty", category: "Character", description: "Speaking and living the truth in all things." },
+  { name: "Courage", category: "Character", description: "Acting with bravery in the face of fear or difficulty." },
+  { name: "Humility", category: "Character", description: "Recognising your limits and valuing others above self." },
+  { name: "Discipline", category: "Character", description: "Consistent self-control toward what matters most." },
+  { name: "Authenticity", category: "Character", description: "Being genuine and true to who you really are." },
+  { name: "Faith", category: "Spiritual", description: "Trusting God and living by His guidance daily." },
+  { name: "Gratitude", category: "Spiritual", description: "Thankfulness for blessings seen and unseen." },
+  { name: "Peace", category: "Spiritual", description: "Inner calm rooted in trust beyond circumstances." },
+  { name: "Hope", category: "Spiritual", description: "Confident expectation of a better future." },
+  { name: "Love", category: "Relationships", description: "Selfless care and commitment to others' good." },
+  { name: "Compassion", category: "Relationships", description: "Genuine empathy that moves you to help." },
+  { name: "Loyalty", category: "Relationships", description: "Steadfast devotion through every season." },
+  { name: "Forgiveness", category: "Relationships", description: "Releasing offense and choosing reconciliation." },
+  { name: "Excellence", category: "Achievement", description: "Pursuing the highest quality in all you do." },
+  { name: "Perseverance", category: "Achievement", description: "Pressing on despite obstacles and delay." },
+  { name: "Ambition", category: "Achievement", description: "A holy drive to build and become more." },
+  { name: "Generosity", category: "Achievement", description: "Freely giving time, treasure, and talent." },
+  { name: "Health", category: "Well-being", description: "Stewarding your body as a temple." },
+  { name: "Balance", category: "Well-being", description: "Harmony across every area of life." },
+  { name: "Joy", category: "Well-being", description: "Deep gladness not dependent on circumstances." },
+  { name: "Rest", category: "Well-being", description: "Sacred pause to renew body and soul." },
+  { name: "Wisdom", category: "Wisdom", description: "Applying knowledge with discernment and insight." },
+  { name: "Curiosity", category: "Wisdom", description: "A hungry desire to learn and explore." },
+  { name: "Self-Awareness", category: "Wisdom", description: "Knowing your heart, motives, and patterns." },
+]
+
 function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (v: Omit<CoreValue, "id" | "order" | "createdAt" | "updatedAt">) => void }) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [purposeConnection, setPurposeConnection] = useState("")
+  const [browseOpen, setBrowseOpen] = useState(false)
+  const [librarySearch, setLibrarySearch] = useState("")
+  const browseRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!browseOpen) return
+    const handler = (e: MouseEvent) => {
+      if (browseRef.current && !browseRef.current.contains(e.target as Node)) setBrowseOpen(false)
+    }
+    const keyHandler = (e: KeyboardEvent) => { if (e.key === "Escape") setBrowseOpen(false) }
+    document.addEventListener("mousedown", handler)
+    document.addEventListener("keydown", keyHandler)
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", keyHandler) }
+  }, [browseOpen])
+
+  const handleSave = () => {
+    if (!name.trim()) return
+    onSave({ name: name.trim(), icon: "✦", description, purposeConnection, pinned: false })
+  }
+
+  const selectFromLibrary = (label: string) => {
+    setName(label)
+    setBrowseOpen(false)
+    setLibrarySearch("")
+  }
+
+  const groupedLibrary = useMemo(() => {
+    const q = librarySearch.toLowerCase()
+    const filtered = VALUE_LIBRARY.filter((v) => v.name.toLowerCase().includes(q))
+    const map = new Map<string, string[]>()
+    for (const v of filtered) {
+      if (!map.has(v.category)) map.set(v.category, [])
+      map.get(v.category)!.push(v.name)
+    }
+    return Array.from(map.entries()).map(([category, items]) => ({ category, items }))
+  }, [librarySearch])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
         <h3 className="font-semibold text-base">Add Core Value</h3>
+
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Value Name</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Integrity, Faith, Excellence" autoFocus />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Type your own value (e.g. Integrity, Faith, Excellence)" autoFocus />
         </div>
+
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does this value mean to you?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
         </div>
+
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Purpose Connection</label>
           <textarea value={purposeConnection} onChange={(e) => setPurposeConnection(e.target.value)} placeholder="How does this value help you fulfil your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
         </div>
+
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Or choose from library</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <div className="relative" ref={browseRef}>
+          <button
+            type="button"
+            onClick={() => setBrowseOpen((st) => !st)}
+            className="flex items-center justify-between gap-2 w-full px-3 py-2.5 text-sm rounded-xl border border-[#1E0E6B]/25 bg-white dark:bg-gray-950 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+          >
+            <span className="text-muted-foreground">Browse Core Values</span>
+            <ChevronDown className={`h-4 w-4 text-[#1E0E6B] transition-transform duration-200 ${browseOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {browseOpen && (
+            <div className="absolute z-30 mt-1.5 w-full rounded-xl border border-[#1E0E6B]/20 bg-white dark:bg-gray-950 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-2 border-b border-[#1E0E6B]/10">
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/60">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    value={librarySearch}
+                    onChange={(e) => setLibrarySearch(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setBrowseOpen(false) } }}
+                    placeholder="Search the library..."
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+                  />
+                </div>
+              </div>
+              <div className="max-h-64 overflow-y-auto py-1">
+                {groupedLibrary.length === 0 ? (
+                  <p className="px-3 py-3 text-xs text-muted-foreground text-center">No matching values</p>
+                ) : (
+                  groupedLibrary.map((cat) => (
+                    <div key={cat.category}>
+                      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat.category}</p>
+                      {cat.items.map((label) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => selectFromLibrary(label)}
+                          className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left transition-colors hover:bg-[#1E0E6B]/5"
+                        >
+                          <span>{label}</span>
+                          {name.trim().toLowerCase() === label.toLowerCase() && <Check className="h-4 w-4 text-[#1E0E6B]" />}
+                        </button>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button size="sm" disabled={!name.trim()} onClick={() => onSave({ name: name.trim(), icon: "✦", description, purposeConnection, pinned: false })}>Add Value</Button>
+          <Button size="sm" disabled={!name.trim()} onClick={handleSave}>Add Value</Button>
         </div>
       </div>
     </div>
@@ -1366,6 +1533,14 @@ function CreateCommitmentDialog({ values, lifeAreas, visions, onClose, onSave }:
   const [relatedValueIds, setRelatedValueIds] = useState<string[]>([])
   const [relatedLifeAreaIds, setRelatedLifeAreaIds] = useState<string[]>([])
   const [relatedVisionIds, setRelatedVisionIds] = useState<string[]>([])
+  const [lifeAreaSearch, setLifeAreaSearch] = useState("")
+  const [lifeAreasOpen, setLifeAreasOpen] = useState(false)
+  const [visionSearch, setVisionSearch] = useState("")
+  const [visionsOpen, setVisionsOpen] = useState(false)
+
+  const filteredLifeAreas = lifeAreas.filter((a) => a.name.toLowerCase().includes(lifeAreaSearch.toLowerCase()))
+  const activeVisions = visions.filter((v) => !v.archived)
+  const filteredVisions = activeVisions.filter((v) => v.title.toLowerCase().includes(visionSearch.toLowerCase()))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1389,29 +1564,87 @@ function CreateCommitmentDialog({ values, lifeAreas, visions, onClose, onSave }:
         </div>
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Related Life Areas</label>
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {lifeAreas.map((a) => (
-              <button key={a.id} onClick={() => setRelatedLifeAreaIds((prev) => prev.includes(a.id) ? prev.filter((i) => i !== a.id) : [...prev, a.id])}
-                className={`px-2 py-1 text-[11px] rounded-full border transition-colors ${relatedLifeAreaIds.includes(a.id) ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-muted"}`}>
-                {a.icon} {a.name}
-              </button>
-            ))}
+          {relatedLifeAreaIds.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5 mb-1.5">
+              {relatedLifeAreaIds.map((lid) => {
+                const a = lifeAreas.find((l) => l.id === lid)
+                return a ? (
+                  <span key={lid} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary font-medium">
+                    {a.name}
+                    <button onClick={() => setRelatedLifeAreaIds((prev) => prev.filter((i) => i !== lid))} className="hover:text-primary/70"><X className="h-2.5 w-2.5" /></button>
+                  </span>
+                ) : null
+              })}
+            </div>
+          )}
+          <div className="relative">
+            <button onClick={() => setLifeAreasOpen(!lifeAreasOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border bg-background text-left text-muted-foreground">
+              <span>{lifeAreasOpen ? "Close dropdown" : "Search life areas..."}</span>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${lifeAreasOpen ? "rotate-180" : ""}`} />
+            </button>
+            {lifeAreasOpen && (
+              <div className="absolute z-20 mt-1 w-full bg-background border border-border rounded-xl shadow-lg overflow-hidden">
+                <div className="p-2 border-b">
+                  <input value={lifeAreaSearch} onChange={(e) => setLifeAreaSearch(e.target.value)} placeholder="Type to search..." className="w-full px-3 py-1.5 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" autoFocus />
+                </div>
+                <div className="max-h-48 overflow-y-auto p-1">
+                  {filteredLifeAreas.map((a) => (
+                    <button key={a.id} onClick={() => setRelatedLifeAreaIds((prev) => prev.includes(a.id) ? prev.filter((i) => i !== a.id) : [...prev, a.id])}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${relatedLifeAreaIds.includes(a.id) ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
+                      <span>{a.icon}</span>
+                      <span>{a.name}</span>
+                      {relatedLifeAreaIds.includes(a.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
+                    </button>
+                  ))}
+                  {filteredLifeAreas.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">No life areas found.</p>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Related Visions</label>
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {visions.filter((v) => !v.archived).map((v) => (
-              <button key={v.id} onClick={() => setRelatedVisionIds((prev) => prev.includes(v.id) ? prev.filter((i) => i !== v.id) : [...prev, v.id])}
-                className={`px-2 py-1 text-[11px] rounded-full border transition-colors ${relatedVisionIds.includes(v.id) ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-muted"}`}>
-                {v.title}
-              </button>
-            ))}
+          {relatedVisionIds.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5 mb-1.5">
+              {relatedVisionIds.map((vid) => {
+                const v = visions.find((vis) => vis.id === vid)
+                return v ? (
+                  <span key={vid} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary font-medium">
+                    {v.title}
+                    <button onClick={() => setRelatedVisionIds((prev) => prev.filter((i) => i !== vid))} className="hover:text-primary/70"><X className="h-2.5 w-2.5" /></button>
+                  </span>
+                ) : null
+              })}
+            </div>
+          )}
+          <div className="relative">
+            <button onClick={() => setVisionsOpen(!visionsOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border bg-background text-left text-muted-foreground">
+              <span>{visionsOpen ? "Close dropdown" : "Search visions..."}</span>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${visionsOpen ? "rotate-180" : ""}`} />
+            </button>
+            {visionsOpen && (
+              <div className="absolute z-20 mt-1 w-full bg-background border border-border rounded-xl shadow-lg overflow-hidden">
+                <div className="p-2 border-b">
+                  <input value={visionSearch} onChange={(e) => setVisionSearch(e.target.value)} placeholder="Type to search..." className="w-full px-3 py-1.5 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" autoFocus />
+                </div>
+                <div className="max-h-48 overflow-y-auto p-1">
+                  {filteredVisions.map((v) => (
+                    <button key={v.id} onClick={() => setRelatedVisionIds((prev) => prev.includes(v.id) ? prev.filter((i) => i !== v.id) : [...prev, v.id])}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${relatedVisionIds.includes(v.id) ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
+                      <span>{v.icon}</span>
+                      <span>{v.title}</span>
+                      {relatedVisionIds.includes(v.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
+                    </button>
+                  ))}
+                  {filteredVisions.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">No visions available. Create a vision first.</p>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button size="sm" disabled={!title.trim()} onClick={() => onSave({ title: title.trim(), description: "", relatedValueIds, relatedLifeAreaIds, relatedVisionIds, healthStatus: "keeping", archived: false })}>Add Commitment</Button>
+          <Button size="sm" disabled={!title.trim()} onClick={() => onSave({ title: title.trim(), description: "", relatedValueIds, relatedLifeAreaIds, relatedVisionIds, healthStatus: "keeping", pinned: false, archived: false })}>Add Commitment</Button>
         </div>
       </div>
     </div>
@@ -1573,9 +1806,6 @@ export function VisionsPage() {
         </div>
       </div>
 
-      {/* Purpose Dashboard */}
-      <PurposeDashboard purpose={purpose} values={values} commitments={commitments} lifeAreas={lifeAreas} visions={visions} goals={goals} />
-
       {/* 1. Purpose (Hero) */}
       <PurposeSection purpose={purpose} lifeAreas={lifeAreas} onSave={handleSavePurpose} />
 
@@ -1585,20 +1815,11 @@ export function VisionsPage() {
       {/* 3. Commitments */}
       <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
 
-      {/* 4. Life Areas */}
-      <LifeAreasSection lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("life-area")} onUpdate={handleUpdateLifeArea} onDelete={handleDeleteLifeArea} onReorder={handleReorderLifeAreas} />
-
-      {/* 5. My Visions */}
+      {/* 4. My Visions */}
       <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
 
-      {/* 6. Goals Connected to Vision */}
-      <GoalsByVisionSection visions={visions} goals={goals} lifeAreas={lifeAreas} />
-
-      {/* 7. Long-Term Milestones */}
+      {/* 5. Long-Term Milestones */}
       <RoadmapSection visions={visions} lifeAreas={lifeAreas} />
-
-      {/* 8. Purpose Reviews */}
-      <PurposeReviewsSection />
 
       {/* Vision Edit Modal */}
       {selectedVision && (

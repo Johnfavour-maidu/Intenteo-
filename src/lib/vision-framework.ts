@@ -10,6 +10,7 @@ export interface Purpose {
   notes: string
   lifeAreaIds: string[]
   reviewFrequency: "weekly" | "monthly" | "quarterly"
+  lastReviewedAt?: string
   updatedAt: string
 }
 
@@ -54,6 +55,7 @@ export interface Commitment {
   relatedLifeAreaIds: string[]
   relatedVisionIds: string[]
   healthStatus: "keeping" | "mostly" | "needs-attention" | "broken"
+  pinned: boolean
   archived: boolean
   order: number
   createdAt: string
@@ -603,11 +605,11 @@ export function seedDemoDataIfEmpty(): void {
 
   // Commitments
   const commitments: Commitment[] = [
-    { id: "cm-1", title: "I will mentor one young person every month.", description: "Invest time and wisdom into the next generation.", relatedValueIds: ["cv-1", "cv-3"], relatedLifeAreaIds: ["la-8", "la-1"], relatedVisionIds: ["vs-1"], healthStatus: "keeping", archived: false, order: 0, createdAt: now, updatedAt: now },
-    { id: "cm-2", title: "I will live with honesty in every decision.", description: "Truthfulness is non-negotiable.", relatedValueIds: ["cv-1"], relatedLifeAreaIds: ["la-4"], relatedVisionIds: [], healthStatus: "keeping", archived: false, order: 1, createdAt: now, updatedAt: now },
-    { id: "cm-3", title: "I will continue learning throughout life.", description: "Read, study, and grow every day.", relatedValueIds: ["cv-5"], relatedLifeAreaIds: ["la-7"], relatedVisionIds: ["vs-1"], healthStatus: "mostly", archived: false, order: 2, createdAt: now, updatedAt: now },
-    { id: "cm-4", title: "I will prioritise family time daily.", description: "Family comes before work.", relatedValueIds: ["cv-4"], relatedLifeAreaIds: ["la-3"], relatedVisionIds: ["vs-2"], healthStatus: "keeping", archived: false, order: 3, createdAt: now, updatedAt: now },
-    { id: "cm-5", title: "I will exercise every week.", description: "Maintain physical health through consistent exercise.", relatedValueIds: ["cv-2"], relatedLifeAreaIds: ["la-6"], relatedVisionIds: ["vs-3"], healthStatus: "needs-attention", archived: false, order: 4, createdAt: now, updatedAt: now },
+    { id: "cm-1", title: "I will mentor one young person every month.", description: "Invest time and wisdom into the next generation.", relatedValueIds: ["cv-1", "cv-3"], relatedLifeAreaIds: ["la-8", "la-1"], relatedVisionIds: ["vs-1"], healthStatus: "keeping", pinned: false, archived: false, order: 0, createdAt: now, updatedAt: now },
+    { id: "cm-2", title: "I will live with honesty in every decision.", description: "Truthfulness is non-negotiable.", relatedValueIds: ["cv-1"], relatedLifeAreaIds: ["la-4"], relatedVisionIds: [], healthStatus: "keeping", pinned: false, archived: false, order: 1, createdAt: now, updatedAt: now },
+    { id: "cm-3", title: "I will continue learning throughout life.", description: "Read, study, and grow every day.", relatedValueIds: ["cv-5"], relatedLifeAreaIds: ["la-7"], relatedVisionIds: ["vs-1"], healthStatus: "mostly", pinned: false, archived: false, order: 2, createdAt: now, updatedAt: now },
+    { id: "cm-4", title: "I will prioritise family time daily.", description: "Family comes before work.", relatedValueIds: ["cv-4"], relatedLifeAreaIds: ["la-3"], relatedVisionIds: ["vs-2"], healthStatus: "keeping", pinned: false, archived: false, order: 3, createdAt: now, updatedAt: now },
+    { id: "cm-5", title: "I will exercise every week.", description: "Maintain physical health through consistent exercise.", relatedValueIds: ["cv-2"], relatedLifeAreaIds: ["la-6"], relatedVisionIds: ["vs-3"], healthStatus: "needs-attention", pinned: false, archived: false, order: 4, createdAt: now, updatedAt: now },
   ]
   saveCommitments(commitments)
 

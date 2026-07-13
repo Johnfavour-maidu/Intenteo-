@@ -31,6 +31,28 @@ This version has breaking changes — APIs, conventions, and file structure may 
   - Type aligned via `GoalData`/`GoalProject`/`GoalHabit` interfaces for cross-file compatibility with structural casting
   - Clicking a goal card opens analytics drawer; "Edit Goal" button in drawer opens existing GoalDetailDrawer
 
+## Goals Page — 5-Phase Transformation (Complete)
+
+### Phase 1: Visual Goal Board
+- Cards is default view, Focus Goals section (max 5, pin/unpin), gold star badge, `focused`/`focusOrder` fields
+
+### Phase 2: Vision Images
+- `heroImage` and `supportingImages` fields, VisionImagesSection (upload/replace/remove/reorder), Lightbox viewer
+
+### Phase 3: Goal Reviews
+- `GoalReview` interface, `ReviewFrequency` type (weekly/biweekly/monthly/quarterly), `REVIEW_FREQUENCY_CONFIG`, `isReviewDue()`, `daysSinceReview()`, `reviewFrequency`/`lastReviewedAt`/`reviews` fields
+- GoalReviewModal with 7 review questions, review due notification on GoalCard, review history in GoalDetailDrawer
+
+### Phase 4: Core Value Library
+- `linkedValueIds` field on Goal interface, CoreValueLibrary component with 4 categories (Spiritual/Personal/Relational/Professional, 20 templates), multi-select, custom value creation
+- Value selector in AddGoalModal and GoalDetailDrawer, value alignment badges on GoalCard, `calcValueAlignment()` in goal-utils.ts
+
+### Phase 5: Visualization & Motivation Engine
+- `GoalForecast` (predicted date, pace: ahead/on-pace/behind/stalled), `GoalProbability` (0-100% score with factors), `GoalMomentum` (building/steady/fading/stalled)
+- GoalMotivationPanel (forecast, probability ring, momentum indicator, motivational quotes, contextual nudges)
+- Enhanced celebration overlay with confetti animation (20 emoji particles)
+- 12 motivational quotes, `getMotivationalNudge()` with context-aware messages
+
 ## Key Decisions
 
 - **Health formula**: `progress * 0.4 + deadlineScore * 0.15 + habitScore * 0.15 + projectScore * 0.1 + milestoneScore * 0.1 + consistency * 0.1`

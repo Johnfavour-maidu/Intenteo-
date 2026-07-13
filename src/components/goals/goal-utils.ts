@@ -20,7 +20,7 @@ export interface GoalData {
   weighting: { projects: number; habits: number; milestones: number; manual: number }
   timeline?: string; status?: string; timeHorizon?: string; visionId?: string
   habitCompletionRate?: number; lastActivity?: string
-  linkedValueIds?: string[]
+  linkedValueIds?: string[]; heroImage?: string
   createdAt: string; updatedAt: string
 }
 
