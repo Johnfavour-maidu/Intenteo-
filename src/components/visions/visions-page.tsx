@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -8,16 +9,16 @@ import { Separator } from "@/components/ui/separator"
 import {
   Plus, Search, X, ChevronDown, ChevronRight, Edit3, Trash2,
   GripVertical, Pin, PinOff, Archive, ArchiveRestore,
-  Star, Target, BookOpen, CheckSquare, Link2, Unlink,
+  Star, Target, BookOpen, CheckSquare, Flag,
   Image, Quote, Video, StickyNote, Music,
   ExternalLink, Sparkles, LayoutGrid, List,
   Heart, Shield, Clock, Calendar, Info,
-  CheckCircle2, Circle, AlertCircle, Check,
+  CheckCircle2, Circle, AlertCircle, Check, AlertTriangle, History,
 } from "lucide-react"
 import {
   loadPurpose, savePurpose,
   loadPurposeReviews, addPurposeReview, deletePurposeReview,
-  loadLifeAreas, addLifeArea, updateLifeArea, deleteLifeArea, reorderLifeAreas,
+  loadLifeAreas,
   loadCoreValues, addCoreValue, updateCoreValue, deleteCoreValue, reorderCoreValues,
   loadCommitments, addCommitment, updateCommitment, deleteCommitment,
   loadVisions, addVision, updateVision, deleteVision,
@@ -170,11 +171,19 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
   const [lifeAreaIds, setLifeAreaIds] = useState<string[]>(purpose.lifeAreaIds)
   const [lifeAreaSearch, setLifeAreaSearch] = useState("")
   const [showLifeAreaDropdown, setShowLifeAreaDropdown] = useState(false)
+  const [reviewFrequency, setReviewFrequency] = useState(purpose.reviewFrequency)
 
-  useEffect(() => { setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds) }, [purpose])
+  const [reviews, setReviews] = useState<PurposeReview[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [showAddReview, setShowAddReview] = useState(false)
+  const [reflection, setReflection] = useState("")
+  const [question, setQuestion] = useState("")
+
+  useEffect(() => { setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds); setReviewFrequency(purpose.reviewFrequency) }, [purpose])
+  useEffect(() => { setReviews(loadPurposeReviews()) }, [])
 
   const handleSave = () => {
-    onSave({ statement, notes, lifeAreaIds, reviewFrequency: purpose.reviewFrequency, updatedAt: new Date().toISOString() })
+    onSave({ statement, notes, lifeAreaIds, reviewFrequency, updatedAt: new Date().toISOString() })
     setEditing(false)
   }
 
@@ -309,6 +318,14 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
               </div>
             )}
           </div>
+          <div className="mt-3">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Review Frequency</label>
+            <select value={reviewFrequency} onChange={(e) => setReviewFrequency(e.target.value as Purpose["reviewFrequency"])} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annually">Annually</option>
+            </select>
+          </div>
           <div className="flex gap-2 justify-end">
             <Button size="sm" variant="outline" onClick={() => { setEditing(false); setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds) }}>Cancel</Button>
             <Button size="sm" onClick={handleSave}>Save Purpose</Button>
@@ -343,6 +360,75 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
               {selectedLifeAreas.map((a) => <RelationshipChip key={a.id} icon={a.icon} label={a.name} />)}
             </div>
           )}
+
+          {/* ── Purpose Reviews ── */}
+          <div className="mt-5 border-t border-[#1E0E6B]/10 pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-[#EB9E5B]" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#EB9E5B]">Purpose Review</span>
+                {isReviewDue(purpose) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                    <AlertTriangle className="h-3 w-3" /> Due
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => setShowHistory((s) => !s)}>
+                  <History className="h-3 w-3" /> {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setReflection(""); setQuestion(randomReviewQuestion()); setShowAddReview((s) => !s) }}>
+                  <Plus className="h-3 w-3" /> {showAddReview ? "Close" : "Add Review"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-muted-foreground">
+              <span>Frequency: {purpose.reviewFrequency}</span>
+              <span>Last Review: {purpose.lastReviewedAt ? formatDateDDMMYYYY(purpose.lastReviewedAt) : "—"}</span>
+              <span>Next Review: {getNextReviewDate(purpose)}</span>
+            </div>
+
+            {showAddReview && (
+              <div className="mt-3 p-3 rounded-xl border border-[#1E0E6B]/15 bg-[#1E0E6B]/5 space-y-2">
+                {question && <p className="text-xs font-medium text-[#1E0E6B]">{question}</p>}
+                <textarea
+                  value={reflection}
+                  onChange={(e) => setReflection(e.target.value)}
+                  rows={2}
+                  placeholder="Reflect on your purpose and any shifts since your last review..."
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setShowAddReview(false)}>Cancel</Button>
+                  <Button size="sm" disabled={!reflection.trim()} onClick={() => {
+                    const review = addPurposeReview({ reflection: reflection.trim(), question, reviewDate: new Date().toISOString() })
+                    setReviews((r) => [review, ...r])
+                    const next = savePurpose({ ...purpose, lastReviewedAt: review.reviewDate })
+                    onSave(next)
+                    setReflection(""); setShowAddReview(false)
+                  }}>Save Review</Button>
+                </div>
+              </div>
+            )}
+
+            {showHistory && reviews.length > 0 && (
+              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                {reviews.map((r) => (
+                  <div key={r.id} className="p-2.5 rounded-lg bg-muted/40 border border-border/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-[#1E0E6B]">{formatDateDDMMYYYY(r.reviewDate)}</span>
+                      <button type="button" onClick={() => { setReviews((list) => deletePurposeReview(r.id)); if (reviews.length === 1) setShowHistory(false) }} className="text-muted-foreground hover:text-[#EB9E5B] transition-colors" aria-label="Delete review">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {r.question && <p className="text-[11px] italic text-muted-foreground mt-0.5">{r.question}</p>}
+                    <p className="text-xs text-foreground mt-1 whitespace-pre-wrap">{r.reflection}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -603,112 +689,14 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
 // ══════════════════════════════════════════════════════════════
 // LIFE AREAS SECTION
 // ══════════════════════════════════════════════════════════════
-
-function LifeAreasSection({ lifeAreas, visions, onAdd, onUpdate, onDelete, onReorder }: {
-  lifeAreas: LifeArea[]; visions: Vision[]
-  onAdd: () => void; onUpdate: (id: string, updates: Partial<LifeArea>) => void; onDelete: (id: string) => void; onReorder: (ids: string[]) => void
-}) {
-  const [expanded, setExpanded] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [dragId, setDragId] = useState<string | null>(null)
-
-  const handleDragStart = (id: string) => setDragId(id)
-  const handleDragOver = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault()
-    if (!dragId || dragId === targetId) return
-    const ids = lifeAreas.map((a) => a.id)
-    const fromIdx = ids.indexOf(dragId)
-    const toIdx = ids.indexOf(targetId)
-    ids.splice(fromIdx, 1)
-    ids.splice(toIdx, 0, dragId)
-    onReorder(ids)
-  }
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader icon={Target} title="Life Areas" subtitle="The important areas of your life where your purpose comes to life" collapsedInfo={lifeAreas.length === 0 ? "No Life Areas Yet" : `${lifeAreas.length} Area${lifeAreas.length !== 1 ? 's' : ''}`} count={lifeAreas.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
-      {expanded && (
-        <div className="space-y-3">
-          {lifeAreas.length === 0 ? (
-            <EmptyState icon={Target} title="No life areas yet" desc="Define the important areas of your life." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Life Area</Button>} />
-          ) : (
-            <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-              {lifeAreas.map((area) => {
-                const visionCount = visions.filter((v) => v.lifeAreaId === area.id).length
-                return (
-                  <div key={area.id} draggable onDragStart={() => handleDragStart(area.id)} onDragOver={(e) => handleDragOver(e, area.id)} onDragEnd={() => setDragId(null)}
-                    className={`flex items-center gap-3 p-3 rounded-2xl border bg-card hover:shadow-md hover:scale-[1.01] transition-all duration-150 group cursor-grab active:cursor-grabbing ${dragId === area.id ? "opacity-50" : ""} ${area.pinned ? "border-primary/30 bg-primary/5" : ""}`}>
-                    <span className="text-xl">{area.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold truncate">{area.name}</span>
-                        {area.pinned && <Pin className="h-3 w-3 text-primary fill-primary" />}
-                      </div>
-                      {visionCount > 0 && <p className="text-[10px] text-muted-foreground">{visionCount} vision{visionCount !== 1 ? "s" : ""}</p>}
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button onClick={() => setEditingId(editingId === area.id ? null : area.id)} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3 w-3 text-muted-foreground" /></button>
-                      <button onClick={() => onDelete(area.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3 w-3" /></button>
-                    </div>
-                    {editingId === area.id && (
-                      <LifeAreaEditModal area={area} onSave={(updates) => { onUpdate(area.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function LifeAreaEditModal({ area, onSave, onCancel }: { area: LifeArea; onSave: (updates: Partial<LifeArea>) => void; onCancel: () => void }) {
-  const [name, setName] = useState(area.name)
-  const [color, setColor] = useState(area.color)
-  const [description, setDescription] = useState(area.description)
-
-  const LIFE_AREA_COLORS = ["#3B82F6", "#EC4899", "#F59E0B", "#8B5CF6", "#10B981", "#EF4444", "#F97316", "#06B6D4", "#6B7280"]
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <h3 className="font-semibold">Edit Life Area</h3>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Life area name" autoFocus />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color</label>
-          <div className="flex gap-2">
-            {LIFE_AREA_COLORS.map(c => (
-              <button key={c} onClick={() => setColor(c)} className={`w-7 h-7 rounded-full border-2 transition-all ${color === c ? "border-foreground scale-110" : "border-transparent"}`} style={{ backgroundColor: c }} />
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button size="sm" onClick={() => onSave({ name, color, description })}>Save</Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════
 // VISIONS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd, onUpdate, onDelete, onSelectVision }: {
-  visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>
+function VisionsSection({ visions, values, commitments, lifeAreas, goals, milestones = [], onAdd, onUpdate, onDelete, onSelectVision }: {
+  visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>; milestones?: RoadmapMilestone[]
   onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void
 }) {
+  const router = useRouter()
   const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all")
   const [view, setView] = useState<"grid" | "list">("grid")
@@ -765,8 +753,10 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
                         {(v.relatedValueIds || []).length > 3 && <span className="text-[9px] text-muted-foreground">+{(v.relatedValueIds || []).length - 3}</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-auto pt-3 text-[10px] text-muted-foreground border-t border-border/50">
-                        <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {linkedGoals.length} Goals</span>
-                        <span className="flex items-center gap-1"><Image className="h-3 w-3" /> {(v.boardItems || []).length} Board</span>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); router.push("/goals") }} className="flex items-center gap-1 hover:text-[#1E0E6B] transition-colors">
+                          <Target className="h-3 w-3" /> {linkedGoals.length} Goal{linkedGoals.length !== 1 ? "s" : ""}
+                        </button>
+                        <span className="flex items-center gap-1"><Flag className="h-3 w-3" /> {milestones.filter((m) => m.visionId === v.id).length} Milestone{milestones.filter((m) => m.visionId === v.id).length !== 1 ? "s" : ""}</span>
                       </div>
                     </div>
                   </div>
@@ -1210,162 +1200,6 @@ function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: 
 // ══════════════════════════════════════════════════════════════
 // GOALS CONNECTED TO VISION
 // ══════════════════════════════════════════════════════════════
-
-function GoalsByVisionSection({ visions, goals, lifeAreas }: { visions: Vision[]; goals: Array<{ id: string; title: string; visionId?: string; progress?: number }>; lifeAreas: LifeArea[] }) {
-  const [expanded, setExpanded] = useState(false)
-  const grouped = useMemo(() => visions.filter((v) => !v.archived).map((v) => ({ vision: v, goals: goals.filter((g) => g.visionId === v.id) })).filter((g) => g.goals.length > 0), [visions, goals])
-  const unlinkedGoals = useMemo(() => goals.filter((g) => !g.visionId), [goals])
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader icon={Target} title="Goals Connected to Vision" subtitle="Every goal should support a vision" collapsedInfo={`${goals.length} Connected Goal${goals.length !== 1 ? 's' : ''}`} count={goals.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
-      {expanded && (
-        <div className="space-y-6">
-          {grouped.length === 0 && unlinkedGoals.length === 0 ? (
-            <EmptyState icon={Target} title="No goals yet" desc="Create goals and link them to your visions." />
-          ) : (
-            <>
-              {grouped.map(({ vision, goals: vGoals }) => {
-                const area = lifeAreas.find((a) => a.id === vision.lifeAreaId)
-                return (
-                  <div key={vision.id} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{vision.icon}</span>
-                      <h3 className="text-sm font-bold">{vision.title}</h3>
-                      {area && <Badge variant="secondary" className="text-[9px]">{area.icon} {area.name}</Badge>}
-                      <CountBadge count={vGoals.length} />
-                    </div>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {vGoals.map((g) => (
-                        <div key={g.id} className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors">
-                          <Target className="h-4 w-4 text-primary shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{g.title}</p>
-                            {g.progress !== undefined && (
-                              <div className="flex items-center gap-2 mt-1">
-                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${g.progress}%` }} /></div>
-                                <span className="text-[10px] text-muted-foreground">{g.progress}%</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-              {unlinkedGoals.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Link2 className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-bold text-muted-foreground">Unlinked Goals</h3>
-                    <CountBadge count={unlinkedGoals.length} />
-                  </div>
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {unlinkedGoals.map((g) => (
-                      <div key={g.id} className="flex items-center gap-3 p-3 rounded-xl border bg-card/50 border-dashed">
-                        <Unlink className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <p className="text-sm text-muted-foreground truncate">{g.title}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════
-// PURPOSE REVIEWS SECTION
-// ══════════════════════════════════════════════════════════════
-
-function PurposeReviewsSection() {
-  const [expanded, setExpanded] = useState(false)
-  const [reviews, setReviews] = useState<PurposeReview[]>([])
-  const [showAdd, setShowAdd] = useState(false)
-  const [reflection, setReflection] = useState("")
-  const [question, setQuestion] = useState("")
-
-  useEffect(() => { setReviews(loadPurposeReviews()) }, [])
-
-  const handleAdd = () => {
-    if (!reflection.trim()) return
-    addPurposeReview({ reflection: reflection.trim(), question: question.trim(), reviewDate: new Date().toISOString() })
-    setReviews(loadPurposeReviews())
-    setReflection(""); setQuestion(""); setShowAdd(false)
-  }
-
-  const handleDelete = (id: string) => {
-    deletePurposeReview(id)
-    setReviews(loadPurposeReviews())
-  }
-
-  const defaultQuestions = [
-    "Have your recent decisions reflected your purpose?",
-    "What distracted you from your purpose?",
-    "What are you proud of?",
-    "What needs to change?",
-  ]
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader icon={BookOpen} title="Purpose Reviews" subtitle="Reflect on how well you're living your purpose" collapsedInfo={`${reviews.length} Review${reviews.length !== 1 ? 's' : ''}`} count={reviews.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={() => setShowAdd(true)} />
-      {expanded && (
-        <div className="space-y-3">
-          {showAdd && (
-            <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Question</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {defaultQuestions.map((q) => (
-                    <button key={q} onClick={() => setQuestion(q)} className={`px-2 py-1 text-[10px] rounded-full border transition-colors ${question === q ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-muted"}`}>
-                      {q}
-                    </button>
-                  ))}
-                </div>
-                <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Or type your own question..." className="h-9 mt-1" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reflection</label>
-                <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="Write your reflection..." className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={4} />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="outline" onClick={() => { setShowAdd(false); setReflection(""); setQuestion("") }}>Cancel</Button>
-                <Button size="sm" disabled={!reflection.trim()} onClick={handleAdd}>Save Review</Button>
-              </div>
-            </div>
-          )}
-          {reviews.length === 0 ? (
-            <EmptyState icon={BookOpen} title="No reviews yet" desc="Start reflecting on how well you're living your purpose." />
-          ) : (
-            <div className="space-y-2">
-              {reviews.map((r) => (
-                <div key={r.id} className="p-4 rounded-xl border bg-card hover:shadow-sm transition-all group">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      {r.question && <p className="text-xs font-semibold text-primary mb-1">{r.question}</p>}
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{r.reflection}</p>
-                      <p className="text-[10px] text-muted-foreground mt-2">{formatDateDDMMYYYY(r.reviewDate)}</p>
-                    </div>
-                    <button onClick={() => handleDelete(r.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════
 // CREATE DIALOGS
 // ══════════════════════════════════════════════════════════════
 
@@ -1687,44 +1521,6 @@ function CreateVisionDialog({ lifeAreas, onClose, onSave }: {
   )
 }
 
-function CreateLifeAreaDialog({ onClose, onSave }: { onClose: () => void; onSave: (a: Omit<LifeArea, "id" | "order" | "createdAt" | "updatedAt">) => void }) {
-  const [name, setName] = useState("")
-  const [icon, setIcon] = useState("✦")
-  const [color, setColor] = useState("#6B7280")
-  const [description, setDescription] = useState("")
-
-  const LIFE_AREA_COLORS = ["#3B82F6", "#EC4899", "#F59E0B", "#8B5CF6", "#10B981", "#EF4444", "#F97316", "#06B6D4", "#6B7280"]
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <h3 className="font-semibold text-base">Add Life Area</h3>
-        <div className="grid grid-cols-4 gap-2">
-          <Input value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="Emoji" className="col-span-1 text-center text-lg" />
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Life area name" className="col-span-3" autoFocus />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color</label>
-          <div className="flex gap-2">
-            {LIFE_AREA_COLORS.map(c => (
-              <button key={c} onClick={() => setColor(c)} className={`w-7 h-7 rounded-full border-2 transition-all ${color === c ? "border-foreground scale-110" : "border-transparent"}`} style={{ backgroundColor: c }} />
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does this area encompass?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button size="sm" disabled={!name.trim()} onClick={() => onSave({ name: name.trim(), icon, color, description, pinned: false, archived: false })}>Add Life Area</Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ══════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════
@@ -1736,6 +1532,7 @@ export function VisionsPage() {
   const [commitments, setCommitments] = useState<Commitment[]>([])
   const [visions, setVisions] = useState<Vision[]>([])
   const [goals, setGoals] = useState<Array<{ id: string; title: string; visionId?: string; progress?: number }>>([])
+  const [roadmapMilestones, setRoadmapMilestones] = useState<RoadmapMilestone[]>([])
 
   const [isLoading, setIsLoading] = useState(true)
   const [createType, setCreateType] = useState<"value" | "commitment" | "vision" | "life-area" | null>(null)
@@ -1750,6 +1547,7 @@ export function VisionsPage() {
       setValues(loadCoreValues())
       setCommitments(loadCommitments())
       setVisions(loadVisions())
+      setRoadmapMilestones(loadRoadmapMilestones())
       try { const raw = localStorage.getItem("intenteo-goals"); if (raw) setGoals(JSON.parse(raw)) } catch {}
     } catch (e) {
       console.error("VisionsPage init error:", e)
@@ -1765,16 +1563,13 @@ export function VisionsPage() {
       setValues(loadCoreValues())
       setCommitments(loadCommitments())
       setVisions(loadVisions())
+      setRoadmapMilestones(loadRoadmapMilestones())
     }
     window.addEventListener("vision-framework-changed", handler)
     return () => window.removeEventListener("vision-framework-changed", handler)
   }, [])
 
   const handleSavePurpose = useCallback((p: Purpose) => { savePurpose(p); setPurpose(p) }, [])
-  const handleAddLifeArea = useCallback((a: Omit<LifeArea, "id" | "order" | "createdAt" | "updatedAt">) => { addLifeArea(a); setLifeAreas(loadLifeAreas()); setCreateType(null) }, [])
-  const handleUpdateLifeArea = useCallback((id: string, updates: Partial<LifeArea>) => { updateLifeArea(id, updates); setLifeAreas(loadLifeAreas()) }, [])
-  const handleDeleteLifeArea = useCallback((id: string) => { deleteLifeArea(id); setLifeAreas(loadLifeAreas()) }, [])
-  const handleReorderLifeAreas = useCallback((ids: string[]) => { reorderLifeAreas(ids); setLifeAreas(loadLifeAreas()) }, [])
   const handleAddValue = useCallback((v: Omit<CoreValue, "id" | "order" | "createdAt" | "updatedAt">) => { addCoreValue(v); setValues(loadCoreValues()); setCreateType(null) }, [])
   const handleUpdateValue = useCallback((id: string, updates: Partial<CoreValue>) => { updateCoreValue(id, updates); setValues(loadCoreValues()) }, [])
   const handleDeleteValue = useCallback((id: string) => { deleteCoreValue(id); setValues(loadCoreValues()) }, [])
@@ -1797,7 +1592,7 @@ export function VisionsPage() {
   }
 
   return (
-    <div className="space-y-8 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-12 pb-16 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -1816,7 +1611,7 @@ export function VisionsPage() {
       <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
 
       {/* 4. My Visions */}
-      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
+      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} milestones={roadmapMilestones} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
 
       {/* 5. Long-Term Milestones */}
       <RoadmapSection visions={visions} lifeAreas={lifeAreas} />
@@ -1831,19 +1626,12 @@ export function VisionsPage() {
       {createType === "value" && <CreateValueDialog onClose={() => setCreateType(null)} onSave={handleAddValue} />}
       {createType === "commitment" && <CreateCommitmentDialog values={values} lifeAreas={lifeAreas} visions={visions} onClose={() => setCreateType(null)} onSave={handleAddCommitment} />}
       {createType === "vision" && <CreateVisionDialog lifeAreas={lifeAreas} onClose={() => setCreateType(null)} onSave={handleAddVision} />}
-      {createType === "life-area" && <CreateLifeAreaDialog onClose={() => setCreateType(null)} onSave={handleAddLifeArea} />}
 
       {/* Educational Modals */}
       {infoModal === "purpose" && (
         <EducationalModal title="Purpose" onClose={() => setInfoModal(null)}>
           <p>Purpose is your reason for living. It answers the question: <strong>&ldquo;Why do I exist?&rdquo;</strong></p>
           <p>Unlike goals, purpose rarely changes. It guides your decisions throughout life.</p>
-        </EducationalModal>
-      )}
-      {infoModal === "life-areas" && (
-        <EducationalModal title="Life Areas" onClose={() => setInfoModal(null)}>
-          <p>Life Areas are the important domains of your life where your purpose comes to life.</p>
-          <p>Every vision should belong to a Life Area.</p>
         </EducationalModal>
       )}
     </div>
