@@ -24,7 +24,7 @@ import {
   loadVisions, addVision, updateVision, deleteVision,
   loadRoadmapMilestones, addRoadmapMilestone, updateRoadmapMilestone, deleteRoadmapMilestone,
   calculateAlignmentScore, calculateValueConnectionStrength, seedDemoDataIfEmpty,
-  DEFAULT_LIFE_AREAS,
+  DEFAULT_LIFE_AREAS, randomReviewQuestion, getNextReviewDate, isReviewDue,
   type Purpose, type PurposeReview, type LifeArea, type CoreValue, type Commitment,
   type Vision, type VisionBoardItem, type RoadmapMilestone, type RoadmapTimeHorizon, type MilestoneStatus,
 } from "@/lib/vision-framework"
@@ -183,7 +183,7 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
   useEffect(() => { setReviews(loadPurposeReviews()) }, [])
 
   const handleSave = () => {
-    onSave({ statement, notes, lifeAreaIds, reviewFrequency, updatedAt: new Date().toISOString() })
+    onSave({ statement, notes, lifeAreaIds, reviewFrequency, lastReviewedAt: purpose.lastReviewedAt, updatedAt: new Date().toISOString() })
     setEditing(false)
   }
 
@@ -404,7 +404,8 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
                   <Button size="sm" disabled={!reflection.trim()} onClick={() => {
                     const review = addPurposeReview({ reflection: reflection.trim(), question, reviewDate: new Date().toISOString() })
                     setReviews((r) => [review, ...r])
-                    const next = savePurpose({ ...purpose, lastReviewedAt: review.reviewDate })
+                    const next = { ...purpose, lastReviewedAt: review.reviewDate }
+                    savePurpose(next)
                     onSave(next)
                     setReflection(""); setShowAddReview(false)
                   }}>Save Review</Button>
@@ -418,7 +419,7 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
                   <div key={r.id} className="p-2.5 rounded-lg bg-muted/40 border border-border/60">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-medium text-[#1E0E6B]">{formatDateDDMMYYYY(r.reviewDate)}</span>
-                      <button type="button" onClick={() => { setReviews((list) => deletePurposeReview(r.id)); if (reviews.length === 1) setShowHistory(false) }} className="text-muted-foreground hover:text-[#EB9E5B] transition-colors" aria-label="Delete review">
+                      <button type="button" onClick={() => { deletePurposeReview(r.id); setReviews((list) => list.filter((x) => x.id !== r.id)); if (reviews.length === 1) setShowHistory(false) }} className="text-muted-foreground hover:text-[#EB9E5B] transition-colors" aria-label="Delete review">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
@@ -1526,7 +1527,7 @@ function CreateVisionDialog({ lifeAreas, onClose, onSave }: {
 // ══════════════════════════════════════════════════════════════
 
 export function VisionsPage() {
-  const [purpose, setPurpose] = useState<Purpose>(() => { try { return loadPurpose() } catch { return { statement: "", notes: "", lifeAreaIds: [], reviewFrequency: "monthly" as const, updatedAt: "" } } })
+  const [purpose, setPurpose] = useState<Purpose>(() => { try { return loadPurpose() } catch { return { statement: "", notes: "", lifeAreaIds: [], reviewFrequency: "monthly" as const, lastReviewedAt: "", updatedAt: "" } } })
   const [lifeAreas, setLifeAreas] = useState<LifeArea[]>([])
   const [values, setValues] = useState<CoreValue[]>([])
   const [commitments, setCommitments] = useState<Commitment[]>([])

@@ -1,6 +1,8 @@
 // Vision Framework — types and localStorage storage
 // Life Operating System Architecture
 
+import { formatDateDDMMYYYY } from "@/lib/date-utils"
+
 // ══════════════════════════════════════════════════════════════
 // TYPES
 // ══════════════════════════════════════════════════════════════
@@ -9,8 +11,8 @@ export interface Purpose {
   statement: string
   notes: string
   lifeAreaIds: string[]
-  reviewFrequency: "weekly" | "monthly" | "quarterly"
-  lastReviewedAt?: string
+  reviewFrequency: "weekly" | "monthly" | "quarterly" | "annually"
+  lastReviewedAt: string
   updatedAt: string
 }
 
@@ -168,13 +170,14 @@ function generateId(): string {
 export function loadPurpose(): Purpose {
   try {
     const raw = localStorage.getItem(PURPOSE_KEY)
-    if (!raw) return { statement: "", notes: "", lifeAreaIds: [], reviewFrequency: "monthly", updatedAt: "" }
+    if (!raw) return { statement: "", notes: "", lifeAreaIds: [], reviewFrequency: "monthly", lastReviewedAt: "", updatedAt: "" }
     const parsed = JSON.parse(raw)
     if (!parsed.reviewFrequency) parsed.reviewFrequency = "monthly"
     if (!parsed.lifeAreaIds) parsed.lifeAreaIds = []
+    if (!parsed.lastReviewedAt) parsed.lastReviewedAt = ""
     return parsed
   } catch {
-    return { statement: "", notes: "", lifeAreaIds: [], reviewFrequency: "monthly", updatedAt: "" }
+    return { statement: "", notes: "", lifeAreaIds: [], reviewFrequency: "monthly", lastReviewedAt: "", updatedAt: "" }
   }
 }
 
@@ -210,6 +213,44 @@ export function addPurposeReview(review: Omit<PurposeReview, "id" | "createdAt">
 export function deletePurposeReview(id: string): void {
   const existing = loadPurposeReviews()
   localStorage.setItem(PURPOSE_REVIEWS_KEY, JSON.stringify(existing.filter((r) => r.id !== id)))
+}
+
+export const REVIEW_FREQUENCY_CONFIG: Record<Purpose["reviewFrequency"], { label: string; days: number }> = {
+  weekly: { label: "Weekly", days: 7 },
+  monthly: { label: "Monthly", days: 30 },
+  quarterly: { label: "Quarterly", days: 90 },
+  annually: { label: "Annually", days: 365 },
+}
+
+export const REVIEW_QUESTIONS = [
+  "Has your purpose stayed the same, or evolved?",
+  "What decisions this period aligned with your purpose?",
+  "Where did you drift from your purpose, and why?",
+  "Who or what reminds you of your purpose?",
+  "What would make your purpose feel more alive?",
+  "What are you tolerating that conflicts with your purpose?",
+  "How has your definition of a meaningful life changed?",
+]
+
+export function randomReviewQuestion(): string {
+  return REVIEW_QUESTIONS[Math.floor(Math.random() * REVIEW_QUESTIONS.length)]
+}
+
+export function getNextReviewDate(purpose: Purpose): string {
+  const base = purpose.lastReviewedAt || purpose.updatedAt || new Date().toISOString()
+  const d = new Date(base)
+  if (isNaN(d.getTime())) return "—"
+  d.setDate(d.getDate() + REVIEW_FREQUENCY_CONFIG[purpose.reviewFrequency].days)
+  return formatDateDDMMYYYY(d.toISOString())
+}
+
+export function isReviewDue(purpose: Purpose): boolean {
+  if (!purpose.lastReviewedAt) return true
+  const last = new Date(purpose.lastReviewedAt)
+  if (isNaN(last.getTime())) return true
+  const due = new Date(last)
+  due.setDate(due.getDate() + REVIEW_FREQUENCY_CONFIG[purpose.reviewFrequency].days)
+  return new Date() >= due
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -589,6 +630,7 @@ export function seedDemoDataIfEmpty(): void {
     notes: "Everything I do should point young people toward purposeful, God-honouring lives.",
     lifeAreaIds: ["la-1", "la-4", "la-3", "la-8"],
     reviewFrequency: "monthly",
+    lastReviewedAt: "",
     updatedAt: now,
   })
 
