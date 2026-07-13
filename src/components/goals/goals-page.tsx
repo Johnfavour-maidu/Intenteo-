@@ -109,6 +109,19 @@ const getTodayISO = () => new Date().toISOString().split("T")[0]
 const getDaysRemaining = (dl: string) => Math.max(0, Math.ceil((new Date(dl).getTime() - Date.now()) / 86400000))
 const getDaysCompleted = (sd: string) => Math.max(0, Math.ceil((Date.now() - new Date(sd).getTime()) / 86400000))
 
+function friendlyDueDate(dl: string): string {
+  const days = getDaysRemaining(dl)
+  const now = new Date()
+  const deadline = new Date(dl)
+  if (days === 0) return "Today"
+  if (days === 1) return "Tomorrow"
+  if (days <= 6) return `In ${days} days`
+  if (days <= 21) { const w = Math.ceil(days / 7); return `In ${w} week${w > 1 ? "s" : ""}` }
+  const months = Math.round(days / 30)
+  if (months <= 11) return `In ${months} month${months > 1 ? "s" : ""}`
+  return deadline.toLocaleDateString("en-US", { month: "short", year: "numeric" })
+}
+
 const GOAL_CATEGORIES = [
   { name: "Personal Growth", color: "#1E0E6B" },
   { name: "Health", color: "#22C55E" },
@@ -1021,9 +1034,7 @@ function GoalCard({ goal, projects, habits, visions, onClick }: { goal: Goal; pr
       {/* Footer */}
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{daysRemaining}d</span>
-          <span className="flex items-center gap-1"><Folder className="h-3 w-3" />{completedProjects}/{goalProjects.length}</span>
-          <span className="flex items-center gap-1"><ListChecks className="h-3 w-3" />{completedTasks}/{totalTasks}</span>
+          <span className={`flex items-center gap-1 ${daysRemaining <= 7 && daysRemaining > 0 ? "text-amber-600" : daysRemaining === 0 && new Date(goal.deadline) < new Date() ? "text-red-600" : ""}`}><Clock className="h-3 w-3" />{friendlyDueDate(goal.deadline)}</span>
         </div>
         <Badge variant="secondary" className={`text-[10px] ${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : goal.priority === "low" ? "text-emerald-500 bg-emerald-50" : "text-muted-foreground bg-muted"}`}>{goal.priority === "none" ? "No priority" : goal.priority}</Badge>
       </div>
@@ -1179,11 +1190,13 @@ export function GoalsPage() {
   const totalLinkedHabits = goals.reduce((s, g) => s + g.linkedHabits.length, 0)
   const activeProjects = projects.filter(p => p.status === "active").length
   const avgProgress = goals.length > 0 ? Math.round(goals.reduce((s, g) => s + calcGoalProgress(g, projects, habits), 0) / goals.length) : 0
-  const avgHealth = goals.length > 0 ? Math.round(goals.reduce((s, g) => s + getGoalHealthScore(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]), 0) / goals.length) : 0
-  const excellentCount = goals.filter(g => calcGoalHealth(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "excellent").length
-  const atRiskCount = goals.filter(g => calcGoalHealth(g as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[]) === "at_risk").length
   const overdueCount = goals.filter(g => new Date(g.deadline) < new Date() && calcGoalProgress(g, projects, habits) < 100).length
-  const nearestDeadline = goals.length > 0 ? goals.reduce((a, b) => new Date(a.deadline).getTime() < new Date(b.deadline).getTime() ? a : b).title : "—"
+  const now = new Date()
+  const thirtyDays = new Date(now.getTime() + 30 * 86400000)
+  const dueSoonCount = goals.filter(g => {
+    const dl = new Date(g.deadline)
+    return dl >= now && dl <= thirtyDays && calcGoalProgress(g, projects, habits) < 100
+  }).length
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="text-muted-foreground">Loading goals...</div></div>
 
@@ -1193,7 +1206,7 @@ export function GoalsPage() {
         <div><h1 className="text-3xl font-bold tracking-tight">Goals</h1><p className="text-muted-foreground">Your life vision in action</p></div>
         <div className="flex items-center gap-2">
           <div className="flex items-center border border-[#1E0E6B]/60 rounded-lg overflow-hidden">
-            <Button variant={viewMode === "board" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("board")} className={viewMode === "board" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>Board</Button>
+            <Button variant={viewMode === "board" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("board")} className={viewMode === "board" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>Cards</Button>
             <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className={viewMode === "list" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>List</Button>
           </div>
           <Button onClick={() => setIsAddModalOpen(true)} className="glow h-9"><Plus className="mr-1 h-4 w-4" /> Add Goal</Button>
@@ -1201,21 +1214,22 @@ export function GoalsPage() {
       </div>
 
       <>
-          <div className="grid gap-3 md:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-4">
             {[
-              { label: "Total Goals", value: goals.length, color: "#1E0E6B", info: `Total number of goals you've created. Currently tracking ${goals.length} goal${goals.length !== 1 ? "s" : ""} across all categories.` },
-              { label: "Avg Health", value: `${avgHealth}`, color: avgHealth >= 80 ? "#22C55E" : avgHealth >= 60 ? "#3B82F6" : avgHealth >= 35 ? "#F97316" : "#EF4444", info: `Average health score of all goals (0-100). Based on progress, deadline proximity, habit completion, and project progress. ${avgHealth >= 80 ? "Excellent — keep it up!" : avgHealth >= 60 ? "On track — room to improve." : "Needs attention — review your goals."}` },
-              { label: "Avg Progress", value: `${avgProgress}%`, color: "#F97316", info: `Average completion percentage across all goals. Calculated from project progress, milestone completion, and manual tracking. ${avgProgress}% overall progress.` },
-              { label: "Excellent", value: excellentCount, color: "#22C55E", info: `Goals with health score ≥ 80. These goals are on track with good progress, deadline management, and consistent habits. ${excellentCount} goal${excellentCount !== 1 ? "s" : ""} performing excellently.` },
-              { label: "Overdue", value: overdueCount, color: "#EF4444", info: `Goals past their deadline with less than 100% progress. These need immediate attention. ${overdueCount > 0 ? "Review and update deadlines or accelerate progress." : "No overdue goals — great job!"}` },
+              { label: "Total Goals", value: goals.length, color: "#1E0E6B", info: `Tracking ${goals.length} goal${goals.length !== 1 ? "s" : ""} across all categories.` },
+              { label: "Overall Progress", value: `${avgProgress}%`, color: "#F97316", info: `Average completion across all active goals. ${avgProgress}% overall progress.` },
+              { label: "Due Soon", value: dueSoonCount, color: "#F59E0B", info: `${dueSoonCount} goal${dueSoonCount !== 1 ? "s" : ""} due within the next 30 days. Keep the momentum going.` },
+              { label: "Overdue", value: overdueCount, color: "#EF4444", info: `${overdueCount > 0 ? `${overdueCount} goal${overdueCount !== 1 ? "s" : ""} past deadline — review and update.` : "No overdue goals — great job!"}` },
             ].map((s, i) => (
               <SummaryCard key={i} label={s.label} value={s.value} color={s.color} infoText={s.info} />
             ))}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search goals, projects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" /></div>
+            {goals.length >= 20 && (
+              <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search goals..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" /></div>
+            )}
             <div className="relative">
               <select value={filter} onChange={e => setFilter(e.target.value as GoalFilterMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
                 <optgroup label="Goal Types">
@@ -1277,37 +1291,28 @@ export function GoalsPage() {
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Goal</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Progress</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Projects</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredAndSorted.map(goal => {
-                    const gp = projects.filter(p => p.goalId === goal.id)
                     const progress = calcGoalProgress(goal, projects, habits)
-                    const daysRemaining = getDaysRemaining(goal.deadline)
+                    const days = getDaysRemaining(goal.deadline)
+                    const isOverdue = days === 0 && new Date(goal.deadline) < new Date() && progress < 100
                     return (
                       <tr key={goal.id} onClick={() => setAnalyticsGoal(goal)} className="border-b border-[#1E0E6B]/10 hover:bg-white/30 dark:hover:bg-white/5 cursor-pointer transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span>{goal.icon}</span>
-                            <div>
-                              <span className="font-medium">{goal.title}</span>
-                              {goal.visionId && (() => {
-                                const linkedVision = visions.find(v => v.id === goal.visionId)
-                                if (!linkedVision) return null
-                                return <p className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center gap-1 mt-0.5"><Eye className="h-2.5 w-2.5" />{linkedVision.title}</p>
-                              })()}
-                            </div>
+                            <span className="text-base">{goal.icon}</span>
+                            <span className="font-semibold text-sm">{goal.title}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3"><Badge variant="outline" className="text-[10px]" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge></td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2"><div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div><span className="text-xs font-medium w-8">{progress}%</span></div>
+                          <div className="flex items-center gap-2"><div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div><span className="text-xs font-semibold w-8">{progress}%</span></div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{gp.length}</td>
-                        <td className="px-4 py-3 text-xs">{daysRemaining}d</td>
+                        <td className={`px-4 py-3 text-xs font-medium ${isOverdue ? "text-red-600" : days <= 7 ? "text-amber-600" : ""}`}>{friendlyDueDate(goal.deadline)}</td>
                         <td className="px-4 py-3 text-right">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setAnalyticsGoal(goal) }}><Info className="h-3.5 w-3.5" /></Button>
                         </td>
