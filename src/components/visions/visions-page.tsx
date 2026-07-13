@@ -57,10 +57,11 @@ function RelationshipChip({ icon, label }: { icon: string; label: string }) {
   )
 }
 
-function SectionHeader({ icon: Icon, title, subtitle, count, expanded, onToggle, onAdd, onInfo }: {
+function SectionHeader({ icon: Icon, title, subtitle, collapsedInfo, count, expanded, onToggle, onAdd, onInfo }: {
   icon: React.ComponentType<{ className?: string }>
   title: string
   subtitle: string
+  collapsedInfo?: string
   count?: number
   expanded: boolean
   onToggle: () => void
@@ -83,7 +84,13 @@ function SectionHeader({ icon: Icon, title, subtitle, count, expanded, onToggle,
               </button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+          {expanded ? (
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          ) : collapsedInfo ? (
+            <p className="text-xs text-muted-foreground">{collapsedInfo}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          )}
         </div>
         {expanded ? (
           <ChevronDown className="h-4 w-4 text-muted-foreground ml-2 transition-transform duration-150" />
@@ -91,7 +98,7 @@ function SectionHeader({ icon: Icon, title, subtitle, count, expanded, onToggle,
           <ChevronRight className="h-4 w-4 text-muted-foreground ml-2 transition-transform duration-150" />
         )}
       </button>
-      {onAdd && (
+      {expanded && onAdd && (
         <Button size="sm" variant="outline" onClick={onAdd} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" /> Add
         </Button>
@@ -145,7 +152,7 @@ function HealthStatusBadge({ status }: { status: Commitment["healthStatus"] }) {
     "needs-attention": { label: "Needs Attention", color: "bg-yellow-500/10 text-yellow-600", icon: AlertCircle },
     broken: { label: "Broken", color: "bg-red-500/10 text-red-600", icon: AlertCircle },
   }
-  const c = config[status]
+  const c = config[status as keyof typeof config] || config["keeping"]
   const Icon = c.icon
   return (
     <span className={`inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-medium ${c.color}`}>
@@ -178,10 +185,9 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
   const connectedLifeAreas = lifeAreas.filter((a) => lifeAreaIds.includes(a.id))
 
   return (
-    <div className="rounded-2xl border border-primary/20 p-8 bg-gradient-to-br from-[#1E0E6B]/5 via-white to-[#1E0E6B]/8 shadow-sm relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#1E0E6B] to-[#FF6B35] rounded-r-full" />
+    <div className="rounded-2xl border-2 border-[#1E0E6B]/15 p-8 bg-white dark:bg-gray-950 shadow-sm">
       {editing ? (
-        <div className="space-y-4 pl-4">
+        <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Purpose Statement</label>
             <textarea value={statement} onChange={(e) => setStatement(e.target.value)}
@@ -212,7 +218,7 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
           </div>
         </div>
       ) : (
-        <div className="pl-4">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-[#1E0E6B]/10 flex items-center justify-center">
@@ -226,9 +232,9 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
             </Button>
           </div>
           {purpose.statement ? (
-            <div className="flex gap-3 items-start">
+            <div className="flex gap-3 items-start my-2">
               <span className="text-4xl text-[#1E0E6B]/15 font-serif leading-none mt-1">&ldquo;</span>
-              <p className="text-2xl font-semibold leading-relaxed text-foreground">{purpose.statement}</p>
+              <p className="text-lg font-medium leading-relaxed text-foreground">{purpose.statement}</p>
             </div>
           ) : (
             <p className="text-muted-foreground italic text-lg">Define your purpose — the reason you exist.</p>
@@ -253,33 +259,27 @@ function PurposeDashboard({ purpose, values, commitments, lifeAreas, visions, go
   purpose: Purpose; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; visions: Vision[]; goals: Array<{ id: string }>
 }) {
   if (!purpose.statement.trim()) return null
-  const connectedAreas = lifeAreas.filter((a) => purpose.lifeAreaIds.includes(a.id))
   return (
-    <div className="rounded-xl border bg-card p-5 hover:shadow-md transition-all duration-150">
-      <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-primary" /> Purpose Connections
-      </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="text-center p-2 rounded-lg bg-muted/30">
-          <p className="text-lg font-bold text-primary">{values.length}</p>
-          <p className="text-[10px] text-muted-foreground">Core Values</p>
-        </div>
-        <div className="text-center p-2 rounded-lg bg-muted/30">
-          <p className="text-lg font-bold text-primary">{commitments.length}</p>
-          <p className="text-[10px] text-muted-foreground">Commitments</p>
-        </div>
-        <div className="text-center p-2 rounded-lg bg-muted/30">
-          <p className="text-lg font-bold text-primary">{connectedAreas.length}</p>
-          <p className="text-[10px] text-muted-foreground">Life Areas</p>
-        </div>
-        <div className="text-center p-2 rounded-lg bg-muted/30">
-          <p className="text-lg font-bold text-primary">{visions.length}</p>
-          <p className="text-[10px] text-muted-foreground">Visions</p>
-        </div>
-        <div className="text-center p-2 rounded-lg bg-muted/30">
-          <p className="text-lg font-bold text-primary">{goals.length}</p>
-          <p className="text-[10px] text-muted-foreground">Goals</p>
-        </div>
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
+        <p className="text-2xl font-bold text-[#1E0E6B]">{values.length}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Core Values</p>
+      </div>
+      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
+        <p className="text-2xl font-bold text-[#1E0E6B]">{commitments.length}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Commitments</p>
+      </div>
+      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
+        <p className="text-2xl font-bold text-[#1E0E6B]">{lifeAreas.length}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Life Areas</p>
+      </div>
+      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
+        <p className="text-2xl font-bold text-[#1E0E6B]">{visions.length}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Visions</p>
+      </div>
+      <div className="rounded-2xl border-2 border-[#1E0E6B] p-4 bg-white dark:bg-gray-950 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-center">
+        <p className="text-2xl font-bold text-[#1E0E6B]">{goals.length}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Goals</p>
       </div>
     </div>
   )
@@ -293,7 +293,7 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
   values: CoreValue[]; onAdd: () => void; onUpdate: (id: string, updates: Partial<CoreValue>) => void
   onDelete: (id: string) => void; onReorder: (ids: string[]) => void
 }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
 
@@ -311,7 +311,7 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Heart} title="Core Values" subtitle="What guides your life" count={values.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader icon={Heart} title="Core Values" subtitle="What guides your life" collapsedInfo={`${values.length} Value${values.length !== 1 ? 's' : ''}`} count={values.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
       {expanded && (
         <div className="space-y-3">
           {values.length === 0 ? (
@@ -396,7 +396,7 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
   commitments: Commitment[]; values: CoreValue[]; lifeAreas: LifeArea[]; visions: Vision[]
   onAdd: () => void; onUpdate: (id: string, updates: Partial<Commitment>) => void; onDelete: (id: string) => void
 }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all")
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -409,7 +409,7 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" collapsedInfo={`${commitments.filter((c) => !c.archived).length} Commitment${commitments.filter((c) => !c.archived).length !== 1 ? 's' : ''}`} count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
       {expanded && (
         <div className="space-y-3">
           {commitments.length > 0 && (
@@ -436,9 +436,9 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
                       </div>
                       {c.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{c.description}</p>}
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {c.relatedValueIds.map((vid) => { const v = values.find((val) => val.id === vid); return v ? <RelationshipChip key={vid} icon={v.icon} label={v.name} /> : null })}
-                        {c.relatedLifeAreaIds.map((lid) => { const a = lifeAreas.find((l) => l.id === lid); return a ? <RelationshipChip key={lid} icon={a.icon} label={a.name} /> : null })}
-                        {c.relatedVisionIds.map((vid) => { const v = visions.find((vis) => vis.id === vid); return v ? <Badge key={vid} variant="outline" className="text-[9px]">{v.icon} {v.title}</Badge> : null })}
+                        {(c.relatedValueIds || []).map((vid) => { const v = values.find((val) => val.id === vid); return v ? <RelationshipChip key={vid} icon={v.icon} label={v.name} /> : null })}
+                        {(c.relatedLifeAreaIds || []).map((lid) => { const a = lifeAreas.find((l) => l.id === lid); return a ? <RelationshipChip key={lid} icon={a.icon} label={a.name} /> : null })}
+                        {(c.relatedVisionIds || []).map((vid) => { const v = visions.find((vis) => vis.id === vid); return v ? <Badge key={vid} variant="outline" className="text-[9px]">{v.icon} {v.title}</Badge> : null })}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -545,7 +545,7 @@ function LifeAreasSection({ lifeAreas, visions, onAdd, onUpdate, onDelete, onReo
   lifeAreas: LifeArea[]; visions: Vision[]
   onAdd: () => void; onUpdate: (id: string, updates: Partial<LifeArea>) => void; onDelete: (id: string) => void; onReorder: (ids: string[]) => void
 }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
 
@@ -563,7 +563,7 @@ function LifeAreasSection({ lifeAreas, visions, onAdd, onUpdate, onDelete, onReo
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Target} title="Life Areas" subtitle="The important areas of your life where your purpose comes to life" count={lifeAreas.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader icon={Target} title="Life Areas" subtitle="The important areas of your life where your purpose comes to life" collapsedInfo={lifeAreas.length === 0 ? "No Life Areas Yet" : `${lifeAreas.length} Area${lifeAreas.length !== 1 ? 's' : ''}`} count={lifeAreas.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
       {expanded && (
         <div className="space-y-3">
           {lifeAreas.length === 0 ? (
@@ -646,7 +646,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
   visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>
   onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void
 }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all")
   const [view, setView] = useState<"grid" | "list">("grid")
 
@@ -659,7 +659,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Star} title="My Visions" subtitle="The future you are creating" count={visions.filter((v) => !v.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader icon={Star} title="My Visions" subtitle="The future you are creating" collapsedInfo={`${visions.filter((v) => !v.archived).length} Vision${visions.filter((v) => !v.archived).length !== 1 ? 's' : ''}`} count={visions.filter((v) => !v.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
       {expanded && (
         <div className="space-y-3">
           {visions.length > 0 && (
@@ -698,12 +698,12 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
                       </div>
                       {v.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{v.description}</p>}
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {v.relatedValueIds.slice(0, 3).map((vid) => { const val = values.find((vv) => vv.id === vid); return val ? <RelationshipChip key={vid} icon={val.icon} label={val.name} /> : null })}
-                        {v.relatedValueIds.length > 3 && <span className="text-[9px] text-muted-foreground">+{v.relatedValueIds.length - 3}</span>}
+                        {(v.relatedValueIds || []).slice(0, 3).map((vid) => { const val = values.find((vv) => vv.id === vid); return val ? <RelationshipChip key={vid} icon={val.icon} label={val.name} /> : null })}
+                        {(v.relatedValueIds || []).length > 3 && <span className="text-[9px] text-muted-foreground">+{(v.relatedValueIds || []).length - 3}</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-auto pt-3 text-[10px] text-muted-foreground border-t border-border/50">
                         <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {linkedGoals.length} Goals</span>
-                        <span className="flex items-center gap-1"><Image className="h-3 w-3" /> {v.boardItems.length} Board</span>
+                        <span className="flex items-center gap-1"><Image className="h-3 w-3" /> {(v.boardItems || []).length} Board</span>
                       </div>
                     </div>
                   </div>
@@ -759,7 +759,7 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
   const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false)
   const [editingMilestone, setEditingMilestone] = useState<RoadmapMilestone | null>(null)
-  const [boardItems, setBoardItems] = useState<VisionBoardItem[]>(vision.boardItems)
+  const [boardItems, setBoardItems] = useState<VisionBoardItem[]>(vision.boardItems || [])
   const [addBoardType, setAddBoardType] = useState<VisionBoardItem["type"] | null>(null)
   const [newBoardContent, setNewBoardContent] = useState("")
   const [newBoardTitle, setNewBoardTitle] = useState("")
@@ -1059,7 +1059,7 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
 // ══════════════════════════════════════════════════════════════
 
 function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: LifeArea[] }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
 
   useEffect(() => { setMilestones(loadRoadmapMilestones()) }, [])
@@ -1077,9 +1077,11 @@ function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: 
     }).filter((g) => g.total > 0)
   }, [visions, milestones])
 
+  const count = milestones.length
+
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Clock} title="Long-Term Milestones" subtitle="Major achievements across your life's timeline" count={milestones.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
+      <SectionHeader icon={Clock} title="Long-Term Milestones" subtitle="Major achievements across your life's timeline" collapsedInfo={`${count} Milestone${count !== 1 ? 's' : ''}`} count={milestones.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
       {expanded && (
         <div className="space-y-6">
           {groupedByVision.length === 0 ? (
@@ -1147,13 +1149,13 @@ function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: 
 // ══════════════════════════════════════════════════════════════
 
 function GoalsByVisionSection({ visions, goals, lifeAreas }: { visions: Vision[]; goals: Array<{ id: string; title: string; visionId?: string; progress?: number }>; lifeAreas: LifeArea[] }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const grouped = useMemo(() => visions.filter((v) => !v.archived).map((v) => ({ vision: v, goals: goals.filter((g) => g.visionId === v.id) })).filter((g) => g.goals.length > 0), [visions, goals])
   const unlinkedGoals = useMemo(() => goals.filter((g) => !g.visionId), [goals])
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Target} title="Goals Connected to Vision" subtitle="Every goal should support a vision" count={goals.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
+      <SectionHeader icon={Target} title="Goals Connected to Vision" subtitle="Every goal should support a vision" collapsedInfo={`${goals.length} Connected Goal${goals.length !== 1 ? 's' : ''}`} count={goals.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
       {expanded && (
         <div className="space-y-6">
           {grouped.length === 0 && unlinkedGoals.length === 0 ? (
@@ -1219,7 +1221,7 @@ function GoalsByVisionSection({ visions, goals, lifeAreas }: { visions: Vision[]
 // ══════════════════════════════════════════════════════════════
 
 function PurposeReviewsSection() {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [reviews, setReviews] = useState<PurposeReview[]>([])
   const [showAdd, setShowAdd] = useState(false)
   const [reflection, setReflection] = useState("")
@@ -1248,7 +1250,7 @@ function PurposeReviewsSection() {
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={BookOpen} title="Purpose Reviews" subtitle="Reflect on how well you're living your purpose" count={reviews.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={() => setShowAdd(true)} />
+      <SectionHeader icon={BookOpen} title="Purpose Reviews" subtitle="Reflect on how well you're living your purpose" collapsedInfo={`${reviews.length} Review${reviews.length !== 1 ? 's' : ''}`} count={reviews.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={() => setShowAdd(true)} />
       {expanded && (
         <div className="space-y-3">
           {showAdd && (
@@ -1474,7 +1476,7 @@ function CreateLifeAreaDialog({ onClose, onSave }: { onClose: () => void; onSave
 // ══════════════════════════════════════════════════════════════
 
 export function VisionsPage() {
-  const [purpose, setPurpose] = useState<Purpose>(() => loadPurpose())
+  const [purpose, setPurpose] = useState<Purpose>(() => { try { return loadPurpose() } catch { return { statement: "", notes: "", lifeAreaIds: [], reviewFrequency: "monthly" as const, updatedAt: "" } } })
   const [lifeAreas, setLifeAreas] = useState<LifeArea[]>([])
   const [values, setValues] = useState<CoreValue[]>([])
   const [commitments, setCommitments] = useState<Commitment[]>([])
@@ -1484,18 +1486,22 @@ export function VisionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [createType, setCreateType] = useState<"value" | "commitment" | "vision" | "life-area" | null>(null)
   const [selectedVision, setSelectedVision] = useState<Vision | null>(null)
-  const [showSearch, setShowSearch] = useState(false)
   const [infoModal, setInfoModal] = useState<"purpose" | "values" | "commitments" | "life-areas" | "visions" | "roadmap" | null>(null)
 
   useEffect(() => {
-    seedDemoDataIfEmpty()
-    setPurpose(loadPurpose())
-    setLifeAreas(loadLifeAreas())
-    setValues(loadCoreValues())
-    setCommitments(loadCommitments())
-    setVisions(loadVisions())
-    try { const raw = localStorage.getItem("intenteo-goals"); if (raw) setGoals(JSON.parse(raw)) } catch {}
-    setIsLoading(false)
+    try {
+      seedDemoDataIfEmpty()
+      setPurpose(loadPurpose())
+      setLifeAreas(loadLifeAreas())
+      setValues(loadCoreValues())
+      setCommitments(loadCommitments())
+      setVisions(loadVisions())
+      try { const raw = localStorage.getItem("intenteo-goals"); if (raw) setGoals(JSON.parse(raw)) } catch {}
+    } catch (e) {
+      console.error("VisionsPage init error:", e)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -1508,15 +1514,6 @@ export function VisionsPage() {
     }
     window.addEventListener("vision-framework-changed", handler)
     return () => window.removeEventListener("vision-framework-changed", handler)
-  }, [])
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setShowSearch(true) }
-      if (e.key === "Escape") { setShowSearch(false); setInfoModal(null) }
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
   }, [])
 
   const handleSavePurpose = useCallback((p: Purpose) => { savePurpose(p); setPurpose(p) }, [])
@@ -1553,9 +1550,21 @@ export function VisionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Life Vision Framework</h1>
           <p className="text-muted-foreground">Your future begins with clarity.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowSearch(true)} className="gap-1.5">
-          <Search className="h-3.5 w-3.5" /> Search
-        </Button>
+      </div>
+
+      {/* Life Framework Hierarchy */}
+      <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground/60 py-2">
+        <span>Purpose</span>
+        <span>→</span>
+        <span>Values</span>
+        <span>→</span>
+        <span>Commitments</span>
+        <span>→</span>
+        <span>Visions</span>
+        <span>→</span>
+        <span>Goals</span>
+        <span>→</span>
+        <span>Habits</span>
       </div>
 
       {/* Purpose Dashboard */}
@@ -1567,32 +1576,20 @@ export function VisionsPage() {
       {/* 2. Core Values */}
       <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} />
 
-      <Separator />
-
       {/* 3. Commitments */}
       <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
-
-      <Separator />
 
       {/* 4. Life Areas */}
       <LifeAreasSection lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("life-area")} onUpdate={handleUpdateLifeArea} onDelete={handleDeleteLifeArea} onReorder={handleReorderLifeAreas} />
 
-      <Separator />
-
       {/* 5. My Visions */}
       <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
-
-      <Separator />
 
       {/* 6. Goals Connected to Vision */}
       <GoalsByVisionSection visions={visions} goals={goals} lifeAreas={lifeAreas} />
 
-      <Separator />
-
       {/* 7. Long-Term Milestones */}
       <RoadmapSection visions={visions} lifeAreas={lifeAreas} />
-
-      <Separator />
 
       {/* 8. Purpose Reviews */}
       <PurposeReviewsSection />
@@ -1622,28 +1619,6 @@ export function VisionsPage() {
           <p>Every vision should belong to a Life Area.</p>
         </EducationalModal>
       )}
-
-      {/* Global Search */}
-      {showSearch && <GlobalSearch onClose={() => setShowSearch(false)} />}
-    </div>
-  )
-}
-
-function GlobalSearch({ onClose }: { onClose: () => void }) {
-  const [query, setQuery] = useState("")
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg mx-4 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center gap-3 px-4 border-b">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search visions, values, commitments..." className="flex-1 py-3 text-sm bg-transparent focus:outline-none" autoFocus />
-          <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X className="h-4 w-4" /></button>
-        </div>
-        <div className="max-h-[50vh] overflow-y-auto p-4">
-          <p className="text-xs text-muted-foreground text-center py-8">Type at least 2 characters to search...</p>
-        </div>
-      </div>
     </div>
   )
 }
