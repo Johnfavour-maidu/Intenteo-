@@ -9,7 +9,8 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle, Info, Map, Eye, Star, Edit3,
+  Link2, AlertTriangle, Info, Map, Eye, Star, Edit3, ImagePlus,
+  ChevronLeft, GripVertical,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -63,6 +64,7 @@ interface Goal {
   visionId?: string
   habitCompletionRate?: number; lastActivity?: string
   focused?: boolean; focusOrder?: number
+  heroImage?: string; supportingImages?: string[]
   createdAt: string; updatedAt: string
 }
 
@@ -323,6 +325,8 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
   const [newTimelineProgress, setNewTimelineProgress] = useState("0")
   const [newTimelineNotes, setNewTimelineNotes] = useState("")
   const [newTimelineMilestones, setNewTimelineMilestones] = useState<string[]>([])
+  const [heroImage, setHeroImage] = useState<string | undefined>(undefined)
+  const [supportingImages, setSupportingImages] = useState<string[] | undefined>(undefined)
 
   useEffect(() => {
     if (type !== "custom") {
@@ -634,13 +638,14 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
             </div>
           )}
         </div>
+        <VisionImagesSection heroImage={heroImage} supportingImages={supportingImages} onChange={(hero, supporting) => { setHeroImage(hero); setSupportingImages(supporting) }} />
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button onClick={() => {
             if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined })
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages })
               onClose()
             }
           }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
@@ -716,6 +721,8 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
   const [showAddProject, setShowAddProject] = useState(false)
   const [expandedProject, setExpandedProject] = useState<string | null>(null)
   const [newMilestone, setNewMilestone] = useState("")
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState(0)
   useEffect(() => { if (goal) { const gp = calcGoalProgress(goal, projects, habits); setData({ ...goal, progress: gp }) } }, [goal, projects, habits])
   if (!isOpen || !data) return null
   const goalProjects = projects.filter(p => p.goalId === data.id)
@@ -784,6 +791,26 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
               </div>
             ))}
           </div>
+
+          {/* Vision Images */}
+          {(data.heroImage || (data.supportingImages && data.supportingImages.length > 0)) && (
+            <div className="space-y-3">
+              {data.heroImage && (
+                <div className="rounded-xl overflow-hidden border border-white/20 cursor-pointer" onClick={() => { setLightboxIdx(0); setLightboxOpen(true) }}>
+                  <img src={data.heroImage} alt="Vision" className="w-full h-48 object-cover hover:scale-[1.02] transition-transform duration-300" />
+                </div>
+              )}
+              {data.supportingImages && data.supportingImages.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {data.supportingImages.map((img, i) => (
+                    <div key={i} className="shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-white/20 cursor-pointer" onClick={() => { setLightboxIdx(data.heroImage ? i + 1 : i); setLightboxOpen(true) }}>
+                      <img src={img} alt="" className="w-full h-full object-cover hover:scale-110 transition-transform duration-200" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Linked Vision */}
           {data.visionId && (() => {
@@ -940,9 +967,14 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
             </div>
           </div>
 
+          <VisionImagesSection heroImage={data.heroImage} supportingImages={data.supportingImages} onChange={(hero, supporting) => setData({ ...data, heroImage: hero, supportingImages: supporting })} />
+
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
         </div>
       </div>
+      {lightboxOpen && data && (
+        <Lightbox images={[data.heroImage, ...(data.supportingImages || [])].filter(Boolean) as string[]} startIndex={lightboxIdx} onClose={() => setLightboxOpen(false)} />
+      )}
       <AddProjectModal isOpen={showAddProject} onClose={() => setShowAddProject(false)} onSave={(p) => { onSaveProject({ ...p, id: Date.now().toString(), createdAt: getTodayISO(), updatedAt: getTodayISO() }) }} goalId={data.id} />
     </div>
   )
@@ -958,83 +990,83 @@ function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggl
   const trendCfg = GOAL_TREND_CONFIG[trend]
 
   return (
-    <div onClick={onClick} className={`group p-5 bg-white dark:bg-gray-950 rounded-2xl hover:shadow-lg hover:shadow-black/5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 relative ${isFocused ? "ring-2 ring-[#1E0E6B] border-2 border-[#1E0E6B]" : ""}`} style={!isFocused ? { border: `2px solid ${goal.colorHex}40` } : undefined}>
+    <div onClick={onClick} className={`group bg-white dark:bg-gray-950 rounded-2xl border-2 border-[#1E0E6B]/15 hover:border-[#1E0E6B]/30 hover:shadow-lg hover:shadow-[#1E0E6B]/5 hover:scale-[1.01] transition-all duration-200 cursor-pointer overflow-hidden relative ${isFocused ? "ring-2 ring-[#1E0E6B] border-[#1E0E6B]" : ""}`}>
       {isFocused && (
-        <div className="absolute -top-2.5 -left-2.5 z-10 flex items-center gap-1">
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1">
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1E0E6B] text-white text-[10px] font-semibold shadow-md">
             <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Focus Goal
           </div>
         </div>
       )}
+      {goal.heroImage && (
+        <div className="h-36 overflow-hidden">
+          <img src={goal.heroImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        </div>
+      )}
+      <div className="p-5">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-xl shrink-0">{goal.icon}</span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-              <Badge variant="outline" className="text-[10px]" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge>
-              {goal.timeHorizon && TIME_HORIZON_BADGES[goal.timeHorizon] && (
-                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${TIME_HORIZON_BADGES[goal.timeHorizon].bg} ${TIME_HORIZON_BADGES[goal.timeHorizon].color}`}>{TIME_HORIZON_BADGES[goal.timeHorizon].label}</span>
-              )}
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon} {healthCfg.label}</span>
-              <span className={`text-[10px] font-medium ${trendCfg.color}`}>{trendCfg.icon}</span>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B]">{goal.customCategory || goal.category}</Badge>
+              {health === "on_track" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">On Track</span>}
+              {health === "needs_attention" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">Needs Attention</span>}
+              {health === "at_risk" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">At Risk</span>}
+              {progress >= 100 && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600">Completed</span>}
             </div>
             <h3 className="font-semibold text-sm leading-tight">{goal.title}</h3>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {onEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
-              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-all opacity-0 group-hover:opacity-100"
+              className="p-2 rounded-lg text-muted-foreground/30 hover:text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-all opacity-0 group-hover:opacity-100"
               title="Edit Goal"
             >
-              <Edit3 className="h-3.5 w-3.5" />
+              <Edit3 className="h-4 w-4" />
             </button>
           )}
           {onDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
-              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+              className="p-2 rounded-lg text-muted-foreground/30 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
               title="Delete Goal"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </button>
           )}
           {onToggleFocus && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
-              className={`p-1 rounded-full transition-all ${isFocused ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground/40 hover:text-amber-500"}`}
+              className={`p-2 rounded-lg transition-all ${isFocused ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground/30 hover:text-amber-500"}`}
               title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
               disabled={!isFocused && (focusCount != null && focusCount >= 5)}
             >
               <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
             </button>
           )}
-          <ProgressRing value={progress} size={52} strokeWidth={4} showLabel={false} />
+          <ProgressRing value={progress} size={58} strokeWidth={5} showLabel={false} />
         </div>
       </div>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
 
-      {/* Smart Next Action */}
-      <div className="mb-3 p-2 rounded-lg bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
-        <div className="flex items-center gap-1 mb-0.5">
-          <Info className="h-3 w-3 text-[#1E0E6B]" />
-          <span className="text-[10px] font-medium text-[#1E0E6B]">Next Action</span>
-        </div>
-        <p className="text-[11px] text-muted-foreground">{generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
+      {/* Next Action — compact */}
+      <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
+        <Zap className="h-3.5 w-3.5 text-[#1E0E6B] shrink-0" />
+        <p className="text-[11px] text-[#1E0E6B] font-medium truncate">{generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
       </div>
 
       {/* Progress bar */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-semibold">{progress}%</span></div>
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div>
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500 bg-[#1E0E6B]" style={{width: `${progress}%`}} /></div>
       </div>
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className={`flex items-center gap-1 ${daysRemaining <= 7 && daysRemaining > 0 ? "text-amber-600" : daysRemaining === 0 && new Date(goal.deadline) < new Date() ? "text-red-600" : ""}`}><Clock className="h-3 w-3" />{friendlyDueDate(goal.deadline)}</span>
-        </div>
-        <Badge variant="secondary" className={`text-[10px] ${goal.priority === "high" ? "text-red-500 bg-red-50" : goal.priority === "medium" ? "text-amber-500 bg-amber-50" : goal.priority === "low" ? "text-emerald-500 bg-emerald-50" : "text-muted-foreground bg-muted"}`}>{goal.priority === "none" ? "No priority" : goal.priority}</Badge>
+      {/* Footer — simplified */}
+      <div className="flex items-center mt-3 pt-3 border-t border-[#1E0E6B]/5">
+        <span className={`flex items-center gap-1 text-xs text-muted-foreground ${daysRemaining <= 7 && daysRemaining > 0 ? "text-amber-600" : daysRemaining === 0 && new Date(goal.deadline) < new Date() ? "text-red-600" : ""}`}><Clock className="h-3 w-3" />{friendlyDueDate(goal.deadline)}</span>
+      </div>
       </div>
     </div>
   )
@@ -1061,6 +1093,125 @@ function SummaryCard({ label, value, color, infoText }: { label: string; value: 
           {infoText}
         </div>
       )}
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Lightbox                                               */
+/* ────────────────────────────────────────────────────── */
+
+function Lightbox({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
+  const [idx, setIdx] = useState(startIndex)
+  if (images.length === 0) return null
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={onClose}>
+      <button onClick={onClose} className="absolute top-4 right-4 text-white/80 hover:text-white z-10"><X className="h-6 w-6" /></button>
+      {images.length > 1 && (
+        <>
+          <button onClick={(e) => { e.stopPropagation(); setIdx((idx - 1 + images.length) % images.length) }} className="absolute left-4 text-white/80 hover:text-white z-10"><ChevronLeft className="h-8 w-8" /></button>
+          <button onClick={(e) => { e.stopPropagation(); setIdx((idx + 1) % images.length) }} className="absolute right-4 text-white/80 hover:text-white z-10"><ChevronRight className="h-8 w-8" /></button>
+        </>
+      )}
+      <img src={images[idx]} alt="" className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
+      {images.length > 1 && (
+        <div className="absolute bottom-4 flex gap-1.5">{images.map((_, i) => (
+          <button key={i} onClick={(e) => { e.stopPropagation(); setIdx(i) }} className={`w-2 h-2 rounded-full transition-all ${i === idx ? "bg-white scale-110" : "bg-white/40"}`} />
+        ))}</div>
+      )}
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
+/* Vision Images Section (for Goal Detail/Edit)           */
+/* ────────────────────────────────────────────────────── */
+
+function VisionImagesSection({ heroImage, supportingImages, onChange }: {
+  heroImage?: string; supportingImages?: string[]; onChange: (hero?: string, supporting?: string[]) => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploadTarget, setUploadTarget] = useState<"hero" | "supporting">("hero")
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string
+      if (uploadTarget === "hero") {
+        onChange(dataUrl, supportingImages)
+      } else {
+        onChange(heroImage, [...(supportingImages || []), dataUrl].slice(0, 5))
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ""
+  }
+
+  const removeSupporting = (idx: number) => {
+    const next = (supportingImages || []).filter((_, i) => i !== idx)
+    onChange(heroImage, next.length > 0 ? next : undefined)
+  }
+
+  const moveSupporting = (from: number, to: number) => {
+    const arr = [...(supportingImages || [])]
+    if (to < 0 || to >= arr.length) return
+    const [item] = arr.splice(from, 1)
+    arr.splice(to, 0, item)
+    onChange(heroImage, arr)
+  }
+
+  return (
+    <div className="space-y-3">
+      <label className="text-sm font-medium">Vision Images</label>
+      <p className="text-xs text-muted-foreground">Upload images that represent your goal vision. JPG, PNG, WEBP supported.</p>
+
+      {/* Hero Image */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Primary Image</p>
+        {heroImage ? (
+          <div className="relative group rounded-xl overflow-hidden border border-white/20">
+            <img src={heroImage} alt="Hero" className="w-full h-40 object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <button onClick={() => { setUploadTarget("hero"); fileRef.current?.click() }} className="px-3 py-1.5 rounded-lg bg-white text-black text-xs font-medium hover:bg-white/90">Replace</button>
+              <button onClick={() => onChange(undefined, supportingImages)} className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium hover:bg-red-600">Remove</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => { setUploadTarget("hero"); fileRef.current?.click() }} className="w-full h-32 rounded-xl border-2 border-dashed border-white/20 hover:border-[#1E0E6B]/40 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-[#1E0E6B] transition-colors">
+            <ImagePlus className="h-6 w-6" />
+            <span className="text-xs font-medium">Upload Hero Image</span>
+          </button>
+        )}
+      </div>
+
+      {/* Supporting Images */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Supporting Images ({(supportingImages || []).length}/5)</p>
+          {(supportingImages || []).length < 5 && (
+            <button onClick={() => { setUploadTarget("supporting"); fileRef.current?.click() }} className="text-xs text-[#1E0E6B] hover:underline font-medium">+ Add</button>
+          )}
+        </div>
+        {(supportingImages || []).length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {(supportingImages || []).map((img, i) => (
+              <div key={i} className="relative group rounded-lg overflow-hidden border border-white/20 aspect-square">
+                <img src={img} alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                  {i > 0 && <button onClick={() => moveSupporting(i, i - 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronLeft className="h-3 w-3 text-white" /></button>}
+                  <button onClick={() => removeSupporting(i)} className="p-1 rounded bg-red-500/80 hover:bg-red-500"><X className="h-3 w-3 text-white" /></button>
+                  {i < (supportingImages || []).length - 1 && <button onClick={() => moveSupporting(i, i + 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronRight className="h-3 w-3 text-white" /></button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
     </div>
   )
 }
@@ -1273,18 +1424,9 @@ export function GoalsPage() {
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
             </div>
             <div className="relative">
-              <select value={healthFilter !== "all" ? `health:${healthFilter}` : categoryFilter} onChange={e => {
-                const v = e.target.value
-                if (v.startsWith("health:")) { setHealthFilter(v.replace("health:", "")); setCategoryFilter("all") }
-                else { setCategoryFilter(v); setHealthFilter("all") }
-              }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
+              <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setHealthFilter("all") }} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
                 <option value="all">All Categories</option>
                 {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                <option disabled>── Health ──</option>
-                <option value="health:excellent">🟢 Excellent</option>
-                <option value="health:on_track">🔵 On Track</option>
-                <option value="health:needs_attention">🟡 Needs Attention</option>
-                <option value="health:at_risk">🔴 At Risk</option>
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
             </div>
