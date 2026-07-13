@@ -349,6 +349,10 @@
     background: #eef2ff;
     font-weight: 600;
   }
+  [contenteditable] table.je-table.selected {
+    outline: 2px solid var(--brand-primary, #1E0E6B);
+    outline-offset: 2px;
+  }
 
   /* Journal Page Styles */
   .journal-page-lined {

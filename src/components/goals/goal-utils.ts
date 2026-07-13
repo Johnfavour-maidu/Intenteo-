@@ -20,6 +20,7 @@ export interface GoalData {
   weighting: { projects: number; habits: number; milestones: number; manual: number }
   timeline?: string; status?: string; timeHorizon?: string; visionId?: string
   habitCompletionRate?: number; lastActivity?: string
+  linkedValueIds?: string[]
   createdAt: string; updatedAt: string
 }
 
@@ -416,4 +417,24 @@ function calcGoalConsistency(g: GoalData): number {
   const daysSinceActive = Math.max(0, now - lastActive) / 86400000
   const recency = Math.max(0, 1 - daysSinceActive / 30)
   return Math.round(recency * 100)
+}
+
+export interface ValueAlignment {
+  score: number
+  label: string
+  color: string
+  linkedCount: number
+  totalValues: number
+}
+
+export function calcValueAlignment(goal: GoalData, totalCoreValues: number): ValueAlignment {
+  const linkedCount = (goal as any).linkedValueIds?.length || 0
+  if (totalCoreValues === 0 || linkedCount === 0) {
+    return { score: 0, label: "No Values Linked", color: "text-muted-foreground", linkedCount, totalValues: totalCoreValues }
+  }
+  const score = Math.round((linkedCount / Math.max(1, totalCoreValues)) * 100)
+  if (score >= 50) return { score, label: "Strongly Aligned", color: "text-emerald-600", linkedCount, totalValues: totalCoreValues }
+  if (score >= 25) return { score, label: "Well Aligned", color: "text-blue-600", linkedCount, totalValues: totalCoreValues }
+  if (score >= 10) return { score, label: "Partially Aligned", color: "text-amber-600", linkedCount, totalValues: totalCoreValues }
+  return { score, label: "Weakly Aligned", color: "text-red-600", linkedCount, totalValues: totalCoreValues }
 }

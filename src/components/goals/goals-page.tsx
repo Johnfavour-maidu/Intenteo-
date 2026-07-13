@@ -26,7 +26,7 @@ import {
 import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 import { DateInput } from "@/components/ui/date-input"
 import type { Vision, Purpose, CoreValue, Commitment } from "@/lib/vision-framework"
-import { loadVisions, loadPurpose, loadCoreValues, loadCommitments } from "@/lib/vision-framework"
+import { loadVisions, loadPurpose, loadCoreValues, loadCommitments, addCoreValue } from "@/lib/vision-framework"
 
 interface Milestone { id: string; title: string; completed: boolean }
 
@@ -102,6 +102,7 @@ interface Goal {
   focused?: boolean; focusOrder?: number
   heroImage?: string; supportingImages?: string[]
   reviewFrequency: ReviewFrequency; lastReviewedAt?: string; reviews?: GoalReview[]
+  linkedValueIds?: string[]
   createdAt: string; updatedAt: string
 }
 
@@ -329,8 +330,8 @@ const getAutoDeadline = (startDate: string, type: Goal["type"]): string => {
   return d.toISOString().split("T")[0]
 }
 
-const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
-  isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void; habits: Habit[]; visions: Vision[]
+const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValuesAdded }: {
+  isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void; habits: Habit[]; visions: Vision[]; values: CoreValue[]; onValuesAdded: () => void
 }) => {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -365,6 +366,8 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
   const [heroImage, setHeroImage] = useState<string | undefined>(undefined)
   const [supportingImages, setSupportingImages] = useState<string[] | undefined>(undefined)
   const [reviewFrequency, setReviewFrequency] = useState<ReviewFrequency>("monthly")
+  const [linkedValueIds, setLinkedValueIds] = useState<string[]>([])
+  const [showValueLibrary, setShowValueLibrary] = useState(false)
 
   useEffect(() => {
     if (type !== "custom") {
@@ -687,6 +690,21 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
             ))}
           </div>
         </div>
+        <div>
+          <label className="text-sm font-medium">Core Values</label>
+          <p className="text-xs text-muted-foreground mb-2">Which values does this goal align with?</p>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {values.filter(v => linkedValueIds.includes(v.id)).map(v => (
+              <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-xs font-medium">
+                {v.icon} {v.name}
+                <button onClick={() => setLinkedValueIds(prev => prev.filter(id => id !== v.id))} className="hover:text-red-500"><X className="h-3 w-3" /></button>
+              </span>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowValueLibrary(true)} className="text-xs">
+            <Plus className="h-3 w-3 mr-1" /> Add Values
+          </Button>
+        </div>
         <VisionImagesSection heroImage={heroImage} supportingImages={supportingImages} onChange={(hero, supporting) => { setHeroImage(hero); setSupportingImages(supporting) }} />
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
@@ -694,12 +712,21 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions }: {
             if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency })
+              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency, linkedValueIds })
               onClose()
             }
           }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
         </div>
       </div>
+      {showValueLibrary && (
+        <CoreValueLibrary existingValues={values} onAddValues={(newVals) => {
+          newVals.forEach(v => addCoreValue({ ...v, pinned: false }))
+          onValuesAdded()
+          const updated = loadCoreValues()
+          const newIds = updated.filter(u => newVals.some(n => n.name === u.name)).map(u => u.id)
+          setLinkedValueIds(prev => [...prev, ...newIds])
+        }} onClose={() => setShowValueLibrary(false)} />
+      )}
     </div>
   )
 }
@@ -762,8 +789,8 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
   )
 }
 
-const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, onSaveGoal, onSaveProject, onDeleteGoal }: {
-  isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]; habits: Habit[]; visions: Vision[]
+const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, values, onValuesAdded, onSaveGoal, onSaveProject, onDeleteGoal }: {
+  isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]; habits: Habit[]; visions: Vision[]; values: CoreValue[]; onValuesAdded: () => void
   onSaveGoal: (g: Goal) => void; onSaveProject: (p: Project) => void; onDeleteGoal: (id: string) => void
 }) => {
   const [data, setData] = useState<Goal | null>(goal)
@@ -772,6 +799,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
   const [newMilestone, setNewMilestone] = useState("")
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState(0)
+  const [showValueLibrary, setShowValueLibrary] = useState(false)
   useEffect(() => { if (goal) { const gp = calcGoalProgress(goal, projects, habits); setData({ ...goal, progress: gp }) } }, [goal, projects, habits])
   if (!isOpen || !data) return null
   const goalProjects = projects.filter(p => p.goalId === data.id)
@@ -1060,6 +1088,22 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
 
           <VisionImagesSection heroImage={data.heroImage} supportingImages={data.supportingImages} onChange={(hero, supporting) => setData({ ...data, heroImage: hero, supportingImages: supporting })} />
 
+          <div>
+            <label className="text-sm font-medium mb-2 block">Core Values Alignment</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {values.filter(v => (data.linkedValueIds || []).includes(v.id)).map(v => (
+                <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-xs font-medium">
+                  {v.icon} {v.name}
+                  <button onClick={() => setData({ ...data, linkedValueIds: (data.linkedValueIds || []).filter(id => id !== v.id) })} className="hover:text-red-500"><X className="h-3 w-3" /></button>
+                </span>
+              ))}
+              {(data.linkedValueIds || []).length === 0 && <p className="text-xs text-muted-foreground">No values linked yet</p>}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowValueLibrary(true)} className="text-xs">
+              <Plus className="h-3 w-3 mr-1" /> Add Values
+            </Button>
+          </div>
+
           <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
         </div>
       </div>
@@ -1067,11 +1111,170 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
         <Lightbox images={[data.heroImage, ...(data.supportingImages || [])].filter(Boolean) as string[]} startIndex={lightboxIdx} onClose={() => setLightboxOpen(false)} />
       )}
       <AddProjectModal isOpen={showAddProject} onClose={() => setShowAddProject(false)} onSave={(p) => { onSaveProject({ ...p, id: Date.now().toString(), createdAt: getTodayISO(), updatedAt: getTodayISO() }) }} goalId={data.id} />
+      {showValueLibrary && (
+        <CoreValueLibrary existingValues={values} onAddValues={(newVals) => {
+          newVals.forEach(v => addCoreValue({ ...v, pinned: false }))
+          onValuesAdded()
+          const updated = loadCoreValues()
+          const newIds = updated.filter(u => newVals.some(n => n.name === u.name)).map(u => u.id)
+          setData({ ...data, linkedValueIds: [...(data.linkedValueIds || []), ...newIds] })
+        }} onClose={() => setShowValueLibrary(false)} />
+      )}
     </div>
   )
 }
 
-function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggleFocus, focusCount, onEdit, onDelete, onReview }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number; onEdit?: (g: Goal) => void; onDelete?: (id: string) => void; onReview?: (g: Goal) => void }) {
+/* ────────────────────────────────────────────────────── */
+/* Core Value Library                                     */
+/* ────────────────────────────────────────────────────── */
+
+const VALUE_TEMPLATES = [
+  { category: "Spiritual", values: [
+    { name: "Faith", icon: "🙏", description: "Trust in God and spiritual growth" },
+    { name: "Prayer", icon: "🕊️", description: "Consistent communication with God" },
+    { name: "Integrity", icon: "✨", description: "Honesty and moral uprightness" },
+    { name: "Gratitude", icon: "💚", description: "Thankfulness and appreciation" },
+    { name: "Servanthood", icon: "🤝", description: "Serving others selflessly" },
+  ]},
+  { category: "Personal", values: [
+    { name: "Excellence", icon: "⭐", description: "Striving for the highest standard" },
+    { name: "Discipline", icon: "💪", description: "Self-control and consistency" },
+    { name: "Growth", icon: "🌱", description: "Continuous learning and improvement" },
+    { name: "Courage", icon: "🦁", description: "Bravery in the face of fear" },
+    { name: "Resilience", icon: "🔥", description: "Bouncing back from setbacks" },
+    { name: "Balance", icon: "⚖️", description: "Harmony across life areas" },
+  ]},
+  { category: "Relational", values: [
+    { name: "Love", icon: "❤️", description: "Deep care and compassion" },
+    { name: "Loyalty", icon: "🤝", description: "Faithfulness in relationships" },
+    { name: "Empathy", icon: "🫂", description: "Understanding others' feelings" },
+    { name: "Communication", icon: "💬", description: "Open and honest dialogue" },
+    { name: "Forgiveness", icon: "🕊️", description: "Letting go of resentment" },
+  ]},
+  { category: "Professional", values: [
+    { name: "Innovation", icon: "💡", description: "Creative problem-solving" },
+    { name: "Leadership", icon: "👑", description: "Guiding and inspiring others" },
+    { name: "Accountability", icon: "📋", description: "Owning your actions and results" },
+    { name: "Impact", icon: "🌍", description: "Making a meaningful difference" },
+    { name: "Stewardship", icon: "💎", description: "Managing resources wisely" },
+  ]},
+]
+
+function CoreValueLibrary({ existingValues, onAddValues, onClose }: { existingValues: CoreValue[]; onAddValues: (values: { name: string; icon: string; description: string; purposeConnection: string }[]) => void; onClose: () => void }) {
+  const [selectedCategory, setSelectedCategory] = useState<string>(VALUE_TEMPLATES[0].category)
+  const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set())
+  const [customName, setCustomName] = useState("")
+  const [customIcon, setCustomIcon] = useState("✦")
+  const [showCustom, setShowCustom] = useState(false)
+  const existingNames = useMemo(() => new Set(existingValues.map(v => v.name.toLowerCase())), [existingValues])
+
+  const toggleValue = (name: string) => {
+    setSelectedNames(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      return next
+    })
+  }
+
+  const handleAddSelected = () => {
+    const toAdd: { name: string; icon: string; description: string; purposeConnection: string }[] = []
+    for (const cat of VALUE_TEMPLATES) {
+      for (const v of cat.values) {
+        if (selectedNames.has(v.name) && !existingNames.has(v.name.toLowerCase())) {
+          toAdd.push({ ...v, purposeConnection: "" })
+        }
+      }
+    }
+    if (customName.trim() && !existingNames.has(customName.trim().toLowerCase())) {
+      toAdd.push({ name: customName.trim(), icon: customIcon, description: "", purposeConnection: "" })
+    }
+    if (toAdd.length > 0) onAddValues(toAdd)
+    onClose()
+  }
+
+  const categoryColors: Record<string, string> = {
+    Spiritual: "bg-purple-100 text-purple-700 border-purple-200",
+    Personal: "bg-blue-100 text-blue-700 border-blue-200",
+    Relational: "bg-pink-100 text-pink-700 border-pink-200",
+    Professional: "bg-amber-100 text-amber-700 border-amber-200",
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-hidden bg-white dark:bg-gray-900 border border-border rounded-2xl shadow-2xl flex flex-col">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-border p-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold">Core Value Library</h2>
+            <p className="text-xs text-muted-foreground">Select values that guide your life</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex gap-2 flex-wrap">
+            {VALUE_TEMPLATES.map(cat => (
+              <Button key={cat.category} variant={selectedCategory === cat.category ? "default" : "outline"} size="sm" onClick={() => setSelectedCategory(cat.category)} className={selectedCategory === cat.category ? "bg-[#1E0E6B] text-white" : ""}>
+                {cat.category}
+              </Button>
+            ))}
+            <Button variant={showCustom ? "default" : "outline"} size="sm" onClick={() => setShowCustom(!showCustom)} className={showCustom ? "bg-[#1E0E6B] text-white" : ""}>
+              Custom
+            </Button>
+          </div>
+
+          {!showCustom && VALUE_TEMPLATES.filter(c => c.category === selectedCategory).map(cat => (
+            <div key={cat.category} className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">{cat.category} Values</h3>
+              <div className="grid gap-2">
+                {cat.values.map(v => {
+                  const alreadyExists = existingNames.has(v.name.toLowerCase())
+                  const isSelected = selectedNames.has(v.name)
+                  return (
+                    <button key={v.name} onClick={() => !alreadyExists && toggleValue(v.name)} disabled={alreadyExists}
+                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${alreadyExists ? "opacity-50 cursor-not-allowed bg-muted/50" : isSelected ? "border-[#1E0E6B] bg-[#1E0E6B]/5 ring-1 ring-[#1E0E6B]/30" : "border-border hover:border-[#1E0E6B]/30 hover:bg-muted/50"}`}>
+                      <span className="text-xl">{v.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{v.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{v.description}</p>
+                      </div>
+                      {alreadyExists ? (
+                        <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Added</span>
+                      ) : (
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-[#1E0E6B] bg-[#1E0E6B]" : "border-muted-foreground/30"}`}>
+                          {isSelected && <CheckCircle2 className="h-3 w-3 text-white" />}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+
+          {showCustom && (
+            <div className="space-y-3 p-4 rounded-xl border border-dashed border-[#1E0E6B]/30">
+              <h3 className="text-sm font-semibold">Create Custom Value</h3>
+              <div className="flex gap-2">
+                <Input value={customIcon} onChange={e => setCustomIcon(e.target.value)} className="w-16 text-center text-lg" placeholder="Icon" />
+                <Input value={customName} onChange={e => setCustomName(e.target.value)} placeholder="Value name" className="flex-1" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-border p-4 flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button onClick={handleAddSelected} disabled={selectedNames.size === 0 && !customName.trim()} className="flex-1 glow text-white">
+            Add {selectedNames.size + (customName.trim() ? 1 : 0)} Value{(selectedNames.size + (customName.trim() ? 1 : 0)) !== 1 ? "s" : ""}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused, onToggleFocus, focusCount, onEdit, onDelete, onReview }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; values: CoreValue[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number; onEdit?: (g: Goal) => void; onDelete?: (id: string) => void; onReview?: (g: Goal) => void }) {
   const goalProjects = projects.filter(p => p.goalId === goal.id)
   const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
@@ -1142,6 +1345,21 @@ function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggl
         </div>
       </div>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
+
+      {(goal.linkedValueIds || []).length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {values.filter(v => (goal.linkedValueIds || []).includes(v.id)).slice(0, 3).map(v => (
+            <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1E0E6B]/8 text-[#1E0E6B] text-[10px] font-medium">
+              {v.icon} {v.name}
+            </span>
+          ))}
+          {(goal.linkedValueIds || []).length > 3 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px]">
+              +{(goal.linkedValueIds || []).length - 3}
+            </span>
+          )}
+        </div>
+      )}
 
       {isReviewDue(goal) && onReview && (
         <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="mb-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-left w-full">
@@ -1655,7 +1873,7 @@ export function GoalsPage() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => g.focused).sort((a, b) => (a.focusOrder ?? 0) - (b.focusOrder ?? 0)).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
                     ))}
                   </div>
                 </div>
@@ -1667,7 +1885,7 @@ export function GoalsPage() {
                   )}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => !g.focused).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
                     ))}
                   </div>
                 </div>
@@ -1739,8 +1957,8 @@ export function GoalsPage() {
         </div>
       )}
 
-      <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} visions={visions} />
-      <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} visions={visions} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
+      <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} visions={visions} values={values} onValuesAdded={() => setValues(loadCoreValues())} />
+      <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} visions={visions} values={values} onValuesAdded={() => setValues(loadCoreValues())} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
       {reviewGoal && (
         <GoalReviewModal goal={reviewGoal} onClose={() => setReviewGoal(null)} onSave={(review) => {
           setGoals(prev => prev.map(g => g.id === reviewGoal.id ? { ...g, reviews: [...(g.reviews || []), review], lastReviewedAt: review.date } : g))

@@ -2649,8 +2649,13 @@ function FloatingTableToolbar({ table, onClose, editorRef, onContentChange, onDe
   const [pos, setPos] = useState({ top: 0, left: 0 })
 
   useEffect(() => {
-    const rect = table.getBoundingClientRect()
-    setPos({ top: rect.top - 48 + window.scrollY, left: rect.left + rect.width / 2 + window.scrollX })
+    const updatePos = () => {
+      const rect = table.getBoundingClientRect()
+      setPos({ top: rect.top - 48, left: rect.left + rect.width / 2 })
+    }
+    updatePos()
+    window.addEventListener("scroll", updatePos, true)
+    return () => window.removeEventListener("scroll", updatePos, true)
   }, [table])
 
   useEffect(() => {
@@ -2680,7 +2685,7 @@ function FloatingTableToolbar({ table, onClose, editorRef, onContentChange, onDe
   }
 
   return (
-    <div ref={toolbarRef} className="absolute z-50" style={{ top: pos.top, left: pos.left, transform: "translateX(-50%)" }}>
+    <div ref={toolbarRef} className="fixed z-50" style={{ top: pos.top, left: pos.left, transform: "translateX(-50%)" }}>
       <div className="bg-background border border-border rounded-xl shadow-2xl py-1.5 px-1 flex items-center gap-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
         {[
           { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5h18M3 12h18M3 19h18"/></svg>, label: "Row Above", action: () => { const tr = getRow(); if (!tr) return; const newRow = tr.cloneNode(true) as HTMLTableRowElement; newRow.querySelectorAll("td").forEach(td => { td.innerHTML = "<br>"; td.contentEditable = "true" }); tr.parentNode!.insertBefore(newRow, tr) } },
@@ -2771,7 +2776,7 @@ function TableContextMenu({ x, y, cell, onClose, editorRef, onContentChange, onD
           { label: "Insert Column Right", action: () => { const idx = Array.from(tr!.querySelectorAll("td, th")).indexOf(cell!); table.querySelectorAll("tr").forEach(r => { const newTd = document.createElement("td"); newTd.innerHTML = "<br>"; newTd.contentEditable = "true"; const cells = r.querySelectorAll("td"); r.insertBefore(newTd, cells[idx + 1] || null) }) } },
           { label: "Delete Column", action: () => { const idx = Array.from(tr!.querySelectorAll("td, th")).indexOf(cell!); if (tr!.querySelectorAll("td").length <= 1) return; table.querySelectorAll("tr").forEach(r => { const cells = r.querySelectorAll("td, th"); if (cells[idx]) cells[idx].remove() }) } },
           { divider: true } as const,
-          { label: "Delete Table", action: () => table!.remove(), danger: true },
+          { label: "Delete Table", action: () => { onDeleteTable(); onClose() }, danger: true },
         ].map((item, i) => {
           if ("divider" in item && item.divider) return <div key={i} className="h-px bg-border my-1.5" />
           if ("action" in item) {
@@ -3016,13 +3021,23 @@ function WritingArea({
       const cell = (sel.anchorNode as Node)?.parentElement?.closest("td, th") as HTMLTableCellElement | null
       const table = cell?.closest("table.je-table") as HTMLTableElement | null
       if (table) {
-        setFloatingToolbarTable(prev => prev === table ? prev : table)
+        setFloatingToolbarTable(prev => {
+          if (prev !== table) {
+            if (prev) prev.classList.remove("selected")
+            table.classList.add("selected")
+          }
+          return table
+        })
       } else {
-        setFloatingToolbarTable(null)
+        setFloatingToolbarTable(prev => { if (prev) prev.classList.remove("selected"); return null })
       }
     }
     document.addEventListener("selectionchange", handler)
-    return () => document.removeEventListener("selectionchange", handler)
+    return () => {
+      document.removeEventListener("selectionchange", handler)
+      // Clean up on unmount
+      document.querySelectorAll("table.je-table.selected").forEach(t => t.classList.remove("selected"))
+    }
   }, [])
 
   // Empty table Backspace detection
@@ -3601,6 +3616,30 @@ function WritingArea({
               setContentText(editorRef.current.innerText || "")
             }
           }}
+          onDeleteTable={() => handleDeleteTableRequest(tableContextMenu.cell!.closest("table") as HTMLTableElement)}
+        />
+      )}
+
+      {floatingToolbarTable && (
+        <FloatingTableToolbar
+          table={floatingToolbarTable}
+          onClose={() => setFloatingToolbarTable(null)}
+          editorRef={editorRef}
+          onContentChange={() => {
+            if (editorRef.current) {
+              setContentHtml(editorRef.current.innerHTML)
+              setContentText(editorRef.current.innerText || "")
+            }
+          }}
+          onDeleteTable={() => handleDeleteTableRequest(floatingToolbarTable)}
+        />
+      )}
+
+      {confirmDeleteTable && (
+        <ConfirmDeleteTableDialog
+          empty={confirmDeleteTable.empty}
+          onConfirm={handleConfirmDeleteTable}
+          onCancel={() => setConfirmDeleteTable(null)}
         />
       )}
     </>

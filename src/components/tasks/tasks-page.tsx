@@ -1680,12 +1680,17 @@ export function TasksPage() {
               </button>
             )}
             {carryOverTasks.length > 0 && !selectedDate && (
-              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
-                <button onClick={() => setCarryOverOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors">
-                  <ArrowRightLeft className="h-3 w-3" />
-                  Carry-over ({carryOverTasks.length})
-                </button>
+              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}>
+                <Tooltip label="Move unfinished tasks from your previous day into today's plan.">
+                  <button onClick={() => setCarryOverOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3F1FF] dark:bg-[#1E0E6B]/20 border border-[#1E0E6B]/20 text-xs font-medium text-[#1E0E6B] dark:text-[#EB9E5B] shadow-sm hover:bg-[#1E0E6B] hover:text-white hover:border-[#1E0E6B] transition-all duration-200 group">
+                    <ArrowRightLeft className="h-3 w-3 text-[#EB9E5B] group-hover:text-white transition-colors duration-200" />
+                    Carry Over
+                    <span className="inline-flex items-center justify-center h-4.5 min-w-[18px] px-1 rounded-full bg-[#1E0E6B] text-white text-[9px] font-bold leading-none">
+                      {carryOverTasks.length}
+                    </span>
+                  </button>
+                </Tooltip>
               </motion.div>
             )}
           </div>
