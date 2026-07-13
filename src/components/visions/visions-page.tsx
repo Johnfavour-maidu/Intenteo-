@@ -168,6 +168,8 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
   const [statement, setStatement] = useState(purpose.statement)
   const [notes, setNotes] = useState(purpose.notes)
   const [lifeAreaIds, setLifeAreaIds] = useState<string[]>(purpose.lifeAreaIds)
+  const [lifeAreaSearch, setLifeAreaSearch] = useState("")
+  const [showLifeAreaDropdown, setShowLifeAreaDropdown] = useState(false)
 
   useEffect(() => { setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds) }, [purpose])
 
@@ -179,6 +181,27 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
   const toggleLifeArea = (id: string) => {
     setLifeAreaIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id])
   }
+
+  const allLifeAreaOptions = useMemo(() => {
+    const existingMap = new Map(lifeAreas.map((a) => [a.id, a]))
+    const merged: Array<{ id: string; name: string; icon: string }> = []
+    const seen = new Set<string>()
+    for (const a of lifeAreas) {
+      merged.push({ id: a.id, name: a.name, icon: a.icon })
+      seen.add(a.name.toLowerCase())
+    }
+    for (const def of DEFAULT_LIFE_AREAS) {
+      if (!seen.has(def.name.toLowerCase())) {
+        merged.push({ id: `default-${def.name}`, name: def.name, icon: def.icon })
+        seen.add(def.name.toLowerCase())
+      }
+    }
+    return merged
+  }, [lifeAreas])
+
+  const filteredLifeAreas = allLifeAreaOptions.filter((a) =>
+    a.name.toLowerCase().includes(lifeAreaSearch.toLowerCase())
+  )
 
   const connectedLifeAreas = lifeAreas.filter((a) => lifeAreaIds.includes(a.id))
 
