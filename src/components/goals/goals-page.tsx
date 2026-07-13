@@ -9,7 +9,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle, Info, Map, Eye, Star,
+  Link2, AlertTriangle, Info, Map, Eye, Star, Edit3,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -948,7 +948,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
   )
 }
 
-function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggleFocus, focusCount }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number }) {
+function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggleFocus, focusCount, onEdit, onDelete }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number; onEdit?: (g: Goal) => void; onDelete?: (id: string) => void }) {
   const goalProjects = projects.filter(p => p.goalId === goal.id)
   const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
@@ -981,7 +981,25 @@ function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggl
             <h3 className="font-semibold text-sm leading-tight">{goal.title}</h3>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
+              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-all opacity-0 group-hover:opacity-100"
+              title="Edit Goal"
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
+              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+              title="Delete Goal"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           {onToggleFocus && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
@@ -1290,7 +1308,7 @@ export function GoalsPage() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => g.focused).sort((a, b) => (a.focusOrder ?? 0) - (b.focusOrder ?? 0)).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} />
                     ))}
                   </div>
                 </div>
@@ -1302,7 +1320,7 @@ export function GoalsPage() {
                   )}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => !g.focused).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} />
                     ))}
                   </div>
                 </div>
