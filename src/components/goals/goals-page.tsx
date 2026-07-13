@@ -9,7 +9,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle, Info, Map, Eye,
+  Link2, AlertTriangle, Info, Map, Eye, Star,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -24,8 +24,8 @@ import {
 } from "./goal-utils"
 import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 import { DateInput } from "@/components/ui/date-input"
-import type { Vision } from "@/lib/vision-framework"
-import { loadVisions } from "@/lib/vision-framework"
+import type { Vision, Purpose, CoreValue, Commitment } from "@/lib/vision-framework"
+import { loadVisions, loadPurpose, loadCoreValues, loadCommitments } from "@/lib/vision-framework"
 
 interface Milestone { id: string; title: string; completed: boolean }
 
@@ -62,6 +62,7 @@ interface Goal {
   timeHorizon?: "this-year" | "2-years" | "5-years" | "10-years" | "lifetime"
   visionId?: string
   habitCompletionRate?: number; lastActivity?: string
+  focused?: boolean; focusOrder?: number
   createdAt: string; updatedAt: string
 }
 
@@ -947,26 +948,29 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, on
   )
 }
 
-function GoalCard({ goal, projects, habits, visions, onClick }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void }) {
+function GoalCard({ goal, projects, habits, visions, onClick, isFocused, onToggleFocus, focusCount }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number }) {
   const goalProjects = projects.filter(p => p.goalId === goal.id)
   const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
-  const completedProjects = goalProjects.filter(p => p.status === "completed").length
-  const totalTasks = goalProjects.reduce((s, p) => s + p.tasks.length, 0)
-  const completedTasks = goalProjects.reduce((s, p) => s + p.tasks.filter(t => t.completed).length, 0)
   const health = calcGoalHealth(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
   const healthCfg = GOAL_HEALTH_CONFIG[health]
   const trend = calcTrend(goal as unknown as GoalData, projects as unknown as GoalProject[])
   const trendCfg = GOAL_TREND_CONFIG[trend]
-  const nextAction = generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
 
   return (
-    <div onClick={onClick} className="group p-5 bg-white dark:bg-gray-950 rounded-2xl hover:shadow-lg hover:shadow-black/5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5" style={{ border: `2px solid ${goal.colorHex}40` }}>
+    <div onClick={onClick} className={`group p-5 bg-white dark:bg-gray-950 rounded-2xl hover:shadow-lg hover:shadow-black/5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 relative ${isFocused ? "ring-2 ring-[#1E0E6B] border-2 border-[#1E0E6B]" : ""}`} style={!isFocused ? { border: `2px solid ${goal.colorHex}40` } : undefined}>
+      {isFocused && (
+        <div className="absolute -top-2.5 -left-2.5 z-10 flex items-center gap-1">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1E0E6B] text-white text-[10px] font-semibold shadow-md">
+            <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Focus Goal
+          </div>
+        </div>
+      )}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{goal.icon}</span>
-          <div>
-            <div className="flex items-center gap-1.5 mb-1">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="text-xl shrink-0">{goal.icon}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
               <Badge variant="outline" className="text-[10px]" style={{borderColor: goal.colorHex+"40", color: goal.colorHex}}>{goal.customCategory || goal.category}</Badge>
               {goal.timeHorizon && TIME_HORIZON_BADGES[goal.timeHorizon] && (
                 <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${TIME_HORIZON_BADGES[goal.timeHorizon].bg} ${TIME_HORIZON_BADGES[goal.timeHorizon].color}`}>{TIME_HORIZON_BADGES[goal.timeHorizon].label}</span>
@@ -977,7 +981,19 @@ function GoalCard({ goal, projects, habits, visions, onClick }: { goal: Goal; pr
             <h3 className="font-semibold text-sm leading-tight">{goal.title}</h3>
           </div>
         </div>
-        <ProgressRing value={progress} size={52} strokeWidth={4} showLabel={false} />
+        <div className="flex items-center gap-2 shrink-0">
+          {onToggleFocus && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
+              className={`p-1 rounded-full transition-all ${isFocused ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground/40 hover:text-amber-500"}`}
+              title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
+              disabled={!isFocused && (focusCount != null && focusCount >= 5)}
+            >
+              <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
+            </button>
+          )}
+          <ProgressRing value={progress} size={52} strokeWidth={4} showLabel={false} />
+        </div>
       </div>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
 
@@ -987,48 +1003,12 @@ function GoalCard({ goal, projects, habits, visions, onClick }: { goal: Goal; pr
           <Info className="h-3 w-3 text-[#1E0E6B]" />
           <span className="text-[10px] font-medium text-[#1E0E6B]">Next Action</span>
         </div>
-        <p className="text-[11px] text-muted-foreground">{nextAction}</p>
+        <p className="text-[11px] text-muted-foreground">{generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
       </div>
-
-      {/* Projects */}
-      {goalProjects.length > 0 && (
-        <div className="space-y-1.5 mb-3">
-          {goalProjects.slice(0, 3).map(p => (
-            <div key={p.id} className="flex items-center gap-2 text-xs">
-              <div className="w-2 h-2 rounded-full shrink-0" style={{backgroundColor: p.colorHex}} />
-              <span className="flex-1 truncate">{p.name}</span>
-              <span className="text-muted-foreground">{calcProjectProgress(p)}%</span>
-            </div>
-          ))}
-          {goalProjects.length > 3 && <p className="text-[10px] text-muted-foreground">+{goalProjects.length - 3} more projects</p>}
-        </div>
-      )}
-
-      {/* Linked Habits */}
-      {goal.linkedHabits.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {goal.linkedHabits.slice(0, 3).map(name => (
-            <Badge key={name} variant="secondary" className="text-[10px] gap-0.5"><Zap className="h-2.5 w-2.5" />{name}</Badge>
-          ))}
-          {goal.linkedHabits.length > 3 && <Badge variant="secondary" className="text-[10px]">+{goal.linkedHabits.length - 3}</Badge>}
-        </div>
-      )}
-
-      {/* Linked Vision */}
-      {goal.visionId && (() => {
-        const linkedVision = visions.find(v => v.id === goal.visionId)
-        if (!linkedVision) return null
-        return (
-          <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/30">
-            <Eye className="h-3 w-3 text-purple-600 dark:text-purple-400 shrink-0" />
-            <span className="text-[10px] text-purple-600 dark:text-purple-400 truncate">{linkedVision.icon} {linkedVision.title}</span>
-          </div>
-        )
-      })()}
 
       {/* Progress bar */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-medium">{progress}%</span></div>
+        <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-semibold">{progress}%</span></div>
         <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{width: `${progress}%`, backgroundColor: goal.colorHex}} /></div>
       </div>
       {/* Footer */}
@@ -1073,6 +1053,9 @@ export function GoalsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [habits, setHabits] = useState<Habit[]>([])
   const [visions, setVisions] = useState<Vision[]>([])
+  const [purpose, setPurpose] = useState<Purpose | null>(null)
+  const [values, setValues] = useState<CoreValue[]>([])
+  const [commitments, setCommitments] = useState<Commitment[]>([])
   const [filter, setFilter] = useState<GoalFilterMode>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [healthFilter, setHealthFilter] = useState<string>("all")
@@ -1083,7 +1066,7 @@ export function GoalsPage() {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [analyticsGoal, setAnalyticsGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
-  const [viewMode, setViewMode] = useState<"board" | "list">("list")
+  const [viewMode, setViewMode] = useState<"board" | "list">("board")
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -1095,6 +1078,9 @@ export function GoalsPage() {
       if (sp) { try { setProjects(JSON.parse(sp)) } catch { setProjects(createSampleProjects()) } } else setProjects(createSampleProjects())
       if (sh) { try { setHabits(JSON.parse(sh)) } catch { /* keep empty */ } }
       setVisions(loadVisions())
+      setPurpose(loadPurpose())
+      setValues(loadCoreValues())
+      setCommitments(loadCommitments())
     } catch {
       setGoals(createSampleGoals())
       setProjects(createSampleProjects())
@@ -1137,6 +1123,20 @@ export function GoalsPage() {
       const exists = prev.find(x => x.id === p.id)
       if (exists) return prev.map(x => x.id === p.id ? { ...p, updatedAt: getTodayISO() } : x)
       return [...prev, p]
+    })
+  }, [])
+
+  const toggleFocusGoal = useCallback((goalId: string) => {
+    setGoals(prev => {
+      const goal = prev.find(g => g.id === goalId)
+      if (!goal) return prev
+      const focusedCount = prev.filter(g => g.focused).length
+      if (goal.focused) {
+        return prev.map(g => g.id === goalId ? { ...g, focused: false, focusOrder: undefined } : g)
+      }
+      if (focusedCount >= 5) return prev
+      const maxOrder = Math.max(0, ...prev.filter(g => g.focused && g.focusOrder != null).map(g => g.focusOrder!))
+      return prev.map(g => g.id === goalId ? { ...g, focused: true, focusOrder: maxOrder + 1 } : g)
     })
   }, [])
 
@@ -1280,9 +1280,34 @@ export function GoalsPage() {
           </div>
 
           {viewMode === "board" ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {filteredAndSorted.map(goal => <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} />)}
-            </div>
+            <>
+              {filteredAndSorted.some(g => g.focused) && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Focus Goals</h2>
+                    <span className="text-xs text-muted-foreground/60">({filteredAndSorted.filter(g => g.focused).length}/5)</span>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredAndSorted.filter(g => g.focused).sort((a, b) => (a.focusOrder ?? 0) - (b.focusOrder ?? 0)).map(goal => (
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {filteredAndSorted.some(g => !g.focused) && (
+                <div className="space-y-3">
+                  {filteredAndSorted.some(g => g.focused) && (
+                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">All Goals</h2>
+                  )}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredAndSorted.filter(g => !g.focused).map(goal => (
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
               <table className="w-full text-sm">
@@ -1358,6 +1383,10 @@ export function GoalsPage() {
           goal={analyticsGoal as unknown as GoalData}
           projects={projects as unknown as GoalProject[]}
           habits={habits as unknown as GoalHabit[]}
+          vision={visions.find(v => v.id === (analyticsGoal as any).visionId) || null}
+          purpose={purpose}
+          values={values}
+          commitments={commitments}
           onClose={() => setAnalyticsGoal(null)}
           onEdit={(g) => {
             setAnalyticsGoal(null)
