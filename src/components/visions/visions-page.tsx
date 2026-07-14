@@ -648,45 +648,44 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
                       </div>
                     </div>
 
-                    {linkedValues.length > 0 && (
-                      <div className="mt-2.5">
-                        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                          <span className="text-[9px] opacity-50">&#9670;</span> Values
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {linkedValues.map((v) => (
-                            <span key={v.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-[#1E0E6B]/30 text-[#1E0E6B] font-medium">{v.name}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {linkedLifeAreas.length > 0 && (
-                      <div className="mt-2">
-                        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                          <span className="text-[9px] opacity-50">&#9673;</span> Life Area
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {linkedLifeAreas.map((a) => (
-                            <span key={a.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full bg-muted/70 text-foreground/80 font-medium">{a.name}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {linkedVisions.length > 0 && (
-                      <div className="mt-2">
-                        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                          <span className="text-[9px] opacity-50">&#9733;</span> Vision
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {linkedVisions.map((v) => (
-                            <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border border-[#EB9E5B]/40 text-[#EB9E5B] font-medium max-w-full" title={v.title}>
-                              <span className="shrink-0">{v.icon}</span>
-                              <span className="truncate">{v.title}</span>
-                            </span>
-                          ))}
-                        </div>
+                    {(linkedValues.length > 0 || linkedLifeAreas.length > 0 || linkedVisions.length > 0) && (
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                        {linkedValues.length > 0 && (
+                          <span className="flex items-center gap-1 min-w-0">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Values</span>
+                            <span className="text-muted-foreground/40 shrink-0">&mdash;</span>
+                            {linkedValues.map((v, i) => (
+                              <span key={v.id} className="inline-flex items-center gap-0.5 shrink-0">
+                                {i > 0 && <span className="text-muted-foreground/30">,</span>}
+                                <span className="font-medium text-[#1E0E6B]">{v.name}</span>
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                        {linkedLifeAreas.length > 0 && (
+                          <span className="flex items-center gap-1 min-w-0">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Life Area</span>
+                            <span className="text-muted-foreground/40 shrink-0">&mdash;</span>
+                            {linkedLifeAreas.map((a, i) => (
+                              <span key={a.id} className="inline-flex items-center gap-0.5 shrink-0">
+                                {i > 0 && <span className="text-muted-foreground/30">,</span>}
+                                <span className="font-medium text-foreground/80">{a.name}</span>
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                        {linkedVisions.length > 0 && (
+                          <span className="flex items-center gap-1 min-w-0 max-w-full">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Vision</span>
+                            <span className="text-muted-foreground/40 shrink-0">&mdash;</span>
+                            {linkedVisions.map((v, i) => (
+                              <span key={v.id} className="inline-flex items-center gap-0.5 min-w-0 shrink">
+                                {i > 0 && <span className="text-muted-foreground/30 shrink-0">,</span>}
+                                <span className="truncate text-[#EB9E5B] font-medium" title={v.title}>{v.title}</span>
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </div>
                     )}
 
