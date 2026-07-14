@@ -68,3 +68,19 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Vercel deploy: `npx vercel --yes --prod --scope john-favourite` (use `vercel_*` MCP tools instead of token)
 - Production URL: https://intenteo.vercel.app
 - localStorage keys: `intenteo-goals`, `intenteo-projects`, `intenteo-habits`, `intenteo-habits-period`, `intenteo-habits-view`, `intenteo-vision`
+
+## Recent Work — Life Vision Framework Simplification (COMPLETE, deployed)
+
+### Refinement passes completed
+1. **12 Vision Framework refinements** (deployed earlier): removed Purpose Hierarchy text; Life Influence to searchable Life Area multi-select (30 DEFAULT_LIFE_AREAS); DD/MM/YYYY dates; quotation around Purpose; dynamic Purpose height; searchable VALUE_LIBRARY; simplified ValueEditModal; value cards show purposeConnection only; pin limit 5; sorting pinned,recent,alphabetical.
+2. **Goal Details Drawer** (deployed): removed Health everywhere; single status badge; 16:9 heroImage; Next Action; Intenteo Insight; reduced spacing. Cleaned `goals-page.tsx` (removed healthFilter/badges). Added `heroImage?: string` to `GoalData` in `goal-utils.ts`.
+3. **Life Vision Framework Page simplified to 5 sections** (deployed to https://intenteo.vercel.app):
+   - Removed standalone: `PurposeDashboard`, `LifeAreasSection`, `LifeAreaEditModal`, `GoalsByVisionSection`, `PurposeReviewsSection`, `CreateLifeAreaDialog`.
+   - `LifeArea` data still exists (seeded; used by Purpose dropdown + Visions) but no standalone management UI.
+   - Purpose Reviews moved INTO `PurposeSection` card: reviewFrequency select (monthly/quarterly/annually), Last/Next Review dates, review-due badge, Add Review (random question + reflection), View/Delete history.
+   - `Purpose` type gained `lastReviewedAt` (required) and `"annually"` frequency. Added `REVIEW_FREQUENCY_CONFIG`, `REVIEW_QUESTIONS`, `randomReviewQuestion`, `getNextReviewDate`, `isReviewDue` in `vision-framework.ts` (imports `formatDateDDMMYYYY` from `@/lib/date-utils`).
+   - `VisionsSection` shows clickable goal count (routes to `/goals` via `useRouter`) + milestone count; takes `milestones: RoadmapMilestone[]` prop fed by `roadmapMilestones` state (`loadRoadmapMilestones()`).
+   - Page spacing `space-y-12`; render is 5 sections: Purpose, Core Values, Commitments, My Visions, Long-Term Milestones.
+
+### Edit-tool note
+Bulk `edit` calls matching very large blocks sometimes reported success WITHOUT changing the file. If an edit silently fails, re-read the exact current text and re-apply the targeted edit; verify removals with `Select-String` afterwards.
