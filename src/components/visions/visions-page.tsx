@@ -56,7 +56,7 @@ function RelationshipChip({ icon, label }: { icon: string; label: string }) {
   )
 }
 
-function SectionHeader({ icon: Icon, title, subtitle, collapsedInfo, count, expanded, onToggle, onAdd, onInfo }: {
+function SectionHeader({ icon: Icon, title, subtitle, collapsedInfo, count, expanded, onToggle, onAdd, onInfo, rightControls }: {
   icon: React.ComponentType<{ className?: string }>
   title: string
   subtitle: string
@@ -66,6 +66,7 @@ function SectionHeader({ icon: Icon, title, subtitle, collapsedInfo, count, expa
   onToggle: () => void
   onAdd?: () => void
   onInfo?: () => void
+  rightControls?: React.ReactNode
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -97,10 +98,15 @@ function SectionHeader({ icon: Icon, title, subtitle, collapsedInfo, count, expa
           <ChevronRight className="h-4 w-4 text-muted-foreground ml-2 transition-transform duration-150" />
         )}
       </button>
-      {expanded && onAdd && (
-        <Button size="sm" variant="outline" onClick={onAdd} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> Add
-        </Button>
+      {expanded && (
+        <div className="flex items-center gap-2">
+          {rightControls}
+          {onAdd && (
+            <Button size="sm" variant="outline" onClick={onAdd} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Add
+            </Button>
+          )}
+        </div>
       )}
     </div>
   )
@@ -217,7 +223,7 @@ function PurposeReviewModal({ purpose, onSave, onClose }: { purpose: Purpose; on
 
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Last Review: {purpose.lastReviewedAt ? formatDateDDMMYYYY(purpose.lastReviewedAt) : "—"}</span>
-          <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> Next Review: {getNextReviewDate(purpose)}</span>
+          <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> Next Review: {getNextReviewDate(purpose, reviewFrequency)}</span>
         </div>
 
         <div className="h-px bg-[#1E0E6B]/10" />
@@ -486,6 +492,12 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder, onInf
   const [editingId, setEditingId] = useState<string | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
 
+  const sorted = useMemo(() => {
+    const pinned = values.filter((v) => v.pinned)
+    const unpinned = values.filter((v) => !v.pinned)
+    return [...pinned, ...unpinned]
+  }, [values])
+
   const handleDragStart = (id: string) => setDragId(id)
   const handleDragOver = (e: React.DragEvent, targetId: string) => {
     e.preventDefault()
@@ -500,38 +512,41 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder, onInf
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Heart} title="Core Values" subtitle="What guides your life" collapsedInfo={`${values.length} Value${values.length !== 1 ? 's' : ''}`} count={values.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} />
+      <SectionHeader icon={Heart} title="Core Values" subtitle="What principles guide how you live" collapsedInfo={`${values.length} Value${values.length !== 1 ? 's' : ''}`} count={values.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} />
       {expanded && (
         <div className="space-y-3">
           {values.length === 0 ? (
-            <EmptyState icon={Heart} title="Your values shape your decisions." desc="Start by adding the principles that guide your life." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Value</Button>} />
+            <div className="text-center py-8">
+              <Heart className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">Your values shape your decisions.</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Start by adding the principles that guide your life.</p>
+              <Button size="sm" onClick={onAdd} className="mt-4 gap-1.5"><Plus className="h-3.5 w-3.5" /> Add Your First Value</Button>
+            </div>
           ) : (
             <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {values.map((value) => {
-                return (
-                  <div key={value.id} draggable onDragStart={() => handleDragStart(value.id)} onDragOver={(e) => handleDragOver(e, value.id)} onDragEnd={() => setDragId(null)}
-                    className={`flex items-start gap-3 p-4 rounded-2xl border bg-card hover:shadow-md hover:scale-[1.01] transition-all duration-150 group cursor-grab active:cursor-grabbing ${dragId === value.id ? "opacity-50" : ""} ${value.pinned ? "border-primary/30 bg-primary/5" : ""}`}>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {value.pinned && <Pin className="h-3.5 w-3.5 text-primary fill-primary shrink-0" />}
-                        <span className="text-base font-semibold truncate">{value.name}</span>
-                      </div>
-                      {value.purposeConnection && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">&ldquo;{value.purposeConnection}&rdquo;</p>}
+              {sorted.map((value) => (
+                <div key={value.id} draggable onDragStart={() => handleDragStart(value.id)} onDragOver={(e) => handleDragOver(e, value.id)} onDragEnd={() => setDragId(null)}
+                  className={`flex items-start gap-3 p-4 rounded-2xl border bg-card hover:shadow-md hover:scale-[1.01] transition-all duration-150 group cursor-grab active:cursor-grabbing ${dragId === value.id ? "opacity-50" : ""} ${value.pinned ? "border-primary/30 bg-primary/5" : ""}`}>
+                  <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-1" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {value.pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
+                      <span className="text-sm font-bold truncate">{value.name}</span>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button onClick={() => onUpdate(value.id, { pinned: !value.pinned })} className="p-1 rounded hover:bg-muted" title={value.pinned ? "Unpin" : "Pin"}>
-                        {value.pinned ? <PinOff className="h-3.5 w-3.5 text-muted-foreground" /> : <Pin className="h-3.5 w-3.5 text-muted-foreground" />}
-                      </button>
-                      <button onClick={() => setEditingId(editingId === value.id ? null : value.id)} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
-                      <button onClick={() => onDelete(value.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                    </div>
-                    {editingId === value.id && (
-                      <ValueEditModal value={value} onSave={(updates) => { onUpdate(value.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
-                    )}
+                    {value.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{value.description}</p>}
                   </div>
-                )
-              })}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button onClick={() => onUpdate(value.id, { pinned: !value.pinned })} className="p-1 rounded hover:bg-muted transition-colors" title={value.pinned ? "Unpin" : "Pin"}>
+                      {value.pinned ? <PinOff className="h-3.5 w-3.5 text-primary" /> : <Pin className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </button>
+                    <button onClick={() => setEditingId(editingId === value.id ? null : value.id)} className="p-1 rounded hover:bg-muted transition-colors"><Edit3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                    <button onClick={() => onDelete(value.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                  {editingId === value.id && (
+                    <ValueEditModal value={value} onSave={(updates) => { onUpdate(value.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -542,7 +557,7 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder, onInf
 
 function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave: (updates: Partial<CoreValue>) => void; onCancel: () => void }) {
   const [name, setName] = useState(value.name)
-  const [reflection, setReflection] = useState(value.purposeConnection)
+  const [reflection, setReflection] = useState(value.description)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -555,11 +570,11 @@ function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave:
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reflection</label>
-          <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="How does this value shape your life or support your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
+          <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="How does this value shape your life or support your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button size="sm" onClick={() => onSave({ name, icon: value.icon || "✦", description: "", purposeConnection: reflection })}>Save</Button>
+          <Button size="sm" onClick={() => onSave({ name, description: reflection, purposeConnection: "" })}>Save</Button>
         </div>
       </div>
     </div>
@@ -570,9 +585,9 @@ function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave:
 // COMMITMENTS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, onUpdate, onDelete, onInfo }: {
+function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, onUpdate, onDelete }: {
   commitments: Commitment[]; values: CoreValue[]; lifeAreas: LifeArea[]; visions: Vision[]
-  onAdd: () => void; onUpdate: (id: string, updates: Partial<Commitment>) => void; onDelete: (id: string) => void; onInfo?: () => void
+  onAdd: () => void; onUpdate: (id: string, updates: Partial<Commitment>) => void; onDelete: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all")
@@ -585,53 +600,76 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
     return items
   }, [commitments, filter])
 
+  const filterControls = commitments.length > 0 ? (
+    <select value={filter} onChange={(e) => setFilter(e.target.value as "all" | "active" | "archived")} className="px-3 py-1.5 text-xs rounded-lg border bg-background h-8">
+      <option value="all">All</option>
+      <option value="active">Active</option>
+      <option value="archived">Archived</option>
+    </select>
+  ) : null
+
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" collapsedInfo={`${commitments.filter((c) => !c.archived).length} Commitment${commitments.filter((c) => !c.archived).length !== 1 ? 's' : ''}`} count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} />
+      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" collapsedInfo={`${commitments.filter((c) => !c.archived).length} Commitment${commitments.filter((c) => !c.archived).length !== 1 ? 's' : ''}`} count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} rightControls={filterControls} />
       {expanded && (
         <div className="space-y-3">
-          {commitments.length > 0 && (
-            <div className="flex gap-2">
-              <select value={filter} onChange={(e) => setFilter(e.target.value as "all" | "active" | "archived")} className="px-3 py-2 text-sm rounded-lg border bg-background h-9">
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-          )}
           {filtered.length === 0 ? (
             <EmptyState icon={Shield} title="No commitments yet" desc="Make lifelong promises that guide your actions." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Commitment</Button>} />
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {filtered.map((c) => (
-                <div key={c.id} className={`p-4 rounded-2xl border bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-150 group ${c.archived ? "opacity-60" : ""}`}>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold">{c.title}</span>
-                        {c.archived && <Badge variant="secondary" className="text-[9px]">Archived</Badge>}
-                        <HealthStatusBadge status={c.healthStatus} />
+              {filtered.map((c) => {
+                const linkedValues = (c.relatedValueIds || []).map((vid) => values.find((v) => v.id === vid)).filter(Boolean) as CoreValue[]
+                const linkedLifeAreas = (c.relatedLifeAreaIds || []).map((lid) => lifeAreas.find((a) => a.id === lid)).filter(Boolean) as LifeArea[]
+                const linkedVisions = (c.relatedVisionIds || []).map((vid) => visions.find((v) => v.id === vid)).filter(Boolean) as Vision[]
+
+                return (
+                  <div key={c.id} className={`p-4 rounded-2xl border bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-150 group ${c.archived ? "opacity-60" : ""}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-semibold leading-snug">{c.title}</span>
+
+                        {linkedValues.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {linkedValues.map((v) => (
+                              <span key={v.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-[#1E0E6B]/25 text-[#1E0E6B] font-medium">{v.name}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {linkedLifeAreas.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {linkedLifeAreas.map((a) => (
+                              <span key={a.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border border-purple-400/40 text-purple-600 dark:text-purple-400 font-medium">
+                                {a.icon} {a.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {linkedVisions.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {linkedVisions.map((v) => (
+                              <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border border-[#EB9E5B]/40 text-[#EB9E5B] font-medium">
+                                {v.icon} {v.title}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {c.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{c.description}</p>}
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {(c.relatedValueIds || []).map((vid) => { const v = values.find((val) => val.id === vid); return v ? <RelationshipChip key={vid} icon={v.icon} label={v.name} /> : null })}
-                        {(c.relatedLifeAreaIds || []).map((lid) => { const a = lifeAreas.find((l) => l.id === lid); return a ? <RelationshipChip key={lid} icon={a.icon} label={a.name} /> : null })}
-                        {(c.relatedVisionIds || []).map((vid) => { const v = visions.find((vis) => vis.id === vid); return v ? <Badge key={vid} variant="outline" className="text-[9px]">{v.icon} {v.title}</Badge> : null })}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button onClick={() => setEditingId(editingId === c.id ? null : c.id)} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                        <button onClick={() => onUpdate(c.id, { archived: !c.archived })} className="p-1 rounded hover:bg-muted" title={c.archived ? "Unarchive" : "Archive"}>
+                          {c.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-muted-foreground" /> : <Archive className="h-3.5 w-3.5 text-muted-foreground" />}
+                        </button>
+                        <button onClick={() => onDelete(c.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button onClick={() => setEditingId(editingId === c.id ? null : c.id)} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
-                      <button onClick={() => onUpdate(c.id, { archived: !c.archived })} className="p-1 rounded hover:bg-muted" title={c.archived ? "Unarchive" : "Archive"}>
-                        {c.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-muted-foreground" /> : <Archive className="h-3.5 w-3.5 text-muted-foreground" />}
-                      </button>
-                      <button onClick={() => onDelete(c.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                    </div>
+                    {editingId === c.id && (
+                      <CommitmentEditModal commitment={c} values={values} lifeAreas={lifeAreas} visions={visions} onSave={(updates) => { onUpdate(c.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
+                    )}
                   </div>
-                  {editingId === c.id && (
-                    <CommitmentEditModal commitment={c} values={values} lifeAreas={lifeAreas} visions={visions} onSave={(updates) => { onUpdate(c.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -721,9 +759,9 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
 // VISIONS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function VisionsSection({ visions, values, commitments, lifeAreas, goals, milestones = [], onAdd, onUpdate, onDelete, onSelectVision, onInfo }: {
+function VisionsSection({ visions, values, commitments, lifeAreas, goals, milestones = [], onAdd, onUpdate, onDelete, onSelectVision }: {
   visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>; milestones?: RoadmapMilestone[]
-  onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void; onInfo?: () => void
+  onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void
 }) {
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
@@ -739,7 +777,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, milest
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Star} title="My Visions" subtitle="The future you are creating" collapsedInfo={`${visions.filter((v) => !v.archived).length} Vision${visions.filter((v) => !v.archived).length !== 1 ? 's' : ''}`} count={visions.filter((v) => !v.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} />
+      <SectionHeader icon={Star} title="My Visions" subtitle="The future you are creating" collapsedInfo={`${visions.filter((v) => !v.archived).length} Vision${visions.filter((v) => !v.archived).length !== 1 ? 's' : ''}`} count={visions.filter((v) => !v.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
       {expanded && (
         <div className="space-y-3">
           {visions.length > 0 && (
@@ -1140,7 +1178,7 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
 // ROADMAP SECTION
 // ══════════════════════════════════════════════════════════════
 
-function RoadmapSection({ visions, lifeAreas, onInfo }: { visions: Vision[]; lifeAreas: LifeArea[]; onInfo?: () => void }) {
+function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: LifeArea[] }) {
   const [expanded, setExpanded] = useState(false)
   const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
 
@@ -1163,7 +1201,7 @@ function RoadmapSection({ visions, lifeAreas, onInfo }: { visions: Vision[]; lif
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Clock} title="Long-Term Milestones" subtitle="Major achievements across your life's timeline" collapsedInfo={`${count} Milestone${count !== 1 ? 's' : ''}`} count={milestones.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onInfo={onInfo} />
+      <SectionHeader icon={Clock} title="Long-Term Milestones" subtitle="Major achievements across your life's timeline" collapsedInfo={`${count} Milestone${count !== 1 ? 's' : ''}`} count={milestones.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
       {expanded && (
         <div className="space-y-6">
           {groupedByVision.length === 0 ? (
@@ -1238,51 +1276,40 @@ const VALUE_LIBRARY: Array<{ name: string; category: string; description: string
   { name: "Courage", category: "Character", description: "Acting with bravery in the face of fear or difficulty." },
   { name: "Humility", category: "Character", description: "Recognising your limits and valuing others above self." },
   { name: "Discipline", category: "Character", description: "Consistent self-control toward what matters most." },
+  { name: "Respect", category: "Character", description: "Honouring the worth and dignity of every person." },
   { name: "Authenticity", category: "Character", description: "Being genuine and true to who you really are." },
-  { name: "Patience", category: "Character", description: "Staying calm and steady through waiting and delay." },
-  { name: "Responsibility", category: "Character", description: "Owning your choices, actions, and their outcomes." },
   { name: "Faith", category: "Faith & Spirituality", description: "Trusting God and living by His guidance daily." },
-  { name: "Prayer", category: "Faith & Spirituality", description: "Staying connected through consistent conversation with God." },
-  { name: "Stewardship", category: "Faith & Spirituality", description: "Faithfully managing all you have been entrusted with." },
-  { name: "Worship", category: "Faith & Spirituality", description: "Honouring God with a devoted heart and life." },
-  { name: "Service", category: "Faith & Spirituality", description: "Using your gifts to bless and serve others." },
+  { name: "Prayer", category: "Faith & Spirituality", description: "Consistent communion with God in all things." },
+  { name: "Stewardship", category: "Faith & Spirituality", description: "Managing God-given resources with wisdom and care." },
+  { name: "Worship", category: "Faith & Spirituality", description: "A lifestyle of honour and devotion to God." },
+  { name: "Service", category: "Faith & Spirituality", description: "Using your gifts to bless and uplift others." },
   { name: "Gratitude", category: "Faith & Spirituality", description: "Thankfulness for blessings seen and unseen." },
-  { name: "Peace", category: "Faith & Spirituality", description: "Inner calm rooted in trust beyond circumstances." },
-  { name: "Hope", category: "Faith & Spirituality", description: "Confident expectation of a better future." },
-  { name: "Vision", category: "Leadership", description: "Seeing and pursuing a compelling future." },
-  { name: "Accountability", category: "Leadership", description: "Answering for your commitments with honesty." },
-  { name: "Excellence", category: "Leadership", description: "Pursuing the highest quality in all you do." },
-  { name: "Innovation", category: "Leadership", description: "Creating new and better ways forward." },
-  { name: "Influence", category: "Leadership", description: "Inspiring others toward what is good and true." },
-  { name: "Wisdom", category: "Leadership", description: "Applying knowledge with discernment and insight." },
-  { name: "Decision", category: "Leadership", description: "Choosing clearly and acting with conviction." },
-  { name: "Initiative", category: "Leadership", description: "Taking action without waiting to be told." },
+  { name: "Vision", category: "Leadership", description: "Seeing what could be and making it real." },
+  { name: "Accountability", category: "Leadership", description: "Owning your actions and their outcomes." },
+  { name: "Excellence", category: "Leadership", description: "Pursuing the highest standard in all you do." },
+  { name: "Innovation", category: "Leadership", description: "Creative problem-solving and fresh thinking." },
+  { name: "Influence", category: "Leadership", description: "Positive impact that inspires others to grow." },
   { name: "Love", category: "Relationships", description: "Selfless care and commitment to others' good." },
-  { name: "Trust", category: "Relationships", description: "Being reliable and believing the best in others." },
+  { name: "Trust", category: "Relationships", description: "Building reliability through consistent action." },
   { name: "Compassion", category: "Relationships", description: "Genuine empathy that moves you to help." },
-  { name: "Kindness", category: "Relationships", description: "Treating others with warmth and generosity." },
+  { name: "Kindness", category: "Relationships", description: "Generous concern for others without expectation." },
   { name: "Loyalty", category: "Relationships", description: "Steadfast devotion through every season." },
   { name: "Forgiveness", category: "Relationships", description: "Releasing offense and choosing reconciliation." },
-  { name: "Empathy", category: "Relationships", description: "Understanding and sharing the feelings of others." },
-  { name: "Respect", category: "Relationships", description: "Honouring the dignity and worth of every person." },
-  { name: "Learning", category: "Growth", description: "Continually gaining knowledge and understanding." },
-  { name: "Curiosity", category: "Growth", description: "A hungry desire to learn and explore." },
-  { name: "Resilience", category: "Growth", description: "Bouncing back stronger after setbacks." },
-  { name: "Focus", category: "Growth", description: "Giving full attention to what matters most." },
-  { name: "Self-Improvement", category: "Growth", description: "Intentionally growing into a better version of yourself." },
-  { name: "Adaptability", category: "Growth", description: "Adjusting well to change and new challenges." },
-  { name: "Persistence", category: "Growth", description: "Staying the course until the work is done." },
-  { name: "Perseverance", category: "Achievement", description: "Pressing on despite obstacles and delay." },
-  { name: "Ambition", category: "Achievement", description: "A holy drive to build and become more." },
-  { name: "Generosity", category: "Achievement", description: "Freely giving time, treasure, and talent." },
-  { name: "Productivity", category: "Achievement", description: "Making meaningful progress with your time." },
-  { name: "Mastery", category: "Achievement", description: "Pursuing deep skill and craftsmanship." },
-  { name: "Health", category: "Well-being", description: "Stewarding your body as a temple." },
-  { name: "Balance", category: "Well-being", description: "Harmony across every area of life." },
+  { name: "Learning", category: "Growth", description: "A lifelong commitment to becoming more." },
+  { name: "Curiosity", category: "Growth", description: "A hungry desire to explore and understand." },
+  { name: "Wisdom", category: "Growth", description: "Applying knowledge with discernment and insight." },
+  { name: "Resilience", category: "Growth", description: "Bouncing back stronger from every setback." },
+  { name: "Focus", category: "Growth", description: "Directing energy toward what matters most." },
+  { name: "Peace", category: "Well-being", description: "Inner calm rooted in trust beyond circumstances." },
   { name: "Joy", category: "Well-being", description: "Deep gladness not dependent on circumstances." },
+  { name: "Balance", category: "Well-being", description: "Harmony across every area of life." },
+  { name: "Health", category: "Well-being", description: "Stewarding your body as a temple." },
   { name: "Rest", category: "Well-being", description: "Sacred pause to renew body and soul." },
-  { name: "Mindfulness", category: "Well-being", description: "Being fully present and aware in the moment." },
-  { name: "Vitality", category: "Well-being", description: "Living with energy, vigour, and life." },
+  { name: "Hope", category: "Well-being", description: "Confident expectation of a better future." },
+  { name: "Generosity", category: "Character", description: "Freely giving time, treasure, and talent." },
+  { name: "Perseverance", category: "Character", description: "Pressing on despite obstacles and delay." },
+  { name: "Ambition", category: "Growth", description: "A holy drive to build and become more." },
+  { name: "Self-Awareness", category: "Growth", description: "Knowing your heart, motives, and patterns." },
 ]
 
 function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (v: Omit<CoreValue, "id" | "order" | "createdAt" | "updatedAt">) => void }) {
@@ -1290,7 +1317,6 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
   const [reflection, setReflection] = useState("")
   const [browseOpen, setBrowseOpen] = useState(false)
   const [librarySearch, setLibrarySearch] = useState("")
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({})
   const browseRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1306,7 +1332,7 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
 
   const handleSave = () => {
     if (!name.trim()) return
-    onSave({ name: name.trim(), icon: "✦", description: "", purposeConnection: reflection, pinned: false })
+    onSave({ name: name.trim(), icon: "✦", description: reflection, purposeConnection: "", pinned: false })
   }
 
   const selectFromLibrary = (label: string) => {
@@ -1318,19 +1344,13 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
   const groupedLibrary = useMemo(() => {
     const q = librarySearch.toLowerCase()
     const filtered = VALUE_LIBRARY.filter((v) => v.name.toLowerCase().includes(q))
-    const map = new Map<string, typeof VALUE_LIBRARY>()
+    const map = new Map<string, string[]>()
     for (const v of filtered) {
       if (!map.has(v.category)) map.set(v.category, [])
-      map.get(v.category)!.push(v)
+      map.get(v.category)!.push(v.name)
     }
     return Array.from(map.entries()).map(([category, items]) => ({ category, items }))
   }, [librarySearch])
-
-  const isCategoryOpen = (category: string, index: number) => {
-    if (librarySearch.trim()) return true
-    return openCategories[category] ?? index < 3
-  }
-  const toggleCategory = (category: string) => setOpenCategories((prev) => ({ ...prev, [category]: !(prev[category] ?? false) }))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1340,7 +1360,7 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
 
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Value Name</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Type your own value (e.g. Integrity, Faith, Excellence)" autoFocus />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Type your own value&#10;(e.g. Integrity, Faith, Excellence)" autoFocus />
         </div>
 
         <div className="relative" ref={browseRef}>
@@ -1368,36 +1388,26 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
                   />
                 </div>
               </div>
-              <div className="max-h-72 overflow-y-auto py-1">
+              <div className="max-h-64 overflow-y-auto py-1">
                 {groupedLibrary.length === 0 ? (
                   <p className="px-3 py-3 text-xs text-muted-foreground text-center">No matching values</p>
                 ) : (
-                  groupedLibrary.map((cat, index) => {
-                    const open = isCategoryOpen(cat.category, index)
-                    return (
-                      <div key={cat.category}>
+                  groupedLibrary.map((cat) => (
+                    <div key={cat.category}>
+                      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat.category}</p>
+                      {cat.items.map((label) => (
                         <button
+                          key={label}
                           type="button"
-                          onClick={() => toggleCategory(cat.category)}
-                          className="flex items-center justify-between gap-2 w-full px-3 py-2 text-left"
+                          onClick={() => selectFromLibrary(label)}
+                          className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left transition-colors hover:bg-[#1E0E6B]/5"
                         >
-                          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat.category}</span>
-                          {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                          <span>{label}</span>
+                          {name.trim().toLowerCase() === label.toLowerCase() && <Check className="h-4 w-4 text-[#1E0E6B]" />}
                         </button>
-                        {open && cat.items.map((v) => (
-                          <button
-                            key={v.name}
-                            type="button"
-                            onClick={() => selectFromLibrary(v.name)}
-                            className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left transition-colors hover:bg-[#1E0E6B]/5"
-                          >
-                            <span>{v.name}</span>
-                            {name.trim().toLowerCase() === v.name.toLowerCase() && <Check className="h-4 w-4 text-[#1E0E6B]" />}
-                          </button>
-                        ))}
-                      </div>
-                    )
-                  })
+                      ))}
+                    </div>
+                  ))
                 )}
               </div>
             </div>
@@ -1406,7 +1416,7 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
 
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reflection</label>
-          <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="How does this value shape your life or support your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
+          <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="How does this value shape your life or support your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
         </div>
 
         <div className="flex gap-2 justify-end">
@@ -1664,16 +1674,16 @@ export function VisionsPage() {
       <PurposeSection purpose={purpose} lifeAreas={lifeAreas} onSave={handleSavePurpose} />
 
       {/* 2. Core Values */}
-      <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} onInfo={() => setInfoModal("values")} />
+      <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} />
 
       {/* 3. Commitments */}
-      <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} onInfo={() => setInfoModal("commitments")} />
+      <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
 
       {/* 4. My Visions */}
-      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} milestones={roadmapMilestones} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} onInfo={() => setInfoModal("visions")} />
+      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} milestones={roadmapMilestones} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
 
       {/* 5. Long-Term Milestones */}
-      <RoadmapSection visions={visions} lifeAreas={lifeAreas} onInfo={() => setInfoModal("roadmap")} />
+      <RoadmapSection visions={visions} lifeAreas={lifeAreas} />
 
       {/* Vision Edit Modal */}
       {selectedVision && (
@@ -1691,26 +1701,6 @@ export function VisionsPage() {
         <EducationalModal title="Purpose" onClose={() => setInfoModal(null)}>
           <p>Purpose is your reason for living. It answers the question: <strong>&ldquo;Why do I exist?&rdquo;</strong></p>
           <p>Unlike goals, purpose rarely changes. It guides your decisions throughout life.</p>
-        </EducationalModal>
-      )}
-      {infoModal === "values" && (
-        <EducationalModal title="Core Values" onClose={() => setInfoModal(null)}>
-          <p>Core values are the principles that guide your decisions, shape your behaviour, and remain consistent regardless of circumstances.</p>
-        </EducationalModal>
-      )}
-      {infoModal === "commitments" && (
-        <EducationalModal title="Commitments" onClose={() => setInfoModal(null)}>
-          <p>Commitments are lifelong promises you make to yourself — the standards you refuse to compromise.</p>
-        </EducationalModal>
-      )}
-      {infoModal === "visions" && (
-        <EducationalModal title="My Visions" onClose={() => setInfoModal(null)}>
-          <p>Visions are vivid pictures of the future you are intentionally creating, connected to your purpose.</p>
-        </EducationalModal>
-      )}
-      {infoModal === "roadmap" && (
-        <EducationalModal title="Long-Term Milestones" onClose={() => setInfoModal(null)}>
-          <p>Milestones are the major achievements that mark progress across your life's timeline.</p>
         </EducationalModal>
       )}
     </div>

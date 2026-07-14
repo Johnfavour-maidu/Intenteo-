@@ -236,12 +236,14 @@ export function randomReviewQuestion(): string {
   return REVIEW_QUESTIONS[Math.floor(Math.random() * REVIEW_QUESTIONS.length)]
 }
 
-export function getNextReviewDate(purpose: Purpose): string {
+export function getNextReviewDate(purpose: Purpose, frequencyOverride?: Purpose["reviewFrequency"]): string {
+  const freq = frequencyOverride || purpose.reviewFrequency || "monthly"
+  const config = REVIEW_FREQUENCY_CONFIG[freq]
   const base = purpose.lastReviewedAt || purpose.updatedAt || new Date().toISOString()
   const d = new Date(base)
   if (isNaN(d.getTime())) return "—"
-  d.setDate(d.getDate() + REVIEW_FREQUENCY_CONFIG[purpose.reviewFrequency].days)
-  return formatDateDDMMYYYY(d.toISOString())
+  d.setDate(d.getDate() + (config?.days ?? 30))
+  return formatDateDDMMYYYY(d.toISOString().split("T")[0])
 }
 
 export function isReviewDue(purpose: Purpose): boolean {
