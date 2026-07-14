@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ProgressRing } from "@/components/ui/progress-ring"
 import { X, ChevronDown, Plus, CheckCircle2 } from "lucide-react"
 import { DateInput } from "@/components/ui/date-input"
 import { VisionImagesSection } from "./goals-page"
@@ -166,6 +167,23 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
   const selectedVision = visions.find(v => v.id === selectedVisionId)
   const filteredValues = values.filter(v => v.name.toLowerCase().includes(valueSearch.toLowerCase()))
 
+  const calcProgress = (ms: Milestone[], habits: string[], weights: Record<string, number>, wMilestones: number, wHabits: number): number => {
+    const totalWeight = wMilestones + wHabits
+    if (totalWeight === 0) return 0
+    const milestoneScore = ms.length > 0 ? (ms.filter(m => m.completed).length / ms.length) * 100 : 0
+    let habitScore = 0
+    const linkedHabitNames = Object.keys(weights)
+    if (linkedHabitNames.length > 0) {
+      const totalHabitWeight = Object.values(weights).reduce((s, w) => s + (w || 0), 0)
+      if (totalHabitWeight > 0) {
+        habitScore = linkedHabitNames.reduce((sum, name) => sum + ((weights[name] || 0) / totalHabitWeight * 100), 0)
+      }
+    } else if (habits.length > 0) {
+      habitScore = 100
+    }
+    return Math.round((milestoneScore * wMilestones + habitScore * wHabits) / totalWeight)
+  }
+
   const addMilestone = () => {
     if (newMilestone.trim()) {
       setMilestones(prev => [...prev, { id: Date.now().toString(), title: newMilestone.trim(), completed: false }])
@@ -197,6 +215,7 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
       color: c.name, colorHex: c.hex, icon, timeHorizon,
       visionId: selectedVisionId || undefined, reviewFrequency, linkedValueIds,
       heroImage, supportingImages, updatedAt: getTodayISO(),
+      weighting: { milestones: milestones.length > 0 ? 70 : 0, habits: selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0 },
     }
     onSave(updatedGoal)
     onClose()
@@ -231,6 +250,29 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
               </div>
             )}
             <div className="flex gap-2"><Input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} placeholder="Add milestone and press Enter" onKeyDown={e => e.key === "Enter" && addMilestone()} className="text-sm" /><Button size="sm" variant="outline" onClick={addMilestone}>Add</Button></div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <label className="text-sm font-medium">Goal Progress Calculation</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Choose how this goal measures its progress.</p>
+              </div>
+              <ProgressRing value={calcProgress(milestones, selectedHabits, habitWeights, milestones.length > 0 ? 70 : 0, selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0)} size={48} strokeWidth={4} showLabel />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{milestones.length > 0 ? "70%" : "0%"}</p>
+                <p className="text-[10px] text-muted-foreground">{milestones.filter(m => m.completed).length}/{milestones.length} completed</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{selectedHabits.length > 0 ? (milestones.length > 0 ? "30%" : "100%") : "0%"}</p>
+                <p className="text-[10px] text-muted-foreground">{selectedHabits.length} linked</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress is calculated automatically from milestones and habits.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

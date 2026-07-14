@@ -48,10 +48,10 @@ function formatDateDDMMYYYY(dateStr: string): string {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`
 }
 
-function RelationshipChip({ icon, label }: { icon: string; label: string }) {
+function RelationshipChip({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary font-medium">
-      {icon} {label}
+      {label}
     </span>
   )
 }
@@ -855,7 +855,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, allMil
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {(v.relatedValueIds || []).slice(0, 3).map((vid) => { const val = values.find((vv) => vv.id === vid); return val ? <RelationshipChip key={vid} icon={val.icon} label={val.name} /> : null })}
+                        {(v.relatedValueIds || []).slice(0, 3).map((vid) => { const val = values.find((vv) => vv.id === vid); return val ? <RelationshipChip key={vid} label={val.name} /> : null })}
                         {(v.relatedValueIds || []).length > 3 && <span className="text-[9px] text-muted-foreground">+{(v.relatedValueIds || []).length - 3}</span>}
                       </div>
                       {nextMilestone ? (

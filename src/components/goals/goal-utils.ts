@@ -6,7 +6,18 @@ export type GoalHealthState = "excellent" | "on_track" | "needs_attention" | "at
 export type GoalLifecycleStage = "planning" | "active" | "building" | "on_track" | "near_completion" | "completed" | "archived"
 export type GoalTrendDirection = "up" | "down" | "stable"
 
-interface GoalMilestone { id: string; title: string; completed: boolean }
+export type ProgressStrategy = "balanced" | "milestone-focused" | "habit-focused" | "milestones-only" | "habits-only" | "custom"
+
+export const PROGRESS_STRATEGIES: { value: ProgressStrategy; label: string; milestoneWeight: number; habitWeight: number }[] = [
+  { value: "balanced", label: "Balanced", milestoneWeight: 50, habitWeight: 50 },
+  { value: "milestone-focused", label: "Milestone Focused", milestoneWeight: 70, habitWeight: 30 },
+  { value: "habit-focused", label: "Habit Focused", milestoneWeight: 30, habitWeight: 70 },
+  { value: "milestones-only", label: "Milestones Only", milestoneWeight: 100, habitWeight: 0 },
+  { value: "habits-only", label: "Habits Only", milestoneWeight: 0, habitWeight: 100 },
+  { value: "custom", label: "Custom", milestoneWeight: 50, habitWeight: 50 },
+]
+
+interface GoalMilestone { id: string; title: string; completed: boolean; weight?: number }
 interface GoalProjectTask { id: string; title: string; completed: boolean; subtasks: { id: string; title: string; completed: boolean }[] }
 interface GoalLinkedHabitWeight { habitId: string; habitName: string; weight: number }
 
@@ -17,7 +28,10 @@ export interface GoalData {
   milestones: GoalMilestone[]; linkedHabits: string[]; linkedHabitWeights?: GoalLinkedHabitWeight[]
   notes: string; color: string; colorHex: string
   icon: string; trackingMethod: string
-  weighting: { projects: number; habits: number; milestones: number; manual: number }
+  weighting?: { milestones: number; habits: number }
+  progressStrategy?: ProgressStrategy
+  milestoneWeight?: number
+  habitWeight?: number
   timeline?: string; status?: string; timeHorizon?: string; visionId?: string
   habitCompletionRate?: number; lastActivity?: string
   linkedValueIds?: string[]; heroImage?: string
@@ -339,12 +353,8 @@ export function getGoalHealthScore(
 
 function calcGoalProgressForHealth(g: GoalData, projects: GoalProject[], habits: GoalHabit[]): number {
   const w = g.weighting
-  const totalWeight = w.projects + w.habits + w.milestones + w.manual
-  if (totalWeight === 0) return g.progress
-  const goalProjects = projects.filter(p => p.goalId === g.id)
-  const projectScore = goalProjects.length > 0
-    ? goalProjects.reduce((sum, p) => sum + calcProjectProgress(p), 0) / goalProjects.length
-    : 0
+  const totalWeight = w.milestones + w.habits
+  if (totalWeight === 0) return 0
   const milestoneScore = g.milestones.length > 0
     ? (g.milestones.filter(m => m.completed).length / g.milestones.length) * 100
     : 0
@@ -364,9 +374,8 @@ function calcGoalProgressForHealth(g: GoalData, projects: GoalProject[], habits:
       habitScore = linked.reduce((sum, h) => sum + calcHabitScoreForGoalFn(h), 0) / linked.length
     }
   }
-  const manualScore = g.progress
   return Math.round(
-    (projectScore * w.projects + habitScore * w.habits + milestoneScore * w.milestones + manualScore * w.manual) / totalWeight
+    (milestoneScore * w.milestones + habitScore * w.habits) / totalWeight
   )
 }
 
