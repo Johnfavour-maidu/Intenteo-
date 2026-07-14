@@ -160,6 +160,120 @@ function HealthStatusBadge({ status }: { status: Commitment["healthStatus"] }) {
   )
 }
 
+function PurposeReviewModal({ purpose, onSave, onClose }: { purpose: Purpose; onSave: (p: Purpose) => void; onClose: () => void }) {
+  const [reviewFrequency, setReviewFrequency] = useState(purpose.reviewFrequency)
+  const [reviews, setReviews] = useState<PurposeReview[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [showAddReview, setShowAddReview] = useState(false)
+  const [reflection, setReflection] = useState("")
+  const [question, setQuestion] = useState("")
+
+  const handleSaveFrequency = () => {
+    const updated = { ...purpose, reviewFrequency, updatedAt: new Date().toISOString() }
+    savePurpose(updated)
+    onSave(updated)
+  }
+
+  const handleSaveReview = () => {
+    if (!reflection.trim()) return
+    const review = addPurposeReview({ reflection: reflection.trim(), question, reviewDate: new Date().toISOString() })
+    setReviews((r) => [review, ...r])
+    const next = { ...purpose, lastReviewedAt: review.reviewDate, updatedAt: new Date().toISOString() }
+    savePurpose(next)
+    onSave(next)
+    setReflection("")
+    setShowAddReview(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-[#EB9E5B]/10 flex items-center justify-center">
+              <BookOpen className="h-4 w-4 text-[#EB9E5B]" />
+            </div>
+            <h3 className="font-bold text-lg">Purpose Review</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Review Frequency</label>
+          <div className="flex items-center gap-2">
+            <select value={reviewFrequency} onChange={(e) => setReviewFrequency(e.target.value as Purpose["reviewFrequency"])} className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annually">Annually</option>
+            </select>
+            {reviewFrequency !== purpose.reviewFrequency && (
+              <Button size="sm" variant="outline" onClick={handleSaveFrequency}>Save</Button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Last Review: {purpose.lastReviewedAt ? formatDateDDMMYYYY(purpose.lastReviewedAt) : "—"}</span>
+          <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> Next Review: {getNextReviewDate(purpose)}</span>
+        </div>
+
+        <div className="h-px bg-[#1E0E6B]/10" />
+
+        {!showAddReview ? (
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setReflection(""); setQuestion(randomReviewQuestion()); setShowAddReview(true) }}>
+            <Plus className="h-3.5 w-3.5" /> Add Review
+          </Button>
+        ) : (
+          <div className="p-3 rounded-xl border border-[#1E0E6B]/15 bg-[#1E0E6B]/5 space-y-2">
+            {question && <p className="text-xs font-medium text-[#1E0E6B]">{question}</p>}
+            <textarea
+              value={reflection}
+              onChange={(e) => setReflection(e.target.value)}
+              rows={3}
+              placeholder="Reflect on your purpose and any shifts since your last review..."
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setShowAddReview(false)}>Cancel</Button>
+              <Button size="sm" disabled={!reflection.trim()} onClick={handleSaveReview}>Save Review</Button>
+            </div>
+          </div>
+        )}
+
+        {reviews.length > 0 && (
+          <div>
+            <button onClick={() => setShowHistory((s) => !s)} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
+              <History className="h-3.5 w-3.5" />
+              Review History ({reviews.length})
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showHistory ? "rotate-180" : ""}`} />
+            </button>
+            {showHistory && (
+              <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                {reviews.map((r) => (
+                  <div key={r.id} className="p-2.5 rounded-lg bg-muted/40 border border-border/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-[#1E0E6B]">{formatDateDDMMYYYY(r.reviewDate)}</span>
+                      <button type="button" onClick={() => { deletePurposeReview(r.id); setReviews((list) => list.filter((x) => x.id !== r.id)) }} className="text-muted-foreground hover:text-[#EB9E5B] transition-colors" aria-label="Delete review">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {r.question && <p className="text-[11px] italic text-muted-foreground mt-0.5">{r.question}</p>}
+                    <p className="text-xs text-foreground mt-1 whitespace-pre-wrap">{r.reflection}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
 // ══════════════════════════════════════════════════════════════
 // PURPOSE SECTION (Hero)
 // ══════════════════════════════════════════════════════════════
@@ -171,19 +285,11 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
   const [lifeAreaIds, setLifeAreaIds] = useState<string[]>(purpose.lifeAreaIds)
   const [lifeAreaSearch, setLifeAreaSearch] = useState("")
   const [showLifeAreaDropdown, setShowLifeAreaDropdown] = useState(false)
-  const [reviewFrequency, setReviewFrequency] = useState(purpose.reviewFrequency)
+  const [showReviewModal, setShowReviewModal] = useState(false)
 
-  const [reviews, setReviews] = useState<PurposeReview[]>([])
-  const [showHistory, setShowHistory] = useState(false)
-  const [showAddReview, setShowAddReview] = useState(false)
-  const [reflection, setReflection] = useState("")
-  const [question, setQuestion] = useState("")
-
-  useEffect(() => { setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds); setReviewFrequency(purpose.reviewFrequency) }, [purpose])
-  useEffect(() => { setReviews(loadPurposeReviews()) }, [])
-
+  useEffect(() => { setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds) }, [purpose])
   const handleSave = () => {
-    onSave({ statement, notes, lifeAreaIds, reviewFrequency, lastReviewedAt: purpose.lastReviewedAt, updatedAt: new Date().toISOString() })
+    onSave({ statement, notes, lifeAreaIds, reviewFrequency: purpose.reviewFrequency, lastReviewedAt: purpose.lastReviewedAt, updatedAt: new Date().toISOString() })
     setEditing(false)
   }
 
@@ -318,14 +424,6 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
               </div>
             )}
           </div>
-          <div className="mt-3">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Review Frequency</label>
-            <select value={reviewFrequency} onChange={(e) => setReviewFrequency(e.target.value as Purpose["reviewFrequency"])} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="annually">Annually</option>
-            </select>
-          </div>
           <div className="flex gap-2 justify-end">
             <Button size="sm" variant="outline" onClick={() => { setEditing(false); setStatement(purpose.statement); setNotes(purpose.notes); setLifeAreaIds(purpose.lifeAreaIds) }}>Cancel</Button>
             <Button size="sm" onClick={handleSave}>Save Purpose</Button>
@@ -341,9 +439,17 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
               <span className="text-sm font-bold text-[#1E0E6B] uppercase tracking-wider">Purpose</span>
               {purpose.updatedAt && <span className="text-[10px] text-muted-foreground">Updated {formatDateDDMMYYYY(purpose.updatedAt)}</span>}
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="gap-1 text-xs">
-              <Edit3 className="h-3 w-3" /> Edit
-            </Button>
+            <div className="flex items-center gap-0.5">
+              <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="gap-1 text-xs">
+                <Edit3 className="h-3 w-3" /> Edit
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowReviewModal(true)} className="gap-1 text-xs">
+                <BookOpen className="h-3 w-3" /> Review
+                {isReviewDue(purpose) && (
+                  <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-[#EB9E5B]" />
+                )}
+              </Button>
+            </div>
           </div>
           {purpose.statement ? (
             <div className="flex gap-3 items-start my-2">
@@ -361,77 +467,9 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
             </div>
           )}
 
-          {/* ── Purpose Reviews ── */}
-          <div className="mt-5 border-t border-[#1E0E6B]/10 pt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-[#EB9E5B]" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#EB9E5B]">Purpose Review</span>
-                {isReviewDue(purpose) && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                    <AlertTriangle className="h-3 w-3" /> Due
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => setShowHistory((s) => !s)}>
-                  <History className="h-3 w-3" /> {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
-                </Button>
-                <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setReflection(""); setQuestion(randomReviewQuestion()); setShowAddReview((s) => !s) }}>
-                  <Plus className="h-3 w-3" /> {showAddReview ? "Close" : "Add Review"}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-muted-foreground">
-              <span>Frequency: {purpose.reviewFrequency}</span>
-              <span>Last Review: {purpose.lastReviewedAt ? formatDateDDMMYYYY(purpose.lastReviewedAt) : "—"}</span>
-              <span>Next Review: {getNextReviewDate(purpose)}</span>
-            </div>
-
-            {showAddReview && (
-              <div className="mt-3 p-3 rounded-xl border border-[#1E0E6B]/15 bg-[#1E0E6B]/5 space-y-2">
-                {question && <p className="text-xs font-medium text-[#1E0E6B]">{question}</p>}
-                <textarea
-                  value={reflection}
-                  onChange={(e) => setReflection(e.target.value)}
-                  rows={2}
-                  placeholder="Reflect on your purpose and any shifts since your last review..."
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                />
-                <div className="flex justify-end gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setShowAddReview(false)}>Cancel</Button>
-                  <Button size="sm" disabled={!reflection.trim()} onClick={() => {
-                    const review = addPurposeReview({ reflection: reflection.trim(), question, reviewDate: new Date().toISOString() })
-                    setReviews((r) => [review, ...r])
-                    const next = { ...purpose, lastReviewedAt: review.reviewDate }
-                    savePurpose(next)
-                    onSave(next)
-                    setReflection(""); setShowAddReview(false)
-                  }}>Save Review</Button>
-                </div>
-              </div>
-            )}
-
-            {showHistory && reviews.length > 0 && (
-              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-                {reviews.map((r) => (
-                  <div key={r.id} className="p-2.5 rounded-lg bg-muted/40 border border-border/60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-[#1E0E6B]">{formatDateDDMMYYYY(r.reviewDate)}</span>
-                      <button type="button" onClick={() => { deletePurposeReview(r.id); setReviews((list) => list.filter((x) => x.id !== r.id)); if (reviews.length === 1) setShowHistory(false) }} className="text-muted-foreground hover:text-[#EB9E5B] transition-colors" aria-label="Delete review">
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                    {r.question && <p className="text-[11px] italic text-muted-foreground mt-0.5">{r.question}</p>}
-                    <p className="text-xs text-foreground mt-1 whitespace-pre-wrap">{r.reflection}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       )}
+      {showReviewModal && <PurposeReviewModal purpose={purpose} onSave={onSave} onClose={() => setShowReviewModal(false)} />}
     </div>
   )
 }
@@ -440,9 +478,9 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
 // CORE VALUES SECTION
 // ══════════════════════════════════════════════════════════════
 
-function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
+function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder, onInfo }: {
   values: CoreValue[]; onAdd: () => void; onUpdate: (id: string, updates: Partial<CoreValue>) => void
-  onDelete: (id: string) => void; onReorder: (ids: string[]) => void
+  onDelete: (id: string) => void; onReorder: (ids: string[]) => void; onInfo?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -462,29 +500,24 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Heart} title="Core Values" subtitle="What guides your life" collapsedInfo={`${values.length} Value${values.length !== 1 ? 's' : ''}`} count={values.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader icon={Heart} title="Core Values" subtitle="What guides your life" collapsedInfo={`${values.length} Value${values.length !== 1 ? 's' : ''}`} count={values.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} />
       {expanded && (
         <div className="space-y-3">
           {values.length === 0 ? (
-            <EmptyState icon={Heart} title="No values yet" desc="Define the principles that guide your decisions." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Value</Button>} />
+            <EmptyState icon={Heart} title="Your values shape your decisions." desc="Start by adding the principles that guide your life." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Value</Button>} />
           ) : (
             <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {values.map((value) => {
-                const strength = calculateValueConnectionStrength(value.id)
                 return (
                   <div key={value.id} draggable onDragStart={() => handleDragStart(value.id)} onDragOver={(e) => handleDragOver(e, value.id)} onDragEnd={() => setDragId(null)}
                     className={`flex items-start gap-3 p-4 rounded-2xl border bg-card hover:shadow-md hover:scale-[1.01] transition-all duration-150 group cursor-grab active:cursor-grabbing ${dragId === value.id ? "opacity-50" : ""} ${value.pinned ? "border-primary/30 bg-primary/5" : ""}`}>
                     <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-1" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold truncate">{value.name}</span>
-                        {value.pinned && <Pin className="h-3 w-3 text-primary fill-primary" />}
+                        {value.pinned && <Pin className="h-3.5 w-3.5 text-primary fill-primary shrink-0" />}
+                        <span className="text-base font-semibold truncate">{value.name}</span>
                       </div>
-                      {value.description && <p className="text-xs text-muted-foreground truncate mt-0.5">{value.description}</p>}
-                      {value.purposeConnection && <p className="text-[10px] text-primary/70 mt-1 italic line-clamp-1">&ldquo;{value.purposeConnection}&rdquo;</p>}
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[9px] text-muted-foreground">{strength.label}</span>
-                      </div>
+                      {value.purposeConnection && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">&ldquo;{value.purposeConnection}&rdquo;</p>}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       <button onClick={() => onUpdate(value.id, { pinned: !value.pinned })} className="p-1 rounded hover:bg-muted" title={value.pinned ? "Unpin" : "Pin"}>
@@ -509,8 +542,7 @@ function CoreValuesSection({ values, onAdd, onUpdate, onDelete, onReorder }: {
 
 function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave: (updates: Partial<CoreValue>) => void; onCancel: () => void }) {
   const [name, setName] = useState(value.name)
-  const [description, setDescription] = useState(value.description)
-  const [purposeConnection, setPurposeConnection] = useState(value.purposeConnection)
+  const [reflection, setReflection] = useState(value.purposeConnection)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -522,16 +554,12 @@ function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave:
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Value name" autoFocus />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Purpose Connection</label>
-          <textarea value={purposeConnection} onChange={(e) => setPurposeConnection(e.target.value)} placeholder="How does this value help you fulfil your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reflection</label>
+          <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="How does this value shape your life or support your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button size="sm" onClick={() => onSave({ name, description, purposeConnection })}>Save</Button>
+          <Button size="sm" onClick={() => onSave({ name, icon: value.icon || "✦", description: "", purposeConnection: reflection })}>Save</Button>
         </div>
       </div>
     </div>
@@ -542,9 +570,9 @@ function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave:
 // COMMITMENTS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, onUpdate, onDelete }: {
+function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, onUpdate, onDelete, onInfo }: {
   commitments: Commitment[]; values: CoreValue[]; lifeAreas: LifeArea[]; visions: Vision[]
-  onAdd: () => void; onUpdate: (id: string, updates: Partial<Commitment>) => void; onDelete: (id: string) => void
+  onAdd: () => void; onUpdate: (id: string, updates: Partial<Commitment>) => void; onDelete: (id: string) => void; onInfo?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all")
@@ -559,7 +587,7 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" collapsedInfo={`${commitments.filter((c) => !c.archived).length} Commitment${commitments.filter((c) => !c.archived).length !== 1 ? 's' : ''}`} count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" collapsedInfo={`${commitments.filter((c) => !c.archived).length} Commitment${commitments.filter((c) => !c.archived).length !== 1 ? 's' : ''}`} count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} />
       {expanded && (
         <div className="space-y-3">
           {commitments.length > 0 && (
@@ -693,9 +721,9 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
 // VISIONS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function VisionsSection({ visions, values, commitments, lifeAreas, goals, milestones = [], onAdd, onUpdate, onDelete, onSelectVision }: {
+function VisionsSection({ visions, values, commitments, lifeAreas, goals, milestones = [], onAdd, onUpdate, onDelete, onSelectVision, onInfo }: {
   visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>; milestones?: RoadmapMilestone[]
-  onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void
+  onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void; onInfo?: () => void
 }) {
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
@@ -711,7 +739,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, milest
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Star} title="My Visions" subtitle="The future you are creating" collapsedInfo={`${visions.filter((v) => !v.archived).length} Vision${visions.filter((v) => !v.archived).length !== 1 ? 's' : ''}`} count={visions.filter((v) => !v.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader icon={Star} title="My Visions" subtitle="The future you are creating" collapsedInfo={`${visions.filter((v) => !v.archived).length} Vision${visions.filter((v) => !v.archived).length !== 1 ? 's' : ''}`} count={visions.filter((v) => !v.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} />
       {expanded && (
         <div className="space-y-3">
           {visions.length > 0 && (
@@ -1112,7 +1140,7 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
 // ROADMAP SECTION
 // ══════════════════════════════════════════════════════════════
 
-function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: LifeArea[] }) {
+function RoadmapSection({ visions, lifeAreas, onInfo }: { visions: Vision[]; lifeAreas: LifeArea[]; onInfo?: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
 
@@ -1135,7 +1163,7 @@ function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: 
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Clock} title="Long-Term Milestones" subtitle="Major achievements across your life's timeline" collapsedInfo={`${count} Milestone${count !== 1 ? 's' : ''}`} count={milestones.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
+      <SectionHeader icon={Clock} title="Long-Term Milestones" subtitle="Major achievements across your life's timeline" collapsedInfo={`${count} Milestone${count !== 1 ? 's' : ''}`} count={milestones.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onInfo={onInfo} />
       {expanded && (
         <div className="space-y-6">
           {groupedByVision.length === 0 ? (
@@ -1211,33 +1239,58 @@ const VALUE_LIBRARY: Array<{ name: string; category: string; description: string
   { name: "Humility", category: "Character", description: "Recognising your limits and valuing others above self." },
   { name: "Discipline", category: "Character", description: "Consistent self-control toward what matters most." },
   { name: "Authenticity", category: "Character", description: "Being genuine and true to who you really are." },
-  { name: "Faith", category: "Spiritual", description: "Trusting God and living by His guidance daily." },
-  { name: "Gratitude", category: "Spiritual", description: "Thankfulness for blessings seen and unseen." },
-  { name: "Peace", category: "Spiritual", description: "Inner calm rooted in trust beyond circumstances." },
-  { name: "Hope", category: "Spiritual", description: "Confident expectation of a better future." },
+  { name: "Patience", category: "Character", description: "Staying calm and steady through waiting and delay." },
+  { name: "Responsibility", category: "Character", description: "Owning your choices, actions, and their outcomes." },
+  { name: "Faith", category: "Faith & Spirituality", description: "Trusting God and living by His guidance daily." },
+  { name: "Prayer", category: "Faith & Spirituality", description: "Staying connected through consistent conversation with God." },
+  { name: "Stewardship", category: "Faith & Spirituality", description: "Faithfully managing all you have been entrusted with." },
+  { name: "Worship", category: "Faith & Spirituality", description: "Honouring God with a devoted heart and life." },
+  { name: "Service", category: "Faith & Spirituality", description: "Using your gifts to bless and serve others." },
+  { name: "Gratitude", category: "Faith & Spirituality", description: "Thankfulness for blessings seen and unseen." },
+  { name: "Peace", category: "Faith & Spirituality", description: "Inner calm rooted in trust beyond circumstances." },
+  { name: "Hope", category: "Faith & Spirituality", description: "Confident expectation of a better future." },
+  { name: "Vision", category: "Leadership", description: "Seeing and pursuing a compelling future." },
+  { name: "Accountability", category: "Leadership", description: "Answering for your commitments with honesty." },
+  { name: "Excellence", category: "Leadership", description: "Pursuing the highest quality in all you do." },
+  { name: "Innovation", category: "Leadership", description: "Creating new and better ways forward." },
+  { name: "Influence", category: "Leadership", description: "Inspiring others toward what is good and true." },
+  { name: "Wisdom", category: "Leadership", description: "Applying knowledge with discernment and insight." },
+  { name: "Decision", category: "Leadership", description: "Choosing clearly and acting with conviction." },
+  { name: "Initiative", category: "Leadership", description: "Taking action without waiting to be told." },
   { name: "Love", category: "Relationships", description: "Selfless care and commitment to others' good." },
+  { name: "Trust", category: "Relationships", description: "Being reliable and believing the best in others." },
   { name: "Compassion", category: "Relationships", description: "Genuine empathy that moves you to help." },
+  { name: "Kindness", category: "Relationships", description: "Treating others with warmth and generosity." },
   { name: "Loyalty", category: "Relationships", description: "Steadfast devotion through every season." },
   { name: "Forgiveness", category: "Relationships", description: "Releasing offense and choosing reconciliation." },
-  { name: "Excellence", category: "Achievement", description: "Pursuing the highest quality in all you do." },
+  { name: "Empathy", category: "Relationships", description: "Understanding and sharing the feelings of others." },
+  { name: "Respect", category: "Relationships", description: "Honouring the dignity and worth of every person." },
+  { name: "Learning", category: "Growth", description: "Continually gaining knowledge and understanding." },
+  { name: "Curiosity", category: "Growth", description: "A hungry desire to learn and explore." },
+  { name: "Resilience", category: "Growth", description: "Bouncing back stronger after setbacks." },
+  { name: "Focus", category: "Growth", description: "Giving full attention to what matters most." },
+  { name: "Self-Improvement", category: "Growth", description: "Intentionally growing into a better version of yourself." },
+  { name: "Adaptability", category: "Growth", description: "Adjusting well to change and new challenges." },
+  { name: "Persistence", category: "Growth", description: "Staying the course until the work is done." },
   { name: "Perseverance", category: "Achievement", description: "Pressing on despite obstacles and delay." },
   { name: "Ambition", category: "Achievement", description: "A holy drive to build and become more." },
   { name: "Generosity", category: "Achievement", description: "Freely giving time, treasure, and talent." },
+  { name: "Productivity", category: "Achievement", description: "Making meaningful progress with your time." },
+  { name: "Mastery", category: "Achievement", description: "Pursuing deep skill and craftsmanship." },
   { name: "Health", category: "Well-being", description: "Stewarding your body as a temple." },
   { name: "Balance", category: "Well-being", description: "Harmony across every area of life." },
   { name: "Joy", category: "Well-being", description: "Deep gladness not dependent on circumstances." },
   { name: "Rest", category: "Well-being", description: "Sacred pause to renew body and soul." },
-  { name: "Wisdom", category: "Wisdom", description: "Applying knowledge with discernment and insight." },
-  { name: "Curiosity", category: "Wisdom", description: "A hungry desire to learn and explore." },
-  { name: "Self-Awareness", category: "Wisdom", description: "Knowing your heart, motives, and patterns." },
+  { name: "Mindfulness", category: "Well-being", description: "Being fully present and aware in the moment." },
+  { name: "Vitality", category: "Well-being", description: "Living with energy, vigour, and life." },
 ]
 
 function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (v: Omit<CoreValue, "id" | "order" | "createdAt" | "updatedAt">) => void }) {
   const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [purposeConnection, setPurposeConnection] = useState("")
+  const [reflection, setReflection] = useState("")
   const [browseOpen, setBrowseOpen] = useState(false)
   const [librarySearch, setLibrarySearch] = useState("")
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({})
   const browseRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1253,7 +1306,7 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
 
   const handleSave = () => {
     if (!name.trim()) return
-    onSave({ name: name.trim(), icon: "✦", description, purposeConnection, pinned: false })
+    onSave({ name: name.trim(), icon: "✦", description: "", purposeConnection: reflection, pinned: false })
   }
 
   const selectFromLibrary = (label: string) => {
@@ -1265,13 +1318,19 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
   const groupedLibrary = useMemo(() => {
     const q = librarySearch.toLowerCase()
     const filtered = VALUE_LIBRARY.filter((v) => v.name.toLowerCase().includes(q))
-    const map = new Map<string, string[]>()
+    const map = new Map<string, typeof VALUE_LIBRARY>()
     for (const v of filtered) {
       if (!map.has(v.category)) map.set(v.category, [])
-      map.get(v.category)!.push(v.name)
+      map.get(v.category)!.push(v)
     }
     return Array.from(map.entries()).map(([category, items]) => ({ category, items }))
   }, [librarySearch])
+
+  const isCategoryOpen = (category: string, index: number) => {
+    if (librarySearch.trim()) return true
+    return openCategories[category] ?? index < 3
+  }
+  const toggleCategory = (category: string) => setOpenCategories((prev) => ({ ...prev, [category]: !(prev[category] ?? false) }))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1282,22 +1341,6 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Value Name</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Type your own value (e.g. Integrity, Faith, Excellence)" autoFocus />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does this value mean to you?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Purpose Connection</label>
-          <textarea value={purposeConnection} onChange={(e) => setPurposeConnection(e.target.value)} placeholder="How does this value help you fulfil your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Or choose from library</span>
-          <div className="h-px flex-1 bg-border" />
         </div>
 
         <div className="relative" ref={browseRef}>
@@ -1325,30 +1368,45 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
                   />
                 </div>
               </div>
-              <div className="max-h-64 overflow-y-auto py-1">
+              <div className="max-h-72 overflow-y-auto py-1">
                 {groupedLibrary.length === 0 ? (
                   <p className="px-3 py-3 text-xs text-muted-foreground text-center">No matching values</p>
                 ) : (
-                  groupedLibrary.map((cat) => (
-                    <div key={cat.category}>
-                      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat.category}</p>
-                      {cat.items.map((label) => (
+                  groupedLibrary.map((cat, index) => {
+                    const open = isCategoryOpen(cat.category, index)
+                    return (
+                      <div key={cat.category}>
                         <button
-                          key={label}
                           type="button"
-                          onClick={() => selectFromLibrary(label)}
-                          className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left transition-colors hover:bg-[#1E0E6B]/5"
+                          onClick={() => toggleCategory(cat.category)}
+                          className="flex items-center justify-between gap-2 w-full px-3 py-2 text-left"
                         >
-                          <span>{label}</span>
-                          {name.trim().toLowerCase() === label.toLowerCase() && <Check className="h-4 w-4 text-[#1E0E6B]" />}
+                          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat.category}</span>
+                          {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                         </button>
-                      ))}
-                    </div>
-                  ))
+                        {open && cat.items.map((v) => (
+                          <button
+                            key={v.name}
+                            type="button"
+                            onClick={() => selectFromLibrary(v.name)}
+                            className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left transition-colors hover:bg-[#1E0E6B]/5"
+                          >
+                            <span>{v.name}</span>
+                            {name.trim().toLowerCase() === v.name.toLowerCase() && <Check className="h-4 w-4 text-[#1E0E6B]" />}
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })
                 )}
               </div>
             </div>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reflection</label>
+          <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="How does this value shape your life or support your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
         </div>
 
         <div className="flex gap-2 justify-end">
@@ -1606,16 +1664,16 @@ export function VisionsPage() {
       <PurposeSection purpose={purpose} lifeAreas={lifeAreas} onSave={handleSavePurpose} />
 
       {/* 2. Core Values */}
-      <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} />
+      <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} onInfo={() => setInfoModal("values")} />
 
       {/* 3. Commitments */}
-      <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
+      <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} onInfo={() => setInfoModal("commitments")} />
 
       {/* 4. My Visions */}
-      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} milestones={roadmapMilestones} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
+      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} milestones={roadmapMilestones} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} onInfo={() => setInfoModal("visions")} />
 
       {/* 5. Long-Term Milestones */}
-      <RoadmapSection visions={visions} lifeAreas={lifeAreas} />
+      <RoadmapSection visions={visions} lifeAreas={lifeAreas} onInfo={() => setInfoModal("roadmap")} />
 
       {/* Vision Edit Modal */}
       {selectedVision && (
@@ -1633,6 +1691,26 @@ export function VisionsPage() {
         <EducationalModal title="Purpose" onClose={() => setInfoModal(null)}>
           <p>Purpose is your reason for living. It answers the question: <strong>&ldquo;Why do I exist?&rdquo;</strong></p>
           <p>Unlike goals, purpose rarely changes. It guides your decisions throughout life.</p>
+        </EducationalModal>
+      )}
+      {infoModal === "values" && (
+        <EducationalModal title="Core Values" onClose={() => setInfoModal(null)}>
+          <p>Core values are the principles that guide your decisions, shape your behaviour, and remain consistent regardless of circumstances.</p>
+        </EducationalModal>
+      )}
+      {infoModal === "commitments" && (
+        <EducationalModal title="Commitments" onClose={() => setInfoModal(null)}>
+          <p>Commitments are lifelong promises you make to yourself — the standards you refuse to compromise.</p>
+        </EducationalModal>
+      )}
+      {infoModal === "visions" && (
+        <EducationalModal title="My Visions" onClose={() => setInfoModal(null)}>
+          <p>Visions are vivid pictures of the future you are intentionally creating, connected to your purpose.</p>
+        </EducationalModal>
+      )}
+      {infoModal === "roadmap" && (
+        <EducationalModal title="Long-Term Milestones" onClose={() => setInfoModal(null)}>
+          <p>Milestones are the major achievements that mark progress across your life's timeline.</p>
         </EducationalModal>
       )}
     </div>
