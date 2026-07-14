@@ -25,13 +25,15 @@ import {
   getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
 } from "./goal-utils"
 import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
+import { EditGoalModal } from "./edit-goal-modal"
 import { DateInput } from "@/components/ui/date-input"
 import type { Vision, Purpose, CoreValue, Commitment } from "@/lib/vision-framework"
 import { loadVisions, loadPurpose, loadCoreValues, loadCommitments, addCoreValue } from "@/lib/vision-framework"
+export type { Vision, CoreValue }
 
-interface Milestone { id: string; title: string; completed: boolean }
+export interface Milestone { id: string; title: string; completed: boolean; dueDate?: string; status?: "not-started" | "in-progress" | "completed"; priority?: "low" | "medium" | "high"; notes?: string }
 
-interface GoalProjectTimeline {
+export interface GoalProjectTimeline {
   id: string; projectName: string; description: string; startDate: string; endDate: string
   status: "not-started" | "in-progress" | "completed" | "on-hold"; progress: number; notes: string
   milestones?: string[]
@@ -49,7 +51,7 @@ interface Project {
   tags: string[]; goalId: string; createdAt: string; updatedAt: string
 }
 
-interface LinkedHabitWeight { habitId: string; habitName: string; weight: number }
+export interface LinkedHabitWeight { habitId: string; habitName: string; weight: number }
 
 interface GoalReview {
   id: string; date: string; goalId: string
@@ -58,9 +60,9 @@ interface GoalReview {
   modifications: string; notes: string
 }
 
-type ReviewFrequency = "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly"
+export type ReviewFrequency = "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly"
 
-const REVIEW_FREQUENCY_CONFIG: Record<ReviewFrequency, { label: string; days: number }> = {
+export const REVIEW_FREQUENCY_CONFIG: Record<ReviewFrequency, { label: string; days: number }> = {
   weekly: { label: "Weekly", days: 7 },
   biweekly: { label: "Every 2 Weeks", days: 14 },
   monthly: { label: "Monthly", days: 30 },
@@ -87,7 +89,7 @@ function daysSinceReview(goal: Goal): number {
   return Math.ceil((Date.now() - new Date(goal.lastReviewedAt).getTime()) / 86400000)
 }
 
-interface Goal {
+export interface Goal {
   id: string; title: string; description: string; category: string; customCategory?: string
   priority: "none" | "low" | "medium" | "high"; progress: number; deadline: string; startDate: string
   type: "annual" | "quarterly" | "monthly" | "weekly" | "custom"; whyItMatters: string
@@ -107,17 +109,17 @@ interface Goal {
   createdAt: string; updatedAt: string
 }
 
-interface Habit {
+export interface Habit {
   id: string; name: string; color: string; colorHex: string; icon: string
   completions: Record<string, { completed: boolean; time?: string; notes?: string }>
   streak: number; habitScore: number; createdAt?: string
 }
 
-type GoalFilterMode = "all" | "life-vision" | "10-year" | "5-year" | "annual" | "quarterly" | "monthly" | "weekly" | "daily" | "projects"
+type GoalFilterMode = "all" | TimeHorizon
 
-type TimeHorizon = "this-year" | "2-years" | "5-years" | "10-years" | "lifetime"
+export type TimeHorizon = "this-year" | "2-years" | "5-years" | "10-years" | "lifetime"
 
-const TIME_HORIZONS: { value: TimeHorizon; label: string }[] = [
+export const TIME_HORIZONS: { value: TimeHorizon; label: string }[] = [
   { value: "this-year", label: "This Year" },
   { value: "2-years", label: "2 Years" },
   { value: "5-years", label: "5 Years" },
@@ -164,7 +166,7 @@ function friendlyDueDate(dl: string): string {
   return deadline.toLocaleDateString("en-US", { month: "short", year: "numeric" })
 }
 
-const GOAL_CATEGORIES = [
+export const GOAL_CATEGORIES = [
   { name: "Personal Growth", color: "#1E0E6B" },
   { name: "Health", color: "#22C55E" },
   { name: "Career", color: "#3B82F6" },
@@ -177,14 +179,14 @@ const GOAL_CATEGORIES = [
   { name: "Custom", color: "#6B7280" },
 ]
 
-const GOAL_COLORS = [
+export const GOAL_COLORS = [
   { name: "Purple", hex: "#1E0E6B" }, { name: "Blue", hex: "#3B82F6" },
   { name: "Green", hex: "#22C55E" }, { name: "Orange", hex: "#F97316" },
   { name: "Red", hex: "#EF4444" }, { name: "Pink", hex: "#EC4899" },
   { name: "Teal", hex: "#14B8A6" }, { name: "Black", hex: "#000000" },
 ]
 
-const GOAL_ICONS = ["\u{1F3AF}","\u2B50","\u{1F680}","\u{1F4A1}","\u{1F525}","\u{1F48E}","\u{1F3C6}","\u{1F4C8}","\u{1F4AA}","\u{1F4DA}","\u{1F4B0}","\u2764\uFE0F","\u{1F64F}","\u{1F393}","\u{1F4BC}","\u{1F331}"]
+export const GOAL_ICONS = ["\u{1F3AF}","\u2B50","\u{1F680}","\u{1F4A1}","\u{1F525}","\u{1F48E}","\u{1F3C6}","\u{1F4C8}","\u{1F4AA}","\u{1F4DA}","\u{1F4B0}","\u2764\uFE0F","\u{1F64F}","\u{1F393}","\u{1F4BC}","\u{1F331}"]
 
 const PROJECT_TEMPLATES = [
   { name: "Book Writing", icon: "\u{1F4DA}", tasks: ["Outline chapters", "Write first draft", "Edit & revise", "Publish"] },
@@ -349,42 +351,45 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   const [selectedHabits, setSelectedHabits] = useState<string[]>([])
   const [habitWeights, setHabitWeights] = useState<Record<string, number>>({})
   const [customizeContributions, setCustomizeContributions] = useState(false)
-  const [projectTimelines, setProjectTimelines] = useState<GoalProjectTimeline[]>([])
+  const [milestones, setMilestones] = useState<Milestone[]>([])
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false)
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null)
+  const [msTitle, setMsTitle] = useState("")
+  const [msDueDate, setMsDueDate] = useState("")
+  const [msStatus, setMsStatus] = useState<"not-started"|"in-progress"|"completed">("not-started")
+  const [msPriority, setMsPriority] = useState<"low"|"medium"|"high">("medium")
+  const [msNotes, setMsNotes] = useState("")
   const [selectedVisionId, setSelectedVisionId] = useState<string>("")
-  const [editingTimelineId, setEditingTimelineId] = useState<string | null>(null)
-  const [showTimelineForm, setShowTimelineForm] = useState(false)
-  const [newTimelineProjectName, setNewTimelineProjectName] = useState("")
-  const [newTimelineDesc, setNewTimelineDesc] = useState("")
-  const [newTimelineStart, setNewTimelineStart] = useState(getTodayISO())
-  const [newTimelineEnd, setNewTimelineEnd] = useState("")
-  const [newTimelineStatus, setNewTimelineStatus] = useState<"not-started"|"in-progress"|"completed"|"on-hold">("not-started")
-  const [newTimelineProgress, setNewTimelineProgress] = useState("0")
-  const [newTimelineNotes, setNewTimelineNotes] = useState("")
-  const [newTimelineMilestones, setNewTimelineMilestones] = useState<string[]>([])
   const [heroImage, setHeroImage] = useState<string | undefined>(undefined)
   const [supportingImages, setSupportingImages] = useState<string[] | undefined>(undefined)
   const [reviewFrequency, setReviewFrequency] = useState<ReviewFrequency>("monthly")
   const [linkedValueIds, setLinkedValueIds] = useState<string[]>([])
-  const [showValueLibrary, setShowValueLibrary] = useState(false)
+  const [valueSearch, setValueSearch] = useState("")
+  const [valuesOpen, setValuesOpen] = useState(false)
   const [habitSearch, setHabitSearch] = useState("")
   const [habitsOpen, setHabitsOpen] = useState(false)
   const [visionSearch, setVisionSearch] = useState("")
   const [visionsOpen, setVisionsOpen] = useState(false)
+  const valueSearchRef = useRef<HTMLDivElement>(null)
   const habitSearchRef = useRef<HTMLDivElement>(null)
   const visionSearchRef = useRef<HTMLDivElement>(null)
 
-  // Auto-distribute contributions equally when not in customize mode
   useEffect(() => {
     if (!customizeContributions && selectedHabits.length > 0) {
       const equalWeight = Math.floor(100 / selectedHabits.length)
       const remainder = 100 - (equalWeight * selectedHabits.length)
       const newWeights: Record<string, number> = {}
-      selectedHabits.forEach((name, i) => {
-        newWeights[name] = equalWeight + (i === 0 ? remainder : 0)
-      })
+      selectedHabits.forEach((name, i) => { newWeights[name] = equalWeight + (i === 0 ? remainder : 0) })
       setHabitWeights(newWeights)
     }
   }, [selectedHabits, customizeContributions])
+
+  useEffect(() => {
+    if (!valuesOpen) return
+    const handler = (e: MouseEvent) => { if (valueSearchRef.current && !valueSearchRef.current.contains(e.target as Node)) setValuesOpen(false) }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [valuesOpen])
 
   if (!isOpen) return null
 
@@ -397,9 +402,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
     const equalWeight = Math.floor(100 / selectedHabits.length)
     const remainder = 100 - (equalWeight * selectedHabits.length)
     const newWeights: Record<string, number> = {}
-    selectedHabits.forEach((name, i) => {
-      newWeights[name] = equalWeight + (i === 0 ? remainder : 0)
-    })
+    selectedHabits.forEach((name, i) => { newWeights[name] = equalWeight + (i === 0 ? remainder : 0) })
     setHabitWeights(newWeights)
   }
 
@@ -410,6 +413,23 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   const filteredVisions = visions.filter(v => !v.archived && v.title.toLowerCase().includes(visionSearch.toLowerCase()))
   const selectedVision = visions.find(v => v.id === selectedVisionId)
 
+  const filteredValues = values.filter(v => v.name.toLowerCase().includes(valueSearch.toLowerCase()))
+  const linkedValues = values.filter(v => linkedValueIds.includes(v.id))
+
+  const saveMilestone = () => {
+    if (!msTitle.trim()) return
+    if (editingMilestoneId) {
+      setMilestones(prev => prev.map(m => m.id === editingMilestoneId ? { ...m, title: msTitle.trim(), dueDate: msDueDate, status: msStatus, priority: msPriority, notes: msNotes } : m))
+    } else {
+      setMilestones(prev => [...prev, { id: Date.now().toString(), title: msTitle.trim(), completed: msStatus === "completed", dueDate: msDueDate, status: msStatus, priority: msPriority, notes: msNotes }])
+    }
+    setMsTitle(""); setMsDueDate(""); setMsStatus("not-started"); setMsPriority("medium"); setMsNotes(""); setEditingMilestoneId(null); setShowMilestoneForm(false)
+  }
+
+  const editMilestone = (m: Milestone) => {
+    setEditingMilestoneId(m.id); setMsTitle(m.title); setMsDueDate(m.dueDate || ""); setMsStatus(m.status || "not-started"); setMsPriority(m.priority || "medium"); setMsNotes(m.notes || ""); setShowMilestoneForm(true)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 space-y-4">
@@ -417,95 +437,61 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
         <div className="space-y-4">
           <div><label className="text-sm font-medium">Goal Name</label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Read 24 Books" className="mt-1" /></div>
           <div><label className="text-sm font-medium">Why It Matters</label><textarea value={whyItMatters} onChange={e => setWhyItMatters(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
+
+          {/* Milestones */}
           <div>
-            <label className="text-sm font-medium">Project Timelines</label>
-            <p className="text-xs text-muted-foreground mb-2">Add project timelines for this goal</p>
-            {projectTimelines.length > 0 && (
+            <label className="text-sm font-medium">Milestones</label>
+            <p className="text-xs text-muted-foreground mb-2">Break this goal into meaningful milestones</p>
+            {milestones.length > 0 && (
               <div className="space-y-2 mb-3">
-                {projectTimelines.map(pt => (
-                  <div key={pt.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-white/10">
+                {milestones.map(m => (
+                  <div key={m.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-white/10">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{pt.projectName || "Untitled Project"}</p>
-                      <p className="text-[10px] text-muted-foreground">{pt.startDate || "No start"} → {pt.endDate || "No end"} · {pt.status.replace("-"," ")}{pt.milestones && pt.milestones.length > 0 ? ` · ${pt.milestones.length} milestone${pt.milestones.length !== 1 ? "s" : ""}` : ""}</p>
+                      <p className="text-xs font-medium truncate">{m.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.dueDate ? formatDateDDMMYYYY(m.dueDate) : "No due date"} · {m.status?.replace("-", " ") || "not started"}</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                      const ptToEdit = projectTimelines.find(p => p.id === pt.id)
-                      if (ptToEdit) { setEditingTimelineId(pt.id); setNewTimelineProjectName(ptToEdit.projectName); setNewTimelineDesc(ptToEdit.description); setNewTimelineStart(ptToEdit.startDate); setNewTimelineEnd(ptToEdit.endDate); setNewTimelineStatus(ptToEdit.status); setNewTimelineProgress(ptToEdit.progress.toString()); setNewTimelineNotes(ptToEdit.notes); setNewTimelineMilestones(ptToEdit.milestones || []); setShowTimelineForm(true) }
-                    }}><span className="text-xs">✎</span></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500" onClick={() => setProjectTimelines(prev => prev.filter(p => p.id !== pt.id))}><Trash2 className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => editMilestone(m)}><span className="text-xs">✎</span></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500" onClick={() => setMilestones(prev => prev.filter(x => x.id !== m.id))}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 ))}
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => { setEditingTimelineId(null); setNewTimelineProjectName(""); setNewTimelineDesc(""); setNewTimelineStart(getTodayISO()); setNewTimelineEnd(""); setNewTimelineStatus("not-started"); setNewTimelineProgress("0"); setNewTimelineNotes(""); setNewTimelineMilestones([]); setShowTimelineForm(true) }} className="text-xs">
-              <Plus className="h-3 w-3 mr-1" /> Add Project Timeline
+            <Button variant="outline" size="sm" onClick={() => { setEditingMilestoneId(null); setMsTitle(""); setMsDueDate(""); setMsStatus("not-started"); setMsPriority("medium"); setMsNotes(""); setShowMilestoneForm(true) }} className="text-xs">
+              <Plus className="h-3 w-3 mr-1" /> Add Milestone
             </Button>
-            {showTimelineForm && (
+            {showMilestoneForm && (
               <div className="mt-3 p-3 rounded-lg border border-[#1E0E6B]/20 bg-[#1E0E6B]/5 space-y-2">
+                <div><label className="text-xs font-medium">Milestone Name</label><Input value={msTitle} onChange={e => setMsTitle(e.target.value)} placeholder="e.g., Complete first draft" className="mt-1 text-xs h-8" /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-xs font-medium">Project Name</label><Input value={newTimelineProjectName} onChange={e => setNewTimelineProjectName(e.target.value)} placeholder="Project name" className="mt-1 text-xs h-8" /></div>
+                  <div><label className="text-xs font-medium">Due Date</label><DateInput value={msDueDate} onChange={setMsDueDate} /></div>
                   <div><label className="text-xs font-medium">Status</label>
                     <div className="relative">
-                      <select value={newTimelineStatus} onChange={e => setNewTimelineStatus(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 appearance-none pr-6">
-                        <option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="on-hold">On Hold</option>
+                      <select value={msStatus} onChange={e => setMsStatus(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 appearance-none pr-6">
+                        <option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option>
                       </select>
                       <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
                     </div>
                   </div>
                 </div>
-                <div><label className="text-xs font-medium">Description</label><textarea value={newTimelineDesc} onChange={e => setNewTimelineDesc(e.target.value)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 min-h-[40px]" /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-xs font-medium">Start Date</label><DateInput value={newTimelineStart} onChange={setNewTimelineStart} /></div>
-                  <div><label className="text-xs font-medium">End Date</label><DateInput value={newTimelineEnd} onChange={setNewTimelineEnd} /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-xs font-medium">Milestones</label>
-                    <div className="mt-1 space-y-1">
-                      {(editingTimelineId ? projectTimelines.find(p => p.id === editingTimelineId)?.milestones || [] : newTimelineMilestones).map((ms, i) => (
-                        <div key={i} className="flex items-center gap-1.5 text-[10px]">
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                          <span className="flex-1 truncate">{ms}</span>
-                          <button type="button" onClick={() => {
-                            if (editingTimelineId) {
-                              setProjectTimelines(prev => prev.map(p => p.id === editingTimelineId ? {...p, milestones: (p.milestones || []).filter((_, j) => j !== i)} : p))
-                            } else {
-                              setNewTimelineMilestones(prev => prev.filter((_, j) => j !== i))
-                            }
-                          }} className="text-red-400 hover:text-red-600"><X className="h-2.5 w-2.5" /></button>
-                        </div>
-                      ))}
-                      <Input value="" placeholder="Add milestone and press Enter" onKeyDown={e => {
-                        if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                          const val = (e.target as HTMLInputElement).value.trim()
-                          if (editingTimelineId) {
-                            setProjectTimelines(prev => prev.map(p => p.id === editingTimelineId ? {...p, milestones: [...(p.milestones || []), val]} : p))
-                          } else {
-                            setNewTimelineMilestones(prev => [...prev, val])
-                          }
-                          ;(e.target as HTMLInputElement).value = ""
-                        }
-                      }} className="text-xs h-7" />
+                  <div><label className="text-xs font-medium">Priority</label>
+                    <div className="relative">
+                      <select value={msPriority} onChange={e => setMsPriority(e.target.value as any)} className="mt-1 w-full px-2 py-1 text-xs border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 appearance-none pr-6">
+                        <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
                     </div>
                   </div>
-                  <div><label className="text-xs font-medium">Notes</label><Input value={newTimelineNotes} onChange={e => setNewTimelineNotes(e.target.value)} placeholder="Notes" className="mt-1 text-xs h-8" /></div>
+                  <div><label className="text-xs font-medium">Notes</label><Input value={msNotes} onChange={e => setMsNotes(e.target.value)} placeholder="Optional notes" className="mt-1 text-xs h-8" /></div>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button variant="outline" size="sm" onClick={() => setShowTimelineForm(false)} className="text-xs h-7">Cancel</Button>
-                  <Button size="sm" onClick={() => {
-                    if (newTimelineProjectName.trim()) {
-                      if (editingTimelineId) {
-                        const existing = projectTimelines.find(pt => pt.id === editingTimelineId)
-                        setProjectTimelines(prev => prev.map(pt => pt.id === editingTimelineId ? {...pt, projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes, milestones: existing?.milestones || []} : pt))
-                      } else {
-                        setProjectTimelines(prev => [...prev, {id: Date.now().toString(), projectName: newTimelineProjectName, description: newTimelineDesc, startDate: newTimelineStart, endDate: newTimelineEnd, status: newTimelineStatus, progress: parseInt(newTimelineProgress) || 0, notes: newTimelineNotes, milestones: newTimelineMilestones}])
-                      }
-                      setShowTimelineForm(false)
-                    }
-                  }} className="text-xs h-7 bg-[#1E0E6B] text-white">{editingTimelineId ? "Update" : "Add"} Timeline</Button>
+                  <Button variant="outline" size="sm" onClick={() => { setShowMilestoneForm(false); setEditingMilestoneId(null) }} className="text-xs h-7">Cancel</Button>
+                  <Button size="sm" onClick={saveMilestone} disabled={!msTitle.trim()} className="text-xs h-7 bg-[#1E0E6B] text-white">{editingMilestoneId ? "Update" : "Save"} Milestone</Button>
                 </div>
               </div>
             )}
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Category</label>
               <div className="relative">
@@ -718,17 +704,56 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
         <div>
           <label className="text-sm font-medium">Core Values</label>
           <p className="text-xs text-muted-foreground mb-2">Which values does this goal align with?</p>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {values.filter(v => linkedValueIds.includes(v.id)).map(v => (
-              <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-xs font-medium">
-                {v.icon} {v.name}
-                <button onClick={() => setLinkedValueIds(prev => prev.filter(id => id !== v.id))} className="hover:text-red-500"><X className="h-3 w-3" /></button>
-              </span>
-            ))}
+          {linkedValues.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {linkedValues.map(v => (
+                <span key={v.id} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-[11px] font-medium">
+                  {v.name}
+                  <button onClick={() => setLinkedValueIds(prev => prev.filter(id => id !== v.id))} className="hover:text-red-500"><X className="h-3 w-3" /></button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="relative" ref={valueSearchRef}>
+            <button onClick={() => setValuesOpen(!valuesOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-[#1E0E6B]/30 bg-white/50 dark:bg-white/5 text-left text-muted-foreground hover:border-[#1E0E6B]/50 transition-colors">
+              <span>Select or Create Core Values</span>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${valuesOpen ? "rotate-180" : ""}`} />
+            </button>
+            {valuesOpen && (
+              <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-[#1E0E6B]/20 rounded-lg shadow-lg overflow-hidden">
+                <div className="p-2 border-b border-[#1E0E6B]/10">
+                  <input value={valueSearch} onChange={(e) => setValueSearch(e.target.value)} placeholder="Search values..." className="w-full px-3 py-1.5 text-sm rounded-lg border border-[#1E0E6B]/20 bg-white/50 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]" autoFocus />
+                </div>
+                <div className="max-h-60 overflow-y-auto p-1">
+                  {filteredValues.map(v => {
+                    const isSelected = linkedValueIds.includes(v.id)
+                    return (
+                      <button key={v.id} onClick={() => setLinkedValueIds(prev => isSelected ? prev.filter(id => id !== v.id) : [...prev, v.id])}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${isSelected ? "bg-[#1E0E6B]/10 text-[#1E0E6B]" : "hover:bg-muted"}`}>
+                        <input type="checkbox" checked={isSelected} onChange={() => {}} className="accent-[#1E0E6B]" />
+                        <span>{v.icon}</span>
+                        <span className="flex-1 truncate">{v.name}</span>
+                      </button>
+                    )
+                  })}
+                  {valueSearch.trim() && !values.some(v => v.name.toLowerCase() === valueSearch.trim().toLowerCase()) && (
+                    <button onClick={() => {
+                      addCoreValue({ name: valueSearch.trim(), icon: "✦", description: "", purposeConnection: "", pinned: false })
+                      const updated = loadCoreValues()
+                      onValuesAdded()
+                      const new_val = updated.find(v => v.name.toLowerCase() === valueSearch.trim().toLowerCase())
+                      if (new_val) setLinkedValueIds(prev => [...prev, new_val.id])
+                      setValueSearch("")
+                    }} className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left hover:bg-[#1E0E6B]/5 text-[#1E0E6B]">
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Create &ldquo;{valueSearch.trim()}&rdquo;</span>
+                    </button>
+                  )}
+                  {filteredValues.length === 0 && !valueSearch.trim() && <p className="px-3 py-2 text-xs text-muted-foreground">No values available.</p>}
+                </div>
+              </div>
+            )}
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowValueLibrary(true)} className="text-xs">
-            <Plus className="h-3 w-3 mr-1" /> Add Values
-          </Button>
         </div>
         <VisionImagesSection heroImage={heroImage} supportingImages={supportingImages} onChange={(hero, supporting) => { setHeroImage(hero); setSupportingImages(supporting) }} />
         <div className="flex gap-2 pt-2">
@@ -737,21 +762,12 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
             if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description: "", category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type: "annual", whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency, linkedValueIds })
+              onSave({ title, description: "", category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type: "annual", whyItMatters, milestones, linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency, linkedValueIds })
               onClose()
             }
           }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
         </div>
       </div>
-      {showValueLibrary && (
-        <CoreValueLibrary existingValues={values} onAddValues={(newVals) => {
-          newVals.forEach(v => addCoreValue(v as any))
-          onValuesAdded()
-          const updated = loadCoreValues()
-          const newIds = updated.filter(u => newVals.some(n => n.name === u.name)).map(u => u.id)
-          setLinkedValueIds(prev => [...prev, ...newIds])
-        }} onClose={() => setShowValueLibrary(false)} />
-      )}
     </div>
   )
 }
@@ -814,319 +830,7 @@ const AddProjectModal = ({ isOpen, onClose, onSave, goalId }: {
   )
 }
 
-const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, values, onValuesAdded, onSaveGoal, onSaveProject, onDeleteGoal }: {
-  isOpen: boolean; onClose: () => void; goal: Goal | null; projects: Project[]; habits: Habit[]; visions: Vision[]; values: CoreValue[]; onValuesAdded: () => void
-  onSaveGoal: (g: Goal) => void; onSaveProject: (p: Project) => void; onDeleteGoal: (id: string) => void
-}) => {
-  const [data, setData] = useState<Goal | null>(goal)
-  const [showAddProject, setShowAddProject] = useState(false)
-  const [expandedProject, setExpandedProject] = useState<string | null>(null)
-  const [newMilestone, setNewMilestone] = useState("")
-  const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxIdx, setLightboxIdx] = useState(0)
-  const [showValueLibrary, setShowValueLibrary] = useState(false)
-  const [projectsOpen, setProjectsOpen] = useState(true)
-  useEffect(() => { if (goal) { const gp = calcGoalProgress(goal, projects, habits); setData({ ...goal, progress: gp }) } }, [goal, projects, habits])
-  if (!isOpen || !data) return null
-  const goalProjects = projects.filter(p => p.goalId === data.id)
-  const daysRemaining = getDaysRemaining(data.deadline)
-  const daysCompleted = getDaysCompleted(data.startDate)
-  const completedMilestones = data.milestones.filter(m => m.completed).length
 
-
-  const toggleMilestone = (id: string) => {
-    const updated = { ...data, milestones: data.milestones.map(m => m.id === id ? { ...m, completed: !m.completed } : m), updatedAt: getTodayISO() }
-    updated.progress = calcGoalProgress(updated, projects, habits)
-    setData(updated)
-  }
-  const addMilestone = () => {
-    if (newMilestone.trim()) {
-      setData({ ...data, milestones: [...data.milestones, { id: Date.now().toString(), title: newMilestone.trim(), completed: false }], updatedAt: getTodayISO() })
-      setNewMilestone("")
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-white/20 p-3 flex items-center justify-between">
-          <div className="flex items-center gap-3"><span className="text-2xl">{data.icon}</span><h2 className="text-xl font-bold">{data.title}</h2></div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => { onDeleteGoal(data.id); onClose() }} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={() => { data.progress = calcGoalProgress(data, projects, habits); onSaveGoal(data); onClose() }}><CheckCircle2 className="h-4 w-4 text-emerald-500" /></Button>
-            <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
-          </div>
-        </div>
-        <div className="p-5 space-y-5">
-          <div className="flex items-center gap-6">
-            <ProgressRing value={data.progress} size={90} strokeWidth={6} />
-            <div className="flex-1">
-              <p className="text-3xl font-bold">{data.progress}%</p>
-              <p className="text-sm text-muted-foreground">Overall Progress</p>
-              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                <span>{daysCompleted}d active</span><span>{daysRemaining}d left</span><span>{completedMilestones}/{data.milestones.length} milestones</span>
-              </div>
-              <div className="flex gap-3 mt-3">
-                {data.timeHorizon && TIME_HORIZON_BADGES[data.timeHorizon] && (
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TIME_HORIZON_BADGES[data.timeHorizon].bg} ${TIME_HORIZON_BADGES[data.timeHorizon].color}`}>{TIME_HORIZON_BADGES[data.timeHorizon].label}</span>
-                )}
-                {data.status && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{data.status.replace("-", " ")}</span>}
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
-            <div className="flex items-center gap-2 mb-1">
-              <Zap className="h-4 w-4 text-[#1E0E6B]" />
-              <p className="text-sm font-semibold text-[#1E0E6B]">Next Action</p>
-            </div>
-            <p className="text-xs text-muted-foreground">{generateSmartNextAction(data as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
-          </div>
-
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Start: {formatDateDDMMYYYY(data.startDate)}</span>
-            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Deadline: {formatDateDDMMYYYY(data.deadline)}</span>
-            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {daysRemaining}d left</span>
-          </div>
-
-          {/* Vision Images */}
-          {(data.heroImage || (data.supportingImages && data.supportingImages.length > 0)) && (
-            <div className="space-y-3">
-              {data.heroImage && (
-                <div className="rounded-xl overflow-hidden border border-white/20 cursor-pointer" onClick={() => { setLightboxIdx(0); setLightboxOpen(true) }}>
-                  <img src={data.heroImage} alt="Vision" className="w-full h-48 object-cover hover:scale-[1.02] transition-transform duration-300" />
-                </div>
-              )}
-              {data.supportingImages && data.supportingImages.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {data.supportingImages.map((img, i) => (
-                    <div key={i} className="shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-white/20 cursor-pointer" onClick={() => { setLightboxIdx(data.heroImage ? i + 1 : i); setLightboxOpen(true) }}>
-                      <img src={img} alt="" className="w-full h-full object-cover hover:scale-110 transition-transform duration-200" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {data.linkedHabits.length === 0 && (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Suggestions</p>
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">This goal has no supporting habits. Create or link habits to increase your chances of success.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {data.linkedHabits.length > 0 && (
-            <div>
-              <label className="text-sm font-medium mb-2 block">Linked Habits ({data.linkedHabits.length})</label>
-              <div className="space-y-1">
-                {data.linkedHabits.map(name => {
-                  const weight = data.linkedHabitWeights?.find(w => w.habitName === name)
-                  return (
-                    <div key={name} className="flex items-center justify-between p-2 bg-white/50 dark:bg-white/5 rounded-lg border border-white/10">
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-3 w-3 text-amber-500" />
-                        <span className="text-sm">{name}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground font-medium">Goal Contribution: {weight?.weight || 0}%</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Goal Title</label><Input value={data.title} onChange={e => setData({...data, title: e.target.value})} className="mt-1" /></div>
-            <div><label className="text-sm font-medium">Category</label>
-              <div className="relative">
-                <select value={data.category} onChange={e => setData({...data, category: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm appearance-none pr-8">
-                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div></div>
-          </div>
-          <div><label className="text-sm font-medium">Description</label><textarea value={data.description} onChange={e => setData({...data, description: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
-          <div><label className="text-sm font-medium">Why It Matters</label><textarea value={data.whyItMatters} onChange={e => setData({...data, whyItMatters: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" /></div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div><DateInput label="Start Date" value={data.startDate} onChange={(v) => setData({...data, startDate: v})} /></div>
-            <div><DateInput label="Target Date" value={data.deadline} onChange={(v) => setData({...data, deadline: v})} /></div>
-          </div>
-
-          <div><label className="text-sm font-medium">Time Horizon</label>
-            <div className="relative">
-              <select value={data.timeHorizon || "this-year"} onChange={e => setData({...data, timeHorizon: e.target.value as TimeHorizon})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm appearance-none pr-8">
-                {TIME_HORIZONS.map(th => <option key={th.value} value={th.value}>{th.label}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Goal Progress Weighting</label>
-            <div className="grid grid-cols-4 gap-2">
-              {(["projects","habits","milestones","manual"] as const).map(k => (
-                <div key={k} className="text-center">
-                  <p className="text-xs text-muted-foreground capitalize mb-1">{k}</p>
-                  <Input type="number" min="0" max="100" value={data.weighting[k]} onChange={e => setData({...data, weighting: {...data.weighting, [k]: parseInt(e.target.value) || 0 }})} className="text-center text-sm h-8" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Milestones</label>
-            <div className="space-y-2 mt-2">
-              {data.milestones.map(m => (
-                <div key={m.id} className="flex items-center gap-2 p-2 bg-white/50 dark:bg-white/5 rounded-lg border border-white/10">
-                  <button onClick={() => toggleMilestone(m.id)}>{m.completed ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />}</button>
-                  <span className={`flex-1 text-sm ${m.completed ? "line-through text-muted-foreground" : ""}`}>{m.title}</span>
-                  <button onClick={() => setData({...data, milestones: data.milestones.filter(x => x.id !== m.id)})} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2 mt-2"><Input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} placeholder="Add milestone..." onKeyDown={e => e.key === "Enter" && addMilestone()} className="text-sm" /><Button size="sm" onClick={addMilestone}>Add</Button></div>
-          </div>
-
-          <div>
-            <button onClick={() => setProjectsOpen(o => !o)} className="flex items-center justify-between w-full mb-3">
-              <span className="flex items-center gap-2 text-sm font-medium">
-                {projectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                Projects ({goalProjects.length})
-              </span>
-              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setShowAddProject(true) }}><Plus className="h-3 w-3 mr-1" /> Add Project</Button>
-            </button>
-            {projectsOpen && (
-              <div className="space-y-2">
-                {goalProjects.map(p => (
-                  <div key={p.id} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 hover:shadow-md transition-all cursor-pointer" onClick={() => setExpandedProject(expandedProject === p.id ? null : p.id)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-lg">{p.icon}</span>
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">{p.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{p.tasks.filter(t => t.completed).length}/{p.tasks.length} tasks</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="secondary" className={`text-[10px] ${p.status === "completed" ? "bg-emerald-50 text-emerald-600" : p.status === "active" ? "bg-blue-50 text-blue-600" : "bg-muted"}`}>{p.status}</Badge>
-                        <ProgressRing value={calcProjectProgress(p)} size={36} strokeWidth={3} />
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
-                      <span>Start: {formatDateDDMMYYYY(p.startDate)}</span>
-                      <span>Target: {formatDateDDMMYYYY(p.dueDate)}</span>
-                    </div>
-                    <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all bg-[#1E0E6B]" style={{ width: `${calcProjectProgress(p)}%` }} /></div>
-                    {expandedProject === p.id && (
-                      <div className="mt-3 pt-3 border-t border-white/10 space-y-1" onClick={e => e.stopPropagation()}>
-                        {p.tasks.map(t => (
-                          <div key={t.id} className="flex items-center gap-2 text-xs">
-                            <button onClick={() => {
-                              const updated = { ...p, tasks: p.tasks.map(x => x.id === t.id ? { ...x, completed: !x.completed } : x), updatedAt: getTodayISO() }
-                              onSaveProject(updated)
-                            }}>{t.completed ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <div className="h-3 w-3 rounded-full border border-muted-foreground" />}</button>
-                            <span className={t.completed ? "line-through text-muted-foreground" : ""}>{t.title}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {goalProjects.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No projects yet. Add one to get started.</p>}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Review Settings</label>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground mb-1">Frequency</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(Object.entries(REVIEW_FREQUENCY_CONFIG) as [ReviewFrequency, { label: string; days: number }][]).map(([key, cfg]) => (
-                    <Button key={key} variant={data.reviewFrequency === key ? "default" : "outline"} size="sm" onClick={() => setData({ ...data, reviewFrequency: key })} className={`text-xs ${data.reviewFrequency === key ? "bg-[#1E0E6B] text-white" : ""}`}>
-                      {cfg.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              {data.lastReviewedAt && (
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Last Reviewed</p>
-                  <p className="text-sm font-medium">{new Date(data.lastReviewedAt).toLocaleDateString()}</p>
-                  {isReviewDue(data) && <p className="text-[10px] text-amber-600 font-medium">Review Due</p>}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {data.reviews && data.reviews.length > 0 && (
-            <div>
-              <label className="text-sm font-medium mb-2 block">Review History ({data.reviews.length})</label>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {[...data.reviews].reverse().map((review) => (
-                  <div key={review.id} className="p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-white/10">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium">{new Date(review.date).toLocaleDateString()}</span>
-                    </div>
-                    {review.priorityChanged && <p className="text-xs text-muted-foreground"><span className="font-medium">Priority:</span> {review.priorityChanged}</p>}
-                    {review.deadlineRealistic && <p className="text-xs text-muted-foreground"><span className="font-medium">Deadline:</span> {review.deadlineRealistic}</p>}
-                    {review.obstacles && <p className="text-xs text-muted-foreground"><span className="font-medium">Obstacles:</span> {review.obstacles}</p>}
-                    {review.notes && <p className="text-xs text-muted-foreground"><span className="font-medium">Notes:</span> {review.notes}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <VisionImagesSection heroImage={data.heroImage} supportingImages={data.supportingImages} onChange={(hero, supporting) => setData({ ...data, heroImage: hero, supportingImages: supporting })} />
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Core Values Alignment</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {values.filter(v => (data.linkedValueIds || []).includes(v.id)).map(v => (
-                <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-xs font-medium">
-                  {v.icon} {v.name}
-                  <button onClick={() => setData({ ...data, linkedValueIds: (data.linkedValueIds || []).filter(id => id !== v.id) })} className="hover:text-red-500"><X className="h-3 w-3" /></button>
-                </span>
-              ))}
-              {(data.linkedValueIds || []).length === 0 && <p className="text-xs text-muted-foreground">No values linked yet</p>}
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setShowValueLibrary(true)} className="text-xs">
-              <Plus className="h-3 w-3 mr-1" /> Add Values
-            </Button>
-          </div>
-
-          <GoalMotivationPanel goal={data} projects={projects} habits={habits} />
-
-          <div><label className="text-sm font-medium">Notes</label><textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="mt-1 w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" placeholder="Notes..." /></div>
-
-          <Button className="w-full bg-[#1E0E6B] text-white hover:bg-[#1E0E6B]/90" onClick={() => { data.progress = calcGoalProgress(data, projects, habits); onSaveGoal(data); onClose() }}>Edit Goal</Button>
-        </div>
-      </div>
-      {lightboxOpen && data && (
-        <Lightbox images={[data.heroImage, ...(data.supportingImages || [])].filter(Boolean) as string[]} startIndex={lightboxIdx} onClose={() => setLightboxOpen(false)} />
-      )}
-      <AddProjectModal isOpen={showAddProject} onClose={() => setShowAddProject(false)} onSave={(p) => { onSaveProject({ ...p, id: Date.now().toString(), createdAt: getTodayISO(), updatedAt: getTodayISO() }) }} goalId={data.id} />
-      {showValueLibrary && (
-        <CoreValueLibrary existingValues={values} onAddValues={(newVals) => {
-          newVals.forEach(v => addCoreValue(v as any))
-          onValuesAdded()
-          const updated = loadCoreValues()
-          const newIds = updated.filter(u => newVals.some(n => n.name === u.name)).map(u => u.id)
-          setData({ ...data, linkedValueIds: [...(data.linkedValueIds || []), ...newIds] })
-        }} onClose={() => setShowValueLibrary(false)} />
-      )}
-    </div>
-  )
-}
 
 /* ────────────────────────────────────────────────────── */
 /* Goal Motivation Panel                                   */
@@ -1252,7 +956,7 @@ const VALUE_TEMPLATES = [
   ]},
 ]
 
-function CoreValueLibrary({ existingValues, onAddValues, onClose }: { existingValues: CoreValue[]; onAddValues: (values: { name: string; icon: string; description: string; purposeConnection: string }[]) => void; onClose: () => void }) {
+export function CoreValueLibrary({ existingValues, onAddValues, onClose }: { existingValues: CoreValue[]; onAddValues: (values: { name: string; icon: string; description: string; purposeConnection: string }[]) => void; onClose: () => void }) {
   const [selectedCategory, setSelectedCategory] = useState<string>(VALUE_TEMPLATES[0].category)
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set())
   const [customName, setCustomName] = useState("")
@@ -1387,44 +1091,44 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
         </div>
       )}
       <div className="p-4">
-        {/* Header — icon, title, category, progress ring, actions */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-xl shrink-0">{goal.icon}</span>
-            <h3 className="font-semibold text-sm leading-tight truncate">{goal.title}</h3>
-            <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <ProgressRing value={progress} size={46} strokeWidth={4.5} showLabel={true} />
-            {onToggleFocus && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
-                className={`p-1.5 rounded-md transition-colors opacity-90 hover:opacity-100 hover:bg-muted/50 ${isFocused ? "text-amber-500" : "text-muted-foreground"}`}
-                title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
-                disabled={!isFocused && (focusCount != null && focusCount >= 5)}
-              >
-                <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
-              </button>
-            )}
-            {onEdit && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
-                className="p-1.5 rounded-md text-primary opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
-                title="Edit Goal"
-              >
-                <Edit3 className="h-4 w-4" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
-                className="p-1.5 rounded-md text-destructive opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
-                title="Delete Goal"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+        {/* Header — icon, title, category */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl shrink-0">{goal.icon}</span>
+          <h3 className="font-semibold text-sm leading-tight truncate flex-1 min-w-0">{goal.title}</h3>
+          <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
+          <ProgressRing value={progress} size={46} strokeWidth={4.5} showLabel={true} />
+        </div>
+
+        {/* Actions row */}
+        <div className="flex items-center justify-end gap-1.5 mb-3">
+          {onToggleFocus && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
+              className={`p-1.5 rounded-md transition-colors opacity-90 hover:opacity-100 hover:bg-muted/50 ${isFocused ? "text-amber-500" : "text-muted-foreground"}`}
+              title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
+              disabled={!isFocused && (focusCount != null && focusCount >= 5)}
+            >
+              <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
+              className="p-1.5 rounded-md text-primary opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
+              title="Edit Goal"
+            >
+              <Edit3 className="h-4 w-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
+              className="p-1.5 rounded-md text-destructive opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
+              title="Delete Goal"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Description */}
@@ -1531,7 +1235,7 @@ function Lightbox({ images, startIndex, onClose }: { images: string[]; startInde
 /* Vision Images Section (for Goal Detail/Edit)           */
 /* ────────────────────────────────────────────────────── */
 
-function VisionImagesSection({ heroImage, supportingImages, onChange }: {
+export function VisionImagesSection({ heroImage, supportingImages, onChange }: {
   heroImage?: string; supportingImages?: string[]; onChange: (hero?: string, supporting?: string[]) => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -1725,7 +1429,6 @@ export function GoalsPage() {
   const [commitments, setCommitments] = useState<Commitment[]>([])
   const [filter, setFilter] = useState<GoalFilterMode>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
-  const [timeHorizonFilter, setTimeHorizonFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<SortMode>("deadline")
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -1810,20 +1513,7 @@ export function GoalsPage() {
   const filteredAndSorted = useMemo(() => {
     let result = goals.filter(g => {
       if (categoryFilter !== "all" && (g.customCategory || g.category) !== categoryFilter) return false
-      if (timeHorizonFilter !== "all" && g.timeHorizon !== timeHorizonFilter) return false
-      switch (filter) {
-        case "all": break
-        case "life-vision": if (g.timeline !== "Life Vision") return false; break
-        case "10-year": if (g.timeline !== "10-Year") return false; break
-        case "5-year": if (g.timeline !== "5-Year") return false; break
-        case "annual": if (g.type !== "annual") return false; break
-        case "quarterly": if (g.type !== "quarterly") return false; break
-        case "monthly": if (g.type !== "monthly") return false; break
-        case "weekly": if (g.type !== "weekly") return false; break
-        case "daily": if (g.timeline !== "Daily") return false; break
-        case "projects": { const gp = projects.filter(p => p.goalId === g.id); if (gp.length === 0) return false; break }
-
-      }
+      if (filter !== "all" && g.timeHorizon !== filter) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         const goalProjects = projects.filter(p => p.goalId === g.id)
@@ -1891,19 +1581,10 @@ export function GoalsPage() {
             )}
             <div className="relative">
               <select value={filter} onChange={e => setFilter(e.target.value as GoalFilterMode)} className="appearance-none pl-8 pr-8 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer">
-                <optgroup label="Goal Types">
+                <optgroup label="Time Horizon">
                   <option value="all">All Goals</option>
-                  <option value="life-vision">Life Vision</option>
-                  <option value="10-year">10-Year</option>
-                  <option value="5-year">5-Year</option>
-                  <option value="annual">Annual</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="daily">Daily</option>
-                  <option value="projects">Projects</option>
+                  {TIME_HORIZONS.map(th => <option key={th.value} value={th.value}>{th.label}</option>)}
                 </optgroup>
-
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
             </div>
@@ -2055,7 +1736,7 @@ export function GoalsPage() {
       )}
 
       <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={saveGoal} habits={habits} visions={visions} values={values} onValuesAdded={() => setValues(loadCoreValues())} />
-      <GoalDetailDrawer isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} projects={projects} habits={habits} visions={visions} values={values} onValuesAdded={() => setValues(loadCoreValues())} onSaveGoal={updateGoal} onSaveProject={saveProject} onDeleteGoal={deleteGoal} />
+      <EditGoalModal isOpen={!!selectedGoal} onClose={() => setSelectedGoal(null)} goal={selectedGoal} habits={habits} visions={visions} values={values} onValuesAdded={() => setValues(loadCoreValues())} onSave={updateGoal} />
       {reviewGoal && (
         <GoalReviewModal goal={reviewGoal} onClose={() => setReviewGoal(null)} onSave={(review) => {
           setGoals(prev => prev.map(g => g.id === reviewGoal.id ? { ...g, reviews: [...(g.reviews || []), review], lastReviewedAt: review.date } : g))
