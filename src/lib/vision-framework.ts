@@ -67,11 +67,11 @@ export interface Commitment {
 export interface Vision {
   id: string
   title: string
-  description: string
+  description?: string
   lifeAreaId: string
   icon: string
   purposeAlignment: string
-  reviewFrequency: "weekly" | "monthly" | "quarterly"
+  reviewFrequency: "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly"
   relatedValueIds: string[]
   relatedCommitmentIds: string[]
   relatedGoalIds: string[]
@@ -87,27 +87,27 @@ export interface Vision {
 
 export interface VisionBoardItem {
   id: string
-  type: "image" | "quote" | "bible-verse" | "video" | "link" | "note" | "voice"
+  type: "image" | "quote" | "bible-verse" | "video" | "link"
   content: string
   title: string
   url: string
   createdAt: string
 }
 
-export type RoadmapTimeHorizon = "2-years" | "5-years" | "10-years" | "20-years" | "lifetime"
+export type RoadmapTimeHorizon = "1-year" | "2-years" | "5-years" | "10-years" | "lifetime"
 export type MilestoneStatus = "not-started" | "in-progress" | "completed" | "on-hold"
 
 export interface RoadmapMilestone {
   id: string
   visionId: string
   title: string
-  description: string
+  description?: string
   timeHorizon: RoadmapTimeHorizon
   targetYear: number
   targetDate: string
   progress: number
   status: MilestoneStatus
-  notes: string
+  notes?: string
   relatedGoalIds: string[]
   order: number
   createdAt: string

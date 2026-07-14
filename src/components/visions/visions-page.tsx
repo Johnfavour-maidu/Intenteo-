@@ -639,9 +639,7 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
                         {linkedLifeAreas.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {linkedLifeAreas.map((a) => (
-                              <span key={a.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border border-purple-400/40 text-purple-600 dark:text-purple-400 font-medium">
-                                {a.icon} {a.name}
-                              </span>
+                              <span key={a.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-[#1E0E6B]/25 text-[#1E0E6B] font-medium">{a.name}</span>
                             ))}
                           </div>
                         )}
@@ -1674,7 +1672,7 @@ export function VisionsPage() {
       <PurposeSection purpose={purpose} lifeAreas={lifeAreas} onSave={handleSavePurpose} />
 
       {/* 2. Core Values */}
-      <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} />
+      <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} onInfo={() => setInfoModal("values")} />
 
       {/* 3. Commitments */}
       <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
@@ -1701,6 +1699,12 @@ export function VisionsPage() {
         <EducationalModal title="Purpose" onClose={() => setInfoModal(null)}>
           <p>Purpose is your reason for living. It answers the question: <strong>&ldquo;Why do I exist?&rdquo;</strong></p>
           <p>Unlike goals, purpose rarely changes. It guides your decisions throughout life.</p>
+        </EducationalModal>
+      )}
+      {infoModal === "values" && (
+        <EducationalModal title="Core Values" onClose={() => setInfoModal(null)}>
+          <p>Core values are the principles that guide your decisions, shape your behaviour, and remain consistent regardless of circumstances.</p>
+          <p>They are not aspirations — they are the beliefs you actually live by. Identifying them helps you align your actions with what matters most.</p>
         </EducationalModal>
       )}
     </div>
