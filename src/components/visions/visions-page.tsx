@@ -284,7 +284,7 @@ function PurposeReviewModal({ purpose, onSave, onClose }: { purpose: Purpose; on
 // PURPOSE SECTION (Hero)
 // ══════════════════════════════════════════════════════════════
 
-function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; lifeAreas: LifeArea[]; onSave: (p: Purpose) => void }) {
+function PurposeSection({ purpose, lifeAreas, onSave, onInfo }: { purpose: Purpose; lifeAreas: LifeArea[]; onSave: (p: Purpose) => void; onInfo?: () => void }) {
   const [editing, setEditing] = useState(false)
   const [statement, setStatement] = useState(purpose.statement)
   const [notes, setNotes] = useState(purpose.notes)
@@ -442,6 +442,11 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
                 <Sparkles className="h-4 w-4 text-[#1E0E6B]" />
               </div>
               <span className="text-sm font-bold text-[#1E0E6B] uppercase tracking-wider">Purpose</span>
+              {onInfo && (
+                <button onClick={onInfo} className="p-1 rounded-full hover:bg-muted transition-colors">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
               {purpose.updatedAt && <span className="text-[10px] text-muted-foreground">Updated {formatDateDDMMYYYY(purpose.updatedAt)}</span>}
             </div>
             <div className="flex items-center gap-0.5">
@@ -584,9 +589,9 @@ function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave:
 // COMMITMENTS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, onUpdate, onDelete }: {
+function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, onUpdate, onDelete, onInfo }: {
   commitments: Commitment[]; values: CoreValue[]; lifeAreas: LifeArea[]; visions: Vision[]
-  onAdd: () => void; onUpdate: (id: string, updates: Partial<Commitment>) => void; onDelete: (id: string) => void
+  onAdd: () => void; onUpdate: (id: string, updates: Partial<Commitment>) => void; onDelete: (id: string) => void; onInfo?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all")
@@ -609,11 +614,17 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" collapsedInfo={`${commitments.filter((c) => !c.archived).length} Commitment${commitments.filter((c) => !c.archived).length !== 1 ? 's' : ''}`} count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} rightControls={filterControls} />
+      <SectionHeader icon={Shield} title="Commitments" subtitle="Lifelong promises that define you" collapsedInfo={`${commitments.filter((c) => !c.archived).length} Commitment${commitments.filter((c) => !c.archived).length !== 1 ? 's' : ''}`} count={commitments.filter((c) => !c.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo} rightControls={filterControls} />
       {expanded && (
         <div className="space-y-3">
           {filtered.length === 0 ? (
-            <EmptyState icon={Shield} title="No commitments yet" desc="Make lifelong promises that guide your actions." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Commitment</Button>} />
+            filter === "archived" ? (
+              <EmptyState icon={Shield} title="No archived commitments" desc="Commitments you archive will appear here." />
+            ) : filter === "active" ? (
+              <EmptyState icon={Shield} title="No active commitments" desc="All your commitments are archived." />
+            ) : (
+              <EmptyState icon={Shield} title="No commitments yet" desc="Make lifelong promises that guide your actions." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Add Your First Commitment</Button>} />
+            )
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {filtered.map((c) => {
@@ -622,45 +633,63 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
                 const linkedVisions = (c.relatedVisionIds || []).map((vid) => visions.find((v) => v.id === vid)).filter(Boolean) as Vision[]
 
                 return (
-                  <div key={c.id} className={`p-4 rounded-2xl border bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-150 group ${c.archived ? "opacity-60" : ""}`}>
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-semibold leading-snug">{c.title}</span>
-
-                        {linkedValues.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {linkedValues.map((v) => (
-                              <span key={v.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-[#1E0E6B]/25 text-[#1E0E6B] font-medium">{v.name}</span>
-                            ))}
-                          </div>
-                        )}
-
-                        {linkedLifeAreas.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {linkedLifeAreas.map((a) => (
-                              <span key={a.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-[#1E0E6B]/25 text-[#1E0E6B] font-medium">{a.name}</span>
-                            ))}
-                          </div>
-                        )}
-
-                        {linkedVisions.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {linkedVisions.map((v) => (
-                              <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border border-[#EB9E5B]/40 text-[#EB9E5B] font-medium">
-                                {v.icon} {v.title}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <button onClick={() => setEditingId(editingId === c.id ? null : c.id)} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
-                        <button onClick={() => onUpdate(c.id, { archived: !c.archived })} className="p-1 rounded hover:bg-muted" title={c.archived ? "Unarchive" : "Archive"}>
-                          {c.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-muted-foreground" /> : <Archive className="h-3.5 w-3.5 text-muted-foreground" />}
-                        </button>
-                        <button onClick={() => onDelete(c.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <div key={c.id} className={`px-4 py-3 rounded-2xl border bg-card shadow-sm hover:shadow-md hover:scale-[1.005] transition-all duration-150 group ${c.archived ? "opacity-60" : ""}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[17px] font-semibold text-foreground leading-snug line-clamp-2 flex-1 min-w-0">{c.title}</p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {c.pinned && <span title="Focus Commitment"><Pin className="h-3.5 w-3.5 text-amber-400 fill-amber-400" /></span>}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditingId(editingId === c.id ? null : c.id)} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                          <button onClick={() => onUpdate(c.id, { archived: !c.archived })} className="p-1 rounded hover:bg-muted" title={c.archived ? "Unarchive" : "Archive"}>
+                            {c.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-muted-foreground" /> : <Archive className="h-3.5 w-3.5 text-muted-foreground" />}
+                          </button>
+                          <button onClick={() => onDelete(c.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
                       </div>
                     </div>
+
+                    {linkedValues.length > 0 && (
+                      <div className="mt-2.5">
+                        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          <span className="text-[9px] opacity-50">&#9670;</span> Values
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {linkedValues.map((v) => (
+                            <span key={v.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-[#1E0E6B]/30 text-[#1E0E6B] font-medium">{v.name}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {linkedLifeAreas.length > 0 && (
+                      <div className="mt-2">
+                        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          <span className="text-[9px] opacity-50">&#9673;</span> Life Area
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {linkedLifeAreas.map((a) => (
+                            <span key={a.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full bg-muted/70 text-foreground/80 font-medium">{a.name}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {linkedVisions.length > 0 && (
+                      <div className="mt-2">
+                        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          <span className="text-[9px] opacity-50">&#9733;</span> Vision
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {linkedVisions.map((v) => (
+                            <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border border-[#EB9E5B]/40 text-[#EB9E5B] font-medium max-w-full" title={v.title}>
+                              <span className="shrink-0">{v.icon}</span>
+                              <span className="truncate">{v.title}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {editingId === c.id && (
                       <CommitmentEditModal commitment={c} values={values} lifeAreas={lifeAreas} visions={visions} onSave={(updates) => { onUpdate(c.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
                     )}
@@ -741,9 +770,9 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
 // VISIONS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd, onUpdate, onDelete, onSelectVision }: {
+function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd, onUpdate, onDelete, onSelectVision, onInfo }: {
   visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>
-  onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void
+  onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void; onInfo?: () => void
 }) {
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
@@ -764,7 +793,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
       <SectionHeader
         icon={Star} title="My Visions" subtitle="The future you are creating"
         collapsedInfo={`${visionCount} Vision${visionCount !== 1 ? 's' : ''}`}
-        count={visionCount} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd}
+        count={visionCount} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} onInfo={onInfo}
         rightControls={expanded && visions.length > 0 ? (
           <div className="flex items-center gap-2">
             <select value={filter} onChange={(e) => setFilter(e.target.value as "all" | "active" | "archived")} className="px-3 py-2 text-sm rounded-lg border bg-background h-9">
@@ -782,7 +811,13 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
       {expanded && (
         <div className="space-y-3">
           {filtered.length === 0 ? (
-            <EmptyState icon={Star} title="No visions yet" desc="Create your first vision to start building your future." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Create Vision</Button>} />
+            filter === "archived" ? (
+              <EmptyState icon={Star} title="No archived visions" desc="Visions you archive will appear here." />
+            ) : filter === "active" ? (
+              <EmptyState icon={Star} title="No active visions" desc="All your visions are archived." />
+            ) : (
+              <EmptyState icon={Star} title="No visions yet" desc="Create your first vision to start building your future." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Create Vision</Button>} />
+            )
           ) : view === "grid" ? (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {filtered.map((v) => {
@@ -1645,16 +1680,16 @@ export function VisionsPage() {
       </div>
 
       {/* 1. Purpose (Hero) */}
-      <PurposeSection purpose={purpose} lifeAreas={lifeAreas} onSave={handleSavePurpose} />
+      <PurposeSection purpose={purpose} lifeAreas={lifeAreas} onSave={handleSavePurpose} onInfo={() => setInfoModal("purpose")} />
 
       {/* 2. Core Values */}
       <CoreValuesSection values={values} onAdd={() => setCreateType("value")} onUpdate={handleUpdateValue} onDelete={handleDeleteValue} onReorder={handleReorderValues} onInfo={() => setInfoModal("values")} />
 
       {/* 3. Commitments */}
-      <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
+      <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} onInfo={() => setInfoModal("commitments")} />
 
       {/* 4. My Visions */}
-      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
+      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} onInfo={() => setInfoModal("visions")} />
 
       {/* Vision Edit Modal */}
       {selectedVision && (
@@ -1678,6 +1713,18 @@ export function VisionsPage() {
         <EducationalModal title="Core Values" onClose={() => setInfoModal(null)}>
           <p>Core values are the principles that guide your decisions, shape your behaviour, and remain consistent regardless of circumstances.</p>
           <p>They are not aspirations — they are the beliefs you actually live by. Identifying them helps you align your actions with what matters most.</p>
+        </EducationalModal>
+      )}
+      {infoModal === "commitments" && (
+        <EducationalModal title="Commitments" onClose={() => setInfoModal(null)}>
+          <p>Commitments are the lifelong promises you make to yourself and others. They define who you are and how you show up in the world.</p>
+          <p>Unlike goals, commitments are not about achieving something — they are about being someone. They shape your character and guide your daily actions.</p>
+        </EducationalModal>
+      )}
+      {infoModal === "visions" && (
+        <EducationalModal title="My Visions" onClose={() => setInfoModal(null)}>
+          <p>A vision is a vivid picture of the future you are intentionally creating. It gives direction to your goals and purpose.</p>
+          <p>Each vision is tied to a life area and can contain milestones, goals, and reviews. Think of visions as the chapters of the life story you are writing.</p>
         </EducationalModal>
       )}
     </div>

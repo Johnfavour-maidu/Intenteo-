@@ -10,7 +10,7 @@ import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
   Link2, AlertTriangle, Info, Map, Eye, Star, Edit3, ImagePlus,
-  ChevronLeft, GripVertical, ArrowRight,
+  ChevronLeft, GripVertical,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -19,7 +19,7 @@ import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
 import type { GoalData, GoalProject, GoalHabit } from "./goal-utils"
 import {
-  calcTrend, GOAL_TREND_CONFIG, generateSmartNextAction,
+  generateSmartNextAction,
   detectCelebration,
   calcGoalForecast, calcCompletionProbability, calcGoalMomentum,
   getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
@@ -1343,11 +1343,10 @@ function CoreValueLibrary({ existingValues, onAddValues, onClose }: { existingVa
 }
 
 function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused, onToggleFocus, focusCount, onEdit, onDelete, onReview }: { goal: Goal; projects: Project[]; habits: Habit[]; visions: Vision[]; values: CoreValue[]; onClick: () => void; isFocused?: boolean; onToggleFocus?: (id: string) => void; focusCount?: number; onEdit?: (g: Goal) => void; onDelete?: (id: string) => void; onReview?: (g: Goal) => void }) {
-  const goalProjects = projects.filter(p => p.goalId === goal.id)
   const progress = calcGoalProgress(goal, projects, habits)
   const daysRemaining = getDaysRemaining(goal.deadline)
-  const trend = calcTrend(goal as unknown as GoalData, projects as unknown as GoalProject[])
-  const trendCfg = GOAL_TREND_CONFIG[trend]
+
+  const nextMilestone = goal.milestones.find(m => !m.completed)
 
   return (
     <div onClick={onClick} className={`group bg-white dark:bg-gray-950 rounded-2xl border-2 border-[#1E0E6B]/15 hover:border-[#1E0E6B]/30 hover:shadow-lg hover:shadow-[#1E0E6B]/5 hover:scale-[1.01] transition-all duration-200 cursor-pointer overflow-hidden relative ${isFocused ? "ring-2 ring-[#1E0E6B] border-[#1E0E6B]" : ""}`}>
@@ -1364,13 +1363,15 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
         </div>
       )}
       <div className="p-4">
+        {/* Header — icon, title, category, progress ring, actions */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className="text-xl shrink-0">{goal.icon}</span>
             <h3 className="font-semibold text-sm leading-tight truncate">{goal.title}</h3>
             <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <ProgressRing value={progress} size={42} strokeWidth={4} showLabel={true} />
             {onToggleFocus && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
@@ -1402,8 +1403,10 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>
+        {/* Description */}
+        {goal.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{goal.description}</p>}
 
+        {/* Value chips */}
         {(goal.linkedValueIds || []).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {values.filter(v => (goal.linkedValueIds || []).includes(v.id)).slice(0, 3).map(v => (
@@ -1419,36 +1422,30 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
           </div>
         )}
 
-        {isReviewDue(goal) && onReview && (
-          <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="mb-3 w-full p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-left">
-            <span className="text-base">📚</span>
+        {/* Next Milestone */}
+        {nextMilestone ? (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
+            <Target className="h-3.5 w-3.5 text-[#1E0E6B] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Review Goal</p>
-              <p className="text-[10px] text-amber-600 dark:text-amber-400">Not reviewed in {daysSinceReview(goal)} days</p>
+              <p className="text-[10px] text-[#1E0E6B]/60 font-medium uppercase tracking-wider">Next Milestone</p>
+              <p className="text-[11px] text-[#1E0E6B] font-medium truncate">{nextMilestone.title}</p>
             </div>
-            <ArrowRight className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-          </button>
+          </div>
+        ) : (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30">
+            <Target className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <p className="text-[11px] text-muted-foreground italic">No milestones yet</p>
+          </div>
         )}
 
-        <div className="flex justify-center mb-3">
-          <ProgressRing value={progress} size={58} strokeWidth={5} showLabel={true} />
-        </div>
-
-        {/* Progress bar */}
-        <div className="space-y-1.5 mb-3">
-          <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Progress</span><span className="font-semibold">{progress}%</span></div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500 bg-[#1E0E6B]" style={{width: `${progress}%`}} /></div>
-        </div>
-
-        {/* Next Action — compact */}
-        <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5">
-          <Zap className="h-3.5 w-3.5 text-[#1E0E6B] shrink-0" />
-          <p className="text-[11px] text-[#1E0E6B] font-medium truncate">{generateSmartNextAction(goal as unknown as GoalData, projects as unknown as GoalProject[], habits as unknown as GoalHabit[])}</p>
-        </div>
-
-        {/* Footer — due date */}
-        <div className="flex items-center mt-3 pt-3 border-t border-[#1E0E6B]/5">
+        {/* Footer — due date + review button */}
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#1E0E6B]/5">
           <span className={`flex items-center gap-1 text-xs text-muted-foreground ${daysRemaining <= 7 && daysRemaining > 0 ? "text-amber-600" : daysRemaining === 0 && new Date(goal.deadline) < new Date() ? "text-red-600" : ""}`}><Clock className="h-3 w-3" />{friendlyDueDate(goal.deadline)}</span>
+          {isReviewDue(goal) && onReview && (
+            <button onClick={(e) => { e.stopPropagation(); onReview(goal) }} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors">
+              Review
+            </button>
+          )}
         </div>
       </div>
     </div>
