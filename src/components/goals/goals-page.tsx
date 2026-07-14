@@ -333,6 +333,22 @@ const getAutoDeadline = (startDate: string, type: Goal["type"]): string => {
   return d.toISOString().split("T")[0]
 }
 
+const getDeadlineForHorizon = (startDate: string, horizon: TimeHorizon): string => {
+  const s = startDate || new Date().toISOString().split("T")[0]
+  const d = new Date(s)
+  switch (horizon) {
+    case "this-year": {
+      const end = new Date(d.getFullYear(), 11, 31)
+      return end.toISOString().split("T")[0]
+    }
+    case "2-years": d.setFullYear(d.getFullYear() + 2); break
+    case "5-years": d.setFullYear(d.getFullYear() + 5); break
+    case "10-years": d.setFullYear(d.getFullYear() + 10); break
+    case "lifetime": d.setFullYear(d.getFullYear() + 50); break
+  }
+  return d.toISOString().split("T")[0]
+}
+
 const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValuesAdded }: {
   isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void; habits: Habit[]; visions: Vision[]; values: CoreValue[]; onValuesAdded: () => void
 }) => {
@@ -508,10 +524,10 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
           </div>
           <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
             {TIME_HORIZONS.map(th => (
-              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => setTimeHorizon(th.value)} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
+              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)) }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
             ))}</div></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><DateInput label="Start Date" value={startDate} onChange={setStartDate} /></div>
+            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)) }} /></div>
             <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -1087,11 +1103,13 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
         </div>
       )}
       <div className="p-4">
-        {/* Header — single row: icon, title, category, star, edit, delete, progress circle */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl shrink-0">{goal.icon}</span>
-          <h3 className="font-semibold text-sm leading-tight truncate flex-1 min-w-0">{goal.title}</h3>
-          <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
+        {/* Header — single row: left-aligned info, right-aligned actions + progress */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xl shrink-0">{goal.icon}</span>
+            <h3 className="font-semibold text-sm leading-tight truncate min-w-0">{goal.title}</h3>
+            <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
+          </div>
           <div className="flex items-center gap-1 shrink-0">
             {onToggleFocus && (
               <button
@@ -1121,8 +1139,8 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
                 <Trash2 className="h-4 w-4" />
               </button>
             )}
+            <ProgressRing value={progress} size={42} strokeWidth={4} showLabel={true} className="shrink-0 ml-1" />
           </div>
-          <ProgressRing value={progress} size={42} strokeWidth={4} showLabel={true} className="shrink-0" />
         </div>
 
         {/* Description */}

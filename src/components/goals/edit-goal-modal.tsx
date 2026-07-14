@@ -13,6 +13,22 @@ import { loadCoreValues, addCoreValue } from "@/lib/vision-framework"
 import { getTodayISO } from "./types"
 import type { Goal, Milestone, GoalProjectTimeline, LinkedHabitWeight, TimeHorizon, ReviewFrequency, Habit, Vision, CoreValue } from "./goals-page"
 
+function getDeadlineForHorizon(startDate: string, horizon: TimeHorizon): string {
+  const s = startDate || new Date().toISOString().split("T")[0]
+  const d = new Date(s)
+  switch (horizon) {
+    case "this-year": {
+      const end = new Date(d.getFullYear(), 11, 31)
+      return end.toISOString().split("T")[0]
+    }
+    case "2-years": d.setFullYear(d.getFullYear() + 2); break
+    case "5-years": d.setFullYear(d.getFullYear() + 5); break
+    case "10-years": d.setFullYear(d.getFullYear() + 10); break
+    case "lifetime": d.setFullYear(d.getFullYear() + 50); break
+  }
+  return d.toISOString().split("T")[0]
+}
+
 interface EditGoalModalProps {
   isOpen: boolean; onClose: () => void; goal: Goal | null
   habits: Habit[]; visions: Vision[]; values: CoreValue[]
@@ -224,10 +240,10 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
           </div>
           <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
             {TIME_HORIZONS.map(th => (
-              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); markChanged() }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
+              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)); markChanged() }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
             ))}</div></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); markChanged() }} /></div>
+            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)); markChanged() }} /></div>
             <div><DateInput label="Target Date" value={deadline} onChange={(v) => { setDeadline(v); markChanged() }} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
