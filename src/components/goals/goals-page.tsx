@@ -24,7 +24,6 @@ import {
   calcGoalForecast, calcCompletionProbability, calcGoalMomentum,
   getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
 } from "./goal-utils"
-import { GoalAnalyticsDrawer } from "./goal-analytics-drawer"
 import { EditGoalModal } from "./edit-goal-modal"
 import { DateInput } from "@/components/ui/date-input"
 import type { Vision, Purpose, CoreValue, Commitment } from "@/lib/vision-framework"
@@ -1446,7 +1445,6 @@ export function GoalsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [reviewGoal, setReviewGoal] = useState<Goal | null>(null)
-  const [analyticsGoal, setAnalyticsGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
   const [viewMode, setViewMode] = useState<"board" | "list">("board")
   const [isLoading, setIsLoading] = useState(true)
@@ -1627,7 +1625,7 @@ export function GoalsPage() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => g.focused).sort((a, b) => (a.focusOrder ?? 0) - (b.focusOrder ?? 0)).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => setAnalyticsGoal(goal)} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => {}} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
                     ))}
                   </div>
                 </div>
@@ -1639,7 +1637,7 @@ export function GoalsPage() {
                   )}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredAndSorted.filter(g => !g.focused).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => setAnalyticsGoal(goal)} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
+                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => {}} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
                     ))}
                   </div>
                 </div>
@@ -1663,7 +1661,7 @@ export function GoalsPage() {
                     const days = getDaysRemaining(goal.deadline)
                     const isOverdue = days === 0 && new Date(goal.deadline) < new Date() && progress < 100
                     return (
-                      <tr key={goal.id} onClick={() => setAnalyticsGoal(goal)} className="border-b border-[#1E0E6B]/10 hover:bg-white/30 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                      <tr key={goal.id} className="border-b border-[#1E0E6B]/10 hover:bg-white/30 dark:hover:bg-white/5 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="text-base">{goal.icon}</span>
@@ -1754,24 +1752,6 @@ export function GoalsPage() {
           setGoals(prev => prev.map(g => g.id === reviewGoal.id ? { ...g, reviews: [...(g.reviews || []), review], lastReviewedAt: review.date } : g))
           setReviewGoal(null)
         }} />
-      )}
-
-      {/* Analytics Drawer */}
-      {analyticsGoal && (
-        <GoalAnalyticsDrawer
-          goal={analyticsGoal as unknown as GoalData}
-          projects={projects as unknown as GoalProject[]}
-          habits={habits as unknown as GoalHabit[]}
-          vision={(visions.find(v => v.id === (analyticsGoal as any).visionId) || null) as any}
-          purpose={purpose}
-          values={values}
-          commitments={commitments}
-          onClose={() => setAnalyticsGoal(null)}
-          onEdit={(g) => {
-            setAnalyticsGoal(null)
-            setSelectedGoal(analyticsGoal)
-          }}
-        />
       )}
     </div>
   )
