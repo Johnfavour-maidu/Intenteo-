@@ -2056,7 +2056,7 @@ export function GoalsPage() {
           goal={analyticsGoal as unknown as GoalData}
           projects={projects as unknown as GoalProject[]}
           habits={habits as unknown as GoalHabit[]}
-          vision={visions.find(v => v.id === (analyticsGoal as any).visionId) || null}
+          vision={(visions.find(v => v.id === (analyticsGoal as any).visionId) || null) as any}
           purpose={purpose}
           values={values}
           commitments={commitments}

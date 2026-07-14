@@ -87,14 +87,14 @@ export interface Vision {
 
 export interface VisionBoardItem {
   id: string
-  type: "image" | "quote" | "bible-verse" | "video" | "link"
+  type: "image" | "quote" | "bible-verse" | "video" | "link" | "note"
   content: string
   title: string
   url: string
   createdAt: string
 }
 
-export type RoadmapTimeHorizon = "1-year" | "2-years" | "5-years" | "10-years" | "lifetime"
+export type RoadmapTimeHorizon = "1-year" | "2-years" | "5-years" | "10-years" | "20-years" | "lifetime"
 export type MilestoneStatus = "not-started" | "in-progress" | "completed" | "on-hold"
 
 export interface RoadmapMilestone {
@@ -220,6 +220,14 @@ export const REVIEW_FREQUENCY_CONFIG: Record<Purpose["reviewFrequency"], { label
   monthly: { label: "Monthly", days: 30 },
   quarterly: { label: "Quarterly", days: 90 },
   annually: { label: "Annually", days: 365 },
+}
+
+export const VISION_REVIEW_FREQUENCY_CONFIG: Record<Vision["reviewFrequency"], { label: string; days: number }> = {
+  weekly: { label: "Weekly", days: 7 },
+  biweekly: { label: "Every 2 Weeks", days: 14 },
+  monthly: { label: "Monthly", days: 30 },
+  bimonthly: { label: "Every 2 Months", days: 60 },
+  quarterly: { label: "Quarterly (90 Days)", days: 90 },
 }
 
 export const REVIEW_QUESTIONS = [
@@ -768,8 +776,8 @@ export function searchVisionEntities(query: string): VisionSearchResult[] {
 
   const visions = loadVisions()
   visions.forEach((v) => {
-    if (v.title.toLowerCase().includes(q) || v.description.toLowerCase().includes(q)) {
-      results.push({ type: "vision", id: v.id, title: v.title, subtitle: v.description.slice(0, 80), icon: v.icon })
+    if (v.title.toLowerCase().includes(q) || (v.description || "").toLowerCase().includes(q)) {
+      results.push({ type: "vision", id: v.id, title: v.title, subtitle: (v.description || "").slice(0, 80), icon: v.icon })
     }
     v.boardItems.forEach((b) => {
       if (b.title.toLowerCase().includes(q) || b.content.toLowerCase().includes(q)) {
@@ -779,7 +787,7 @@ export function searchVisionEntities(query: string): VisionSearchResult[] {
   })
 
   loadRoadmapMilestones().forEach((m) => {
-    if (m.title.toLowerCase().includes(q) || m.description.toLowerCase().includes(q)) {
+    if (m.title.toLowerCase().includes(q) || (m.description || "").toLowerCase().includes(q)) {
       const vision = visions.find((v) => v.id === m.visionId)
       results.push({ type: "milestone", id: m.id, title: m.title, subtitle: `${vision?.icon || "🗺️"} ${vision?.title || "Unknown"} — ${m.timeHorizon}`, icon: "🗺️" })
     }

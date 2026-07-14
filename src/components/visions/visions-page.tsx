@@ -9,11 +9,11 @@ import { Separator } from "@/components/ui/separator"
 import {
   Plus, Search, X, ChevronDown, ChevronRight, Edit3, Trash2,
   GripVertical, Pin, PinOff, Archive, ArchiveRestore,
-  Star, Target, BookOpen, CheckSquare, Flag,
-  Image, Quote, Video, StickyNote, Music,
+  Star, Target, BookOpen, CheckSquare,
+  Image, Quote, Video,
   ExternalLink, Sparkles, LayoutGrid, List,
   Heart, Shield, Clock, Calendar, Info,
-  CheckCircle2, Circle, AlertCircle, Check, AlertTriangle, History,
+  CheckCircle2, Circle, AlertCircle, Check, AlertTriangle, History, Upload,
 } from "lucide-react"
 import {
   loadPurpose, savePurpose,
@@ -24,7 +24,7 @@ import {
   loadVisions, addVision, updateVision, deleteVision,
   loadRoadmapMilestones, addRoadmapMilestone, updateRoadmapMilestone, deleteRoadmapMilestone,
   calculateAlignmentScore, calculateValueConnectionStrength, seedDemoDataIfEmpty,
-  DEFAULT_LIFE_AREAS, randomReviewQuestion, getNextReviewDate, isReviewDue,
+  DEFAULT_LIFE_AREAS, VISION_REVIEW_FREQUENCY_CONFIG, randomReviewQuestion, getNextReviewDate, isReviewDue,
   type Purpose, type PurposeReview, type LifeArea, type CoreValue, type Commitment,
   type Vision, type VisionBoardItem, type RoadmapMilestone, type RoadmapTimeHorizon, type MilestoneStatus,
 } from "@/lib/vision-framework"
@@ -404,9 +404,8 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
                             className={`flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left transition-colors ${selected ? "bg-[#1E0E6B]/10" : "hover:bg-[#1E0E6B]/5"}`}
                           >
                             <span className="flex items-center gap-2">
-                              <span>{a.icon}</span>
-                              <span>{a.name}</span>
-                            </span>
+                               <span>{a.name}</span>
+                             </span>
                             {selected && <Check className="h-4 w-4 text-[#1E0E6B]" />}
                           </button>
                         )
@@ -420,8 +419,8 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
             {selectedLifeAreas.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2.5">
                 {selectedLifeAreas.map((a) => (
-                  <span key={a.id} className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] border border-[#1E0E6B]/15">
-                    {a.icon} {a.name}
+                   <span key={a.id} className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] border border-[#1E0E6B]/15">
+                     {a.name}
                     <button type="button" onClick={() => toggleLifeArea(a.id)} className="ml-0.5 hover:text-[#EB9E5B] transition-colors" aria-label={`Remove ${a.name}`}>
                       <X className="h-3 w-3" />
                     </button>
@@ -469,7 +468,7 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
           {purpose.notes && <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">{purpose.notes}</p>}
           {selectedLifeAreas.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
-              {selectedLifeAreas.map((a) => <RelationshipChip key={a.id} icon={a.icon} label={a.name} />)}
+              {selectedLifeAreas.map((a) => <span key={a.id} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-[#1E0E6B]/25 text-[#1E0E6B] font-medium">{a.name}</span>)}
             </div>
           )}
 
@@ -681,11 +680,9 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
   onSave: (updates: Partial<Commitment>) => void; onCancel: () => void
 }) {
   const [title, setTitle] = useState(commitment.title)
-  const [description, setDescription] = useState(commitment.description)
   const [relatedValueIds, setRelatedValueIds] = useState<string[]>(commitment.relatedValueIds)
   const [relatedLifeAreaIds, setRelatedLifeAreaIds] = useState<string[]>(commitment.relatedLifeAreaIds)
   const [relatedVisionIds, setRelatedVisionIds] = useState<string[]>(commitment.relatedVisionIds)
-  const [healthStatus, setHealthStatus] = useState(commitment.healthStatus)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -695,19 +692,6 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Commitment Statement</label>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="I will always..." />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Why this commitment matters" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Health Status</label>
-          <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as Commitment["healthStatus"])} className="w-full px-3 py-2 text-sm rounded-lg border bg-background mt-1.5">
-            <option value="keeping">Keeping Consistently</option>
-            <option value="mostly">Mostly Keeping</option>
-            <option value="needs-attention">Needs Attention</option>
-            <option value="broken">Broken</option>
-          </select>
         </div>
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Related Values</label>
@@ -726,7 +710,7 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
             {lifeAreas.map((a) => (
               <button key={a.id} onClick={() => setRelatedLifeAreaIds((prev) => prev.includes(a.id) ? prev.filter((i) => i !== a.id) : [...prev, a.id])}
                 className={`px-2 py-1 text-[11px] rounded-full border transition-colors ${relatedLifeAreaIds.includes(a.id) ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-muted"}`}>
-                {a.icon} {a.name}
+                {a.name}
               </button>
             ))}
           </div>
@@ -744,7 +728,7 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button size="sm" onClick={() => onSave({ title, description, relatedValueIds, relatedLifeAreaIds, relatedVisionIds, healthStatus })}>Save</Button>
+          <Button size="sm" onClick={() => onSave({ title, relatedValueIds, relatedLifeAreaIds, relatedVisionIds })}>Save</Button>
         </div>
       </div>
     </div>
@@ -757,8 +741,8 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
 // VISIONS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function VisionsSection({ visions, values, commitments, lifeAreas, goals, milestones = [], onAdd, onUpdate, onDelete, onSelectVision }: {
-  visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>; milestones?: RoadmapMilestone[]
+function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd, onUpdate, onDelete, onSelectVision }: {
+  visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>
   onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void
 }) {
   const router = useRouter()
@@ -773,24 +757,30 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, milest
     return items
   }, [visions, filter])
 
+  const visionCount = visions.filter((v) => !v.archived).length
+
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Star} title="My Visions" subtitle="The future you are creating" collapsedInfo={`${visions.filter((v) => !v.archived).length} Vision${visions.filter((v) => !v.archived).length !== 1 ? 's' : ''}`} count={visions.filter((v) => !v.archived).length} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd} />
+      <SectionHeader
+        icon={Star} title="My Visions" subtitle="The future you are creating"
+        collapsedInfo={`${visionCount} Vision${visionCount !== 1 ? 's' : ''}`}
+        count={visionCount} expanded={expanded} onToggle={() => setExpanded(!expanded)} onAdd={onAdd}
+        rightControls={expanded && visions.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <select value={filter} onChange={(e) => setFilter(e.target.value as "all" | "active" | "archived")} className="px-3 py-2 text-sm rounded-lg border bg-background h-9">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
+            <div className="flex border rounded-lg overflow-hidden">
+              <button onClick={() => setView("grid")} className={`p-2 ${view === "grid" ? "bg-primary text-primary-foreground" : "bg-muted/50"}`}><LayoutGrid className="h-4 w-4" /></button>
+              <button onClick={() => setView("list")} className={`p-2 ${view === "list" ? "bg-primary text-primary-foreground" : "bg-muted/50"}`}><List className="h-4 w-4" /></button>
+            </div>
+          </div>
+        ) : undefined}
+      />
       {expanded && (
         <div className="space-y-3">
-          {visions.length > 0 && (
-            <div className="flex gap-2">
-              <select value={filter} onChange={(e) => setFilter(e.target.value as "all" | "active" | "archived")} className="px-3 py-2 text-sm rounded-lg border bg-background h-9">
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-              </select>
-              <div className="flex border rounded-lg overflow-hidden">
-                <button onClick={() => setView("grid")} className={`p-2 ${view === "grid" ? "bg-primary text-primary-foreground" : "bg-muted/50"}`}><LayoutGrid className="h-4 w-4" /></button>
-                <button onClick={() => setView("list")} className={`p-2 ${view === "list" ? "bg-primary text-primary-foreground" : "bg-muted/50"}`}><List className="h-4 w-4" /></button>
-              </div>
-            </div>
-          )}
           {filtered.length === 0 ? (
             <EmptyState icon={Star} title="No visions yet" desc="Create your first vision to start building your future." action={<Button size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" /> Create Vision</Button>} />
           ) : view === "grid" ? (
@@ -808,11 +798,17 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, milest
                           <span className="text-2xl">{v.icon}</span>
                           <div>
                             <h3 className="font-semibold text-sm">{v.title}</h3>
-                            {area && <Badge variant="secondary" className="text-[9px]" style={{ color: area.color || "#6B7280", backgroundColor: `${area.color || "#6B7280"}15` }}>{area.icon} {area.name}</Badge>}
+                            {area && <Badge variant="secondary" className="text-[9px]" style={{ color: area.color || "#6B7280", backgroundColor: `${area.color || "#6B7280"}15` }}>{area.name}</Badge>}
                           </div>
                         </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); onSelectVision(v) }} className="p-1 rounded hover:bg-muted" title="Edit"><Edit3 className="h-3.5 w-3.5" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); onUpdate(v.id, { archived: !v.archived }) }} className="p-1 rounded hover:bg-muted" title={v.archived ? "Restore" : "Archive"}>
+                            {v.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); onDelete(v.id) }} className="p-1 rounded hover:bg-destructive/10 text-destructive" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
                       </div>
-                      {v.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{v.description}</p>}
                       <div className="flex flex-wrap gap-1 mt-2">
                         {(v.relatedValueIds || []).slice(0, 3).map((vid) => { const val = values.find((vv) => vv.id === vid); return val ? <RelationshipChip key={vid} icon={val.icon} label={val.name} /> : null })}
                         {(v.relatedValueIds || []).length > 3 && <span className="text-[9px] text-muted-foreground">+{(v.relatedValueIds || []).length - 3}</span>}
@@ -821,7 +817,6 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, milest
                         <button type="button" onClick={(e) => { e.stopPropagation(); router.push("/goals") }} className="flex items-center gap-1 hover:text-[#1E0E6B] transition-colors">
                           <Target className="h-3 w-3" /> {linkedGoals.length} Goal{linkedGoals.length !== 1 ? "s" : ""}
                         </button>
-                        <span className="flex items-center gap-1"><Flag className="h-3 w-3" /> {milestones.filter((m) => m.visionId === v.id).length} Milestone{milestones.filter((m) => m.visionId === v.id).length !== 1 ? "s" : ""}</span>
                       </div>
                     </div>
                   </div>
@@ -840,13 +835,13 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, milest
                         <span className="text-sm font-semibold truncate">{v.title}</span>
                         {area && <Badge variant="secondary" className="text-[9px]" style={{ color: area.color || "#6B7280" }}>{area.name}</Badge>}
                       </div>
-                      {v.description && <p className="text-xs text-muted-foreground truncate">{v.description}</p>}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button onClick={(e) => { e.stopPropagation(); onUpdate(v.id, { archived: !v.archived }) }} className="p-1 rounded hover:bg-muted">
+                      <button onClick={(e) => { e.stopPropagation(); onSelectVision(v) }} className="p-1 rounded hover:bg-muted" title="Edit"><Edit3 className="h-3.5 w-3.5" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); onUpdate(v.id, { archived: !v.archived }) }} className="p-1 rounded hover:bg-muted" title={v.archived ? "Restore" : "Archive"}>
                         {v.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); onDelete(v.id) }} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); onDelete(v.id) }} className="p-1 rounded hover:bg-destructive/10 text-destructive" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </div>
                 )
@@ -863,87 +858,150 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, milest
 // VISION EDIT MODAL
 // ══════════════════════════════════════════════════════════════
 
-function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClose, onUpdate }: {
-  vision: Vision; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>
-  onClose: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void
+function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClose, onUpdate, onCreate }: {
+  vision: Vision | null; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>
+  onClose: () => void; onUpdate?: (id: string, updates: Partial<Vision>) => void; onCreate?: (v: Omit<Vision, "id" | "order" | "createdAt" | "updatedAt">) => void
 }) {
   const purpose = loadPurpose()
-  const [title, setTitle] = useState(vision.title)
-  const [description, setDescription] = useState(vision.description)
-  const [lifeAreaId, setLifeAreaId] = useState(vision.lifeAreaId)
-  const [purposeAlignment, setPurposeAlignment] = useState(vision.purposeAlignment)
-  const [relatedValueIds, setRelatedValueIds] = useState<string[]>(vision.relatedValueIds)
-  const [relatedCommitmentIds, setRelatedCommitmentIds] = useState<string[]>(vision.relatedCommitmentIds)
-  const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
-  const [showMilestoneDialog, setShowMilestoneDialog] = useState(false)
-  const [editingMilestone, setEditingMilestone] = useState<RoadmapMilestone | null>(null)
-  const [boardItems, setBoardItems] = useState<VisionBoardItem[]>(vision.boardItems || [])
+  const isCreate = !vision
+  const [title, setTitle] = useState(vision?.title || "")
+  const [lifeAreaId, setLifeAreaId] = useState(vision?.lifeAreaId || "")
+  const [purposeAlignment, setPurposeAlignment] = useState(vision?.purposeAlignment || "")
+  const [reviewFrequency, setReviewFrequency] = useState<Vision["reviewFrequency"]>(vision?.reviewFrequency || "monthly")
+  const [relatedValueIds, setRelatedValueIds] = useState<string[]>(vision?.relatedValueIds || [])
+  const [relatedCommitmentIds, setRelatedCommitmentIds] = useState<string[]>(vision?.relatedCommitmentIds || [])
+  const [coverImage, setCoverImage] = useState(vision?.coverImage || "")
+  const [boardItems, setBoardItems] = useState<VisionBoardItem[]>(vision?.boardItems || [])
   const [addBoardType, setAddBoardType] = useState<VisionBoardItem["type"] | null>(null)
   const [newBoardContent, setNewBoardContent] = useState("")
   const [newBoardTitle, setNewBoardTitle] = useState("")
   const [newBoardUrl, setNewBoardUrl] = useState("")
+  const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
+  const [showMilestoneDialog, setShowMilestoneDialog] = useState(false)
+  const [editingMilestone, setEditingMilestone] = useState<RoadmapMilestone | null>(null)
+  const [relatedGoalIds, setRelatedGoalIds] = useState<string[]>(vision?.relatedGoalIds || [])
+  const [goalSearch, setGoalSearch] = useState("")
+  const [goalsOpen, setGoalsOpen] = useState(false)
+  const goalSearchRef = useRef<HTMLDivElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const boardFileInputRef = useRef<HTMLInputElement>(null)
 
-  const linkedGoals = goals.filter((g) => g.visionId === vision.id)
-  const selectedArea = lifeAreas.find((a) => a.id === lifeAreaId)
+  const linkedGoals = goals.filter((g) => g.visionId === vision?.id)
+  const filteredGoals = goals.filter((g) => g.title.toLowerCase().includes(goalSearch.toLowerCase()))
 
-  useEffect(() => { setMilestones(loadRoadmapMilestones(vision.id)) }, [vision.id])
+  useEffect(() => { if (vision?.id) setMilestones(loadRoadmapMilestones(vision.id)) }, [vision?.id])
+
+  useEffect(() => {
+    if (!goalsOpen) return
+    const handler = (e: MouseEvent) => { if (goalSearchRef.current && !goalSearchRef.current.contains(e.target as Node)) setGoalsOpen(false) }
+    const keyHandler = (e: KeyboardEvent) => { if (e.key === "Escape") setGoalsOpen(false) }
+    document.addEventListener("mousedown", handler)
+    document.addEventListener("keydown", keyHandler)
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", keyHandler) }
+  }, [goalsOpen])
 
   const handleSave = () => {
-    onUpdate(vision.id, { title, description, lifeAreaId, purposeAlignment, relatedValueIds, relatedCommitmentIds, boardItems })
+    const data = { title: title.trim(), lifeAreaId, purposeAlignment, reviewFrequency, relatedValueIds, relatedCommitmentIds, relatedGoalIds, boardItems, coverImage, icon: vision?.icon || "✨", relatedProjectIds: vision?.relatedProjectIds || [], relatedHabitIds: vision?.relatedHabitIds || [], archived: vision?.archived || false }
+    if (isCreate) { onCreate?.(data as Omit<Vision, "id" | "order" | "createdAt" | "updatedAt">) }
+    else { onUpdate?.(vision!.id, data) }
   }
 
   const handleAddBoardItem = () => {
-    if (!addBoardType || !newBoardContent.trim()) return
+    if (!addBoardType) return
     const item: VisionBoardItem = { id: `vbi-${Date.now()}`, type: addBoardType, content: newBoardContent.trim(), title: newBoardTitle.trim(), url: newBoardUrl.trim(), createdAt: new Date().toISOString() }
     setBoardItems([...boardItems, item])
     setAddBoardType(null); setNewBoardContent(""); setNewBoardTitle(""); setNewBoardUrl("")
   }
 
-  const horizonLabels: Record<RoadmapTimeHorizon, string> = { "2-years": "2 Years", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
+  const handleBoardFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string
+      setNewBoardUrl(dataUrl)
+      setNewBoardContent(dataUrl)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setCoverImage(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const horizonLabels: Record<RoadmapTimeHorizon, string> = { "1-year": "1 Year", "2-years": "2 Years", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
   const statusColors: Record<MilestoneStatus, string> = { "not-started": "bg-muted text-muted-foreground", "in-progress": "bg-blue-500/10 text-blue-600", "completed": "bg-emerald-500/10 text-emerald-600", "on-hold": "bg-yellow-500/10 text-yellow-600" }
   const statusLabels: Record<MilestoneStatus, string> = { "not-started": "Not Started", "in-progress": "In Progress", "completed": "Completed", "on-hold": "On Hold" }
 
-  const typeIcons: Record<string, React.ReactNode> = { image: <Image className="h-4 w-4" />, quote: <Quote className="h-4 w-4" />, "bible-verse": <BookOpen className="h-4 w-4" />, video: <Video className="h-4 w-4" />, link: <ExternalLink className="h-4 w-4" />, note: <StickyNote className="h-4 w-4" />, voice: <Music className="h-4 w-4" /> }
+  const typeIcons: Record<string, React.ReactNode> = { image: <Image className="h-4 w-4" />, quote: <Quote className="h-4 w-4" />, "bible-verse": <BookOpen className="h-4 w-4" />, video: <Video className="h-4 w-4" />, link: <ExternalLink className="h-4 w-4" /> }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative z-10 w-full max-w-2xl max-h-[90vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-fadeIn duration-150">
         <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="font-bold text-lg">Edit Vision</h2>
+          <h2 className="font-bold text-lg">{isCreate ? "Create Vision" : "Edit Vision"}</h2>
           <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Purpose (read-only) */}
-          {purpose.statement && (
+          {!isCreate && purpose.statement && (
             <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
               <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">Purpose</p>
               <p className="text-sm text-muted-foreground italic">&ldquo;{purpose.statement}&rdquo;</p>
             </div>
           )}
 
-          {/* Details */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Details</h3>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vision Title</label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Vision title" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What do you want to become?" />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Life Area (Required)</label>
-              <select value={lifeAreaId} onChange={(e) => setLifeAreaId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
-                <option value="">Select a life area...</option>
-                {lifeAreas.map((a) => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vision Description</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe this vision for your future..." className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Life Area (Required)</label>
+                <select value={lifeAreaId} onChange={(e) => setLifeAreaId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
+                  <option value="">Select a life area...</option>
+                  {lifeAreas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Review Frequency</label>
+                <select value={reviewFrequency} onChange={(e) => setReviewFrequency(e.target.value as Vision["reviewFrequency"])} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
+                  {Object.entries(VISION_REVIEW_FREQUENCY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Purpose Alignment</label>
               <textarea value={purposeAlignment} onChange={(e) => setPurposeAlignment(e.target.value)} placeholder="How does this vision connect to your purpose?" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Cover Image */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cover Image</h3>
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+            {coverImage ? (
+              <div className="relative rounded-xl overflow-hidden border h-40 group">
+                <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => coverInputRef.current?.click()}>Replace</Button>
+                  <Button size="sm" variant="destructive" onClick={() => setCoverImage("")}>Remove</Button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => coverInputRef.current?.click()} className="w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center gap-2 hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground/50" />
+                <span className="text-xs text-muted-foreground">Upload cover image</span>
+              </button>
+            )}
           </div>
 
           <Separator />
@@ -980,7 +1038,7 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Vision Board</h3>
             <div className="flex flex-wrap gap-2">
-              {(["image", "quote", "bible-verse", "video", "link", "note"] as const).map((type) => (
+              {(["image", "quote", "bible-verse", "video", "link"] as const).map((type) => (
                 <button key={type} onClick={() => setAddBoardType(addBoardType === type ? null : type)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${addBoardType === type ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-muted"}`}>
                   {typeIcons[type]} {type.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
@@ -989,12 +1047,31 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
             </div>
             {addBoardType && (
               <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
-                {addBoardType !== "note" && <Input value={newBoardTitle} onChange={(e) => setNewBoardTitle(e.target.value)} placeholder="Title (optional)" className="h-9" />}
-                {(addBoardType === "link" || addBoardType === "image" || addBoardType === "video") && <Input value={newBoardUrl} onChange={(e) => setNewBoardUrl(e.target.value)} placeholder="URL" className="h-9" />}
-                <textarea value={newBoardContent} onChange={(e) => setNewBoardContent(e.target.value)} placeholder="Content..." className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
+                <Input value={newBoardTitle} onChange={(e) => setNewBoardTitle(e.target.value)} placeholder="Title (optional)" className="h-9" />
+                {addBoardType === "image" && (
+                  <div>
+                    <input ref={boardFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBoardFileUpload} />
+                    {newBoardUrl ? (
+                      <div className="relative rounded-lg overflow-hidden border h-32 group">
+                        <img src={newBoardUrl} alt="Preview" className="w-full h-full object-cover" />
+                        <button onClick={() => { setNewBoardUrl(""); setNewBoardContent("") }} className="absolute top-1 right-1 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => boardFileInputRef.current?.click()} className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/20 flex items-center justify-center gap-2 hover:border-primary/40 transition-colors">
+                        <Upload className="h-4 w-4 text-muted-foreground/50" />
+                        <span className="text-xs text-muted-foreground">Upload image</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+                {addBoardType === "video" && <Input value={newBoardUrl} onChange={(e) => setNewBoardUrl(e.target.value)} placeholder="YouTube or Vimeo URL" className="h-9" />}
+                {addBoardType === "link" && <Input value={newBoardUrl} onChange={(e) => setNewBoardUrl(e.target.value)} placeholder="URL" className="h-9" />}
+                {(addBoardType === "quote" || addBoardType === "bible-verse") && (
+                  <textarea value={newBoardContent} onChange={(e) => setNewBoardContent(e.target.value)} placeholder="Content..." className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
+                )}
                 <div className="flex gap-2 justify-end">
                   <Button size="sm" variant="outline" onClick={() => { setAddBoardType(null); setNewBoardContent(""); setNewBoardTitle(""); setNewBoardUrl("") }}>Cancel</Button>
-                  <Button size="sm" onClick={handleAddBoardItem}>Add</Button>
+                  <Button size="sm" onClick={handleAddBoardItem} disabled={addBoardType === "image" ? !newBoardUrl : !newBoardContent.trim()}>Add</Button>
                 </div>
               </div>
             )}
@@ -1007,59 +1084,10 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
                     </button>
                     <span className="text-[10px] text-muted-foreground uppercase font-semibold">{item.type.replace("-", " ")}</span>
                     {item.title && <p className="text-sm font-medium">{item.title}</p>}
+                    {item.type === "image" && item.content && <img src={item.content} alt={item.title || ""} className="w-full h-20 object-cover rounded-lg" />}
                     {(item.type === "quote" || item.type === "bible-verse") && <p className="text-xs italic text-muted-foreground line-clamp-2">&ldquo;{item.content}&rdquo;</p>}
-                    {item.type === "note" && <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>}
                   </div>
                 ))}
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Roadmap Milestones */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Long-Term Milestones</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowMilestoneDialog(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Milestone</Button>
-            </div>
-            {milestones.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">No milestones yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {(["2-years", "5-years", "10-years", "20-years", "lifetime"] as RoadmapTimeHorizon[]).map((horizon) => {
-                  const items = milestones.filter((m) => m.timeHorizon === horizon)
-                  if (items.length === 0) return null
-                  return (
-                    <div key={horizon} className="space-y-2">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {horizonLabels[horizon]}</h4>
-                      {items.map((m) => (
-                        <div key={m.id} className="p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors group">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-semibold">{m.title}</span>
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[m.status]}`}>{statusLabels[m.status]}</span>
-                              </div>
-                              {m.description && <p className="text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className="text-[10px] text-muted-foreground">Target: {m.targetYear}</span>
-                                <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
-                                  <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${m.progress}%` }} /></div>
-                                  <span className="text-[10px] text-muted-foreground">{m.progress}%</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                              <button onClick={() => { setEditingMilestone(m); setShowMilestoneDialog(true) }} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3 w-3" /></button>
-                              <button onClick={() => { deleteRoadmapMilestone(m.id); setMilestones(loadRoadmapMilestones(vision.id)) }} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3 w-3" /></button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })}
               </div>
             )}
           </div>
@@ -1069,10 +1097,46 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
           {/* Goal Connections */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Goal Connections</h3>
-            {linkedGoals.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">No goals linked yet.</p>
-            ) : (
-              <div className="space-y-1.5">
+            {relatedGoalIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {relatedGoalIds.map((gid) => {
+                  const g = goals.find((gg) => gg.id === gid)
+                  return g ? (
+                    <span key={gid} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary font-medium">
+                      {g.title}
+                      <button onClick={() => setRelatedGoalIds((prev) => prev.filter((i) => i !== gid))} className="hover:text-primary/70"><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  ) : null
+                })}
+              </div>
+            )}
+            <div className="relative" ref={goalSearchRef}>
+              <button onClick={() => setGoalsOpen(!goalsOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border bg-background text-left text-muted-foreground">
+                <span>{goalsOpen ? "Close dropdown" : "Search goals to connect..."}</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${goalsOpen ? "rotate-180" : ""}`} />
+              </button>
+              {goalsOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-background border border-border rounded-xl shadow-lg overflow-hidden">
+                  <div className="p-2 border-b">
+                    <input value={goalSearch} onChange={(e) => setGoalSearch(e.target.value)} placeholder="Type to search..." className="w-full px-3 py-1.5 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary" autoFocus />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto p-1">
+                    {filteredGoals.map((g) => (
+                      <button key={g.id} onClick={() => setRelatedGoalIds((prev) => prev.includes(g.id) ? prev.filter((i) => i !== g.id) : [...prev, g.id])}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${relatedGoalIds.includes(g.id) ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
+                        <Target className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{g.title}</span>
+                        {relatedGoalIds.includes(g.id) && <Check className="h-3.5 w-3.5 ml-auto shrink-0" />}
+                      </button>
+                    ))}
+                    {filteredGoals.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">No goals found.</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+            {linkedGoals.length > 0 && (
+              <div className="space-y-1.5 mt-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Linked from Goals page</p>
                 {linkedGoals.map((g) => (
                   <div key={g.id} className="flex items-center gap-3 p-2.5 rounded-xl border bg-card">
                     <Target className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -1082,15 +1146,62 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
               </div>
             )}
           </div>
+
+          {/* Milestones — only when editing */}
+          {!isCreate && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Long-Term Milestones</h3>
+                  <Button size="sm" variant="outline" onClick={() => setShowMilestoneDialog(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Milestone</Button>
+                </div>
+                {milestones.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No milestones yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(["1-year", "2-years", "5-years", "10-years", "lifetime"] as RoadmapTimeHorizon[]).map((horizon) => {
+                      const items = milestones.filter((m) => m.timeHorizon === horizon)
+                      if (items.length === 0) return null
+                      return (
+                        <div key={horizon} className="space-y-2">
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {horizonLabels[horizon]}</h4>
+                          {items.map((m) => (
+                            <div key={m.id} className="p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors group">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-semibold">{m.title}</span>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[m.status]}`}>{statusLabels[m.status]}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-2">
+                                    <span className="text-[10px] text-muted-foreground">Target: {m.targetYear}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                  <button onClick={() => { setEditingMilestone(m); setShowMilestoneDialog(true) }} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3 w-3" /></button>
+                                  <button onClick={() => { deleteRoadmapMilestone(m.id); setMilestones(loadRoadmapMilestones(vision!.id)) }} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3 w-3" /></button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t px-6 py-4 flex gap-2 justify-end">
           <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={handleSave}>Save Vision</Button>
+          <Button size="sm" onClick={handleSave} disabled={!title.trim() || !lifeAreaId}>{isCreate ? "Create Vision" : "Save Vision"}</Button>
         </div>
       </div>
 
-      {showMilestoneDialog && (
+      {!isCreate && showMilestoneDialog && vision && (
         <RoadmapMilestoneDialog milestone={editingMilestone} visionId={vision.id} onClose={() => { setShowMilestoneDialog(false); setEditingMilestone(null) }}
           onSave={(m) => { addRoadmapMilestone({ ...m, visionId: vision.id }); setMilestones(loadRoadmapMilestones(vision.id)); setShowMilestoneDialog(false) }}
           onUpdate={(id, updates) => { updateRoadmapMilestone(id, updates); setMilestones(loadRoadmapMilestones(vision.id)) }} />
@@ -1109,18 +1220,18 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
   onUpdate: (id: string, updates: Partial<RoadmapMilestone>) => void
 }) {
   const [title, setTitle] = useState(milestone?.title || "")
-  const [description, setDescription] = useState(milestone?.description || "")
   const [timeHorizon, setTimeHorizon] = useState<RoadmapTimeHorizon>(milestone?.timeHorizon || "2-years")
   const [targetYear, setTargetYear] = useState(milestone?.targetYear || new Date().getFullYear() + 1)
-  const [progress, setProgress] = useState(milestone?.progress || 0)
   const [status, setStatus] = useState<MilestoneStatus>(milestone?.status || "not-started")
-  const [notes, setNotes] = useState(milestone?.notes || "")
 
-  const horizonLabels: Record<RoadmapTimeHorizon, string> = { "2-years": "2 Years", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
+  const horizonLabels: Record<RoadmapTimeHorizon, string> = { "1-year": "1 Year", "2-years": "2 Years", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
+
+  const progressFromStatus: Record<MilestoneStatus, number> = { "not-started": 0, "in-progress": 50, "completed": 100, "on-hold": 0 }
 
   const handleSave = () => {
     if (!title.trim()) return
-    const data = { title: title.trim(), description, timeHorizon, targetYear, targetDate: "", progress, status, notes, visionId, relatedGoalIds: milestone?.relatedGoalIds || [] }
+    const progress = progressFromStatus[status]
+    const data = { title: title.trim(), timeHorizon, targetYear, targetDate: "", progress, status, visionId, relatedGoalIds: milestone?.relatedGoalIds || [] }
     if (milestone) { onUpdate(milestone.id, data) } else { onSave(data) }
     onClose()
   }
@@ -1131,7 +1242,6 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
       <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto animate-fadeIn duration-150">
         <h3 className="font-semibold text-base">{milestone ? "Edit Milestone" : "Add Milestone"}</h3>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Milestone title" autoFocus />
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time Horizon</label>
@@ -1144,24 +1254,14 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
             <Input type="number" value={targetYear} onChange={(e) => setTargetYear(parseInt(e.target.value) || new Date().getFullYear())} />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value as MilestoneStatus)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
-              <option value="not-started">Not Started</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="on-hold">On Hold</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Progress ({progress}%)</label>
-            <input type="range" min="0" max="100" value={progress} onChange={(e) => setProgress(parseInt(e.target.value))} className="w-full h-2 rounded-full appearance-none bg-muted cursor-pointer accent-primary mt-2" />
-          </div>
-        </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notes</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Additional notes..." className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value as MilestoneStatus)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
+            <option value="not-started">Not Started</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="on-hold">On Hold</option>
+          </select>
         </div>
         <div className="flex gap-2 justify-end pt-2">
           <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
@@ -1176,91 +1276,7 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
 // ROADMAP SECTION
 // ══════════════════════════════════════════════════════════════
 
-function RoadmapSection({ visions, lifeAreas }: { visions: Vision[]; lifeAreas: LifeArea[] }) {
-  const [expanded, setExpanded] = useState(false)
-  const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
 
-  useEffect(() => { setMilestones(loadRoadmapMilestones()) }, [])
-
-  const horizonLabels: Record<RoadmapTimeHorizon, string> = { "2-years": "2 Years", "5-years": "5 Years", "10-years": "10 Years", "20-years": "20 Years", "lifetime": "Lifetime" }
-  const statusColors: Record<MilestoneStatus, string> = { "not-started": "bg-muted text-muted-foreground", "in-progress": "bg-blue-500/10 text-blue-600", "completed": "bg-emerald-500/10 text-emerald-600", "on-hold": "bg-yellow-500/10 text-yellow-600" }
-  const statusLabels: Record<MilestoneStatus, string> = { "not-started": "Not Started", "in-progress": "In Progress", "completed": "Completed", "on-hold": "On Hold" }
-
-  const groupedByVision = useMemo(() => {
-    return visions.filter((v) => !v.archived).map((v) => {
-      const visionMilestones = milestones.filter((m) => m.visionId === v.id)
-      const byHorizon: Record<RoadmapTimeHorizon, RoadmapMilestone[]> = { "2-years": [], "5-years": [], "10-years": [], "20-years": [], "lifetime": [] }
-      visionMilestones.forEach((m) => { byHorizon[m.timeHorizon].push(m) })
-      return { vision: v, byHorizon, total: visionMilestones.length }
-    }).filter((g) => g.total > 0)
-  }, [visions, milestones])
-
-  const count = milestones.length
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader icon={Clock} title="Long-Term Milestones" subtitle="Major achievements across your life's timeline" collapsedInfo={`${count} Milestone${count !== 1 ? 's' : ''}`} count={milestones.length} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
-      {expanded && (
-        <div className="space-y-6">
-          {groupedByVision.length === 0 ? (
-            <EmptyState icon={Clock} title="No milestones yet" desc="Add milestones from your vision details to build your roadmap." />
-          ) : (
-            groupedByVision.map(({ vision, byHorizon, total }) => {
-              const area = lifeAreas.find((a) => a.id === vision.lifeAreaId)
-              return (
-                <div key={vision.id} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{vision.icon}</span>
-                    <h3 className="text-sm font-bold">{vision.title}</h3>
-                    {area && <Badge variant="secondary" className="text-[9px]">{area.icon} {area.name}</Badge>}
-                    <Badge variant="secondary" className="text-[9px]">{total} milestones</Badge>
-                  </div>
-                  <div className="relative pl-6">
-                    <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-primary/20 rounded-full" />
-                    {(["2-years", "5-years", "10-years", "20-years", "lifetime"] as RoadmapTimeHorizon[]).map((horizon) => {
-                      const items = byHorizon[horizon]
-                      if (items.length === 0) return null
-                      return (
-                        <div key={horizon} className="relative space-y-2 mb-4 last:mb-0">
-                          <div className="flex items-center gap-2 mb-2 relative">
-                            <div className="absolute -left-6 w-3 h-3 rounded-full bg-primary border-2 border-background z-10" />
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{horizonLabels[horizon]}</h4>
-                          </div>
-                          <div className="space-y-2">
-                            {items.map((m) => (
-                              <div key={m.id} className="relative pl-2">
-                                <div className="absolute -left-[15px] top-3 w-2 h-2 rounded-full bg-primary/40 border border-primary z-10" />
-                                <div className="p-3 rounded-2xl border bg-card hover:bg-muted/30 transition-colors">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-semibold">{m.title}</span>
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[m.status]}`}>{statusLabels[m.status]}</span>
-                                  </div>
-                                  {m.description && <p className="text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
-                                  <div className="flex items-center gap-3 mt-2">
-                                    <span className="text-[10px] text-muted-foreground">Target: {m.targetYear}</span>
-                                    <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
-                                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${m.progress}%` }} /></div>
-                                      <span className="text-[10px] text-muted-foreground">{m.progress}%</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ══════════════════════════════════════════════════════════════
 // GOALS CONNECTED TO VISION
@@ -1492,7 +1508,6 @@ function CreateCommitmentDialog({ values, lifeAreas, visions, onClose, onSave }:
                   {filteredLifeAreas.map((a) => (
                     <button key={a.id} onClick={() => setRelatedLifeAreaIds((prev) => prev.includes(a.id) ? prev.filter((i) => i !== a.id) : [...prev, a.id])}
                       className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${relatedLifeAreaIds.includes(a.id) ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
-                      <span>{a.icon}</span>
                       <span>{a.name}</span>
                       {relatedLifeAreaIds.includes(a.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
                     </button>
@@ -1552,42 +1567,6 @@ function CreateCommitmentDialog({ values, lifeAreas, visions, onClose, onSave }:
   )
 }
 
-function CreateVisionDialog({ lifeAreas, onClose, onSave }: {
-  lifeAreas: LifeArea[]; onClose: () => void; onSave: (v: Omit<Vision, "id" | "order" | "createdAt" | "updatedAt">) => void
-}) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [lifeAreaId, setLifeAreaId] = useState("")
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-fadeIn duration-150">
-        <h3 className="font-semibold text-base">Create Vision</h3>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vision Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Vision title" autoFocus />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Life Area (Required)</label>
-          <select value={lifeAreaId} onChange={(e) => setLifeAreaId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
-            <option value="">Select a life area...</option>
-            {lifeAreas.map((a) => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe this vision for your future..." className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button size="sm" disabled={!title.trim() || !lifeAreaId} onClick={() => onSave({ title: title.trim(), description, lifeAreaId, icon: "✨", purposeAlignment: "", reviewFrequency: "monthly", relatedValueIds: [], relatedCommitmentIds: [], relatedGoalIds: [], relatedProjectIds: [], relatedHabitIds: [], boardItems: [], coverImage: "", archived: false })}>Create Vision</Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ══════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════
@@ -1599,12 +1578,11 @@ export function VisionsPage() {
   const [commitments, setCommitments] = useState<Commitment[]>([])
   const [visions, setVisions] = useState<Vision[]>([])
   const [goals, setGoals] = useState<Array<{ id: string; title: string; visionId?: string; progress?: number }>>([])
-  const [roadmapMilestones, setRoadmapMilestones] = useState<RoadmapMilestone[]>([])
 
   const [isLoading, setIsLoading] = useState(true)
   const [createType, setCreateType] = useState<"value" | "commitment" | "vision" | "life-area" | null>(null)
   const [selectedVision, setSelectedVision] = useState<Vision | null>(null)
-  const [infoModal, setInfoModal] = useState<"purpose" | "values" | "commitments" | "life-areas" | "visions" | "roadmap" | null>(null)
+  const [infoModal, setInfoModal] = useState<"purpose" | "values" | "commitments" | "life-areas" | "visions" | null>(null)
 
   useEffect(() => {
     try {
@@ -1614,7 +1592,6 @@ export function VisionsPage() {
       setValues(loadCoreValues())
       setCommitments(loadCommitments())
       setVisions(loadVisions())
-      setRoadmapMilestones(loadRoadmapMilestones())
       try { const raw = localStorage.getItem("intenteo-goals"); if (raw) setGoals(JSON.parse(raw)) } catch {}
     } catch (e) {
       console.error("VisionsPage init error:", e)
@@ -1630,7 +1607,6 @@ export function VisionsPage() {
       setValues(loadCoreValues())
       setCommitments(loadCommitments())
       setVisions(loadVisions())
-      setRoadmapMilestones(loadRoadmapMilestones())
     }
     window.addEventListener("vision-framework-changed", handler)
     return () => window.removeEventListener("vision-framework-changed", handler)
@@ -1678,10 +1654,7 @@ export function VisionsPage() {
       <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} />
 
       {/* 4. My Visions */}
-      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} milestones={roadmapMilestones} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
-
-      {/* 5. Long-Term Milestones */}
-      <RoadmapSection visions={visions} lifeAreas={lifeAreas} />
+      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} />
 
       {/* Vision Edit Modal */}
       {selectedVision && (
@@ -1692,7 +1665,7 @@ export function VisionsPage() {
       {/* Create Dialogs */}
       {createType === "value" && <CreateValueDialog onClose={() => setCreateType(null)} onSave={handleAddValue} />}
       {createType === "commitment" && <CreateCommitmentDialog values={values} lifeAreas={lifeAreas} visions={visions} onClose={() => setCreateType(null)} onSave={handleAddCommitment} />}
-      {createType === "vision" && <CreateVisionDialog lifeAreas={lifeAreas} onClose={() => setCreateType(null)} onSave={handleAddVision} />}
+      {createType === "vision" && <VisionEditModal vision={null} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onClose={() => setCreateType(null)} onCreate={handleAddVision} />}
 
       {/* Educational Modals */}
       {infoModal === "purpose" && (
