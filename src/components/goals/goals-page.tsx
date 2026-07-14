@@ -335,17 +335,14 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   isOpen: boolean; onClose: () => void; onSave: (g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => void; habits: Habit[]; visions: Vision[]; values: CoreValue[]; onValuesAdded: () => void
 }) => {
   const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
   const [category, setCategory] = useState("Personal Growth")
   const [customCategory, setCustomCategory] = useState("")
   const [priority, setPriority] = useState<"none"|"low"|"medium"|"high">("none")
-  const [type, setType] = useState<Goal["type"]>("annual")
   const [deadline, setDeadline] = useState("")
   const [startDate, setStartDate] = useState(getTodayISO())
   const [whyItMatters, setWhyItMatters] = useState("")
   const [icon, setIcon] = useState("")
   const [colorIdx, setColorIdx] = useState(0)
-  const [customDuration, setCustomDuration] = useState("")
   const [showIconDropdown, setShowIconDropdown] = useState(false)
   const [showColorDropdown, setShowColorDropdown] = useState(false)
   const [timeHorizon, setTimeHorizon] = useState<TimeHorizon>("this-year")
@@ -369,13 +366,12 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   const [reviewFrequency, setReviewFrequency] = useState<ReviewFrequency>("monthly")
   const [linkedValueIds, setLinkedValueIds] = useState<string[]>([])
   const [showValueLibrary, setShowValueLibrary] = useState(false)
-
-  useEffect(() => {
-    if (type !== "custom") {
-      const auto = getAutoDeadline(startDate, type)
-      if (auto) setDeadline(auto)
-    }
-  }, [type, startDate])
+  const [habitSearch, setHabitSearch] = useState("")
+  const [habitsOpen, setHabitsOpen] = useState(false)
+  const [visionSearch, setVisionSearch] = useState("")
+  const [visionsOpen, setVisionsOpen] = useState(false)
+  const habitSearchRef = useRef<HTMLDivElement>(null)
+  const visionSearchRef = useRef<HTMLDivElement>(null)
 
   // Auto-distribute contributions equally when not in customize mode
   useEffect(() => {
@@ -391,8 +387,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   }, [selectedHabits, customizeContributions])
 
   if (!isOpen) return null
-
-  const minDeadline = getMinDeadline(startDate, type)
 
   const toggleHabit = (name: string) => {
     setSelectedHabits(prev => prev.includes(name) ? prev.filter(h => h !== name) : [...prev, name])
@@ -412,13 +406,16 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   const totalContribution = Object.values(habitWeights).reduce((sum, w) => sum + (w || 0), 0)
   const isValidContribution = totalContribution === 100
 
+  const filteredHabits = habits.filter(h => h.name.toLowerCase().includes(habitSearch.toLowerCase()))
+  const filteredVisions = visions.filter(v => !v.archived && v.title.toLowerCase().includes(visionSearch.toLowerCase()))
+  const selectedVision = visions.find(v => v.id === selectedVisionId)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 space-y-4">
         <div className="flex items-center justify-between"><h2 className="text-xl font-bold">Add New Goal</h2><Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button></div>
         <div className="space-y-4">
           <div><label className="text-sm font-medium">Goal Name</label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Read 24 Books" className="mt-1" /></div>
-          <div><label className="text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
           <div><label className="text-sm font-medium">Why It Matters</label><textarea value={whyItMatters} onChange={e => setWhyItMatters(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all" /></div>
           <div>
             <label className="text-sm font-medium">Project Timelines</label>
@@ -525,30 +522,13 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
               </div></div>
           </div>
-          <div><label className="text-sm font-medium">Goal Type</label><div className="flex gap-2 mt-1">
-            {(["annual","quarterly","monthly","weekly","custom"] as const).map(t => (
-              <Button key={t} variant={type === t ? "default" : "outline"} size="sm" onClick={() => setType(t)} className={type === t ? "bg-[#1E0E6B] text-white" : ""}>{t[0].toUpperCase()+t.slice(1)}</Button>
-            ))}</div></div>
           <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
             {TIME_HORIZONS.map(th => (
               <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => setTimeHorizon(th.value)} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
             ))}</div></div>
-          {type === "custom" && (
-            <div><label className="text-sm font-medium">Custom Duration (days)</label>
-              <Input type="number" min="1" value={customDuration} onChange={e => {
-                setCustomDuration(e.target.value)
-                const num = parseInt(e.target.value)
-                if (num && startDate) {
-                  const d = new Date(startDate)
-                  d.setDate(d.getDate() + num)
-                  setDeadline(d.toISOString().split("T")[0])
-                }
-              }} placeholder="Enter number of days..." className="mt-1" />
-            </div>
-          )}
           <div className="grid grid-cols-2 gap-4">
             <div><DateInput label="Start Date" value={startDate} onChange={setStartDate} /></div>
-            <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} min={minDeadline || undefined} /></div>
+            <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="relative"><label className="text-sm font-medium">Icon</label>
@@ -598,20 +578,42 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
           <div>
             <label className="text-sm font-medium">Linked Habits</label>
             <p className="text-xs text-muted-foreground mb-2">Select habits that support this goal</p>
+            {selectedHabits.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {selectedHabits.map(name => (
+                  <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] font-medium">
+                    {name}
+                    <button onClick={() => toggleHabit(name)} className="hover:text-red-500"><X className="h-2.5 w-2.5" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
             {habits.length === 0 ? (
               <p className="text-xs text-muted-foreground py-2">No habits created yet</p>
             ) : (
-              <div className="space-y-1 max-h-[150px] overflow-y-auto border border-white/20 rounded-lg p-2">
-                {habits.map(h => (
-                  <label key={h.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted/50 cursor-pointer text-sm">
-                    <input type="checkbox" checked={selectedHabits.includes(h.name)} onChange={() => toggleHabit(h.name)} className="accent-[#1E0E6B]" />
-                    <span>{h.icon}</span>
-                    <span className="flex-1">{h.name}</span>
-                    {selectedHabits.includes(h.name) && (
-                      <span className="text-[10px] text-muted-foreground font-medium">{habitWeights[h.name] || 0}%</span>
-                    )}
-                  </label>
-                ))}
+              <div className="relative" ref={habitSearchRef}>
+                <button onClick={() => setHabitsOpen(!habitsOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-[#1E0E6B]/30 bg-white/50 dark:bg-white/5 text-left text-muted-foreground hover:border-[#1E0E6B]/50 transition-colors">
+                  <span>Select Supporting Habits</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${habitsOpen ? "rotate-180" : ""}`} />
+                </button>
+                {habitsOpen && (
+                  <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-[#1E0E6B]/20 rounded-lg shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-[#1E0E6B]/10">
+                      <input value={habitSearch} onChange={(e) => setHabitSearch(e.target.value)} placeholder="Search habits..." className="w-full px-3 py-1.5 text-sm rounded-lg border border-[#1E0E6B]/20 bg-white/50 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]" autoFocus />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-1">
+                      {filteredHabits.map(h => (
+                        <button key={h.id} onClick={() => toggleHabit(h.name)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${selectedHabits.includes(h.name) ? "bg-[#1E0E6B]/10 text-[#1E0E6B]" : "hover:bg-muted"}`}>
+                          <input type="checkbox" checked={selectedHabits.includes(h.name)} onChange={() => toggleHabit(h.name)} className="accent-[#1E0E6B]" />
+                          <span>{h.icon}</span>
+                          <span className="flex-1 truncate">{h.name}</span>
+                        </button>
+                      ))}
+                      {filteredHabits.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">No habits found.</p>}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {selectedHabits.length > 0 && (
@@ -661,34 +663,56 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
         <div>
           <label className="text-sm font-medium">Linked Vision</label>
           <p className="text-xs text-muted-foreground mb-2">Connect this goal to a life vision</p>
+          {selectedVision && (
+            <div className="flex items-center gap-1 mb-2">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-[#EB9E5B]/10 text-[#EB9E5B] font-medium">
+                {selectedVision.icon} {selectedVision.title}
+                <button onClick={() => setSelectedVisionId("")} className="hover:text-red-500"><X className="h-2.5 w-2.5" /></button>
+              </span>
+            </div>
+          )}
           {visions.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">No visions created yet</p>
+            <p className="text-xs text-muted-foreground py-2">No Vision created yet. <span className="text-[#1E0E6B]">Create one from the Vision page.</span></p>
           ) : (
-            <div className="space-y-1 max-h-[120px] overflow-y-auto border border-white/20 rounded-lg p-2">
-              <label className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer text-sm ${selectedVisionId === "" ? "bg-[#1E0E6B]/10" : "hover:bg-muted/50"}`}>
-                <input type="radio" name="vision" checked={selectedVisionId === ""} onChange={() => setSelectedVisionId("")} className="accent-[#1E0E6B]" />
-                <span className="text-muted-foreground">None</span>
-              </label>
-              {visions.filter(v => !v.archived).map(v => (
-                <label key={v.id} className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer text-sm ${selectedVisionId === v.id ? "bg-[#1E0E6B]/10" : "hover:bg-muted/50"}`}>
-                  <input type="radio" name="vision" checked={selectedVisionId === v.id} onChange={() => setSelectedVisionId(v.id)} className="accent-[#1E0E6B]" />
-                  <span>{v.icon}</span>
-                  <span className="flex-1">{v.title}</span>
-                  <span className="text-[10px] text-muted-foreground">{v.lifeAreaId || ""}</span>
-                </label>
-              ))}
+            <div className="relative" ref={visionSearchRef}>
+              <button onClick={() => setVisionsOpen(!visionsOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-[#1E0E6B]/30 bg-white/50 dark:bg-white/5 text-left text-muted-foreground hover:border-[#1E0E6B]/50 transition-colors">
+                <span>{selectedVision ? selectedVision.title : "Select Vision"}</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${visionsOpen ? "rotate-180" : ""}`} />
+              </button>
+              {visionsOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-[#1E0E6B]/20 rounded-lg shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-[#1E0E6B]/10">
+                    <input value={visionSearch} onChange={(e) => setVisionSearch(e.target.value)} placeholder="Search visions..." className="w-full px-3 py-1.5 text-sm rounded-lg border border-[#1E0E6B]/20 bg-white/50 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]" autoFocus />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto p-1">
+                    <button onClick={() => { setSelectedVisionId(""); setVisionsOpen(false) }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${selectedVisionId === "" ? "bg-[#1E0E6B]/10 text-[#1E0E6B]" : "hover:bg-muted"}`}>
+                      <span className="text-muted-foreground">None</span>
+                    </button>
+                    {filteredVisions.map(v => (
+                      <button key={v.id} onClick={() => { setSelectedVisionId(v.id); setVisionsOpen(false) }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${selectedVisionId === v.id ? "bg-[#EB9E5B]/10 text-[#EB9E5B]" : "hover:bg-muted"}`}>
+                        <span>{v.icon}</span>
+                        <span className="flex-1 truncate">{v.title}</span>
+                      </button>
+                    ))}
+                    {filteredVisions.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">No visions found.</p>}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
         <div>
           <label className="text-sm font-medium">Review Frequency</label>
           <p className="text-xs text-muted-foreground mb-2">How often should this goal be reviewed?</p>
-          <div className="flex flex-wrap gap-2">
-            {(Object.entries(REVIEW_FREQUENCY_CONFIG) as [ReviewFrequency, { label: string; days: number }][]).map(([key, cfg]) => (
-              <Button key={key} variant={reviewFrequency === key ? "default" : "outline"} size="sm" onClick={() => setReviewFrequency(key)} className={reviewFrequency === key ? "bg-[#1E0E6B] text-white" : ""}>
-                {cfg.label}
-              </Button>
-            ))}
+          <div className="relative">
+            <select value={reviewFrequency} onChange={e => setReviewFrequency(e.target.value as ReviewFrequency)} className="w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+              {(Object.entries(REVIEW_FREQUENCY_CONFIG) as [ReviewFrequency, { label: string; days: number }][]).map(([key, cfg]) => (
+                <option key={key} value={key}>{cfg.label}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
           </div>
         </div>
         <div>
@@ -713,7 +737,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
             if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description, category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type, whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency, linkedValueIds })
+              onSave({ title, description: "", category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type: "annual", whyItMatters, milestones: [], linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { projects: 50, habits: 20, milestones: 20, manual: 10 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency, linkedValueIds })
               onClose()
             }
           }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>

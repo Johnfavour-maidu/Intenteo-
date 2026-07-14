@@ -341,7 +341,7 @@ function PurposeSection({ purpose, lifeAreas, onSave, onInfo }: { purpose: Purpo
   }, [showLifeAreaDropdown])
 
   return (
-    <div className="rounded-2xl border-2 border-[#1E0E6B]/15 p-8 bg-white dark:bg-gray-950 shadow-sm">
+    <div className="rounded-2xl p-8 bg-white dark:bg-gray-950 shadow-sm" style={{ border: "2px solid #1E0E6B" }}>
       {editing ? (
         <div className="space-y-4">
           <div>
@@ -648,52 +648,52 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
                       </div>
                     </div>
 
-                    <div className="mt-3 space-y-2.5">
+                    <div className="mt-3 space-y-1.5">
                       {/* Values */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Values</p>
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Values</span>
                         {linkedValues.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1">
                             {linkedValues.map((v) => (
-                              <span key={v.id} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1E0E6B]/8 text-[#1E0E6B] text-[10px] font-medium">
-                                {v.icon} {v.name}
+                              <span key={v.id} className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1E0E6B]/8 text-[#1E0E6B] text-[10px] font-medium">
+                                {v.name}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-[10px] text-muted-foreground/60 italic">No values linked</p>
+                          <span className="text-[10px] text-muted-foreground/60 italic">No values linked</span>
                         )}
                       </div>
 
                       {/* Life Areas */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Life Area</p>
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Life Area</span>
                         {linkedLifeAreas.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1">
                             {linkedLifeAreas.map((a) => (
-                              <span key={a.id} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted/60 text-foreground/80 text-[10px] font-medium">
+                              <span key={a.id} className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-foreground/80 text-[10px] font-medium">
                                 {a.name}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-[10px] text-muted-foreground/60 italic">No life areas linked</p>
+                          <span className="text-[10px] text-muted-foreground/60 italic">No life areas linked</span>
                         )}
                       </div>
 
                       {/* Visions */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Vision</p>
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Vision</span>
                         {linkedVisions.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1">
                             {linkedVisions.map((v) => (
-                              <span key={v.id} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EB9E5B]/10 text-[#EB9E5B] text-[10px] font-medium" title={v.title}>
+                              <span key={v.id} className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#EB9E5B]/10 text-[#EB9E5B] text-[10px] font-medium" title={v.title}>
                                 {v.title}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-[10px] text-muted-foreground/60 italic">No vision linked</p>
+                          <span className="text-[10px] text-muted-foreground/60 italic">No vision linked</span>
                         )}
                       </div>
                     </div>
