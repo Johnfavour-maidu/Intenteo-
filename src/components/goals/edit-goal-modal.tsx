@@ -58,6 +58,9 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
   const [reviewFrequency, setReviewFrequency] = useState<ReviewFrequency>("monthly")
   const [linkedValueIds, setLinkedValueIds] = useState<string[]>([])
   const [showValueLibrary, setShowValueLibrary] = useState(false)
+  const [valuesOpen, setValuesOpen] = useState(false)
+  const [valueSearch, setValueSearch] = useState("")
+  const valueSearchRef = useRef<HTMLDivElement>(null)
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [newMilestone, setNewMilestone] = useState("")
   const [habitSearch, setHabitSearch] = useState("")
@@ -110,6 +113,13 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
   }, [visionsOpen])
 
   useEffect(() => {
+    if (!valuesOpen) return
+    const handler = (e: MouseEvent) => { if (valueSearchRef.current && !valueSearchRef.current.contains(e.target as Node)) setValuesOpen(false) }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [valuesOpen])
+
+  useEffect(() => {
     if (!isOpen) return
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose() }
     document.addEventListener("keydown", handler)
@@ -154,6 +164,7 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
   const filteredHabits = habits.filter(h => h.name.toLowerCase().includes(habitSearch.toLowerCase()))
   const filteredVisions = visions.filter(v => !v.archived && v.title.toLowerCase().includes(visionSearch.toLowerCase()))
   const selectedVision = visions.find(v => v.id === selectedVisionId)
+  const filteredValues = values.filter(v => v.name.toLowerCase().includes(valueSearch.toLowerCase()))
 
   const addMilestone = () => {
     if (newMilestone.trim()) {
@@ -436,17 +447,56 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
           <div>
             <label className="text-sm font-medium">Core Values</label>
             <p className="text-xs text-muted-foreground mb-2">Which values does this goal align with?</p>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {values.filter(v => linkedValueIds.includes(v.id)).map(v => (
-                <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-xs font-medium">
-                   {v.name}
-                  <button onClick={() => { setLinkedValueIds(prev => prev.filter(id => id !== v.id)); markChanged() }} className="hover:text-red-500"><X className="h-3 w-3" /></button>
-                </span>
-              ))}
+            {linkedValueIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {values.filter(v => linkedValueIds.includes(v.id)).map(v => (
+                  <span key={v.id} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-[11px] font-medium">
+                    {v.name}
+                    <button onClick={() => { setLinkedValueIds(prev => prev.filter(id => id !== v.id)); markChanged() }} className="hover:text-red-500"><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="relative" ref={valueSearchRef}>
+              <button onClick={() => setValuesOpen(!valuesOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-[#1E0E6B]/30 bg-white/50 dark:bg-white/5 text-left text-muted-foreground hover:border-[#1E0E6B]/50 transition-colors">
+                <span>Select or Create Core Values</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${valuesOpen ? "rotate-180" : ""}`} />
+              </button>
+              {valuesOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-[#1E0E6B]/20 rounded-lg shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-[#1E0E6B]/10">
+                    <input value={valueSearch} onChange={(e) => setValueSearch(e.target.value)} placeholder="Search values..." className="w-full px-3 py-1.5 text-sm rounded-lg border border-[#1E0E6B]/20 bg-white/50 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]" autoFocus />
+                  </div>
+                  <div className="max-h-60 overflow-y-auto p-1">
+                    {filteredValues.map(v => {
+                      const isSelected = linkedValueIds.includes(v.id)
+                      return (
+                        <button key={v.id} onClick={() => { setLinkedValueIds(prev => isSelected ? prev.filter(id => id !== v.id) : [...prev, v.id]); markChanged() }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${isSelected ? "bg-[#1E0E6B]/10 text-[#1E0E6B]" : "hover:bg-muted"}`}>
+                          <input type="checkbox" checked={isSelected} onChange={() => {}} className="accent-[#1E0E6B]" />
+                          <span className="flex-1 truncate">{v.name}</span>
+                        </button>
+                      )
+                    })}
+                    {valueSearch.trim() && !values.some(v => v.name.toLowerCase() === valueSearch.trim().toLowerCase()) && (
+                      <button onClick={() => {
+                        addCoreValue({ name: valueSearch.trim(), icon: "✦", description: "", purposeConnection: "", pinned: false })
+                        const updated = loadCoreValues()
+                        onValuesAdded()
+                        const new_val = updated.find(v => v.name.toLowerCase() === valueSearch.trim().toLowerCase())
+                        if (new_val) setLinkedValueIds(prev => [...prev, new_val.id])
+                        setValueSearch("")
+                        markChanged()
+                      }} className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left hover:bg-[#1E0E6B]/5 text-[#1E0E6B]">
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Create &ldquo;{valueSearch.trim()}&rdquo;</span>
+                      </button>
+                    )}
+                    {filteredValues.length === 0 && !valueSearch.trim() && <p className="px-3 py-2 text-xs text-muted-foreground">No values available.</p>}
+                  </div>
+                </div>
+              )}
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowValueLibrary(true)} className="text-xs">
-              <Plus className="h-3 w-3 mr-1" /> Add Values
-            </Button>
           </div>
           <VisionImagesSection heroImage={heroImage} supportingImages={supportingImages} onChange={(hero, supporting) => { setHeroImage(hero); setSupportingImages(supporting); markChanged() }} />
         </div>
