@@ -1371,7 +1371,7 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
             <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <ProgressRing value={progress} size={42} strokeWidth={4} showLabel={true} />
+            <ProgressRing value={progress} size={46} strokeWidth={4.5} showLabel={true} />
             {onToggleFocus && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
@@ -1613,6 +1613,16 @@ function GoalReviewModal({ goal, onClose, onSave }: { goal: Goal; onClose: () =>
   const days = daysSinceReview(goal)
   const freqConfig = goal.reviewFrequency ? REVIEW_FREQUENCY_CONFIG[goal.reviewFrequency] : null
 
+  const questions = [
+    { label: "Has your priority changed?", value: priorityChanged, onChange: setPriorityChanged, placeholder: "Describe any shifts in priority..." },
+    { label: "Is your deadline still realistic?", value: deadlineRealistic, onChange: setDeadlineRealistic, placeholder: "Assess the timeline..." },
+    { label: "Any new obstacles?", value: obstacles, onChange: setObstacles, placeholder: "Identify challenges..." },
+    { label: "Does this goal still support your Vision?", value: supportsVision, onChange: setSupportsVision, placeholder: "How does this connect to your vision..." },
+    { label: "Does it still align with your Values?", value: alignsValues, onChange: setAlignsValues, placeholder: "Check alignment with core values..." },
+    { label: "Does it still support your Purpose?", value: supportsPurpose, onChange: setSupportsPurpose, placeholder: "Connect to your life purpose..." },
+    { label: "Would you like to modify this Goal?", value: modifications, onChange: setModifications, placeholder: "Suggest changes..." },
+  ]
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -1639,44 +1649,26 @@ function GoalReviewModal({ goal, onClose, onSave }: { goal: Goal; onClose: () =>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Has your priority changed?</label>
-            <textarea value={priorityChanged} onChange={e => setPriorityChanged(e.target.value)} placeholder="Describe any shifts in priority..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
-          </div>
+          {questions.map((q, i) => (
+            <div key={i} className="space-y-2">
+              <label className="text-sm font-medium text-foreground">{q.label}</label>
+              <textarea
+                value={q.value}
+                onChange={e => q.onChange(e.target.value)}
+                placeholder={q.placeholder}
+                className="w-full px-4 py-3 border-2 border-[#1E0E6B]/15 rounded-xl bg-white dark:bg-white/5 text-sm min-h-[90px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 focus:border-[#1E0E6B]/40 transition-all placeholder:text-muted-foreground/50"
+              />
+            </div>
+          ))}
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Is your deadline still realistic?</label>
-            <textarea value={deadlineRealistic} onChange={e => setDeadlineRealistic(e.target.value)} placeholder="Assess the timeline..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Any new obstacles?</label>
-            <textarea value={obstacles} onChange={e => setObstacles(e.target.value)} placeholder="Identify challenges..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Does this goal still support your Vision?</label>
-            <textarea value={supportsVision} onChange={e => setSupportsVision(e.target.value)} placeholder="How does this connect to your vision..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Does it still align with your Values?</label>
-            <textarea value={alignsValues} onChange={e => setAlignsValues(e.target.value)} placeholder="Check alignment with core values..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Does it still support your Purpose?</label>
-            <textarea value={supportsPurpose} onChange={e => setSupportsPurpose(e.target.value)} placeholder="Connect to your life purpose..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Would you like to modify this Goal?</label>
-            <textarea value={modifications} onChange={e => setModifications(e.target.value)} placeholder="Suggest changes..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Additional Notes</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any other reflections..." className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 text-sm min-h-[60px]" />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Additional Notes</label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Any other reflections..."
+              className="w-full px-4 py-3 border-2 border-[#1E0E6B]/15 rounded-xl bg-white dark:bg-white/5 text-sm min-h-[90px] focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 focus:border-[#1E0E6B]/40 transition-all placeholder:text-muted-foreground/50"
+            />
           </div>
         </div>
 
