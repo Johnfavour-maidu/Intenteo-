@@ -13,7 +13,7 @@ import {
   Image, Quote, Video,
   ExternalLink, Sparkles, LayoutGrid, List,
   Heart, Shield, Clock, Calendar, Info,
-  CheckCircle2, Circle, AlertCircle, Check, AlertTriangle, History, Upload,
+  CheckCircle2, Circle, AlertCircle, Check, AlertTriangle, History, Upload, MapPin,
 } from "lucide-react"
 import {
   loadPurpose, savePurpose,
@@ -648,46 +648,55 @@ function CommitmentsSection({ commitments, values, lifeAreas, visions, onAdd, on
                       </div>
                     </div>
 
-                    {(linkedValues.length > 0 || linkedLifeAreas.length > 0 || linkedVisions.length > 0) && (
-                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
-                        {linkedValues.length > 0 && (
-                          <span className="flex items-center gap-1 min-w-0">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Values</span>
-                            <span className="text-muted-foreground/40 shrink-0">&mdash;</span>
-                            {linkedValues.map((v, i) => (
-                              <span key={v.id} className="inline-flex items-center gap-0.5 shrink-0">
-                                {i > 0 && <span className="text-muted-foreground/30">,</span>}
-                                <span className="font-medium text-[#1E0E6B]">{v.name}</span>
+                    <div className="mt-3 space-y-2.5">
+                      {/* Values */}
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Values</p>
+                        {linkedValues.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {linkedValues.map((v) => (
+                              <span key={v.id} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1E0E6B]/8 text-[#1E0E6B] text-[10px] font-medium">
+                                {v.icon} {v.name}
                               </span>
                             ))}
-                          </span>
-                        )}
-                        {linkedLifeAreas.length > 0 && (
-                          <span className="flex items-center gap-1 min-w-0">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Life Area</span>
-                            <span className="text-muted-foreground/40 shrink-0">&mdash;</span>
-                            {linkedLifeAreas.map((a, i) => (
-                              <span key={a.id} className="inline-flex items-center gap-0.5 shrink-0">
-                                {i > 0 && <span className="text-muted-foreground/30">,</span>}
-                                <span className="font-medium text-foreground/80">{a.name}</span>
-                              </span>
-                            ))}
-                          </span>
-                        )}
-                        {linkedVisions.length > 0 && (
-                          <span className="flex items-center gap-1 min-w-0 max-w-full">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Vision</span>
-                            <span className="text-muted-foreground/40 shrink-0">&mdash;</span>
-                            {linkedVisions.map((v, i) => (
-                              <span key={v.id} className="inline-flex items-center gap-0.5 min-w-0 shrink">
-                                {i > 0 && <span className="text-muted-foreground/30 shrink-0">,</span>}
-                                <span className="truncate text-[#EB9E5B] font-medium" title={v.title}>{v.title}</span>
-                              </span>
-                            ))}
-                          </span>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground/60 italic">No values linked</p>
                         )}
                       </div>
-                    )}
+
+                      {/* Life Areas */}
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Life Area</p>
+                        {linkedLifeAreas.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {linkedLifeAreas.map((a) => (
+                              <span key={a.id} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted/60 text-foreground/80 text-[10px] font-medium">
+                                {a.name}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground/60 italic">No life areas linked</p>
+                        )}
+                      </div>
+
+                      {/* Visions */}
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Vision</p>
+                        {linkedVisions.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {linkedVisions.map((v) => (
+                              <span key={v.id} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EB9E5B]/10 text-[#EB9E5B] text-[10px] font-medium" title={v.title}>
+                                {v.title}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground/60 italic">No vision linked</p>
+                        )}
+                      </div>
+                    </div>
 
                     {editingId === c.id && (
                       <CommitmentEditModal commitment={c} values={values} lifeAreas={lifeAreas} visions={visions} onSave={(updates) => { onUpdate(c.id, updates); setEditingId(null) }} onCancel={() => setEditingId(null)} />
@@ -769,8 +778,9 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
 // VISIONS SECTION
 // ══════════════════════════════════════════════════════════════
 
-function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd, onUpdate, onDelete, onSelectVision, onInfo }: {
+function VisionsSection({ visions, values, commitments, lifeAreas, goals, allMilestones, onAdd, onUpdate, onDelete, onSelectVision, onInfo }: {
   visions: Vision[]; values: CoreValue[]; commitments: Commitment[]; lifeAreas: LifeArea[]; goals: Array<{ id: string; title: string; visionId?: string }>
+  allMilestones: RoadmapMilestone[]
   onAdd: () => void; onUpdate: (id: string, updates: Partial<Vision>) => void; onDelete: (id: string) => void; onSelectVision: (v: Vision) => void; onInfo?: () => void
 }) {
   const router = useRouter()
@@ -822,6 +832,8 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
               {filtered.map((v) => {
                 const area = lifeAreas.find((a) => a.id === v.lifeAreaId)
                 const linkedGoals = goals.filter((g) => g.visionId === v.id)
+                const visionMilestones = allMilestones.filter((m) => m.visionId === v.id && m.status !== "completed")
+                const nextMilestone = visionMilestones.sort((a, b) => a.targetYear - b.targetYear)[0]
                 return (
                   <div key={v.id} className={`rounded-2xl border-t-2 bg-card hover:shadow-lg hover:scale-[1.01] transition-all duration-150 cursor-pointer group min-h-[180px] flex flex-col ${v.archived ? "opacity-60" : ""}`} style={{ borderTopColor: area?.color || "#6B7280" }}
                     onClick={() => onSelectVision(v)}>
@@ -847,6 +859,17 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, onAdd,
                         {(v.relatedValueIds || []).slice(0, 3).map((vid) => { const val = values.find((vv) => vv.id === vid); return val ? <RelationshipChip key={vid} icon={val.icon} label={val.name} /> : null })}
                         {(v.relatedValueIds || []).length > 3 && <span className="text-[9px] text-muted-foreground">+{(v.relatedValueIds || []).length - 3}</span>}
                       </div>
+                      {nextMilestone ? (
+                        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate"><span className="font-medium text-foreground/80">{nextMilestone.title}</span> (Target: {nextMilestone.targetYear})</span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground/60 italic">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span>No milestones yet</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-3 mt-auto pt-3 text-[10px] text-muted-foreground border-t border-border/50">
                         <button type="button" onClick={(e) => { e.stopPropagation(); router.push("/goals") }} className="flex items-center gap-1 hover:text-[#1E0E6B] transition-colors">
                           <Target className="h-3 w-3" /> {linkedGoals.length} Goal{linkedGoals.length !== 1 ? "s" : ""}
@@ -901,24 +924,19 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
   const [title, setTitle] = useState(vision?.title || "")
   const [lifeAreaId, setLifeAreaId] = useState(vision?.lifeAreaId || "")
   const [purposeAlignment, setPurposeAlignment] = useState(vision?.purposeAlignment || "")
-  const [reviewFrequency, setReviewFrequency] = useState<Vision["reviewFrequency"]>(vision?.reviewFrequency || "monthly")
+  const [reviewFrequency, setReviewFrequency] = useState<Vision["reviewFrequency"] | "">(vision?.reviewFrequency || "")
   const [relatedValueIds, setRelatedValueIds] = useState<string[]>(vision?.relatedValueIds || [])
   const [relatedCommitmentIds, setRelatedCommitmentIds] = useState<string[]>(vision?.relatedCommitmentIds || [])
   const [coverImage, setCoverImage] = useState(vision?.coverImage || "")
-  const [boardItems, setBoardItems] = useState<VisionBoardItem[]>(vision?.boardItems || [])
-  const [addBoardType, setAddBoardType] = useState<VisionBoardItem["type"] | null>(null)
-  const [newBoardContent, setNewBoardContent] = useState("")
-  const [newBoardTitle, setNewBoardTitle] = useState("")
-  const [newBoardUrl, setNewBoardUrl] = useState("")
   const [milestones, setMilestones] = useState<RoadmapMilestone[]>([])
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false)
   const [editingMilestone, setEditingMilestone] = useState<RoadmapMilestone | null>(null)
   const [relatedGoalIds, setRelatedGoalIds] = useState<string[]>(vision?.relatedGoalIds || [])
   const [goalSearch, setGoalSearch] = useState("")
   const [goalsOpen, setGoalsOpen] = useState(false)
+  const [frequencyError, setFrequencyError] = useState(false)
   const goalSearchRef = useRef<HTMLDivElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
-  const boardFileInputRef = useRef<HTMLInputElement>(null)
 
   const linkedGoals = goals.filter((g) => g.visionId === vision?.id)
   const filteredGoals = goals.filter((g) => g.title.toLowerCase().includes(goalSearch.toLowerCase()))
@@ -935,28 +953,10 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
   }, [goalsOpen])
 
   const handleSave = () => {
-    const data = { title: title.trim(), lifeAreaId, purposeAlignment, reviewFrequency, relatedValueIds, relatedCommitmentIds, relatedGoalIds, boardItems, coverImage, icon: vision?.icon || "✨", relatedProjectIds: vision?.relatedProjectIds || [], relatedHabitIds: vision?.relatedHabitIds || [], archived: vision?.archived || false }
+    if (!reviewFrequency) { setFrequencyError(true); return }
+    const data = { title: title.trim(), lifeAreaId, purposeAlignment, reviewFrequency: reviewFrequency as Vision["reviewFrequency"], relatedValueIds, relatedCommitmentIds, relatedGoalIds, boardItems: [], coverImage, icon: vision?.icon || "✨", relatedProjectIds: vision?.relatedProjectIds || [], relatedHabitIds: vision?.relatedHabitIds || [], archived: vision?.archived || false }
     if (isCreate) { onCreate?.(data as Omit<Vision, "id" | "order" | "createdAt" | "updatedAt">) }
     else { onUpdate?.(vision!.id, data) }
-  }
-
-  const handleAddBoardItem = () => {
-    if (!addBoardType) return
-    const item: VisionBoardItem = { id: `vbi-${Date.now()}`, type: addBoardType, content: newBoardContent.trim(), title: newBoardTitle.trim(), url: newBoardUrl.trim(), createdAt: new Date().toISOString() }
-    setBoardItems([...boardItems, item])
-    setAddBoardType(null); setNewBoardContent(""); setNewBoardTitle(""); setNewBoardUrl("")
-  }
-
-  const handleBoardFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string
-      setNewBoardUrl(dataUrl)
-      setNewBoardContent(dataUrl)
-    }
-    reader.readAsDataURL(file)
   }
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -971,7 +971,7 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
   const statusColors: Record<MilestoneStatus, string> = { "not-started": "bg-muted text-muted-foreground", "in-progress": "bg-blue-500/10 text-blue-600", "completed": "bg-emerald-500/10 text-emerald-600", "on-hold": "bg-yellow-500/10 text-yellow-600" }
   const statusLabels: Record<MilestoneStatus, string> = { "not-started": "Not Started", "in-progress": "In Progress", "completed": "Completed", "on-hold": "On Hold" }
 
-  const typeIcons: Record<string, React.ReactNode> = { image: <Image className="h-4 w-4" />, quote: <Quote className="h-4 w-4" />, "bible-verse": <BookOpen className="h-4 w-4" />, video: <Video className="h-4 w-4" />, link: <ExternalLink className="h-4 w-4" /> }
+  const canSave = title.trim() && lifeAreaId && reviewFrequency
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -997,17 +997,19 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Life Area (Required)</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Life Area <span className="text-destructive">*</span></label>
                 <select value={lifeAreaId} onChange={(e) => setLifeAreaId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
                   <option value="">Select a life area...</option>
                   {lifeAreas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Review Frequency</label>
-                <select value={reviewFrequency} onChange={(e) => setReviewFrequency(e.target.value as Vision["reviewFrequency"])} className="w-full px-3 py-2 text-sm rounded-lg border bg-background">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Review Frequency <span className="text-destructive">*</span></label>
+                <select value={reviewFrequency} onChange={(e) => { setReviewFrequency(e.target.value as Vision["reviewFrequency"] | ""); setFrequencyError(false) }} className={`w-full px-3 py-2 text-sm rounded-lg border bg-background ${frequencyError ? "border-destructive" : ""}`}>
+                  <option value="">Choose frequency...</option>
                   {Object.entries(VISION_REVIEW_FREQUENCY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
+                {frequencyError && <p className="text-[11px] text-destructive">Please choose how often you want to review this vision.</p>}
               </div>
             </div>
             <div className="space-y-1.5">
@@ -1020,8 +1022,11 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
 
           {/* Cover Image */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cover Image</h3>
-            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cover Image</h3>
+              <p className="text-[11px] text-muted-foreground mt-1">JPG, JPEG, PNG or WEBP. Max 10 MB. Recommended: 1200 x 675 px (16:9)</p>
+            </div>
+            <input ref={coverInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleCoverUpload} />
             {coverImage ? (
               <div className="relative rounded-xl overflow-hidden border h-40 group">
                 <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
@@ -1033,7 +1038,8 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
             ) : (
               <button onClick={() => coverInputRef.current?.click()} className="w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center gap-2 hover:border-primary/40 hover:bg-primary/5 transition-colors">
                 <Upload className="h-5 w-5 text-muted-foreground/50" />
-                <span className="text-xs text-muted-foreground">Upload cover image</span>
+                <span className="text-xs text-muted-foreground font-medium">Upload Cover Image</span>
+                <span className="text-[10px] text-muted-foreground/70">Click to browse. Portrait, landscape or square accepted.</span>
               </button>
             )}
           </div>
@@ -1068,66 +1074,6 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
 
           <Separator />
 
-          {/* Vision Board */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Vision Board</h3>
-            <div className="flex flex-wrap gap-2">
-              {(["image", "quote", "bible-verse", "video", "link"] as const).map((type) => (
-                <button key={type} onClick={() => setAddBoardType(addBoardType === type ? null : type)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${addBoardType === type ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-muted"}`}>
-                  {typeIcons[type]} {type.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                </button>
-              ))}
-            </div>
-            {addBoardType && (
-              <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
-                <Input value={newBoardTitle} onChange={(e) => setNewBoardTitle(e.target.value)} placeholder="Title (optional)" className="h-9" />
-                {addBoardType === "image" && (
-                  <div>
-                    <input ref={boardFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBoardFileUpload} />
-                    {newBoardUrl ? (
-                      <div className="relative rounded-lg overflow-hidden border h-32 group">
-                        <img src={newBoardUrl} alt="Preview" className="w-full h-full object-cover" />
-                        <button onClick={() => { setNewBoardUrl(""); setNewBoardContent("") }} className="absolute top-1 right-1 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
-                      </div>
-                    ) : (
-                      <button onClick={() => boardFileInputRef.current?.click()} className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/20 flex items-center justify-center gap-2 hover:border-primary/40 transition-colors">
-                        <Upload className="h-4 w-4 text-muted-foreground/50" />
-                        <span className="text-xs text-muted-foreground">Upload image</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-                {addBoardType === "video" && <Input value={newBoardUrl} onChange={(e) => setNewBoardUrl(e.target.value)} placeholder="YouTube or Vimeo URL" className="h-9" />}
-                {addBoardType === "link" && <Input value={newBoardUrl} onChange={(e) => setNewBoardUrl(e.target.value)} placeholder="URL" className="h-9" />}
-                {(addBoardType === "quote" || addBoardType === "bible-verse") && (
-                  <textarea value={newBoardContent} onChange={(e) => setNewBoardContent(e.target.value)} placeholder="Content..." className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={3} />
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={() => { setAddBoardType(null); setNewBoardContent(""); setNewBoardTitle(""); setNewBoardUrl("") }}>Cancel</Button>
-                  <Button size="sm" onClick={handleAddBoardItem} disabled={addBoardType === "image" ? !newBoardUrl : !newBoardContent.trim()}>Add</Button>
-                </div>
-              </div>
-            )}
-            {boardItems.length > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                {boardItems.map((item) => (
-                  <div key={item.id} className="rounded-xl border bg-card p-3 space-y-1.5 group relative hover:shadow-sm transition-all duration-150">
-                    <button onClick={() => setBoardItems(boardItems.filter((i) => i.id !== item.id))} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-destructive transition-opacity">
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">{item.type.replace("-", " ")}</span>
-                    {item.title && <p className="text-sm font-medium">{item.title}</p>}
-                    {item.type === "image" && item.content && <img src={item.content} alt={item.title || ""} className="w-full h-20 object-cover rounded-lg" />}
-                    {(item.type === "quote" || item.type === "bible-verse") && <p className="text-xs italic text-muted-foreground line-clamp-2">&ldquo;{item.content}&rdquo;</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
           {/* Goal Connections */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Goal Connections</h3>
@@ -1146,7 +1092,7 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
             )}
             <div className="relative" ref={goalSearchRef}>
               <button onClick={() => setGoalsOpen(!goalsOpen)} className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border bg-background text-left text-muted-foreground">
-                <span>{goalsOpen ? "Close dropdown" : "Search goals to connect..."}</span>
+                <span>Search goals to connect...</span>
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${goalsOpen ? "rotate-180" : ""}`} />
               </button>
               {goalsOpen && (
@@ -1168,77 +1114,73 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
                 </div>
               )}
             </div>
-            {linkedGoals.length > 0 && (
-              <div className="space-y-1.5 mt-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Linked from Goals page</p>
-                {linkedGoals.map((g) => (
-                  <div key={g.id} className="flex items-center gap-3 p-2.5 rounded-xl border bg-card">
-                    <Target className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="text-sm font-medium">{g.title}</span>
-                  </div>
-                ))}
+          </div>
+
+          <Separator />
+
+          {/* Milestones — both create and edit */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Long-Term Milestones</h3>
+              <Button size="sm" variant="outline" onClick={() => setShowMilestoneDialog(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Milestone</Button>
+            </div>
+            {milestones.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No milestones yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {(["1-year", "2-years", "5-years", "10-years", "20-years", "lifetime"] as RoadmapTimeHorizon[]).map((horizon) => {
+                  const items = milestones.filter((m) => m.timeHorizon === horizon)
+                  if (items.length === 0) return null
+                  return (
+                    <div key={horizon} className="space-y-2">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {horizonLabels[horizon]}</h4>
+                      {items.map((m) => (
+                        <div key={m.id} className="p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors group">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-semibold">{m.title}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[m.status]}`}>{statusLabels[m.status]}</span>
+                              </div>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="text-[10px] text-muted-foreground">Target: {m.targetYear}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <button onClick={() => { setEditingMilestone(m); setShowMilestoneDialog(true) }} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3 w-3" /></button>
+                              <button onClick={() => {
+                                if (isCreate) { setMilestones((prev) => prev.filter((mm) => mm.id !== m.id)) }
+                                else { deleteRoadmapMilestone(m.id); setMilestones(loadRoadmapMilestones(vision!.id)) }
+                              }} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3 w-3" /></button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
-
-          {/* Milestones — only when editing */}
-          {!isCreate && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Long-Term Milestones</h3>
-                  <Button size="sm" variant="outline" onClick={() => setShowMilestoneDialog(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Milestone</Button>
-                </div>
-                {milestones.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">No milestones yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {(["1-year", "2-years", "5-years", "10-years", "lifetime"] as RoadmapTimeHorizon[]).map((horizon) => {
-                      const items = milestones.filter((m) => m.timeHorizon === horizon)
-                      if (items.length === 0) return null
-                      return (
-                        <div key={horizon} className="space-y-2">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {horizonLabels[horizon]}</h4>
-                          {items.map((m) => (
-                            <div key={m.id} className="p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors group">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-semibold">{m.title}</span>
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[m.status]}`}>{statusLabels[m.status]}</span>
-                                  </div>
-                                  <div className="flex items-center gap-3 mt-2">
-                                    <span className="text-[10px] text-muted-foreground">Target: {m.targetYear}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                  <button onClick={() => { setEditingMilestone(m); setShowMilestoneDialog(true) }} className="p-1 rounded hover:bg-muted"><Edit3 className="h-3 w-3" /></button>
-                                  <button onClick={() => { deleteRoadmapMilestone(m.id); setMilestones(loadRoadmapMilestones(vision!.id)) }} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-3 w-3" /></button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </div>
 
         <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t px-6 py-4 flex gap-2 justify-end">
           <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={!title.trim() || !lifeAreaId}>{isCreate ? "Create Vision" : "Save Vision"}</Button>
+          <Button size="sm" onClick={handleSave} disabled={!canSave}>{isCreate ? "Create Vision" : "Save Vision"}</Button>
         </div>
       </div>
 
-      {!isCreate && showMilestoneDialog && vision && (
-        <RoadmapMilestoneDialog milestone={editingMilestone} visionId={vision.id} onClose={() => { setShowMilestoneDialog(false); setEditingMilestone(null) }}
-          onSave={(m) => { addRoadmapMilestone({ ...m, visionId: vision.id }); setMilestones(loadRoadmapMilestones(vision.id)); setShowMilestoneDialog(false) }}
-          onUpdate={(id, updates) => { updateRoadmapMilestone(id, updates); setMilestones(loadRoadmapMilestones(vision.id)) }} />
+      {showMilestoneDialog && (
+        <RoadmapMilestoneDialog milestone={editingMilestone} visionId={vision?.id || "temp-create"} onClose={() => { setShowMilestoneDialog(false); setEditingMilestone(null) }}
+          onSave={(m) => {
+            if (isCreate) { setMilestones((prev) => [...prev, { ...m, id: `temp-${Date.now()}`, order: prev.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as RoadmapMilestone]) }
+            else { addRoadmapMilestone({ ...m, visionId: vision!.id }); setMilestones(loadRoadmapMilestones(vision!.id)) }
+            setShowMilestoneDialog(false)
+          }}
+          onUpdate={(id, updates) => {
+            if (isCreate) { setMilestones((prev) => prev.map((mm) => mm.id === id ? { ...mm, ...updates } as RoadmapMilestone : mm)) }
+            else { updateRoadmapMilestone(id, updates); setMilestones(loadRoadmapMilestones(vision!.id)) }
+          }} />
       )}
     </div>
   )
@@ -1612,6 +1554,7 @@ export function VisionsPage() {
   const [commitments, setCommitments] = useState<Commitment[]>([])
   const [visions, setVisions] = useState<Vision[]>([])
   const [goals, setGoals] = useState<Array<{ id: string; title: string; visionId?: string; progress?: number }>>([])
+  const [allMilestones, setAllMilestones] = useState<RoadmapMilestone[]>([])
 
   const [isLoading, setIsLoading] = useState(true)
   const [createType, setCreateType] = useState<"value" | "commitment" | "vision" | "life-area" | null>(null)
@@ -1625,8 +1568,12 @@ export function VisionsPage() {
       setLifeAreas(loadLifeAreas())
       setValues(loadCoreValues())
       setCommitments(loadCommitments())
-      setVisions(loadVisions())
+      const loadedVisions = loadVisions()
+      setVisions(loadedVisions)
       try { const raw = localStorage.getItem("intenteo-goals"); if (raw) setGoals(JSON.parse(raw)) } catch {}
+      const allMs: RoadmapMilestone[] = []
+      loadedVisions.forEach((v) => { loadRoadmapMilestones(v.id).forEach((m) => allMs.push(m)) })
+      setAllMilestones(allMs)
     } catch (e) {
       console.error("VisionsPage init error:", e)
     } finally {
@@ -1688,7 +1635,7 @@ export function VisionsPage() {
       <CommitmentsSection commitments={commitments} values={values} lifeAreas={lifeAreas} visions={visions} onAdd={() => setCreateType("commitment")} onUpdate={handleUpdateCommitment} onDelete={handleDeleteCommitment} onInfo={() => setInfoModal("commitments")} />
 
       {/* 4. My Visions */}
-      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} onInfo={() => setInfoModal("visions")} />
+      <VisionsSection visions={visions} values={values} commitments={commitments} lifeAreas={lifeAreas} goals={goals} allMilestones={allMilestones} onAdd={() => setCreateType("vision")} onUpdate={handleUpdateVision} onDelete={handleDeleteVision} onSelectVision={setSelectedVision} onInfo={() => setInfoModal("visions")} />
 
       {/* Vision Edit Modal */}
       {selectedVision && (
