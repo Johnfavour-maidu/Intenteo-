@@ -17,6 +17,7 @@ import {
   Compass,
   Pin,
   X,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -73,6 +74,17 @@ export function Sidebar() {
   const { name, username, avatar, avatarFocalPoint } = useUserProfile()
   const [quickItems, setQuickItems] = useState<QuickAccessItem[]>([])
   const [qaExpanded, setQaExpanded] = useState(true)
+const [planningExpanded, setPlanningExpanded] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("intenteo-planning-expanded")
+      return stored ? JSON.parse(stored) : true
+    }
+    return true
+  })
+
+  useEffect(() => {
+    localStorage.setItem("intenteo-planning-expanded", JSON.stringify(planningExpanded))
+  }, [planningExpanded])
 
   const refreshQuickItems = useCallback(() => {
     setQuickItems(getQuickAccessItems())
@@ -109,18 +121,18 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         {/* Logo Section — aligns with profile and nav left edge */}
         {!collapsed ? (
-          <div className="flex h-14 w-full items-center justify-start px-4">
+          <div className="flex h-16 w-full items-center justify-start px-4">
             <Link href="/" className="flex items-center shrink-0">
               <img
                 src="/logo.png"
                 alt="Intenteo"
-                className="h-10 w-auto max-w-[220px] object-contain"
+                className="h-12 w-auto max-w-[220px] object-contain"
                 style={{ imageRendering: "auto" }}
               />
             </Link>
           </div>
         ) : (
-          <div className="flex h-14 items-center justify-center">
+          <div className="flex h-16 items-center justify-center">
             <Link href="/" className="flex items-center justify-center">
               <img
                 src="/favicon.png"
@@ -135,7 +147,7 @@ export function Sidebar() {
         <Separator />
 
         {/* User Profile — links to Settings Profile */}
-        <Link href="/settings?tab=profile" className={cn("flex items-center gap-3 py-2.5 px-4 hover:bg-muted/30 transition-colors", collapsed && "justify-center")}>
+        <Link href="/settings?tab=profile" className={cn("flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors", collapsed && "justify-center")}>
           {avatar ? (
             <div className="h-10 w-10 rounded-full overflow-hidden shrink-0">
               <img
@@ -151,7 +163,7 @@ export function Sidebar() {
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium truncate">{name || "User"}</p>
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{username ? `@${username}` : "Live with Intentionality"}</p>
+              <p className="text-xs text-muted-foreground truncate mt-1">{username ? `@${username}` : "Live with Intentionality"}</p>
             </div>
           )}
         </Link>
@@ -161,42 +173,62 @@ export function Sidebar() {
         {/* Main Navigation */}
         <ScrollArea className="flex-1 px-4 py-3">
           <nav className="space-y-1">
-            {mainNav.map((section, sectionIndex) => (
-              <div key={section.section} className={`space-y-1 ${sectionIndex > 0 ? "pt-4" : ""}`}>
-                {!collapsed && (
-                  <div className="px-3 mb-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                      {section.section}
-                    </span>
-                  </div>
-                )}
-                {section.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
-                      pathname === item.href
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                      collapsed && "justify-center px-2"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    {!collapsed && (
-                      <>
-                        <span>{item.title}</span>
-                        {item.badge && (
-                          <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                            {item.badge}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            ))}
+            {mainNav.map((section, sectionIndex) => {
+              const isPlanning = section.section === "PLANNING"
+              return (
+                <div key={section.section} className={`space-y-1 ${sectionIndex > 0 ? "pt-4" : ""}`}>
+                  {!collapsed && (
+                    <div className="px-3 mb-1.5">
+                      {isPlanning ? (
+                        <button
+                          onClick={() => setPlanningExpanded(!planningExpanded)}
+                          className="flex items-center gap-2 w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground transition-colors rounded-lg hover:bg-muted/30"
+                          aria-expanded={planningExpanded}
+                        >
+                          <ChevronDown
+                            className={cn("h-3 w-3 shrink-0 transition-transform duration-200", planningExpanded && "rotate-180")}
+                          />
+                          <span>{section.section}</span>
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                          {section.section}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {(planningExpanded || !isPlanning) && (
+                    <div className={cn("space-y-1", collapsed && "space-y-0")}>
+                      {section.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
+                            pathname === item.href
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                            collapsed && "justify-center px-2"
+                          )}
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {!collapsed && (
+                            <>
+                              <span>{item.title}</span>
+                              {item.badge && (
+                                <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </nav>
 
           {/* Pinned Items — from Quick Access */}
