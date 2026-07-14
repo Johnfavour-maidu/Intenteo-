@@ -841,8 +841,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, allMil
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl">{v.icon}</span>
-                          <div>
+                           <div>
                             <h3 className="font-semibold text-sm">{v.title}</h3>
                             {area && <Badge variant="secondary" className="text-[9px]" style={{ color: area.color || "#6B7280", backgroundColor: `${area.color || "#6B7280"}15` }}>{area.name}</Badge>}
                           </div>
@@ -886,8 +885,7 @@ function VisionsSection({ visions, values, commitments, lifeAreas, goals, allMil
                 const area = lifeAreas.find((a) => a.id === v.lifeAreaId)
                 return (
                   <div key={v.id} className={`flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/30 transition-all cursor-pointer group ${v.archived ? "opacity-60" : ""}`} onClick={() => onSelectVision(v)}>
-                    <span className="text-xl">{v.icon}</span>
-                    <div className="flex-1 min-w-0">
+                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold truncate">{v.title}</span>
                         {area && <Badge variant="secondary" className="text-[9px]" style={{ color: area.color || "#6B7280" }}>{area.name}</Badge>}
@@ -1523,8 +1521,7 @@ function CreateCommitmentDialog({ values, lifeAreas, visions, onClose, onSave }:
                   {filteredVisions.map((v) => (
                     <button key={v.id} onClick={() => setRelatedVisionIds((prev) => prev.includes(v.id) ? prev.filter((i) => i !== v.id) : [...prev, v.id])}
                       className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${relatedVisionIds.includes(v.id) ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
-                      <span>{v.icon}</span>
-                      <span>{v.title}</span>
+                       <span>{v.title}</span>
                       {relatedVisionIds.includes(v.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
                     </button>
                   ))}

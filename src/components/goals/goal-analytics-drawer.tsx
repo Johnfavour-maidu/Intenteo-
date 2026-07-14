@@ -255,7 +255,7 @@ export const GoalAnalyticsDrawer: React.FC<GoalAnalyticsDrawerProps> = ({
                   <div className="flex flex-wrap gap-1 mt-1">
                     {linkedValues.map(v => (
                       <span key={v.id} className="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full">
-                        {v.icon} {v.name}
+                         {v.name}
                       </span>
                     ))}
                   </div>

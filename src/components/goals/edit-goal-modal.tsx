@@ -367,7 +367,7 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
             {selectedVision && (
               <div className="flex items-center gap-1 mb-2">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-[#EB9E5B]/10 text-[#EB9E5B] font-medium">
-                  {selectedVision.icon} {selectedVision.title}
+                   {selectedVision.title}
                   <button onClick={() => { setSelectedVisionId(""); markChanged() }} className="hover:text-red-500"><X className="h-2.5 w-2.5" /></button>
                 </span>
               </div>
@@ -393,7 +393,6 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
                       {filteredVisions.map(v => (
                         <button key={v.id} onClick={() => { setSelectedVisionId(v.id); setVisionsOpen(false); markChanged() }}
                           className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${selectedVisionId === v.id ? "bg-[#EB9E5B]/10 text-[#EB9E5B]" : "hover:bg-muted"}`}>
-                          <span>{v.icon}</span>
                           <span className="flex-1 truncate">{v.title}</span>
                         </button>
                       ))}
@@ -424,7 +423,7 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
             <div className="flex flex-wrap gap-2 mb-2">
               {values.filter(v => linkedValueIds.includes(v.id)).map(v => (
                 <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-xs font-medium">
-                  {v.icon} {v.name}
+                   {v.name}
                   <button onClick={() => { setLinkedValueIds(prev => prev.filter(id => id !== v.id)); markChanged() }} className="hover:text-red-500"><X className="h-3 w-3" /></button>
                 </span>
               ))}

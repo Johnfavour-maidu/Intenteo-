@@ -358,7 +358,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   const [msDueDate, setMsDueDate] = useState("")
   const [msStatus, setMsStatus] = useState<"not-started"|"in-progress"|"completed">("not-started")
   const [msPriority, setMsPriority] = useState<"low"|"medium"|"high">("medium")
-  const [msNotes, setMsNotes] = useState("")
   const [selectedVisionId, setSelectedVisionId] = useState<string>("")
   const [heroImage, setHeroImage] = useState<string | undefined>(undefined)
   const [supportingImages, setSupportingImages] = useState<string[] | undefined>(undefined)
@@ -419,15 +418,15 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   const saveMilestone = () => {
     if (!msTitle.trim()) return
     if (editingMilestoneId) {
-      setMilestones(prev => prev.map(m => m.id === editingMilestoneId ? { ...m, title: msTitle.trim(), dueDate: msDueDate, status: msStatus, priority: msPriority, notes: msNotes } : m))
+      setMilestones(prev => prev.map(m => m.id === editingMilestoneId ? { ...m, title: msTitle.trim(), dueDate: msDueDate, status: msStatus, priority: msPriority } : m))
     } else {
-      setMilestones(prev => [...prev, { id: Date.now().toString(), title: msTitle.trim(), completed: msStatus === "completed", dueDate: msDueDate, status: msStatus, priority: msPriority, notes: msNotes }])
+      setMilestones(prev => [...prev, { id: Date.now().toString(), title: msTitle.trim(), completed: msStatus === "completed", dueDate: msDueDate, status: msStatus, priority: msPriority }])
     }
-    setMsTitle(""); setMsDueDate(""); setMsStatus("not-started"); setMsPriority("medium"); setMsNotes(""); setEditingMilestoneId(null); setShowMilestoneForm(false)
+    setMsTitle(""); setMsDueDate(""); setMsStatus("not-started"); setMsPriority("medium"); setEditingMilestoneId(null); setShowMilestoneForm(false)
   }
 
   const editMilestone = (m: Milestone) => {
-    setEditingMilestoneId(m.id); setMsTitle(m.title); setMsDueDate(m.dueDate || ""); setMsStatus(m.status || "not-started"); setMsPriority(m.priority || "medium"); setMsNotes(m.notes || ""); setShowMilestoneForm(true)
+    setEditingMilestoneId(m.id); setMsTitle(m.title); setMsDueDate(m.dueDate || ""); setMsStatus(m.status || "not-started"); setMsPriority(m.priority || "medium"); setShowMilestoneForm(true)
   }
 
   return (
@@ -456,7 +455,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
                 ))}
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => { setEditingMilestoneId(null); setMsTitle(""); setMsDueDate(""); setMsStatus("not-started"); setMsPriority("medium"); setMsNotes(""); setShowMilestoneForm(true) }} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => { setEditingMilestoneId(null); setMsTitle(""); setMsDueDate(""); setMsStatus("not-started"); setMsPriority("medium"); setShowMilestoneForm(true) }} className="text-xs">
               <Plus className="h-3 w-3 mr-1" /> Add Milestone
             </Button>
             {showMilestoneForm && (
@@ -482,7 +481,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
                       <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
                     </div>
                   </div>
-                  <div><label className="text-xs font-medium">Notes</label><Input value={msNotes} onChange={e => setMsNotes(e.target.value)} placeholder="Optional notes" className="mt-1 text-xs h-8" /></div>
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button variant="outline" size="sm" onClick={() => { setShowMilestoneForm(false); setEditingMilestoneId(null) }} className="text-xs h-7">Cancel</Button>
@@ -652,7 +650,7 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
           {selectedVision && (
             <div className="flex items-center gap-1 mb-2">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-[#EB9E5B]/10 text-[#EB9E5B] font-medium">
-                {selectedVision.icon} {selectedVision.title}
+                 {selectedVision.title}
                 <button onClick={() => setSelectedVisionId("")} className="hover:text-red-500"><X className="h-2.5 w-2.5" /></button>
               </span>
             </div>
@@ -678,7 +676,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
                     {filteredVisions.map(v => (
                       <button key={v.id} onClick={() => { setSelectedVisionId(v.id); setVisionsOpen(false) }}
                         className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${selectedVisionId === v.id ? "bg-[#EB9E5B]/10 text-[#EB9E5B]" : "hover:bg-muted"}`}>
-                        <span>{v.icon}</span>
                         <span className="flex-1 truncate">{v.title}</span>
                       </button>
                     ))}
@@ -731,7 +728,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
                       <button key={v.id} onClick={() => setLinkedValueIds(prev => isSelected ? prev.filter(id => id !== v.id) : [...prev, v.id])}
                         className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${isSelected ? "bg-[#1E0E6B]/10 text-[#1E0E6B]" : "hover:bg-muted"}`}>
                         <input type="checkbox" checked={isSelected} onChange={() => {}} className="accent-[#1E0E6B]" />
-                        <span>{v.icon}</span>
                         <span className="flex-1 truncate">{v.name}</span>
                       </button>
                     )
@@ -1091,44 +1087,42 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
         </div>
       )}
       <div className="p-4">
-        {/* Header — icon, title, category */}
-        <div className="flex items-center gap-2 mb-1">
+        {/* Header — single row: icon, title, category, star, edit, delete, progress circle */}
+        <div className="flex items-center gap-2 mb-3">
           <span className="text-xl shrink-0">{goal.icon}</span>
           <h3 className="font-semibold text-sm leading-tight truncate flex-1 min-w-0">{goal.title}</h3>
           <Badge variant="outline" className="text-[10px] border-[#1E0E6B]/20 text-[#1E0E6B] shrink-0">{goal.customCategory || goal.category}</Badge>
-          <ProgressRing value={progress} size={46} strokeWidth={4.5} showLabel={true} />
-        </div>
-
-        {/* Actions row */}
-        <div className="flex items-center justify-end gap-1.5 mb-3">
-          {onToggleFocus && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
-              className={`p-1.5 rounded-md transition-colors opacity-90 hover:opacity-100 hover:bg-muted/50 ${isFocused ? "text-amber-500" : "text-muted-foreground"}`}
-              title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
-              disabled={!isFocused && (focusCount != null && focusCount >= 5)}
-            >
-              <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
-            </button>
-          )}
-          {onEdit && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
-              className="p-1.5 rounded-md text-primary opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
-              title="Edit Goal"
-            >
-              <Edit3 className="h-4 w-4" />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
-              className="p-1.5 rounded-md text-destructive opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
-              title="Delete Goal"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {onToggleFocus && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFocus(goal.id) }}
+                className={`p-1.5 rounded-md transition-colors opacity-90 hover:opacity-100 hover:bg-muted/50 ${isFocused ? "text-amber-500" : "text-muted-foreground"}`}
+                title={isFocused ? "Remove from Focus" : (focusCount != null && focusCount >= 5) ? "Max 5 focus goals" : "Add to Focus"}
+                disabled={!isFocused && (focusCount != null && focusCount >= 5)}
+              >
+                <Star className={`h-4 w-4 ${isFocused ? "fill-amber-400" : ""}`} />
+              </button>
+            )}
+            {onEdit && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(goal) }}
+                className="p-1.5 rounded-md text-primary opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
+                title="Edit Goal"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(goal.id) }}
+                className="p-1.5 rounded-md text-destructive opacity-90 hover:opacity-100 hover:bg-muted/50 transition-colors"
+                title="Delete Goal"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <ProgressRing value={progress} size={42} strokeWidth={4} showLabel={true} className="shrink-0" />
         </div>
 
         {/* Description */}
@@ -1139,7 +1133,7 @@ function GoalCard({ goal, projects, habits, visions, values, onClick, isFocused,
           <div className="flex flex-wrap gap-1 mb-3">
             {values.filter(v => (goal.linkedValueIds || []).includes(v.id)).slice(0, 3).map(v => (
               <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1E0E6B]/8 text-[#1E0E6B] text-[10px] font-medium">
-                {v.icon} {v.name}
+                {v.name}
               </span>
             ))}
             {(goal.linkedValueIds || []).length > 3 && (
