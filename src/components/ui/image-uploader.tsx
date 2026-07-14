@@ -80,7 +80,7 @@ export function ImageUploader({
   })
   const [isDragging, setIsDragging] = useState(false)
   const [showFullPreview, setShowFullPreview] = useState(false)
-  const uploadTimeoutRef = useRef<any>(null)
+  const uploadTimeoutRef = useRef<NodeJS.Timeout>()
 
   const resetState = useCallback(() => {
     setState({ status: "empty", progress: 0 })
@@ -212,8 +212,8 @@ export function ImageUploader({
             <Loader2 className="h-8 w-8 text-primary animate-spin" />
             <div className="w-48 h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary"
-                style={{ width: `${state.progress}%`, transition: "width 0.3s ease-out" }}
+                className="h-full bg-primary animate-progress"
+                style={{ "--progress-width": `${state.progress}%` }}
               />
             </div>
             <p className="text-sm font-medium text-muted-foreground">

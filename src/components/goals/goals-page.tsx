@@ -17,21 +17,22 @@ import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
-import type { GoalData, GoalProject, GoalHabit, ProgressStrategy } from "./goal-utils"
+import type { GoalData, GoalProject, GoalHabit } from "./goal-utils"
 import {
   generateSmartNextAction,
   detectCelebration,
   calcGoalForecast, calcCompletionProbability, calcGoalMomentum,
   getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
-  PROGRESS_STRATEGIES, calcGoalProgress as calcGoalProgressData,
+  ProgressStrategy,
 } from "./goal-utils"
 import { EditGoalModal } from "./edit-goal-modal"
+import { ImageUploader } from "@/components/ui/image-uploader"
 import { DateInput } from "@/components/ui/date-input"
 import type { Vision, Purpose, CoreValue, Commitment } from "@/lib/vision-framework"
 import { loadVisions, loadPurpose, loadCoreValues, loadCommitments, addCoreValue } from "@/lib/vision-framework"
 export type { Vision, CoreValue }
 
-export interface Milestone { id: string; title: string; completed: boolean; weight?: number; dueDate?: string; status?: "not-started" | "in-progress" | "completed"; priority?: "low" | "medium" | "high"; notes?: string }
+export interface Milestone { id: string; title: string; completed: boolean; dueDate?: string; status?: "not-started" | "in-progress" | "completed"; priority?: "low" | "medium" | "high"; notes?: string; weight?: number }
 
 export interface GoalProjectTimeline {
   id: string; projectName: string; description: string; startDate: string; endDate: string
@@ -97,8 +98,6 @@ export interface Goal {
   notes: string; color: string; colorHex: string
   icon: string; trackingMethod: "manual" | "milestone" | "auto"
   weighting?: { milestones: number; habits: number }
-  progressStrategy?: "balanced" | "milestone-focused" | "habit-focused" | "milestones-only" | "habits-only" | "custom"
-  milestoneWeight?: number; habitWeight?: number
   projectTimelines?: GoalProjectTimeline[]
   timeline?: string; status?: "not-started" | "in-progress" | "completed" | "overdue" | "archived"
   timeHorizon?: "this-year" | "2-years" | "5-years" | "10-years" | "lifetime"
@@ -108,6 +107,7 @@ export interface Goal {
   heroImage?: string; supportingImages?: string[]
   reviewFrequency: ReviewFrequency; lastReviewedAt?: string; reviews?: GoalReview[]
   linkedValueIds?: string[]
+  progressStrategy?: ProgressStrategy; milestoneWeight?: number; habitWeight?: number
   createdAt: string; updatedAt: string
 }
 
@@ -200,17 +200,17 @@ const PROJECT_TEMPLATES = [
 ]
 
 const createSampleGoals = (): Goal[] => [
-  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, progressStrategy:"milestones-only", timeline:"Quarterly", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
-  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", weighting:{milestones:70,habits:30}, progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-05-15", reviewFrequency:"monthly" },
-  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", weighting:{milestones:0,habits:100}, progressStrategy:"habits-only", timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
-  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, progressStrategy:"milestones-only", timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-04-01", reviewFrequency:"monthly" },
-  { id:"5", title:"Deepen Faith Walk", description:"Build a consistent devotional and prayer life", category:"Faith", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Spiritual growth anchors everything", milestones:[{id:"m13",title:"Daily devotion habit",completed:true},{id:"m14",title:"Complete Bible reading plan",completed:false},{id:"m15",title:"Join small group",completed:false}], linkedHabits:["Morning Devotion"], linkedHabitWeights:[{habitId:"h5",habitName:"Morning Devotion",weight:100}], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F64F}", trackingMethod:"milestone", weighting:{milestones:70,habits:30}, progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-02-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
-  { id:"6", title:"Strengthen Relationships", description:"Be more intentional with family and friends", category:"Relationships", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-15", type:"annual", whyItMatters:"Relationships are life's greatest treasure", milestones:[{id:"m16",title:"Weekly family dinner",completed:true},{id:"m17",title:"Monthly friend hangout",completed:false},{id:"m18",title:"Plan family trip",completed:false}], linkedHabits:["Call a Friend"], linkedHabitWeights:[{habitId:"h6",habitName:"Call a Friend",weight:100}], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u2764\uFE0F", trackingMethod:"milestone", weighting:{milestones:70,habits:30}, progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-01-15", updatedAt:"2026-05-20", reviewFrequency:"monthly" },
-  { id:"7", title:"Master TypeScript", description:"Become an expert in TypeScript and advanced patterns", category:"Learning", priority:"low", progress:0, deadline:"2026-09-30", startDate:"2026-04-01", type:"quarterly", whyItMatters:"Better code quality and career growth", milestones:[{id:"m19",title:"Complete advanced course",completed:false},{id:"m20",title:"Build 3 practice projects",completed:false},{id:"m21",title:"Contribute to open source",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F4BB}", trackingMethod:"milestone", weighting:{milestones:70,habits:30}, progressStrategy:"balanced", timeline:"Quarterly", status:"not-started", createdAt:"2026-04-01", updatedAt:"2026-04-01", reviewFrequency:"weekly" },
-  { id:"8", title:"Launch Side Project", description:"Build and ship a profitable SaaS product", category:"Business", priority:"high", progress:0, deadline:"2026-10-31", startDate:"2026-03-01", type:"quarterly", whyItMatters:"Create additional income and impact", milestones:[{id:"m22",title:"Validate idea",completed:true},{id:"m23",title:"Build MVP",completed:false},{id:"m24",title:"Get first 10 paying users",completed:false},{id:"m25",title:"Reach $1k MRR",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, progressStrategy:"milestones-only", timeline:"Quarterly", status:"in-progress", createdAt:"2026-03-01", updatedAt:"2026-06-15", reviewFrequency:"weekly" },
-  { id:"9", title:"Learn French", description:"Reach conversational fluency in French", category:"Learning", priority:"low", progress:0, deadline:"2027-06-30", startDate:"2026-07-01", type:"annual", whyItMatters:"Connecting with culture and opening travel opportunities", milestones:[{id:"m26",title:"Complete Duolingo streak 30 days",completed:true},{id:"m27",title:"Watch 5 French films",completed:false},{id:"m28",title:"Hold 10-min conversation",completed:false},{id:"m29",title:"Read a French book",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F30D}", trackingMethod:"milestone", weighting:{milestones:70,habits:30}, progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-07-01", updatedAt:"2026-07-01", reviewFrequency:"monthly" },
-  { id:"10", title:"Launch YouTube Channel", description:"Create and grow a personal development channel", category:"Business", priority:"medium", progress:0, deadline:"2027-03-31", startDate:"2026-08-01", type:"annual", whyItMatters:"Share knowledge and build a personal brand", milestones:[{id:"m30",title:"Plan 10 video topics",completed:false},{id:"m31",title:"Record first 3 videos",completed:false},{id:"m32",title:"Reach 100 subscribers",completed:false},{id:"m33",title:"Reach 1,000 subscribers",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u{1F3AC}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, progressStrategy:"milestones-only", timeline:"Annual", status:"not-started", createdAt:"2026-08-01", updatedAt:"2026-08-01", reviewFrequency:"monthly" },
-  { id:"11", title:"Run a Marathon", description:"Complete a full 42km marathon", category:"Health", priority:"high", progress:0, deadline:"2027-04-30", startDate:"2026-09-01", type:"annual", whyItMatters:"Push physical limits and prove discipline", milestones:[{id:"m34",title:"Run 15km non-stop",completed:false},{id:"m35",title:"Run 21km half marathon",completed:false},{id:"m36",title:"Run 30km training run",completed:false},{id:"m37",title:"Complete marathon",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F3C3}", trackingMethod:"milestone", weighting:{milestones:70,habits:30}, progressStrategy:"balanced", timeline:"Annual", status:"not-started", createdAt:"2026-09-01", updatedAt:"2026-09-01", reviewFrequency:"monthly" },
+  { id:"1", title:"Launch Intenteo MVP", description:"Ship the first version to beta", category:"Career", priority:"high", progress:0, deadline:"2026-09-30", startDate:"2026-01-01", type:"quarterly", whyItMatters:"Build something meaningful", milestones:[{id:"m1",title:"UI design",completed:true},{id:"m2",title:"API ready",completed:true},{id:"m3",title:"Beta test",completed:false},{id:"m4",title:"Launch",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
+  { id:"2", title:"Run a Half Marathon", description:"Complete 21km under 2 hours", category:"Health", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Health is wealth", milestones:[{id:"m5",title:"Run 5km",completed:true},{id:"m6",title:"Run 10km",completed:true},{id:"m7",title:"Run 15km",completed:false},{id:"m8",title:"Run 21km",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F4AA}", trackingMethod:"milestone", progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-05-15", reviewFrequency:"monthly" },
+  { id:"3", title:"Read 24 Books", description:"2 books per month on leadership", category:"Learning", priority:"none", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Knowledge is power", milestones:[], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Orange", colorHex:"#F97316", icon:"\u{1F4DA}", trackingMethod:"milestone", progressStrategy:"habits-only", timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
+  { id:"4", title:"Save $10,000", description:"Build emergency fund", category:"Finance", priority:"high", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Financial security", milestones:[{id:"m9",title:"Save $2,500",completed:true},{id:"m10",title:"Save $5,000",completed:false},{id:"m11",title:"Save $7,500",completed:false},{id:"m12",title:"Save $10,000",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F4B0}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, timeline:"Annual", status:"in-progress", createdAt:"2026-01-01", updatedAt:"2026-04-01", reviewFrequency:"monthly" },
+  { id:"5", title:"Deepen Faith Walk", description:"Build a consistent devotional and prayer life", category:"Faith", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-01", type:"annual", whyItMatters:"Spiritual growth anchors everything", milestones:[{id:"m13",title:"Daily devotion habit",completed:true},{id:"m14",title:"Complete Bible reading plan",completed:false},{id:"m15",title:"Join small group",completed:false}], linkedHabits:["Morning Devotion"], linkedHabitWeights:[{habitId:"h5",habitName:"Morning Devotion",weight:100}], notes:"", color:"Purple", colorHex:"#1E0E6B", icon:"\u{1F64F}", trackingMethod:"milestone", progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-02-01", updatedAt:"2026-06-01", reviewFrequency:"monthly" },
+  { id:"6", title:"Strengthen Relationships", description:"Be more intentional with family and friends", category:"Relationships", priority:"medium", progress:0, deadline:"2026-12-31", startDate:"2026-01-15", type:"annual", whyItMatters:"Relationships are life's greatest treasure", milestones:[{id:"m16",title:"Weekly family dinner",completed:true},{id:"m17",title:"Monthly friend hangout",completed:false},{id:"m18",title:"Plan family trip",completed:false}], linkedHabits:["Call a Friend"], linkedHabitWeights:[{habitId:"h6",habitName:"Call a Friend",weight:100}], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u2764\uFE0F", trackingMethod:"milestone", progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-01-15", updatedAt:"2026-05-20", reviewFrequency:"monthly" },
+  { id:"7", title:"Master TypeScript", description:"Become an expert in TypeScript and advanced patterns", category:"Learning", priority:"low", progress:0, deadline:"2026-09-30", startDate:"2026-04-01", type:"quarterly", whyItMatters:"Better code quality and career growth", milestones:[{id:"m19",title:"Complete advanced course",completed:false},{id:"m20",title:"Build 3 practice projects",completed:false},{id:"m21",title:"Contribute to open source",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F4BB}", trackingMethod:"milestone", progressStrategy:"balanced", timeline:"Quarterly", status:"not-started", createdAt:"2026-04-01", updatedAt:"2026-04-01", reviewFrequency:"weekly" },
+  { id:"8", title:"Launch Side Project", description:"Build and ship a profitable SaaS product", category:"Business", priority:"high", progress:0, deadline:"2026-10-31", startDate:"2026-03-01", type:"quarterly", whyItMatters:"Create additional income and impact", milestones:[{id:"m22",title:"Validate idea",completed:true},{id:"m23",title:"Build MVP",completed:false},{id:"m24",title:"Get first 10 paying users",completed:false},{id:"m25",title:"Reach $1k MRR",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Teal", colorHex:"#14B8A6", icon:"\u{1F680}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, timeline:"Quarterly", status:"in-progress", createdAt:"2026-03-01", updatedAt:"2026-06-15", reviewFrequency:"weekly" },
+  { id:"9", title:"Learn French", description:"Reach conversational fluency in French", category:"Learning", priority:"low", progress:0, deadline:"2027-06-30", startDate:"2026-07-01", type:"annual", whyItMatters:"Connecting with culture and opening travel opportunities", milestones:[{id:"m26",title:"Complete Duolingo streak 30 days",completed:true},{id:"m27",title:"Watch 5 French films",completed:false},{id:"m28",title:"Hold 10-min conversation",completed:false},{id:"m29",title:"Read a French book",completed:false}], linkedHabits:["Read 30 Minutes"], linkedHabitWeights:[{habitId:"h4",habitName:"Read 30 Minutes",weight:100}], notes:"", color:"Blue", colorHex:"#3B82F6", icon:"\u{1F30D}", trackingMethod:"milestone", progressStrategy:"balanced", timeline:"Annual", status:"in-progress", createdAt:"2026-07-01", updatedAt:"2026-07-01", reviewFrequency:"monthly" },
+  { id:"10", title:"Launch YouTube Channel", description:"Create and grow a personal development channel", category:"Business", priority:"medium", progress:0, deadline:"2027-03-31", startDate:"2026-08-01", type:"annual", whyItMatters:"Share knowledge and build a personal brand", milestones:[{id:"m30",title:"Plan 10 video topics",completed:false},{id:"m31",title:"Record first 3 videos",completed:false},{id:"m32",title:"Reach 100 subscribers",completed:false},{id:"m33",title:"Reach 1,000 subscribers",completed:false}], linkedHabits:[], linkedHabitWeights:[], notes:"", color:"Pink", colorHex:"#EC4899", icon:"\u{1F3AC}", trackingMethod:"milestone", weighting:{milestones:100,habits:0}, timeline:"Annual", status:"not-started", createdAt:"2026-08-01", updatedAt:"2026-08-01", reviewFrequency:"monthly" },
+  { id:"11", title:"Run a Marathon", description:"Complete a full 42km marathon", category:"Health", priority:"high", progress:0, deadline:"2027-04-30", startDate:"2026-09-01", type:"annual", whyItMatters:"Push physical limits and prove discipline", milestones:[{id:"m34",title:"Run 15km non-stop",completed:false},{id:"m35",title:"Run 21km half marathon",completed:false},{id:"m36",title:"Run 30km training run",completed:false},{id:"m37",title:"Complete marathon",completed:false}], linkedHabits:["Exercise"], linkedHabitWeights:[{habitId:"h2",habitName:"Exercise",weight:100}], notes:"", color:"Green", colorHex:"#22C55E", icon:"\u{1F3C3}", trackingMethod:"milestone", progressStrategy:"balanced", timeline:"Annual", status:"not-started", createdAt:"2026-09-01", updatedAt:"2026-09-01", reviewFrequency:"monthly" },
 ]
 
 const createSampleProjects = (): Project[] => [
@@ -236,8 +236,32 @@ function calcHabitScoreForGoal(habit: Habit): number {
   return Math.min(100, Math.round((completedDays / totalDays) * 100))
 }
 
-function calcGoalProgress(g: Goal, _projects: Project[], habits: Habit[]): number {
-  return calcGoalProgressData(g as unknown as GoalData, _projects as unknown as GoalProject[], habits as unknown as GoalHabit[])
+function calcGoalProgress(g: Goal, projects: Project[], habits: Habit[]): number {
+  const w = g.weighting
+  const totalWeight = w.milestones + w.habits
+  if (totalWeight === 0) return 0
+  const milestoneScore = g.milestones.length > 0
+    ? (g.milestones.filter(m => m.completed).length / g.milestones.length) * 100
+    : 0
+  let habitScore = 0
+  if (g.linkedHabitWeights && g.linkedHabitWeights.length > 0) {
+    const totalHabitWeight = g.linkedHabitWeights.reduce((s, h) => s + h.weight, 0)
+    if (totalHabitWeight > 0) {
+      habitScore = g.linkedHabitWeights.reduce((sum, lh) => {
+        const habit = habits.find(h => h.id === lh.habitId || h.name === lh.habitName)
+        const score = habit ? calcHabitScoreForGoal(habit) : 0
+        return sum + (score * lh.weight / totalHabitWeight)
+      }, 0)
+    }
+  } else if (g.linkedHabits.length > 0) {
+    const linked = habits.filter(h => g.linkedHabits.includes(h.name))
+    if (linked.length > 0) {
+      habitScore = linked.reduce((sum, h) => sum + calcHabitScoreForGoal(h), 0) / linked.length
+    }
+  }
+  return Math.round(
+    (milestoneScore * w.milestones + habitScore * w.habits) / totalWeight
+  )
 }
 
 function getGoalBreakdown(g: Goal, projects: Project[], habits: Habit[]) {
@@ -344,12 +368,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
   const [heroImage, setHeroImage] = useState<string | undefined>(undefined)
   const [supportingImages, setSupportingImages] = useState<string[] | undefined>(undefined)
   const [reviewFrequency, setReviewFrequency] = useState<ReviewFrequency>("monthly")
-  const [progressStrategy, setProgressStrategy] = useState<ProgressStrategy>("balanced")
-  const [strategyTouched, setStrategyTouched] = useState(false)
-  const [customMsWeight, setCustomMsWeight] = useState(70)
-  const [customHsWeight, setCustomHsWeight] = useState(30)
-  const [milestoneWeights, setMilestoneWeights] = useState<Record<string, number>>({})
-  const [customizeMilestoneContributions, setCustomizeMilestoneContributions] = useState(false)
   const [linkedValueIds, setLinkedValueIds] = useState<string[]>([])
   const [valueSearch, setValueSearch] = useState("")
   const [valuesOpen, setValuesOpen] = useState(false)
@@ -370,26 +388,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
       setHabitWeights(newWeights)
     }
   }, [selectedHabits, customizeContributions])
-
-  useEffect(() => {
-    if (!customizeMilestoneContributions && milestones.length > 0) {
-      const equalWeight = Math.floor(100 / milestones.length)
-      const remainder = 100 - (equalWeight * milestones.length)
-      const newWeights: Record<string, number> = {}
-      milestones.forEach((m, i) => { newWeights[m.id] = equalWeight + (i === 0 ? remainder : 0) })
-      setMilestoneWeights(newWeights)
-    }
-  }, [milestones, customizeMilestoneContributions])
-
-  useEffect(() => {
-    if (strategyTouched) return
-    const hasM = milestones.length > 0
-    const hasH = selectedHabits.length > 0
-    if (hasM && hasH) setProgressStrategy("balanced")
-    else if (hasM && !hasH) setProgressStrategy("milestones-only")
-    else if (!hasM && hasH) setProgressStrategy("habits-only")
-    else setProgressStrategy("balanced")
-  }, [milestones, selectedHabits, strategyTouched])
 
   useEffect(() => {
     if (!valuesOpen) return
@@ -415,49 +413,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
 
   const totalContribution = Object.values(habitWeights).reduce((sum, w) => sum + (w || 0), 0)
   const isValidContribution = totalContribution === 100
-
-  const redistributeMilestonesEvenly = () => {
-    if (milestones.length === 0) return
-    const equalWeight = Math.floor(100 / milestones.length)
-    const remainder = 100 - (equalWeight * milestones.length)
-    const newWeights: Record<string, number> = {}
-    milestones.forEach((m, i) => { newWeights[m.id] = equalWeight + (i === 0 ? remainder : 0) })
-    setMilestoneWeights(newWeights)
-  }
-  const totalMilestoneContribution = Object.values(milestoneWeights).reduce((sum, w) => sum + (w || 0), 0)
-  const isValidMilestoneContribution = totalMilestoneContribution === 100
-
-  const strategyConfig = progressStrategy === "custom"
-    ? { milestoneWeight: customMsWeight, habitWeight: customHsWeight }
-    : (PROGRESS_STRATEGIES.find(s => s.value === progressStrategy) || PROGRESS_STRATEGIES[0])
-  const resolvedMsWeight = strategyConfig.milestoneWeight
-  const resolvedHsWeight = strategyConfig.habitWeight
-
-  const milestoneScorePreview = (() => {
-    const total = totalMilestoneContribution
-    if (total === 0) return 0
-    const done = milestones.filter(m => m.completed).reduce((s, m) => s + (milestoneWeights[m.id] || 0), 0)
-    return Math.round((done / total) * 100)
-  })()
-  const habitScorePreview = (() => {
-    if (selectedHabits.length === 0) return 0
-    const total = totalContribution
-    if (total === 0) return 0
-    return Math.round(selectedHabits.reduce((sum, name) => sum + ((habitWeights[name] || 0) / total * 100), 0))
-  })()
-  const overallPreview = resolvedMsWeight + resolvedHsWeight > 0
-    ? Math.round((milestoneScorePreview * resolvedMsWeight + habitScorePreview * resolvedHsWeight) / (resolvedMsWeight + resolvedHsWeight))
-    : 0
-
-  const selectStrategy = (s: ProgressStrategy) => { setProgressStrategy(s); setStrategyTouched(true) }
-  const handleCustomMsChange = (v: number) => {
-    const mv = Math.min(100, Math.max(0, v))
-    setCustomMsWeight(mv); setCustomHsWeight(100 - mv)
-  }
-  const handleCustomHsChange = (v: number) => {
-    const hv = Math.min(100, Math.max(0, v))
-    setCustomHsWeight(hv); setCustomMsWeight(100 - hv)
-  }
 
   const filteredHabits = habits.filter(h => h.name.toLowerCase().includes(habitSearch.toLowerCase()))
   const filteredVisions = visions.filter(v => !v.archived && v.title.toLowerCase().includes(visionSearch.toLowerCase()))
@@ -541,156 +496,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
             )}
           </div>
 
-          {/* Milestone Contributions */}
-          <div>
-            <label className="text-sm font-medium">Milestone Contributions</label>
-            <p className="text-xs text-muted-foreground mb-2">Weight each milestone&apos;s importance toward your progress</p>
-            {milestones.length > 0 ? (
-              <div className="mt-2 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" checked={customizeMilestoneContributions} onChange={(e) => setCustomizeMilestoneContributions(e.target.checked)} className="accent-[#1E0E6B]" />
-                    Customize Milestone Contributions
-                  </label>
-                  <button type="button" onClick={redistributeMilestonesEvenly} className="text-[10px] text-[#1E0E6B] hover:underline">Redistribute Evenly</button>
-                </div>
-                {customizeMilestoneContributions ? (
-                  <div className="space-y-2">
-                    {milestones.map(m => (
-                      <div key={m.id} className="flex items-center gap-2">
-                        <span className="text-xs flex-1 truncate">{m.title}</span>
-                        <div className="flex items-center gap-1">
-                          <input type="number" min="0" max="100" value={milestoneWeights[m.id] || 0} onChange={(e) => setMilestoneWeights(prev => ({...prev, [m.id]: Math.min(100, Math.max(0, parseInt(e.target.value) || 0))}))} className="w-16 text-xs text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
-                          <span className="text-[10px] text-muted-foreground">%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {milestones.map(m => (
-                      <div key={m.id} className="flex items-center gap-2 text-xs">
-                        <span className="flex-1 truncate">{m.title}</span>
-                        <span className="font-medium text-muted-foreground">Weight: {milestoneWeights[m.id] || 0}%</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className={`flex items-center gap-1.5 text-xs ${isValidMilestoneContribution ? "text-emerald-600" : "text-amber-600"}`}>
-                  {isValidMilestoneContribution ? (
-                    <><span className="font-medium">✓ Total = 100%</span><span className="text-muted-foreground ml-1">Automatically Distributed</span></>
-                  ) : (
-                    <><span>⚠ Total must equal 100%.</span><span className="ml-1">Current Total: {totalMilestoneContribution}%</span></>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground py-2">Add milestones above to configure their contributions.</p>
-            )}
-          </div>
-
-          {/* Goal Progress Strategy */}
-          <div className="p-4 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
-            <label className="text-sm font-medium">Goal Progress Strategy</label>
-            <p className="text-xs text-muted-foreground mt-0.5 mb-3">Choose how this goal measures progress.</p>
-            <div className="grid grid-cols-2 gap-2">
-              {PROGRESS_STRATEGIES.map(s => (
-                <button key={s.value} type="button" onClick={() => selectStrategy(s.value)} className={`flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left transition-colors ${progressStrategy === s.value ? "bg-[#1E0E6B] text-white border-[#1E0E6B]" : "bg-white/60 dark:bg-white/5 border-white/10 hover:border-[#1E0E6B]/40"}`}>
-                  <span className="text-xs font-semibold">{s.label}</span>
-                  <span className={`text-[10px] ${progressStrategy === s.value ? "text-white/80" : "text-muted-foreground"}`}>{s.milestoneWeight}% / {s.habitWeight}%</span>
-                </button>
-              ))}
-            </div>
-            {progressStrategy === "custom" && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                  <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
-                  <div className="flex items-center gap-1">
-                    <input type="number" min="0" max="100" value={customMsWeight} onChange={(e) => handleCustomMsChange(parseInt(e.target.value) || 0)} className="w-16 text-sm text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
-                    <span className="text-[10px] text-muted-foreground">%</span>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                  <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
-                  <div className="flex items-center gap-1">
-                    <input type="number" min="0" max="100" value={customHsWeight} onChange={(e) => handleCustomHsChange(parseInt(e.target.value) || 0)} className="w-16 text-sm text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
-                    <span className="text-[10px] text-muted-foreground">%</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress = (Milestone Score × {resolvedMsWeight}%) + (Habit Score × {resolvedHsWeight}%)</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Category</label>
-              <div className="relative">
-                <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
-                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div>
-              {category === "Custom" && <Input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Custom category" className="mt-2" />}
-            </div>
-            <div><label className="text-sm font-medium">Priority</label>
-              <div className="relative">
-                <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
-                  <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div></div>
-          </div>
-          <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
-            {TIME_HORIZONS.map(th => (
-              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)) }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
-            ))}</div></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)) }} /></div>
-            <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative"><label className="text-sm font-medium">Icon</label>
-              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
-                <div className="flex items-center gap-2">
-                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-muted-foreground">None</span>}
-                  <span>Icon</span>
-                </div>
-                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              {showIconDropdown && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
-                  <div className="grid grid-cols-4 gap-1">
-                    <button onClick={() => { setIcon(""); setShowIconDropdown(false) }}
-                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>None</button>
-                    {GOAL_ICONS.map(ic => (
-                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
-                        className={`text-lg p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="relative"><label className="text-sm font-medium">Colour</label>
-              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{backgroundColor: GOAL_COLORS[colorIdx].hex}} />
-                  <span>{GOAL_COLORS[colorIdx].name}</span>
-                </div>
-                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              {showColorDropdown && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
-                  {GOAL_COLORS.map((c, i) => (
-                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
-                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{backgroundColor: c.hex}} />
-                      <span>{c.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
           <div>
             <label className="text-sm font-medium">Linked Habits</label>
             <p className="text-xs text-muted-foreground mb-2">Select habits that support this goal</p>
@@ -774,6 +579,102 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <label className="text-sm font-medium">Goal Progress Strategy</label>
+                <p className="text-xs text-muted-foreground mt-0.5">How this goal measures progress.</p>
+              </div>
+              <ProgressRing value={(() => {
+                const wMilestones = milestones.length > 0 ? 70 : 0
+                const wHabits = selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0
+                const previewGoal = { milestones, linkedHabits: selectedHabits, linkedHabitWeights: selectedHabits.map(n => ({ habitId: n, habitName: n, weight: habitWeights[n] || 0 })), weighting: { milestones: wMilestones, habits: wHabits } } as unknown as Goal
+                return calcGoalProgress(previewGoal, [], habits)
+              })()} size={48} strokeWidth={4} showLabel />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{milestones.length > 0 ? 70 : 0}%</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0}%</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress is calculated from milestone completion and linked habit consistency.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="text-sm font-medium">Category</label>
+              <div className="relative">
+                <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div>
+              {category === "Custom" && <Input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Custom category" className="mt-2" />}
+            </div>
+            <div><label className="text-sm font-medium">Priority</label>
+              <div className="relative">
+                <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div></div>
+          </div>
+          <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
+            {TIME_HORIZONS.map(th => (
+              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)) }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
+            ))}</div></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)) }} /></div>
+            <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative"><label className="text-sm font-medium">Icon</label>
+              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-muted-foreground">None</span>}
+                  <span>Icon</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showIconDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
+                  <div className="grid grid-cols-4 gap-1">
+                    <button onClick={() => { setIcon(""); setShowIconDropdown(false) }}
+                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>None</button>
+                    {GOAL_ICONS.map(ic => (
+                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
+                        className={`text-lg p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="relative"><label className="text-sm font-medium">Colour</label>
+              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{backgroundColor: GOAL_COLORS[colorIdx].hex}} />
+                  <span>{GOAL_COLORS[colorIdx].name}</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showColorDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
+                  {GOAL_COLORS.map((c, i) => (
+                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
+                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{backgroundColor: c.hex}} />
+                      <span>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div>
@@ -887,13 +788,13 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button onClick={() => {
-            if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution) && (!customizeMilestoneContributions || isValidMilestoneContribution)) {
+            if (title.trim() && deadline && (selectedHabits.length === 0 || isValidContribution)) {
               const c = GOAL_COLORS[colorIdx]
               const lhw: LinkedHabitWeight[] = selectedHabits.map(name => ({ habitId: name, habitName: name, weight: habitWeights[name] || 0 }))
-              onSave({ title, description: "", category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type: "annual", whyItMatters, milestones: milestones.map(m => ({ ...m, weight: milestoneWeights[m.id] || 0 })), linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", progressStrategy, ...(progressStrategy === "custom" ? { milestoneWeight: customMsWeight, habitWeight: customHsWeight } : {}), status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency, linkedValueIds })
+              onSave({ title, description: "", category: category === "Custom" ? "Custom" : category, customCategory: category === "Custom" ? customCategory : undefined, priority, progress: 0, deadline, startDate, type: "annual", whyItMatters, milestones, linkedHabits: selectedHabits, linkedHabitWeights: lhw, notes: "", color: c.name, colorHex: c.hex, icon, trackingMethod: "milestone", weighting: { milestones: milestones.length > 0 ? 70 : 0, habits: selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0 }, status: "not-started", timeHorizon, visionId: selectedVisionId || undefined, heroImage, supportingImages, reviewFrequency, linkedValueIds })
               onClose()
             }
-          }} disabled={(selectedHabits.length > 0 && !isValidContribution) || (customizeMilestoneContributions && !isValidMilestoneContribution)} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
+          }} disabled={selectedHabits.length > 0 && !isValidContribution} className="flex-1 glow text-white disabled:opacity-50 disabled:cursor-not-allowed">Add Goal</Button>
         </div>
       </div>
     </div>
@@ -1366,24 +1267,12 @@ function Lightbox({ images, startIndex, onClose }: { images: string[]; startInde
 export function VisionImagesSection({ heroImage, supportingImages, onChange }: {
   heroImage?: string; supportingImages?: string[]; onChange: (hero?: string, supporting?: string[]) => void
 }) {
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [uploadTarget, setUploadTarget] = useState<"hero" | "supporting">("hero")
+  const handleHeroChange = (value: string | undefined) => {
+    onChange(value, supportingImages)
+  }
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string
-      if (uploadTarget === "hero") {
-        onChange(dataUrl, supportingImages)
-      } else {
-        onChange(heroImage, [...(supportingImages || []), dataUrl].slice(0, 5))
-      }
-    }
-    reader.readAsDataURL(file)
-    e.target.value = ""
+  const handleSupportingChange = (newSupporting: string[]) => {
+    onChange(heroImage, newSupporting.length > 0 ? newSupporting : undefined)
   }
 
   const removeSupporting = (idx: number) => {
@@ -1400,54 +1289,65 @@ export function VisionImagesSection({ heroImage, supportingImages, onChange }: {
   }
 
   return (
-    <div className="space-y-3">
-      <label className="text-sm font-medium">Vision Images</label>
-      <p className="text-xs text-muted-foreground">Upload images that represent your goal vision. JPG, PNG, WEBP supported.</p>
-
+    <div className="space-y-4">
       {/* Hero Image */}
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Primary Image</p>
-        {heroImage ? (
-          <div className="relative group rounded-xl overflow-hidden border border-white/20">
-            <img src={heroImage} alt="Hero" className="w-full h-40 object-cover" />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <button onClick={() => { setUploadTarget("hero"); fileRef.current?.click() }} className="px-3 py-1.5 rounded-lg bg-white text-black text-xs font-medium hover:bg-white/90">Replace</button>
-              <button onClick={() => onChange(undefined, supportingImages)} className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium hover:bg-red-600">Remove</button>
-            </div>
-          </div>
-        ) : (
-          <button onClick={() => { setUploadTarget("hero"); fileRef.current?.click() }} className="w-full h-32 rounded-xl border-2 border-dashed border-white/20 hover:border-[#1E0E6B]/40 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-[#1E0E6B] transition-colors">
-            <ImagePlus className="h-6 w-6" />
-            <span className="text-xs font-medium">Upload Hero Image</span>
-          </button>
-        )}
-      </div>
+      <ImageUploader
+        label="Primary Image"
+        description="Upload a cover image that represents your goal vision. Portrait, landscape, and square images are all supported."
+        value={heroImage}
+        onChange={handleHeroChange}
+        uploadTarget="hero"
+        aspectRatio="landscape"
+        maxHeight={300}
+        showPreview
+        previewTitle="Hero Image"
+      />
 
       {/* Supporting Images */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Supporting Images ({(supportingImages || []).length}/5)</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+          {(supportingImages || []).map((img, i) => (
+            <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-white/20">
+              <ImageUploader
+                value={img}
+                onChange={(val) => {
+                  const next = [...(supportingImages || [])]
+                  if (val) next[i] = val
+                  else next.splice(i, 1)
+                  handleSupportingChange(next)
+                }}
+                uploadTarget="supporting"
+                aspectRatio="square"
+                maxHeight={150}
+                showPreview
+                previewTitle={`Supporting Image ${i + 1}`}
+                className="h-full"
+                label=""
+                description={undefined}
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                {i > 0 && <button onClick={() => moveSupporting(i, i - 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronLeft className="h-3 w-3 text-white" /></button>}
+                <button onClick={() => removeSupporting(i)} className="p-1 rounded bg-red-500/80 hover:bg-red-500"><X className="h-3 w-3 text-white" /></button>
+                {i < (supportingImages || []).length - 1 && <button onClick={() => moveSupporting(i, i + 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronRight className="h-3 w-3 text-white" /></button>}
+              </div>
+            </div>
+          ))}
           {(supportingImages || []).length < 5 && (
-            <button onClick={() => { setUploadTarget("supporting"); fileRef.current?.click() }} className="text-xs text-[#1E0E6B] hover:underline font-medium">+ Add</button>
+            <ImageUploader
+              onChange={(val) => val && handleSupportingChange([...(supportingImages || []), val].slice(0, 5))}
+              uploadTarget="supporting"
+              aspectRatio="square"
+              maxHeight={150}
+              label=""
+              description={undefined}
+              className="h-full"
+            />
           )}
         </div>
-        {(supportingImages || []).length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {(supportingImages || []).map((img, i) => (
-              <div key={i} className="relative group rounded-lg overflow-hidden border border-white/20 aspect-square">
-                <img src={img} alt="" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                  {i > 0 && <button onClick={() => moveSupporting(i, i - 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronLeft className="h-3 w-3 text-white" /></button>}
-                  <button onClick={() => removeSupporting(i)} className="p-1 rounded bg-red-500/80 hover:bg-red-500"><X className="h-3 w-3 text-white" /></button>
-                  {i < (supportingImages || []).length - 1 && <button onClick={() => moveSupporting(i, i + 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronRight className="h-3 w-3 text-white" /></button>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-
-      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
     </div>
   )
 }
@@ -1588,14 +1488,6 @@ export function GoalsPage() {
 
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-goals", JSON.stringify(goals)) }, [goals, isLoading])
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-projects", JSON.stringify(projects)) }, [projects, isLoading])
-
-  useEffect(() => {
-    const updated = goals.map(g => {
-      const p = calcGoalProgress(g, [], habits)
-      return g.progress === p ? g : { ...g, progress: p }
-    })
-    if (updated.some((g, i) => g.progress !== goals[i].progress)) setGoals(updated)
-  }, [goals, habits])
 
   const saveGoal = useCallback((g: Omit<Goal,"id"|"createdAt"|"updatedAt">) => {
     const now = getTodayISO()

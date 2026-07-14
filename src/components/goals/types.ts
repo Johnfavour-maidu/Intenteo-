@@ -35,8 +35,6 @@ export interface Goal {
   icon: string; trackingMethod: "manual" | "milestone" | "auto"
   weighting?: { milestones: number; habits: number }
   progressStrategy?: "balanced" | "milestone-focused" | "habit-focused" | "milestones-only" | "habits-only" | "custom"
-  milestoneWeight?: number
-  habitWeight?: number
   projectTimelines?: GoalProjectTimeline[]
   timeline?: string; status?: "not-started" | "in-progress" | "completed" | "overdue" | "archived"
   timeHorizon?: TimeHorizon

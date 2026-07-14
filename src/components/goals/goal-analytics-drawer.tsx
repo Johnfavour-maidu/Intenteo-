@@ -11,7 +11,6 @@ import type {
 import {
   calcGoalHealth,
   calcTrend,
-  calcGoalProgress,
   GOAL_TREND_CONFIG,
 } from "./goal-utils"
 
@@ -114,8 +113,7 @@ export const GoalAnalyticsDrawer: React.FC<GoalAnalyticsDrawerProps> = ({
   const health = useMemo(() => calcGoalHealth(goal, projects, habits), [goal, projects, habits])
   const trend = useMemo(() => calcTrend(goal, projects), [goal, projects])
   const trendCfg = GOAL_TREND_CONFIG[trend]
-  const progress = useMemo(() => calcGoalProgress(goal, projects, habits), [goal, projects, habits])
-  const status = useMemo(() => getStatusFromHealth(health, progress), [health, progress])
+  const status = useMemo(() => getStatusFromHealth(health, goal.progress), [health, goal.progress])
   const daysRemaining = useMemo(() => Math.max(0, Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / 86400000)), [goal.deadline])
 
   const linkedVision = useMemo(() => vision || null, [vision])
@@ -144,7 +142,7 @@ export const GoalAnalyticsDrawer: React.FC<GoalAnalyticsDrawerProps> = ({
 
   const insight = useMemo(() => {
     const seed = goal.id.charCodeAt(0) + goal.title.length
-    if (progress >= 100) return "You've achieved this goal! Take a moment to celebrate and reflect on what you've learned."
+    if (goal.progress >= 100) return "You've achieved this goal! Take a moment to celebrate and reflect on what you've learned."
     if (health === "excellent") {
       return REFLECTION_QUESTIONS[seed % REFLECTION_QUESTIONS.length]
     }
@@ -197,12 +195,12 @@ export const GoalAnalyticsDrawer: React.FC<GoalAnalyticsDrawerProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#1E0E6B] uppercase tracking-wider">Progress</span>
-            <span className="text-lg font-bold text-[#1E0E6B]">{progress}%</span>
+            <span className="text-lg font-bold text-[#1E0E6B]">{goal.progress}%</span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div
-              className={`h-2 rounded-full transition-all duration-500 ${progress >= 75 ? "bg-emerald-500" : progress >= 40 ? "bg-amber-400" : "bg-[#1E0E6B]"}`}
-              style={{ width: `${Math.min(100, progress)}%` }}
+              className={`h-2 rounded-full transition-all duration-500 ${goal.progress >= 75 ? "bg-emerald-500" : goal.progress >= 40 ? "bg-amber-400" : "bg-[#1E0E6B]"}`}
+              style={{ width: `${Math.min(100, goal.progress)}%` }}
             />
           </div>
         </div>
