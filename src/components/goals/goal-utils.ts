@@ -106,7 +106,7 @@ export function calcGoalHealth(
 export function calcLifecycleStage(g: GoalData): GoalLifecycleStage {
   if (g.status === "archived") return "archived"
   if (g.status === "completed") return "completed"
-  const progress = g.progress
+  const progress = calcGoalProgressForHealth(g, [], [])
   const milestones = g.milestones
   const completedMilestones = milestones.filter(m => m.completed).length
   const totalMilestones = milestones.length || 1
@@ -308,9 +308,9 @@ export function buildGoalJourney(
       items.push({ icon: "🔄", text: `${linkedHabits.length} habit${linkedHabits.length > 1 ? "s" : ""} supporting (avg ${avgHabitScore}%)` })
     }
   }
-  if (goal.progress >= 100) {
+  if (calcGoalProgressForHealth(goal, projects, habits) >= 100) {
     items.push({ icon: "🎉", text: "Goal completed!" })
-  } else if (goal.progress >= 50) {
+  } else if (calcGoalProgressForHealth(goal, projects, habits) >= 50) {
     items.push({ icon: "📈", text: "More than halfway there — keep pushing" })
   }
   if (goal.lastActivity) {
@@ -352,30 +352,13 @@ export function getGoalHealthScore(
 }
 
 function calcGoalProgressForHealth(g: GoalData, projects: GoalProject[], habits: GoalHabit[]): number {
-  const w = g.weighting
-  const totalWeight = w.milestones + w.habits
+  const { milestoneWeight, habitWeight } = resolveGoalWeights(g)
+  const totalWeight = milestoneWeight + habitWeight
   if (totalWeight === 0) return 0
-  const milestoneScore = g.milestones.length > 0
-    ? (g.milestones.filter(m => m.completed).length / g.milestones.length) * 100
-    : 0
-  let habitScore = 0
-  if (g.linkedHabitWeights && g.linkedHabitWeights.length > 0) {
-    const totalHabitWeight = g.linkedHabitWeights.reduce((s, h) => s + h.weight, 0)
-    if (totalHabitWeight > 0) {
-      habitScore = g.linkedHabitWeights.reduce((sum, lh) => {
-        const habit = habits.find(h => h.id === lh.habitId || h.name === lh.habitName)
-        const score = habit ? calcHabitScoreForGoalFn(habit) : 0
-        return sum + (score * lh.weight / totalHabitWeight)
-      }, 0)
-    }
-  } else if (g.linkedHabits.length > 0) {
-    const linked = habits.filter(h => g.linkedHabits.includes(h.name))
-    if (linked.length > 0) {
-      habitScore = linked.reduce((sum, h) => sum + calcHabitScoreForGoalFn(h), 0) / linked.length
-    }
-  }
+  const milestoneScore = calcMilestoneScore(g)
+  const habitScore = calcHabitScoreForGoalData(g, habits)
   return Math.round(
-    (milestoneScore * w.milestones + habitScore * w.habits) / totalWeight
+    (milestoneScore * milestoneWeight + habitScore * habitWeight) / totalWeight
   )
 }
 
@@ -412,9 +395,57 @@ function calcProjectScore(g: GoalData, projects: GoalProject[]): number {
   return Math.round(goalProjects.reduce((s, p) => s + calcProjectProgress(p), 0) / goalProjects.length)
 }
 
-function calcMilestoneScore(g: GoalData): number {
-  if (g.milestones.length === 0) return 0
-  return Math.round((g.milestones.filter(m => m.completed).length / g.milestones.length) * 100)
+export function calcMilestoneScore(g: GoalData): number {
+  const ms = g.milestones || []
+  if (ms.length === 0) return 0
+  const totalWeight = ms.reduce((s, m) => s + (m.weight ?? 0), 0)
+  if (totalWeight === 0) {
+    const completed = ms.filter(m => m.completed).length
+    return Math.round((completed / ms.length) * 100)
+  }
+  const completedWeight = ms.filter(m => m.completed).reduce((s, m) => s + (m.weight ?? 0), 0)
+  return Math.round((completedWeight / totalWeight) * 100)
+}
+
+export function calcHabitScoreForGoalData(g: GoalData, habits: GoalHabit[]): number {
+  if (g.linkedHabitWeights && g.linkedHabitWeights.length > 0) {
+    const totalHabitWeight = g.linkedHabitWeights.reduce((s, h) => s + h.weight, 0)
+    if (totalHabitWeight > 0) {
+      return g.linkedHabitWeights.reduce((sum, lh) => {
+        const habit = habits.find(h => h.id === lh.habitId || h.name === lh.habitName)
+        const score = habit ? calcHabitScoreForGoalFn(habit) : 0
+        return sum + (score * lh.weight / totalHabitWeight)
+      }, 0)
+    }
+  } else if (g.linkedHabits.length > 0) {
+    const linked = habits.filter(h => g.linkedHabits.includes(h.name))
+    if (linked.length > 0) {
+      return linked.reduce((sum, h) => sum + calcHabitScoreForGoalFn(h), 0) / linked.length
+    }
+  }
+  return 0
+}
+
+export function resolveGoalWeights(g: GoalData): { milestoneWeight: number; habitWeight: number } {
+  if (g.progressStrategy && g.progressStrategy !== "custom") {
+    const cfg = PROGRESS_STRATEGIES.find(s => s.value === g.progressStrategy)
+    if (cfg) return { milestoneWeight: cfg.milestoneWeight, habitWeight: cfg.habitWeight }
+  }
+  if (g.progressStrategy === "custom" && g.milestoneWeight != null && g.habitWeight != null) {
+    return { milestoneWeight: g.milestoneWeight, habitWeight: g.habitWeight }
+  }
+  if (g.weighting && (g.weighting.milestones > 0 || g.weighting.habits > 0)) {
+    return { milestoneWeight: g.weighting.milestones, habitWeight: g.weighting.habits }
+  }
+  const hasM = (g.milestones?.length || 0) > 0
+  const hasH = (g.linkedHabitWeights?.length || 0) > 0 || (g.linkedHabits?.length || 0) > 0
+  if (hasM && !hasH) return { milestoneWeight: 100, habitWeight: 0 }
+  if (!hasM && hasH) return { milestoneWeight: 0, habitWeight: 100 }
+  return { milestoneWeight: 50, habitWeight: 50 }
+}
+
+export function calcGoalProgress(g: GoalData, projects: GoalProject[], habits: GoalHabit[]): number {
+  return calcGoalProgressForHealth(g, projects, habits)
 }
 
 function calcGoalConsistency(g: GoalData): number {

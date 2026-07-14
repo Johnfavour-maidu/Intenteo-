@@ -12,6 +12,7 @@ import { GOAL_CATEGORIES, GOAL_COLORS, GOAL_ICONS } from "./goals-page"
 import { TIME_HORIZONS, REVIEW_FREQUENCY_CONFIG } from "./goals-page"
 import { loadCoreValues, addCoreValue } from "@/lib/vision-framework"
 import { getTodayISO } from "./types"
+import { PROGRESS_STRATEGIES, type ProgressStrategy } from "./goal-utils"
 import type { Goal, Milestone, GoalProjectTimeline, LinkedHabitWeight, TimeHorizon, ReviewFrequency, Habit, Vision, CoreValue } from "./goals-page"
 
 function getDeadlineForHorizon(startDate: string, horizon: TimeHorizon): string {
@@ -28,6 +29,15 @@ function getDeadlineForHorizon(startDate: string, horizon: TimeHorizon): string 
     case "lifetime": d.setFullYear(d.getFullYear() + 50); break
   }
   return d.toISOString().split("T")[0]
+}
+
+function evenMilestoneWeights(list: Milestone[]): Record<string, number> {
+  if (list.length === 0) return {}
+  const base = Math.floor(100 / list.length)
+  const rem = 100 - base * list.length
+  const w: Record<string, number> = {}
+  list.forEach((m, i) => { w[m.id] = base + (i === 0 ? rem : 0) })
+  return w
 }
 
 interface EditGoalModalProps {
@@ -64,6 +74,12 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
   const valueSearchRef = useRef<HTMLDivElement>(null)
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [newMilestone, setNewMilestone] = useState("")
+  const [progressStrategy, setProgressStrategy] = useState<ProgressStrategy>("balanced")
+  const [strategyTouched, setStrategyTouched] = useState(false)
+  const [customMsWeight, setCustomMsWeight] = useState(70)
+  const [customHsWeight, setCustomHsWeight] = useState(30)
+  const [milestoneWeights, setMilestoneWeights] = useState<Record<string, number>>({})
+  const [customizeMilestoneContributions, setCustomizeMilestoneContributions] = useState(false)
   const [habitSearch, setHabitSearch] = useState("")
   const [habitsOpen, setHabitsOpen] = useState(false)
   const [visionSearch, setVisionSearch] = useState("")
@@ -95,6 +111,12 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
       setHeroImage(goal.heroImage)
       setSupportingImages(goal.supportingImages)
       setMilestones(goal.milestones || [])
+      setProgressStrategy(goal.progressStrategy || "balanced")
+      setStrategyTouched(false)
+      setCustomMsWeight(goal.milestoneWeight != null ? goal.milestoneWeight : 70)
+      setCustomHsWeight(goal.habitWeight != null ? goal.habitWeight : 30)
+      setMilestoneWeights(evenMilestoneWeights(goal.milestones || []))
+      setCustomizeMilestoneContributions((goal.milestones || []).some(m => m.weight != null))
       setHasChanges(false)
     }
   }, [goal])
@@ -137,7 +159,54 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
     }
   }, [selectedHabits, customizeContributions])
 
+  useEffect(() => {
+    if (strategyTouched) return
+    const hasM = milestones.length > 0
+    const hasH = selectedHabits.length > 0
+    if (hasM && !hasH) setProgressStrategy("milestones-only")
+    else if (!hasM && hasH) setProgressStrategy("habits-only")
+    else setProgressStrategy("balanced")
+  }, [milestones, selectedHabits, strategyTouched])
+
+  useEffect(() => {
+    if (!customizeMilestoneContributions && milestones.length > 0) {
+      setMilestoneWeights(evenMilestoneWeights(milestones))
+    }
+  }, [milestones, customizeMilestoneContributions])
+
   if (!isOpen || !goal) return null
+
+  const selectStrategy = (s: ProgressStrategy) => { setProgressStrategy(s); setStrategyTouched(true) }
+  const handleCustomMsChange = (v: number) => { const mv = Math.min(100, Math.max(0, v)); setCustomMsWeight(mv); setCustomHsWeight(100 - mv) }
+  const handleCustomHsChange = (v: number) => { const hv = Math.min(100, Math.max(0, v)); setCustomHsWeight(hv); setCustomMsWeight(100 - hv) }
+  const redistributeMilestonesEvenly = () => setMilestoneWeights(evenMilestoneWeights(milestones))
+
+  const strategyConfig = PROGRESS_STRATEGIES.find(s => s.value === progressStrategy)
+  const resolvedMsWeight = progressStrategy === "custom" ? customMsWeight : (strategyConfig?.milestoneWeight ?? 50)
+  const resolvedHsWeight = progressStrategy === "custom" ? customHsWeight : (strategyConfig?.habitWeight ?? 50)
+  const totalMilestoneContribution = Object.values(milestoneWeights).reduce((sum, w) => sum + (w || 0), 0)
+  const isValidMilestoneContribution = totalMilestoneContribution === 100
+  const milestoneScorePreview = (() => {
+    if (milestones.length === 0) return 0
+    const totalW = Object.values(milestoneWeights).reduce((s, w) => s + (w || 0), 0)
+    if (totalW === 0) return Math.round((milestones.filter(m => m.completed).length / milestones.length) * 100)
+    const completedW = milestones.filter(m => m.completed).reduce((s, m) => s + (milestoneWeights[m.id] || 0), 0)
+    return Math.round((completedW / totalW) * 100)
+  })()
+  const habitScorePreview = (() => {
+    if (selectedHabits.length === 0) return 0
+    const total = Object.values(habitWeights).reduce((s, w) => s + (w || 0), 0)
+    if (total === 0) return 0
+    const weighted = selectedHabits.reduce((sum, name) => {
+      const habit = habits.find(h => h.name === name)
+      const score = habit ? (habit.habitScore || 0) : 0
+      return sum + (score * (habitWeights[name] || 0) / total)
+    }, 0)
+    return Math.round(weighted)
+  })()
+  const overallPreview = resolvedMsWeight + resolvedHsWeight > 0
+    ? Math.round((milestoneScorePreview * resolvedMsWeight + habitScorePreview * resolvedHsWeight) / (resolvedMsWeight + resolvedHsWeight))
+    : 0
 
   const handleClose = () => {
     if (hasChanges) { setShowUnsavedWarning(true) } else { onClose() }
@@ -167,23 +236,6 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
   const selectedVision = visions.find(v => v.id === selectedVisionId)
   const filteredValues = values.filter(v => v.name.toLowerCase().includes(valueSearch.toLowerCase()))
 
-  const calcProgress = (ms: Milestone[], habits: string[], weights: Record<string, number>, wMilestones: number, wHabits: number): number => {
-    const totalWeight = wMilestones + wHabits
-    if (totalWeight === 0) return 0
-    const milestoneScore = ms.length > 0 ? (ms.filter(m => m.completed).length / ms.length) * 100 : 0
-    let habitScore = 0
-    const linkedHabitNames = Object.keys(weights)
-    if (linkedHabitNames.length > 0) {
-      const totalHabitWeight = Object.values(weights).reduce((s, w) => s + (w || 0), 0)
-      if (totalHabitWeight > 0) {
-        habitScore = linkedHabitNames.reduce((sum, name) => sum + ((weights[name] || 0) / totalHabitWeight * 100), 0)
-      }
-    } else if (habits.length > 0) {
-      habitScore = 100
-    }
-    return Math.round((milestoneScore * wMilestones + habitScore * wHabits) / totalWeight)
-  }
-
   const addMilestone = () => {
     if (newMilestone.trim()) {
       setMilestones(prev => [...prev, { id: Date.now().toString(), title: newMilestone.trim(), completed: false }])
@@ -210,12 +262,14 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
       ...goal,
       title, description: goal.description, category: category === "Custom" ? "Custom" : category,
       customCategory: category === "Custom" ? customCategory : undefined,
-      priority, deadline, startDate, whyItMatters, milestones,
+      priority, deadline, startDate, whyItMatters,
+      milestones: milestones.map(m => ({ ...m, weight: milestoneWeights[m.id] || 0 })),
       linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines,
       color: c.name, colorHex: c.hex, icon, timeHorizon,
       visionId: selectedVisionId || undefined, reviewFrequency, linkedValueIds,
       heroImage, supportingImages, updatedAt: getTodayISO(),
-      weighting: { milestones: milestones.length > 0 ? 70 : 0, habits: selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0 },
+      progressStrategy,
+      ...(progressStrategy === "custom" ? { milestoneWeight: customMsWeight, habitWeight: customHsWeight } : {}),
     }
     onSave(updatedGoal)
     onClose()
@@ -250,29 +304,95 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
               </div>
             )}
             <div className="flex gap-2"><Input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} placeholder="Add milestone and press Enter" onKeyDown={e => e.key === "Enter" && addMilestone()} className="text-sm" /><Button size="sm" variant="outline" onClick={addMilestone}>Add</Button></div>
+            {milestones.length > 0 && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={customizeMilestoneContributions} onChange={(e) => setCustomizeMilestoneContributions(e.target.checked)} className="accent-[#1E0E6B]" />
+                    Customize Milestone Contributions
+                  </label>
+                  <button type="button" onClick={redistributeMilestonesEvenly} className="text-[10px] text-[#1E0E6B] hover:underline">Redistribute Evenly</button>
+                </div>
+                {customizeMilestoneContributions ? (
+                  <div className="space-y-2">
+                    {milestones.map(m => (
+                      <div key={m.id} className="flex items-center gap-2">
+                        <span className="text-xs flex-1 truncate">{m.title}</span>
+                        <div className="flex items-center gap-1">
+                          <input type="number" min="0" max="100" value={milestoneWeights[m.id] || 0} onChange={(e) => { setMilestoneWeights(prev => ({...prev, [m.id]: Math.min(100, Math.max(0, parseInt(e.target.value) || 0))})); markChanged() }} className="w-16 text-xs text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
+                          <span className="text-[10px] text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {milestones.map(m => (
+                      <div key={m.id} className="flex items-center gap-2 text-xs">
+                        <span className="flex-1 truncate">{m.title}</span>
+                        <span className="font-medium text-muted-foreground">Weight: {milestoneWeights[m.id] || 0}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className={`flex items-center gap-1.5 text-xs ${isValidMilestoneContribution ? "text-emerald-600" : "text-amber-600"}`}>
+                  {isValidMilestoneContribution ? (
+                    <><span className="font-medium">✓ Total = 100%</span><span className="text-muted-foreground ml-1">Automatically Distributed</span></>
+                  ) : (
+                    <><span>⚠ Total must equal 100%.</span><span className="ml-1">Current Total: {totalMilestoneContribution}%</span></>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-4 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <label className="text-sm font-medium">Goal Progress Calculation</label>
-                <p className="text-xs text-muted-foreground mt-0.5">Choose how this goal measures its progress.</p>
+                <label className="text-sm font-medium">Goal Progress Strategy</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Choose how this goal measures progress.</p>
               </div>
-              <ProgressRing value={calcProgress(milestones, selectedHabits, habitWeights, milestones.length > 0 ? 70 : 0, selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0)} size={48} strokeWidth={4} showLabel />
+              <ProgressRing value={overallPreview} size={48} strokeWidth={4} showLabel />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
+              {PROGRESS_STRATEGIES.map(s => (
+                <button key={s.value} type="button" onClick={() => { selectStrategy(s.value); markChanged() }} className={`flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left transition-colors ${progressStrategy === s.value ? "bg-[#1E0E6B] text-white border-[#1E0E6B]" : "bg-white/60 dark:bg-white/5 border-white/10 hover:border-[#1E0E6B]/40"}`}>
+                  <span className="text-xs font-semibold">{s.label}</span>
+                  <span className={`text-[10px] ${progressStrategy === s.value ? "text-white/80" : "text-muted-foreground"}`}>{s.milestoneWeight}% / {s.habitWeight}%</span>
+                </button>
+              ))}
+            </div>
+            {progressStrategy === "custom" && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                  <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="0" max="100" value={customMsWeight} onChange={(e) => { handleCustomMsChange(parseInt(e.target.value) || 0); markChanged() }} className="w-16 text-sm text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
+                    <span className="text-[10px] text-muted-foreground">%</span>
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                  <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="0" max="100" value={customHsWeight} onChange={(e) => { handleCustomHsChange(parseInt(e.target.value) || 0); markChanged() }} className="w-16 text-sm text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
+                    <span className="text-[10px] text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 mt-3">
               <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
-                <p className="text-lg font-bold text-[#1E0E6B]">{milestones.length > 0 ? "70%" : "0%"}</p>
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestone Score</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{milestoneScorePreview}%</p>
                 <p className="text-[10px] text-muted-foreground">{milestones.filter(m => m.completed).length}/{milestones.length} completed</p>
               </div>
               <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
-                <p className="text-lg font-bold text-[#1E0E6B]">{selectedHabits.length > 0 ? (milestones.length > 0 ? "30%" : "100%") : "0%"}</p>
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habit Score</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{habitScorePreview}%</p>
                 <p className="text-[10px] text-muted-foreground">{selectedHabits.length} linked</p>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress is calculated automatically from milestones and habits.</p>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress = (Milestone Score × {resolvedMsWeight}%) + (Habit Score × {resolvedHsWeight}%)</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
