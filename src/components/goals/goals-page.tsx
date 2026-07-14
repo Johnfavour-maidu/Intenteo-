@@ -824,7 +824,7 @@ const GoalDetailDrawer = ({ isOpen, onClose, goal, projects, habits, visions, va
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-white/20 p-3 flex items-center justify-between">
           <div className="flex items-center gap-3"><span className="text-2xl">{data.icon}</span><h2 className="text-xl font-bold">{data.title}</h2></div>
@@ -1269,7 +1269,7 @@ function CoreValueLibrary({ existingValues, onAddValues, onClose }: { existingVa
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-hidden bg-white dark:bg-gray-900 border border-border rounded-2xl shadow-2xl flex flex-col">
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-border p-4 flex items-center justify-between">
           <div>
@@ -1618,7 +1618,7 @@ function GoalReviewModal({ goal, onClose, onSave }: { goal: Goal; onClose: () =>
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border border-border rounded-2xl shadow-2xl">
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-border p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

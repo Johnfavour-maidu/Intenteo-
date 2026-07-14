@@ -127,8 +127,8 @@ function EmptyState({ icon: Icon, title, desc, action }: {
 function EducationalModal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-fadeIn duration-150">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-lg">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
@@ -264,7 +264,7 @@ function PurposeSection({ purpose, lifeAreas, onSave }: { purpose: Purpose; life
               </div>
 
               {showLifeAreaDropdown && (
-                <div className="absolute z-30 mt-1.5 w-full rounded-xl border border-[#1E0E6B]/20 bg-white dark:bg-gray-950 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute z-30 mt-1.5 w-full rounded-xl border border-[#1E0E6B]/20 bg-white dark:bg-gray-950 shadow-xl overflow-hidden animate-fadeIn duration-150">
                   <div className="p-2 border-b border-[#1E0E6B]/10">
                     <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/60">
                       <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -514,8 +514,8 @@ function ValueEditModal({ value, onSave, onCancel }: { value: CoreValue; onSave:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
+      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-fadeIn duration-150">
         <h3 className="font-semibold">Edit Value</h3>
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Value Name</label>
@@ -625,8 +625,8 @@ function CommitmentEditModal({ commitment, values, lifeAreas, visions, onSave, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
+      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto animate-fadeIn duration-150">
         <h3 className="font-semibold">Edit Commitment</h3>
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Commitment Statement</label>
@@ -843,8 +843,8 @@ function VisionEditModal({ vision, values, commitments, lifeAreas, goals, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-fadeIn duration-150">
         <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b px-6 py-4 flex items-center justify-between z-10">
           <h2 className="font-bold text-lg">Edit Vision</h2>
           <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"><X className="h-4 w-4" /></button>
@@ -1063,8 +1063,8 @@ function RoadmapMilestoneDialog({ milestone, visionId, onClose, onSave, onUpdate
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto animate-fadeIn duration-150">
         <h3 className="font-semibold text-base">{milestone ? "Edit Milestone" : "Add Milestone"}</h3>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Milestone title" autoFocus />
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none" rows={2} />
@@ -1275,8 +1275,8 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-fadeIn duration-150">
         <h3 className="font-semibold text-base">Add Core Value</h3>
 
         <div className="space-y-1.5">
@@ -1311,7 +1311,7 @@ function CreateValueDialog({ onClose, onSave }: { onClose: () => void; onSave: (
           </button>
 
           {browseOpen && (
-            <div className="absolute z-30 mt-1.5 w-full rounded-xl border border-[#1E0E6B]/20 bg-white dark:bg-gray-950 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute z-30 mt-1.5 w-full rounded-xl border border-[#1E0E6B]/20 bg-white dark:bg-gray-950 shadow-xl overflow-hidden animate-fadeIn duration-150">
               <div className="p-2 border-b border-[#1E0E6B]/10">
                 <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/60">
                   <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1379,8 +1379,8 @@ function CreateCommitmentDialog({ values, lifeAreas, visions, onClose, onSave }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[80vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 max-h-[80vh] overflow-y-auto animate-fadeIn duration-150">
         <h3 className="font-semibold text-base">Add Commitment</h3>
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Commitment Statement</label>
@@ -1495,8 +1495,8 @@ function CreateVisionDialog({ lifeAreas, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4 animate-fadeIn duration-150">
         <h3 className="font-semibold text-base">Create Vision</h3>
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vision Title</label>

@@ -62,13 +62,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Last activity tracking**: `updateGoal` and `saveGoal` now set `lastActivity: getTodayISO()` for consistency scoring
 - **Filter architecture**: `healthFilter` state separate from existing `GoalFilterMode` — applied as an additional filter stage in `filteredAndSorted`
 
-## Critical Context
-
-- Project path: `C:\Users\HP\Documents\WEBSITES\INTENTEO`
-- Vercel deploy: `npx vercel --yes --prod --scope john-favourite` (use `vercel_*` MCP tools instead of token)
-- Production URL: https://intenteo.vercel.app
-- localStorage keys: `intenteo-goals`, `intenteo-projects`, `intenteo-habits`, `intenteo-habits-period`, `intenteo-habits-view`, `intenteo-vision`
-
 ## Recent Work — Life Vision Framework Simplification (COMPLETE, deployed)
 
 ### Refinement passes completed
@@ -84,3 +77,39 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ### Edit-tool note
 Bulk `edit` calls matching very large blocks sometimes reported success WITHOUT changing the file. If an edit silently fails, re-read the exact current text and re-apply the targeted edit; verify removals with `Select-String` afterwards.
+
+## Critical Context
+
+- Project path: `C:\Users\HP\Documents\WEBSITES\INTENTEO`
+- Vercel deploy: `npx vercel --yes --prod --scope john-favourite` (use `vercel_*` MCP tools instead of token)
+- Production URL: https://intenteo.vercel.app
+- localStorage keys: `intenteo-goals`, `intenteo-projects`, `intenteo-habits`, `intenteo-habits-period`, `intenteo-habits-view`, `intenteo-vision`
+
+## Commitments Section Refinement (COMPLETE, deployed)
+
+All 12 requirements delivered:
+
+1. **Searchable Life Areas multi-select** — click-to-open dropdown, type-to-filter, multiple selection, branded chips with X to remove; same `DEFAULT_LIFE_AREAS` library as Purpose section
+2. **Searchable Visions multi-select** — same pattern; "No visions available. Create a vision first." when empty
+3. **Simplified cards** — removed "Keeping Consistently" badge, removed status badge; statement is the visual focus
+4. **Clean value chips** — no icon, no star, no sparkle; branded uppercase chip only
+5. **Filter in header** — moved to header controls (next to Add button), only visible when section expanded
+6. **Pin Commitment** — pin/unpin with hover reveal; max 5 pinned with limit message
+7. **Max 5 pinned** — enforced with dismissible notification
+8. **Pinned-first sort** — pinned first, then most recently edited, then alphabetical
+9. **Subtle pin icon** — small indigo pin in top-right corner, tooltip "Pinned Commitment"; no backgrounds/ribbons/badges
+10. **Animate pinning** — smooth reorder via React key-based re-render (CSS transitions on cards)
+11. **Preserve functionality** — creation, editing, deleting, all relationships preserved
+12. **Design principles** — minimal, calm, reflection-oriented, easy to scan
+
+### Components updated
+- `CommitmentsSection` (visions-page.tsx) — rewritten with pin support, header filter, simplified cards
+- `CommitmentEditModal` (visions-page.tsx) — searchable multi-selects for Life Areas and Visions
+- `CreateCommitmentDialog` (visions-page.tsx) — searchable multi-selects for Life Areas and Visions
+- `vision-framework.ts` — `Commitment` interface gained `pinned: boolean`; seed data includes `pinned: false`
+
+### Additional fixes during this session
+- Restored missing components: `LifeAreasSection`, `LifeAreaEditModal`, `PurposeDashboard`, `GoalsByVisionSection`, `PurposeReviewsSection`
+- Added `useRouter` import from `next/navigation`
+- Fixed `Purpose.lastReviewedAt` required field in default state and handleSave
+- Fixed `savePurpose` return type (void vs Purpose)
