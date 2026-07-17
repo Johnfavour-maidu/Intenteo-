@@ -196,7 +196,7 @@ const QUICK_ACTIONS = [
   { label: "Goals", phrase: "Create a goal" },
   { label: "Tasks", phrase: "Show my tasks" },
   { label: "Focus Mode", phrase: "Help me focus" },
-  { label: "My Journey", phrase: "Review this week" },
+  { label: "Reports & Exports", phrase: "Review this week" },
 ]
 
 const WELCOME = "👋 Hi John.\n\nWhat would you like to do?"
@@ -282,9 +282,9 @@ export function TeoAssistant({ open, onOpenChange, tasks, onAddTask, onStartFocu
       if (/(create|new|add).{0,6}goal|open.{0,6}goals/.test(lower)) {
         return { reply: "Let's set a new goal. Heading to Goals now.", action: "close", navigate: "/goals" }
       }
-      /* 4. Navigate to Journey */
-      if (/(review this week|how am i doing this week|my week|weekly|my journey)/.test(lower)) {
-        return { reply: "Opening My Journey — your weekly story and insights await.", action: "close", navigate: "/journey" }
+      /* 4. Navigate to Reports & Exports */
+      if (/(review this week|how am i doing this week|my week|weekly|reports)/.test(lower)) {
+        return { reply: "Opening Reports & Exports — your analytics and insights await.", action: "close", navigate: "/reports" }
       }
       /* 5. Show Tasks */
       if (/(show|my|unfinished).{0,10}tasks/.test(lower)) {
@@ -350,7 +350,7 @@ export function TeoAssistant({ open, onOpenChange, tasks, onAddTask, onStartFocu
       /* 11. Generic helpful fallback */
       return {
         reply:
-          "I'm here to help you live intentionally. I can plan your day, add tasks, complete habits, start Focus Mode, or open Journal, Habits, Goals and My Journey. What would you like to do?",
+          "I'm here to help you live intentionally. I can plan your day, add tasks, complete habits, start Focus Mode, or open Journal, Habits, Goals and Reports & Exports. What would you like to do?",
       }
     },
     [tasks, onAddTask, onStartFocus]

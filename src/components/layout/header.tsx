@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
-import { Bell, Moon, Sun, Menu, Search, Calendar, User, Settings, Map, LogOut, ChevronDown } from "lucide-react"
+import { Bell, Moon, Sun, Menu, Search, Calendar, User, Settings, Map, LogOut, ChevronDown, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useTheme } from "next-themes"
@@ -207,8 +207,8 @@ export function Header() {
                   <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors">
                     <Settings className="h-4 w-4 text-muted-foreground" /> Settings
                   </Link>
-                  <Link href="/journey" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors">
-                    <Map className="h-4 w-4 text-muted-foreground" /> My Journey
+                  <Link href="/reports" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-[#1E0E6B]/5 transition-colors">
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" /> Reports & Exports
                   </Link>
                 </div>
                 <div className="border-t border-[#1E0E6B]/10 py-1">

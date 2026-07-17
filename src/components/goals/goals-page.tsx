@@ -9,8 +9,8 @@ import { GlassCard } from "@/components/ui/glass-card"
 import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
-  Link2, AlertTriangle, Info, Map, Eye, Star, Edit3, ImagePlus,
-  ChevronLeft, GripVertical,
+  Link2, AlertTriangle, Info, Eye, Star, Edit3, ImagePlus,
+  ChevronLeft, GripVertical, BarChart3,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -23,16 +23,15 @@ import {
   detectCelebration,
   calcGoalForecast, calcCompletionProbability, calcGoalMomentum,
   getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
-  ProgressStrategy,
+  resolveGoalWeights,
 } from "./goal-utils"
 import { EditGoalModal } from "./edit-goal-modal"
-import { ImageUploader } from "@/components/ui/image-uploader"
 import { DateInput } from "@/components/ui/date-input"
 import type { Vision, Purpose, CoreValue, Commitment } from "@/lib/vision-framework"
 import { loadVisions, loadPurpose, loadCoreValues, loadCommitments, addCoreValue } from "@/lib/vision-framework"
 export type { Vision, CoreValue }
 
-export interface Milestone { id: string; title: string; completed: boolean; dueDate?: string; status?: "not-started" | "in-progress" | "completed"; priority?: "low" | "medium" | "high"; notes?: string; weight?: number }
+export interface Milestone { id: string; title: string; completed: boolean; weight?: number; dueDate?: string; status?: "not-started" | "in-progress" | "completed"; priority?: "low" | "medium" | "high"; notes?: string }
 
 export interface GoalProjectTimeline {
   id: string; projectName: string; description: string; startDate: string; endDate: string
@@ -98,6 +97,9 @@ export interface Goal {
   notes: string; color: string; colorHex: string
   icon: string; trackingMethod: "manual" | "milestone" | "auto"
   weighting?: { milestones: number; habits: number }
+  progressStrategy?: "balanced" | "milestone-focused" | "habit-focused" | "milestones-only" | "habits-only" | "custom"
+  milestoneWeight?: number
+  habitWeight?: number
   projectTimelines?: GoalProjectTimeline[]
   timeline?: string; status?: "not-started" | "in-progress" | "completed" | "overdue" | "archived"
   timeHorizon?: "this-year" | "2-years" | "5-years" | "10-years" | "lifetime"
@@ -107,7 +109,6 @@ export interface Goal {
   heroImage?: string; supportingImages?: string[]
   reviewFrequency: ReviewFrequency; lastReviewedAt?: string; reviews?: GoalReview[]
   linkedValueIds?: string[]
-  progressStrategy?: ProgressStrategy; milestoneWeight?: number; habitWeight?: number
   createdAt: string; updatedAt: string
 }
 
@@ -237,8 +238,8 @@ function calcHabitScoreForGoal(habit: Habit): number {
 }
 
 function calcGoalProgress(g: Goal, projects: Project[], habits: Habit[]): number {
-  const w = g.weighting
-  const totalWeight = w.milestones + w.habits
+  const { milestoneWeight, habitWeight } = resolveGoalWeights(g as unknown as GoalData)
+  const totalWeight = milestoneWeight + habitWeight
   if (totalWeight === 0) return 0
   const milestoneScore = g.milestones.length > 0
     ? (g.milestones.filter(m => m.completed).length / g.milestones.length) * 100
@@ -260,7 +261,7 @@ function calcGoalProgress(g: Goal, projects: Project[], habits: Habit[]): number
     }
   }
   return Math.round(
-    (milestoneScore * w.milestones + habitScore * w.habits) / totalWeight
+    (milestoneScore * milestoneWeight + habitScore * habitWeight) / totalWeight
   )
 }
 
@@ -496,6 +497,75 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="text-sm font-medium">Category</label>
+              <div className="relative">
+                <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div>
+              {category === "Custom" && <Input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Custom category" className="mt-2" />}
+            </div>
+            <div><label className="text-sm font-medium">Priority</label>
+              <div className="relative">
+                <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div></div>
+          </div>
+          <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
+            {TIME_HORIZONS.map(th => (
+              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)) }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
+            ))}</div></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)) }} /></div>
+            <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative"><label className="text-sm font-medium">Icon</label>
+              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-muted-foreground">None</span>}
+                  <span>Icon</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showIconDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
+                  <div className="grid grid-cols-4 gap-1">
+                    <button onClick={() => { setIcon(""); setShowIconDropdown(false) }}
+                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>None</button>
+                    {GOAL_ICONS.map(ic => (
+                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
+                        className={`text-lg p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="relative"><label className="text-sm font-medium">Colour</label>
+              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{backgroundColor: GOAL_COLORS[colorIdx].hex}} />
+                  <span>{GOAL_COLORS[colorIdx].name}</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showColorDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
+                  {GOAL_COLORS.map((c, i) => (
+                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
+                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{backgroundColor: c.hex}} />
+                      <span>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <div>
             <label className="text-sm font-medium">Linked Habits</label>
             <p className="text-xs text-muted-foreground mb-2">Select habits that support this goal</p>
@@ -579,102 +649,6 @@ const AddGoalModal = ({ isOpen, onClose, onSave, habits, visions, values, onValu
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="p-4 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <label className="text-sm font-medium">Goal Progress Strategy</label>
-                <p className="text-xs text-muted-foreground mt-0.5">How this goal measures progress.</p>
-              </div>
-              <ProgressRing value={(() => {
-                const wMilestones = milestones.length > 0 ? 70 : 0
-                const wHabits = selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0
-                const previewGoal = { milestones, linkedHabits: selectedHabits, linkedHabitWeights: selectedHabits.map(n => ({ habitId: n, habitName: n, weight: habitWeights[n] || 0 })), weighting: { milestones: wMilestones, habits: wHabits } } as unknown as Goal
-                return calcGoalProgress(previewGoal, [], habits)
-              })()} size={48} strokeWidth={4} showLabel />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
-                <p className="text-lg font-bold text-[#1E0E6B]">{milestones.length > 0 ? 70 : 0}%</p>
-              </div>
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
-                <p className="text-lg font-bold text-[#1E0E6B]">{selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0}%</p>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress is calculated from milestone completion and linked habit consistency.</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Category</label>
-              <div className="relative">
-                <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
-                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div>
-              {category === "Custom" && <Input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Custom category" className="mt-2" />}
-            </div>
-            <div><label className="text-sm font-medium">Priority</label>
-              <div className="relative">
-                <select value={priority} onChange={e => setPriority(e.target.value as any)} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
-                  <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div></div>
-          </div>
-          <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
-            {TIME_HORIZONS.map(th => (
-              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)) }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
-            ))}</div></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)) }} /></div>
-            <div><DateInput label="Target Date" value={deadline} onChange={setDeadline} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative"><label className="text-sm font-medium">Icon</label>
-              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
-                <div className="flex items-center gap-2">
-                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-muted-foreground">None</span>}
-                  <span>Icon</span>
-                </div>
-                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              {showIconDropdown && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
-                  <div className="grid grid-cols-4 gap-1">
-                    <button onClick={() => { setIcon(""); setShowIconDropdown(false) }}
-                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>None</button>
-                    {GOAL_ICONS.map(ic => (
-                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false) }}
-                        className={`text-lg p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="relative"><label className="text-sm font-medium">Colour</label>
-              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{backgroundColor: GOAL_COLORS[colorIdx].hex}} />
-                  <span>{GOAL_COLORS[colorIdx].name}</span>
-                </div>
-                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              {showColorDropdown && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
-                  {GOAL_COLORS.map((c, i) => (
-                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
-                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{backgroundColor: c.hex}} />
-                      <span>{c.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
         <div>
@@ -1267,12 +1241,24 @@ function Lightbox({ images, startIndex, onClose }: { images: string[]; startInde
 export function VisionImagesSection({ heroImage, supportingImages, onChange }: {
   heroImage?: string; supportingImages?: string[]; onChange: (hero?: string, supporting?: string[]) => void
 }) {
-  const handleHeroChange = (value: string | undefined) => {
-    onChange(value, supportingImages)
-  }
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploadTarget, setUploadTarget] = useState<"hero" | "supporting">("hero")
 
-  const handleSupportingChange = (newSupporting: string[]) => {
-    onChange(heroImage, newSupporting.length > 0 ? newSupporting : undefined)
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string
+      if (uploadTarget === "hero") {
+        onChange(dataUrl, supportingImages)
+      } else {
+        onChange(heroImage, [...(supportingImages || []), dataUrl].slice(0, 5))
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ""
   }
 
   const removeSupporting = (idx: number) => {
@@ -1289,65 +1275,53 @@ export function VisionImagesSection({ heroImage, supportingImages, onChange }: {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+
+
       {/* Hero Image */}
-      <ImageUploader
-        label="Primary Image"
-        description="Upload a cover image that represents your goal vision. Portrait, landscape, and square images are all supported."
-        value={heroImage}
-        onChange={handleHeroChange}
-        uploadTarget="hero"
-        aspectRatio="landscape"
-        maxHeight={300}
-        showPreview
-        previewTitle="Hero Image"
-      />
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Primary Image</p>
+        {heroImage ? (
+          <div className="relative group rounded-xl overflow-hidden border border-white/20">
+            <img src={heroImage} alt="Hero" className="w-full h-40 object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <button onClick={() => { setUploadTarget("hero"); fileRef.current?.click() }} className="px-3 py-1.5 rounded-lg bg-white text-black text-xs font-medium hover:bg-white/90">Replace</button>
+              <button onClick={() => onChange(undefined, supportingImages)} className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium hover:bg-red-600">Remove</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => { setUploadTarget("hero"); fileRef.current?.click() }} className="w-full h-32 rounded-xl border-2 border-dashed border-white/20 hover:border-[#1E0E6B]/40 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-[#1E0E6B] transition-colors">
+            <ImagePlus className="h-6 w-6" />
+            <span className="text-xs font-medium">Upload Hero Image</span>
+          </button>
+        )}
+      </div>
 
       {/* Supporting Images */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Supporting Images ({(supportingImages || []).length}/5)</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-          {(supportingImages || []).map((img, i) => (
-            <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-white/20">
-              <ImageUploader
-                value={img}
-                onChange={(val) => {
-                  const next = [...(supportingImages || [])]
-                  if (val) next[i] = val
-                  else next.splice(i, 1)
-                  handleSupportingChange(next)
-                }}
-                uploadTarget="supporting"
-                aspectRatio="square"
-                maxHeight={150}
-                showPreview
-                previewTitle={`Supporting Image ${i + 1}`}
-                className="h-full"
-                label=""
-                description={undefined}
-              />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                {i > 0 && <button onClick={() => moveSupporting(i, i - 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronLeft className="h-3 w-3 text-white" /></button>}
-                <button onClick={() => removeSupporting(i)} className="p-1 rounded bg-red-500/80 hover:bg-red-500"><X className="h-3 w-3 text-white" /></button>
-                {i < (supportingImages || []).length - 1 && <button onClick={() => moveSupporting(i, i + 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronRight className="h-3 w-3 text-white" /></button>}
-              </div>
-            </div>
-          ))}
           {(supportingImages || []).length < 5 && (
-            <ImageUploader
-              onChange={(val) => val && handleSupportingChange([...(supportingImages || []), val].slice(0, 5))}
-              uploadTarget="supporting"
-              aspectRatio="square"
-              maxHeight={150}
-              label=""
-              description={undefined}
-              className="h-full"
-            />
+            <button onClick={() => { setUploadTarget("supporting"); fileRef.current?.click() }} className="text-xs text-[#1E0E6B] hover:underline font-medium">+ Add</button>
           )}
         </div>
+        {(supportingImages || []).length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {(supportingImages || []).map((img, i) => (
+              <div key={i} className="relative group rounded-lg overflow-hidden border border-white/20 aspect-square">
+                <img src={img} alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                  {i > 0 && <button onClick={() => moveSupporting(i, i - 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronLeft className="h-3 w-3 text-white" /></button>}
+                  <button onClick={() => removeSupporting(i)} className="p-1 rounded bg-red-500/80 hover:bg-red-500"><X className="h-3 w-3 text-white" /></button>
+                  {i < (supportingImages || []).length - 1 && <button onClick={() => moveSupporting(i, i + 1)} className="p-1 rounded bg-white/20 hover:bg-white/40"><ChevronRight className="h-3 w-3 text-white" /></button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
     </div>
   )
 }
@@ -1725,8 +1699,8 @@ export function GoalsPage() {
           )}
           {filteredAndSorted.length > 0 && (
             <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => window.location.href = "/journey"} className="gap-1.5 bg-white dark:bg-gray-950 border border-[#1E0E6B] text-[#1E0E6B] hover:bg-[#1E0E6B]/5 hover:border-[#1E0E6B]">
-                <Map className="h-3.5 w-3.5" /> View My Journey
+              <Button variant="outline" size="sm" onClick={() => window.location.href = "/reports"} className="gap-1.5 bg-white dark:bg-gray-950 border border-[#1E0E6B] text-[#1E0E6B] hover:bg-[#1E0E6B]/5 hover:border-[#1E0E6B]">
+                <BarChart3 className="h-3.5 w-3.5" /> View Reports
               </Button>
             </div>
           )}

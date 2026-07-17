@@ -12,6 +12,7 @@ import { GOAL_CATEGORIES, GOAL_COLORS, GOAL_ICONS } from "./goals-page"
 import { TIME_HORIZONS, REVIEW_FREQUENCY_CONFIG } from "./goals-page"
 import { loadCoreValues, addCoreValue } from "@/lib/vision-framework"
 import { getTodayISO } from "./types"
+import { PROGRESS_STRATEGIES, type ProgressStrategy } from "./goal-utils"
 import type { Goal, Milestone, GoalProjectTimeline, LinkedHabitWeight, TimeHorizon, ReviewFrequency, Habit, Vision, CoreValue } from "./goals-page"
 
 function getDeadlineForHorizon(startDate: string, horizon: TimeHorizon): string {
@@ -28,6 +29,15 @@ function getDeadlineForHorizon(startDate: string, horizon: TimeHorizon): string 
     case "lifetime": d.setFullYear(d.getFullYear() + 50); break
   }
   return d.toISOString().split("T")[0]
+}
+
+function evenMilestoneWeights(list: Milestone[]): Record<string, number> {
+  if (list.length === 0) return {}
+  const base = Math.floor(100 / list.length)
+  const rem = 100 - base * list.length
+  const w: Record<string, number> = {}
+  list.forEach((m, i) => { w[m.id] = base + (i === 0 ? rem : 0) })
+  return w
 }
 
 interface EditGoalModalProps {
@@ -72,6 +82,12 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
   const [hasChanges, setHasChanges] = useState(false)
   const habitSearchRef = useRef<HTMLDivElement>(null)
   const visionSearchRef = useRef<HTMLDivElement>(null)
+  const [progressStrategy, setProgressStrategy] = useState<ProgressStrategy>("balanced")
+  const [strategyTouched, setStrategyTouched] = useState(false)
+  const [customMsWeight, setCustomMsWeight] = useState(70)
+  const [customHsWeight, setCustomHsWeight] = useState(30)
+  const [milestoneWeights, setMilestoneWeights] = useState<Record<string, number>>({})
+  const [customizeMilestoneContributions, setCustomizeMilestoneContributions] = useState(false)
 
   useEffect(() => {
     if (goal) {
@@ -95,6 +111,12 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
       setHeroImage(goal.heroImage)
       setSupportingImages(goal.supportingImages)
       setMilestones(goal.milestones || [])
+      setProgressStrategy(goal.progressStrategy || "balanced")
+      setStrategyTouched(false)
+      setCustomMsWeight(goal.milestoneWeight != null ? goal.milestoneWeight : 70)
+      setCustomHsWeight(goal.habitWeight != null ? goal.habitWeight : 30)
+      setMilestoneWeights(evenMilestoneWeights(goal.milestones || []))
+      setCustomizeMilestoneContributions((goal.milestones || []).some(m => m.weight != null))
       setHasChanges(false)
     }
   }, [goal])
@@ -137,6 +159,21 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
     }
   }, [selectedHabits, customizeContributions])
 
+  useEffect(() => {
+    if (strategyTouched) return
+    const hasM = milestones.length > 0
+    const hasH = selectedHabits.length > 0
+    if (hasM && !hasH) setProgressStrategy("milestones-only")
+    else if (!hasM && hasH) setProgressStrategy("habits-only")
+    else setProgressStrategy("balanced")
+  }, [milestones, selectedHabits, strategyTouched])
+
+  useEffect(() => {
+    if (!customizeMilestoneContributions && milestones.length > 0) {
+      setMilestoneWeights(evenMilestoneWeights(milestones))
+    }
+  }, [milestones, customizeMilestoneContributions])
+
   if (!isOpen || !goal) return null
 
   const handleClose = () => {
@@ -159,30 +196,44 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
     setHabitWeights(newWeights)
   }
 
-  const totalContribution = Object.values(habitWeights).reduce((sum, w) => sum + (w || 0), 0)
-  const isValidContribution = totalContribution === 100
+  const selectStrategy = (s: ProgressStrategy) => { setProgressStrategy(s); setStrategyTouched(true) }
+  const handleCustomMsChange = (v: number) => { const mv = Math.min(100, Math.max(0, v)); setCustomMsWeight(mv); setCustomHsWeight(100 - mv) }
+  const handleCustomHsChange = (v: number) => { const hv = Math.min(100, Math.max(0, v)); setCustomHsWeight(hv); setCustomMsWeight(100 - hv) }
+  const redistributeMilestonesEvenly = () => setMilestoneWeights(evenMilestoneWeights(milestones))
+
+  const strategyConfig = PROGRESS_STRATEGIES.find(s => s.value === progressStrategy)
+  const resolvedMsWeight = progressStrategy === "custom" ? customMsWeight : (strategyConfig?.milestoneWeight ?? 50)
+  const resolvedHsWeight = progressStrategy === "custom" ? customHsWeight : (strategyConfig?.habitWeight ?? 50)
+  const totalMilestoneContribution = Object.values(milestoneWeights).reduce((sum, w) => sum + (w || 0), 0)
+  const isValidMilestoneContribution = totalMilestoneContribution === 100
+  const milestoneScorePreview = (() => {
+    if (milestones.length === 0) return 0
+    const totalW = totalMilestoneContribution
+    if (totalW === 0) return Math.round((milestones.filter(m => m.completed).length / milestones.length) * 100)
+    const completedW = milestones.filter(m => m.completed).reduce((s, m) => s + (milestoneWeights[m.id] || 0), 0)
+    return Math.round((completedW / totalW) * 100)
+  })()
+  const habitScorePreview = (() => {
+    if (selectedHabits.length === 0) return 0
+    const total = Object.values(habitWeights).reduce((s, w) => s + (w || 0), 0)
+    if (total === 0) return 0
+    const weighted = selectedHabits.reduce((sum, name) => {
+      const habit = habits.find(h => h.name === name)
+      const score = habit ? (habit.habitScore || 0) : 0
+      return sum + (score * (habitWeights[name] || 0) / total)
+    }, 0)
+    return Math.round(weighted)
+  })()
+  const overallPreview = resolvedMsWeight + resolvedHsWeight > 0
+    ? Math.round((milestoneScorePreview * resolvedMsWeight + habitScorePreview * resolvedHsWeight) / (resolvedMsWeight + resolvedHsWeight))
+    : 0
 
   const filteredHabits = habits.filter(h => h.name.toLowerCase().includes(habitSearch.toLowerCase()))
   const filteredVisions = visions.filter(v => !v.archived && v.title.toLowerCase().includes(visionSearch.toLowerCase()))
   const selectedVision = visions.find(v => v.id === selectedVisionId)
   const filteredValues = values.filter(v => v.name.toLowerCase().includes(valueSearch.toLowerCase()))
-
-  const calcProgress = (ms: Milestone[], habits: string[], weights: Record<string, number>, wMilestones: number, wHabits: number): number => {
-    const totalWeight = wMilestones + wHabits
-    if (totalWeight === 0) return 0
-    const milestoneScore = ms.length > 0 ? (ms.filter(m => m.completed).length / ms.length) * 100 : 0
-    let habitScore = 0
-    const linkedHabitNames = Object.keys(weights)
-    if (linkedHabitNames.length > 0) {
-      const totalHabitWeight = Object.values(weights).reduce((s, w) => s + (w || 0), 0)
-      if (totalHabitWeight > 0) {
-        habitScore = linkedHabitNames.reduce((sum, name) => sum + ((weights[name] || 0) / totalHabitWeight * 100), 0)
-      }
-    } else if (habits.length > 0) {
-      habitScore = 100
-    }
-    return Math.round((milestoneScore * wMilestones + habitScore * wHabits) / totalWeight)
-  }
+  const totalContribution = Object.values(habitWeights).reduce((sum, w) => sum + (w || 0), 0)
+  const isValidContribution = totalContribution === 100
 
   const addMilestone = () => {
     if (newMilestone.trim()) {
@@ -210,12 +261,14 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
       ...goal,
       title, description: goal.description, category: category === "Custom" ? "Custom" : category,
       customCategory: category === "Custom" ? customCategory : undefined,
-      priority, deadline, startDate, whyItMatters, milestones,
+      priority, deadline, startDate, whyItMatters,
+      milestones: milestones.map(m => ({ ...m, weight: milestoneWeights[m.id] || 0 })),
       linkedHabits: selectedHabits, linkedHabitWeights: lhw, projectTimelines,
       color: c.name, colorHex: c.hex, icon, timeHorizon,
       visionId: selectedVisionId || undefined, reviewFrequency, linkedValueIds,
       heroImage, supportingImages, updatedAt: getTodayISO(),
-      weighting: { milestones: milestones.length > 0 ? 70 : 0, habits: selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0 },
+      progressStrategy,
+      ...(progressStrategy === "custom" ? { milestoneWeight: customMsWeight, habitWeight: customHsWeight } : {}),
     }
     onSave(updatedGoal)
     onClose()
@@ -250,99 +303,46 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
               </div>
             )}
             <div className="flex gap-2"><Input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} placeholder="Add milestone and press Enter" onKeyDown={e => e.key === "Enter" && addMilestone()} className="text-sm" /><Button size="sm" variant="outline" onClick={addMilestone}>Add</Button></div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <label className="text-sm font-medium">Goal Progress Calculation</label>
-                <p className="text-xs text-muted-foreground mt-0.5">Choose how this goal measures its progress.</p>
-              </div>
-              <ProgressRing value={calcProgress(milestones, selectedHabits, habitWeights, milestones.length > 0 ? 70 : 0, selectedHabits.length > 0 ? (milestones.length > 0 ? 30 : 100) : 0)} size={48} strokeWidth={4} showLabel />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
-                <p className="text-lg font-bold text-[#1E0E6B]">{milestones.length > 0 ? "70%" : "0%"}</p>
-                <p className="text-[10px] text-muted-foreground">{milestones.filter(m => m.completed).length}/{milestones.length} completed</p>
-              </div>
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
-                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
-                <p className="text-lg font-bold text-[#1E0E6B]">{selectedHabits.length > 0 ? (milestones.length > 0 ? "30%" : "100%") : "0%"}</p>
-                <p className="text-[10px] text-muted-foreground">{selectedHabits.length} linked</p>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress is calculated automatically from milestones and habits.</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Category</label>
-              <div className="relative">
-                <select value={category} onChange={e => { setCategory(e.target.value); markChanged() }} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
-                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div>
-              {category === "Custom" && <Input value={customCategory} onChange={e => { setCustomCategory(e.target.value); markChanged() }} placeholder="Custom category" className="mt-2" />}
-            </div>
-            <div><label className="text-sm font-medium">Priority</label>
-              <div className="relative">
-                <select value={priority} onChange={e => { setPriority(e.target.value as any); markChanged() }} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
-                  <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div></div>
-          </div>
-          <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
-            {TIME_HORIZONS.map(th => (
-              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)); markChanged() }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
-            ))}</div></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)); markChanged() }} /></div>
-            <div><DateInput label="Target Date" value={deadline} onChange={(v) => { setDeadline(v); markChanged() }} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative"><label className="text-sm font-medium">Icon</label>
-              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
-                <div className="flex items-center gap-2">
-                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-muted-foreground">None</span>}
-                  <span>Icon</span>
+            {milestones.length > 0 && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={customizeMilestoneContributions} onChange={(e) => setCustomizeMilestoneContributions(e.target.checked)} className="accent-[#1E0E6B]" />
+                    Customize Milestone Contributions
+                  </label>
+                  <button type="button" onClick={redistributeMilestonesEvenly} className="text-[10px] text-[#1E0E6B] hover:underline">Redistribute Evenly</button>
                 </div>
-                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              {showIconDropdown && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
-                  <div className="grid grid-cols-4 gap-1">
-                    <button onClick={() => { setIcon(""); setShowIconDropdown(false); markChanged() }}
-                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>None</button>
-                    {GOAL_ICONS.map(ic => (
-                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false); markChanged() }}
-                        className={`text-lg p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
+                {customizeMilestoneContributions ? (
+                  <div className="space-y-2">
+                    {milestones.map(m => (
+                      <div key={m.id} className="flex items-center gap-2">
+                        <span className="text-xs flex-1 truncate">{m.title}</span>
+                        <div className="flex items-center gap-1">
+                          <input type="number" min="0" max="100" value={milestoneWeights[m.id] || 0} onChange={(e) => { setMilestoneWeights(prev => ({...prev, [m.id]: Math.min(100, Math.max(0, parseInt(e.target.value) || 0))})); markChanged() }} className="w-16 text-xs text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
+                          <span className="text-[10px] text-muted-foreground">%</span>
+                        </div>
+                      </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="space-y-1">
+                    {milestones.map(m => (
+                      <div key={m.id} className="flex items-center gap-2 text-xs">
+                        <span className="flex-1 truncate">{m.title}</span>
+                        <span className="font-medium text-muted-foreground">Weight: {milestoneWeights[m.id] || 0}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className={`flex items-center gap-1.5 text-xs ${isValidMilestoneContribution ? "text-emerald-600" : "text-amber-600"}`}>
+                  {isValidMilestoneContribution ? (
+                    <><span className="font-medium">✓ Total = 100%</span><span className="text-muted-foreground ml-1">Automatically Distributed</span></>
+                  ) : (
+                    <><span>⚠ Total must equal 100%.</span><span className="ml-1">Current Total: {totalMilestoneContribution}%</span></>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="relative"><label className="text-sm font-medium">Colour</label>
-              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
-                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{backgroundColor: GOAL_COLORS[colorIdx].hex}} />
-                  <span>{GOAL_COLORS[colorIdx].name}</span>
-                </div>
-                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              {showColorDropdown && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
-                  {GOAL_COLORS.map((c, i) => (
-                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false); markChanged() }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
-                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{backgroundColor: c.hex}} />
-                      <span>{c.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -428,6 +428,125 @@ export function EditGoalModal({ isOpen, onClose, goal, habits, visions, values, 
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <label className="text-sm font-medium">Goal Progress Strategy</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Choose how this goal measures progress.</p>
+              </div>
+              <ProgressRing value={overallPreview} size={48} strokeWidth={4} showLabel />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {PROGRESS_STRATEGIES.map(s => (
+                <button key={s.value} type="button" onClick={() => { selectStrategy(s.value); markChanged() }} className={`flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left transition-colors ${progressStrategy === s.value ? "bg-[#1E0E6B] text-white border-[#1E0E6B]" : "bg-white/60 dark:bg-white/5 border-white/10 hover:border-[#1E0E6B]/40"}`}>
+                  <span className="text-xs font-semibold">{s.label}</span>
+                  <span className={`text-[10px] ${progressStrategy === s.value ? "text-white/80" : "text-muted-foreground"}`}>{s.milestoneWeight}% / {s.habitWeight}%</span>
+                </button>
+              ))}
+            </div>
+            {progressStrategy === "custom" && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                  <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestones Weight</p>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="0" max="100" value={customMsWeight} onChange={(e) => { handleCustomMsChange(parseInt(e.target.value) || 0); markChanged() }} className="w-16 text-sm text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
+                    <span className="text-[10px] text-muted-foreground">%</span>
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                  <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habits Weight</p>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="0" max="100" value={customHsWeight} onChange={(e) => { handleCustomHsChange(parseInt(e.target.value) || 0); markChanged() }} className="w-16 text-sm text-center border border-[#1E0E6B]/30 rounded px-1 py-1" />
+                    <span className="text-[10px] text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Milestone Score</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{milestoneScorePreview}%</p>
+                <p className="text-[10px] text-muted-foreground">{milestones.filter(m => m.completed).length}/{milestones.length} completed</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-white/10">
+                <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider mb-1">Habit Score</p>
+                <p className="text-lg font-bold text-[#1E0E6B]">{habitScorePreview}%</p>
+                <p className="text-[10px] text-muted-foreground">{selectedHabits.length} linked</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">Progress = (Milestone Score × {resolvedMsWeight}%) + (Habit Score × {resolvedHsWeight}%)</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="text-sm font-medium">Category</label>
+              <div className="relative">
+                <select value={category} onChange={e => { setCategory(e.target.value); markChanged() }} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  {GOAL_CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div>
+              {category === "Custom" && <Input value={customCategory} onChange={e => { setCustomCategory(e.target.value); markChanged() }} placeholder="Custom category" className="mt-2" />}
+            </div>
+            <div><label className="text-sm font-medium">Priority</label>
+              <div className="relative">
+                <select value={priority} onChange={e => { setPriority(e.target.value as any); markChanged() }} className="mt-1 w-full px-3 py-2 border border-[#1E0E6B]/30 rounded-lg bg-white/50 dark:bg-white/5 text-sm hover:border-[#1E0E6B]/50 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer appearance-none pr-8">
+                  <option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              </div></div>
+          </div>
+          <div><label className="text-sm font-medium">Time Horizon</label><div className="flex gap-2 mt-1">
+            {TIME_HORIZONS.map(th => (
+              <Button key={th.value} variant={timeHorizon === th.value ? "default" : "outline"} size="sm" onClick={() => { setTimeHorizon(th.value); setDeadline(getDeadlineForHorizon(startDate, th.value)); markChanged() }} className={timeHorizon === th.value ? "bg-[#1E0E6B] text-white" : ""}>{th.label}</Button>
+            ))}</div></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><DateInput label="Start Date" value={startDate} onChange={(v) => { setStartDate(v); setDeadline(getDeadlineForHorizon(v, timeHorizon)); markChanged() }} /></div>
+            <div><DateInput label="Target Date" value={deadline} onChange={(v) => { setDeadline(v); markChanged() }} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative"><label className="text-sm font-medium">Icon</label>
+              <button type="button" onClick={() => { setShowIconDropdown(!showIconDropdown); setShowColorDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  {icon ? <span className="text-lg">{icon}</span> : <span className="text-muted-foreground">None</span>}
+                  <span>Icon</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showIconDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto">
+                  <div className="grid grid-cols-4 gap-1">
+                    <button onClick={() => { setIcon(""); setShowIconDropdown(false); markChanged() }}
+                      className={`text-sm p-2 rounded-lg transition-all text-center ${icon === "" ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>None</button>
+                    {GOAL_ICONS.map(ic => (
+                      <button key={ic} onClick={() => { setIcon(ic); setShowIconDropdown(false); markChanged() }}
+                        className={`text-lg p-2 rounded-lg transition-all text-center ${icon === ic ? "bg-[#EB9E5B]/20 ring-1 ring-[#EB9E5B]" : "hover:bg-muted"}`}>{ic}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="relative"><label className="text-sm font-medium">Colour</label>
+              <button type="button" onClick={() => { setShowColorDropdown(!showColorDropdown); setShowIconDropdown(false) }}
+                className="mt-1 w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/20 rounded-lg bg-white/50 dark:bg-white/5 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#1E0E6B] focus:border-[#1E0E6B] transition-all cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full border border-gray-300" style={{backgroundColor: GOAL_COLORS[colorIdx].hex}} />
+                  <span>{GOAL_COLORS[colorIdx].name}</span>
+                </div>
+                <svg className="h-4 w-4 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showColorDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-white/20 rounded-lg shadow-lg p-2 space-y-1">
+                  {GOAL_COLORS.map((c, i) => (
+                    <button key={c.name} onClick={() => { setColorIdx(i); setShowColorDropdown(false); markChanged() }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${colorIdx === i ? "bg-[#1E0E6B]/10" : "hover:bg-muted"}`}>
+                      <div className="w-4 h-4 rounded-full border border-gray-300" style={{backgroundColor: c.hex}} />
+                      <span>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div>

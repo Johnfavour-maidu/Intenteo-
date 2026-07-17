@@ -2752,7 +2752,7 @@ export function DailyReviewModal({ date, tasksCompleted, totalTasks, productivit
             <Button variant="outline" className="flex-1" onClick={onClose}>Skip</Button>
             <Button className="flex-1 glow" onClick={() => onSave({ wentWell, improve, intentional, mood, biggestWin, biggestChallenge, gratitude, lesson, intention, carryForward })}>Save Review</Button>
           </div>
-          <button onClick={() => router.push("/journey")} className="w-full text-xs text-primary hover:underline">View My Journey</button>
+          <button onClick={() => router.push("/reports")} className="w-full text-xs text-primary hover:underline">View Reports</button>
         </div>
       </motion.div>
     </AnimatePresence>
