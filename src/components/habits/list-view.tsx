@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Flame, Target, Edit3, Trash2, CheckCircle2, Clock } from "lucide-react"
+import { Flame, Target, Edit3, Trash2, CheckCircle2, Clock, Pin } from "lucide-react"
 import {
   getHealthState, HEALTH_CONFIG,
   calcTrend, TREND_CONFIG,
@@ -41,6 +41,7 @@ interface Habit {
   lastMissedRecovery?: string
   archived?: boolean
   archivedDate?: string
+  pinned?: boolean
 }
 
 interface ListViewProps {
@@ -51,6 +52,7 @@ interface ListViewProps {
   onDelete: (habitId: string) => void
   linkedGoals: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
   onViewAnalytics?: (habit: Habit) => void
+  onPin?: (habitId: string) => void
 }
 
 const getScoreColor = (score: number): string => {
@@ -86,6 +88,7 @@ export const ListView: React.FC<ListViewProps> = ({
   onDelete,
   linkedGoals,
   onViewAnalytics,
+  onPin,
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
 
@@ -106,7 +109,7 @@ export const ListView: React.FC<ListViewProps> = ({
         <h3 className="text-lg font-semibold text-foreground">Habit Cards</h3>
       </div>
 
-      <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {habits.map((habit) => {
           const linkedGoal = getLinkedGoal(habit)
           const isCompletedToday = habit.completions[todayISO]?.completed || false
@@ -117,22 +120,30 @@ export const ListView: React.FC<ListViewProps> = ({
           return (
             <div
               key={habit.id}
-              className={`relative p-4 rounded-xl border-2 border-[#1E0E6B]/60 transition-all hover:border-[#1E0E6B]/80 ${
+              className={`relative p-3 rounded-xl border-2 border-[#1E0E6B]/60 transition-all hover:border-[#1E0E6B]/80 ${
                 isCompletedToday
                   ? "bg-green-50/30 dark:bg-green-900/10"
                   : "bg-white/40 dark:bg-white/5"
               }`}
             >
               {/* Header */}
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {habit.icon && <span className="text-xl">{habit.icon}</span>}
                   <div>
-                    <h4 className="font-semibold text-foreground">{habit.name}</h4>
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="font-semibold text-foreground">{habit.name}</h4>
+                      {habit.pinned && <Pin className="h-3 w-3 text-amber-500 fill-amber-400" />}
+                    </div>
                     <p className="text-xs text-muted-foreground">{habit.category}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  {onPin && (
+                    <button onClick={() => onPin(habit.id)} className={`p-1 rounded transition-colors ${habit.pinned ? "text-amber-500" : "text-muted-foreground hover:text-amber-400"}`} title={habit.pinned ? "Unpin habit" : "Pin as Focus Habit"}>
+                      <Pin className={`h-3.5 w-3.5 ${habit.pinned ? "fill-amber-400" : ""}`} />
+                    </button>
+                  )}
                   <span className={`text-[9px] font-medium px-1 py-0 rounded ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon}</span>
                   <button onClick={() => onViewAnalytics?.(habit)}>
                     <Badge
@@ -148,11 +159,11 @@ export const ListView: React.FC<ListViewProps> = ({
 
               {/* Description */}
               {habit.description && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{habit.description}</p>
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{habit.description}</p>
               )}
 
               {/* Stats row */}
-              <div className="flex items-center gap-3 mb-3 text-xs">
+              <div className="flex items-center gap-3 mb-2 text-xs">
                 <div className="flex items-center gap-1">
                   <Flame className="h-3.5 w-3.5 text-orange-500" />
                   <span className="font-medium">{habit.streak}</span>
@@ -171,7 +182,7 @@ export const ListView: React.FC<ListViewProps> = ({
               </div>
 
               {/* Badges */}
-              <div className="flex flex-wrap gap-1.5 mb-3">
+              <div className="flex flex-wrap gap-1.5 mb-2">
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                   {getDifficultyLabel(habit.difficulty)}
                 </Badge>

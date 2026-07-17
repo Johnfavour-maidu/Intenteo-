@@ -494,7 +494,7 @@ export function ReportsExportsPage() {
           <BarChart3 className="h-12 w-12 text-[#1E0E6B]/30 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">Your Reports Await</h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Start adding goals, habits, tasks, and journal entries to unlock powerful reports and insights about your intentional living journey.
+            Start adding goals, habits, tasks, and journal entries to unlock powerful reports and insights about your intentional living system.
           </p>
         </GlassCard>
       )}

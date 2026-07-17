@@ -183,7 +183,7 @@ export function Sidebar() {
                     <div className="px-3 mb-1.5">
                       <button
                         onClick={() => setPlanningExpanded(!planningExpanded)}
-                        className="flex items-center gap-2 w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground transition-colors rounded-lg hover:bg-muted/30"
+                        className="flex items-center gap-2 w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/30"
                         aria-expanded={planningExpanded}
                       >
                         <ChevronDown
@@ -195,7 +195,7 @@ export function Sidebar() {
                   ) : (
                     !collapsed && (
                       <div className="px-3 mb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">
                           {section.section}
                         </span>
                       </div>
@@ -211,7 +211,7 @@ export function Sidebar() {
                             "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                             pathname === item.href
                               ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                              : "text-foreground hover:bg-muted/50",
                             collapsed && "justify-center px-2"
                           )}
                         >
@@ -244,7 +244,7 @@ export function Sidebar() {
                   setQaExpanded(next)
                   setQuickAccessExpanded(next)
                 }}
-                className="flex items-center gap-1 px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors w-full"
+                className="flex items-center gap-1 px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-foreground hover:text-foreground transition-colors w-full"
               >
                 <Pin className="h-3 w-3" />
                 Pinned
@@ -259,7 +259,7 @@ export function Sidebar() {
                         className="flex items-center gap-2 flex-1 min-w-0"
                       >
                         <span className="text-base shrink-0">{item.icon}</span>
-                        <span className="text-xs font-medium truncate">{item.title}</span>
+                        <span className="text-xs font-medium truncate text-foreground">{item.title}</span>
                       </Link>
                     </div>
                   ))}
@@ -295,7 +295,7 @@ export function Sidebar() {
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                   pathname === item.href
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                    : "text-foreground hover:bg-muted/50",
                   collapsed && "justify-center px-2"
                 )}
               >

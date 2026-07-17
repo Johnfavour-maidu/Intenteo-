@@ -131,6 +131,35 @@ export const HabitAnalyticsDrawer: React.FC<HabitAnalyticsDrawerProps> = ({
           </div>
         </div>
 
+        {/* Weekly Consistency Heatmap */}
+        <div>
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Weekly Consistency</h4>
+          <div className="flex items-center gap-1.5">
+            {(() => {
+              const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+              const today = new Date()
+              const dayOfWeek = (today.getDay() + 6) % 7
+              return days.map((day, i) => {
+                const d = new Date(today)
+                d.setDate(d.getDate() - dayOfWeek + i)
+                const dateStr = d.toISOString().split("T")[0]
+                const completed = habit.completions[dateStr]?.completed || false
+                const isToday = i === dayOfWeek
+                return (
+                  <div key={day} className="flex flex-col items-center gap-1">
+                    <span className="text-[9px] text-muted-foreground">{day}</span>
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-medium transition-colors ${
+                      completed ? "bg-[#1E0E6B] text-white" : isToday ? "bg-[#1E0E6B]/15 text-[#1E0E6B]" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {completed ? "✓" : ""}
+                    </div>
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        </div>
+
         {/* Smart Next Action */}
         <div className="p-3 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
           <div className="flex items-center gap-1.5 mb-1">

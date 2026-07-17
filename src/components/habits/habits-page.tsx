@@ -38,6 +38,7 @@ import {
   List,
   LayoutList,
   Circle,
+  Pin,
 } from "lucide-react"
 import { VerticalView } from "./vertical-view"
 import { ListView } from "./list-view"
@@ -81,7 +82,7 @@ class HabitsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-interface HabitSchedule { type: string; slot?: string; time?: string }
+interface HabitSchedule { type: string; slot?: string; time?: string; endTime?: string }
 
 interface HabitReminder { enabled: boolean; before?: number; after?: number }
 
@@ -123,6 +124,7 @@ interface Habit {
   lastMissedRecovery?: string
   archived?: boolean
   archivedDate?: string
+  pinned?: boolean
 }
 
 type TrackerPeriod = "week" | "month" | "year"
@@ -226,7 +228,7 @@ const HABIT_COLORS: { name: string; hex: string }[] = [
   { name: "Black", hex: "#000000" },
 ]
 
-const CATEGORIES = ["Mindfulness", "Health", "Learning", "Productivity", "Mental Health", "Social", "Faith", "Custom"]
+const CATEGORIES = ["Mindfulness", "Health", "Fitness", "Nutrition", "Learning", "Reading", "Productivity", "Career", "Finance", "Faith", "Spiritual Growth", "Family", "Relationships", "Parenting", "Mental Health", "Emotional Intelligence", "Creativity", "Social", "Community", "Leadership", "Personal Growth", "Environment", "Custom"]
 const ICONS = ["⭐", "📝", "🧘", "💪", "📚", "💧", "📵", "🌙", "📅", "🎯", "🚀", "💡", "🙏", "❤️", "🏃", "🎓"]
 const TOTAL_DURATION_PRESETS = ["30 days", "60 days", "90 days", "180 days", "365 days", "No end date"]
 const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -730,7 +732,7 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
   const activeHabits = habits.filter(h => !h.paused)
   const activeCount = activeHabits.length
 
-  /* Card 1: Today's Progress */
+  /* Card 1: Today's Completion */
   const todayScheduled = habits.filter(h => isHabitScheduledOnDate(h, today)).length
   const todayCompleted = habits.filter(h => isHabitScheduledOnDate(h, today) && h.completions[today]?.completed).length
   const todayPercent = todayScheduled > 0 ? Math.round((todayCompleted / todayScheduled) * 100) : 0
@@ -777,7 +779,7 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       <SummaryCard
-        label="Today's Progress"
+        label="Today's Completion"
         primary={totalCount === 0 ? "--" : `${todayCompleted} / ${todayScheduled}`}
         secondary={totalCount === 0 ? "No habits today" : `${todayPercent}%`}
         gradient="from-emerald-400 to-green-500"
@@ -788,7 +790,7 @@ const SummaryBar = ({ habits, selectedDate, activeFilter, onFilterChange, onSort
         infoText="Completed habits today out of today's scheduled habits. Example: 8 of 9 habits completed."
         tooltip={
           <>
-            <p className="font-medium text-foreground">Today's Progress</p>
+            <p className="font-medium text-foreground">Today's Completion</p>
             <div className="flex justify-between"><span className="text-muted-foreground">Completed today</span><span className="font-medium">{todayCompleted}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Scheduled today</span><span className="font-medium">{todayScheduled}</span></div>
             <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Completion</span><span className="font-medium">{todayPercent}%</span></div>
@@ -1067,7 +1069,10 @@ const TrackerView = ({
                 <button onClick={() => onEdit(habit)} className="flex items-center gap-2 hover:opacity-70 transition-opacity text-left">
                   {habit.icon ? <span className="text-lg shrink-0">{habit.icon}</span> : <span className="w-5 shrink-0" />}
                   <div className="min-w-0">
-                    <p className="font-medium text-sm text-[#1E0E6B] hover:underline leading-tight truncate">{habit.name}</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-medium text-sm text-[#1E0E6B] hover:underline leading-tight truncate">{habit.name}</p>
+                      {habit.pinned && <Pin className="h-3 w-3 text-amber-500 fill-amber-400 shrink-0" />}
+                    </div>
                     <div className="flex items-center gap-1 flex-wrap">
                       <Flame className="h-2.5 w-2.5 shrink-0" style={{ color: habit.colorHex }} />
                       <span className="text-[10px] text-muted-foreground">{habit.streak} streak</span>
@@ -1200,23 +1205,25 @@ const HabitModal = ({
   onCreateGoal?: () => void
 }) => {
   const [name, setName] = useState(habit?.name || "")
-  const [description, setDescription] = useState(habit?.description || "")
+  const [whyItMatters, setWhyItMatters] = useState(habit?.whyItMatters || "")
   const [category, setCategory] = useState(habit?.category || "Mindfulness")
   const [customCategory, setCustomCategory] = useState(habit?.customCategory || "")
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const [categorySearch, setCategorySearch] = useState("")
+  const [categoryRef, setCategoryRef] = useState<HTMLDivElement | null>(null)
   const [duration, setDuration] = useState(habit?.duration || "10 mins")
   const [totalDuration, setTotalDuration] = useState(habit?.totalDuration || "365 days")
   const [totalDurationCustom, setTotalDurationCustom] = useState("")
-  const [scheduleType, setScheduleType] = useState<string>(habit?.schedule?.type || "anytime")
+  const [scheduleType, setScheduleType] = useState<string>(habit?.schedule?.type || "fixed")
   const [preferredSlot, setPreferredSlot] = useState<string>((habit?.schedule?.type === "preferred" ? habit.schedule.slot : undefined) || "morning")
   const [useSpecificTime, setUseSpecificTime] = useState(habit?.schedule?.type === "preferred" && !!habit.schedule.time)
   const [preferredTime, setPreferredTime] = useState(habit?.schedule?.type === "preferred" ? (habit.schedule.time || "08:00") : "08:00")
-  const [fixedTime, setFixedTime] = useState(habit?.schedule?.type === "fixed" ? habit.schedule.time : "08:00")
-  const [reminderEnabled, setReminderEnabled] = useState(habit?.reminder?.enabled || false)
+  const [fixedStartTime, setFixedStartTime] = useState(habit?.schedule?.type === "fixed" ? (habit.schedule.time || "08:00") : "08:00")
+  const [fixedEndTime, setFixedEndTime] = useState(habit?.schedule?.type === "fixed" ? (habit.schedule.endTime || "08:30") : "08:30")
+  const [reminderEnabled, setReminderEnabled] = useState(habit?.reminder?.enabled ?? true)
   const [reminderBefore, setReminderBefore] = useState(habit?.reminder && "before" in habit.reminder ? (habit.reminder.before || 15) : 15)
   const [reminderAfter, setReminderAfter] = useState(habit?.reminder && "after" in habit.reminder ? (habit.reminder.after || 30) : 30)
-  const [goal, setGoal] = useState(habit?.goal || "")
   const [linkedGoalId, setLinkedGoalId] = useState(habit?.goal || "")
-  const [whyItMatters, setWhyItMatters] = useState(habit?.whyItMatters || "")
   const [icon, setIcon] = useState(habit?.icon || "")
   const [colorIdx, setColorIdx] = useState(
     HABIT_COLORS.findIndex(c => c.name === habit?.color) >= 0 ? HABIT_COLORS.findIndex(c => c.name === habit?.color) : 0
@@ -1230,27 +1237,58 @@ const HabitModal = ({
   const [streakFreeze, setStreakFreeze] = useState(habit?.streakFreeze || 0)
   const [paused, setPaused] = useState(habit?.paused || false)
 
+  const calculatedDuration = useMemo(() => {
+    if (scheduleType !== "fixed") return duration || "10 mins"
+    const [startH, startM] = fixedStartTime.split(':').map(Number)
+    const [endH, endM] = fixedEndTime.split(':').map(Number)
+    const startMin = startH * 60 + startM
+    const endMin = endH * 60 + endM
+    const diff = endMin - startMin
+    if (diff <= 0) return null
+    if (diff < 60) return `${diff} minutes`
+    if (diff === 60) return '1 hour'
+    const h = Math.floor(diff / 60)
+    const m = diff % 60
+    return m > 0 ? `${h} hour${h > 1 ? 's' : ''} ${m} min` : `${h} hour${h > 1 ? 's' : ''}`
+  }, [fixedStartTime, fixedEndTime, scheduleType, duration])
+
+  const REQUIRED_DAYS: Record<string, number> = {
+    twice_per_week: 2,
+    three_per_week: 3,
+    four_per_week: 4,
+    five_per_week: 5,
+  }
+  const requireDays = recurrenceType === "twice_per_week" || recurrenceType === "three_per_week" || recurrenceType === "four_per_week" || recurrenceType === "five_per_week"
+  const targetDays = REQUIRED_DAYS[recurrenceType] || 0
+  const selectedDays = recurrenceType === "weekdays"
+    ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    : recurrenceType === "weekends"
+      ? ["Saturday", "Sunday"]
+      : recurrenceType === "custom_days" || requireDays
+        ? customDays
+        : []
+
   useEffect(() => {
     if (habit) {
       try {
-        setName(habit.name || ""); setDescription(habit.description || ""); setCategory(habit.category || "Mindfulness")
+        setName(habit.name || ""); setWhyItMatters(habit.whyItMatters || ""); setCategory(habit.category || "Mindfulness")
         setCustomCategory(habit.customCategory || ""); setDuration(habit.duration || "10 mins")
-        setTotalDuration(habit.totalDuration || "No end date"); setGoal(habit.goal || ""); setWhyItMatters(habit.whyItMatters || "")
-        setLinkedGoalId(habit.goal || "")
+        setTotalDuration(habit.totalDuration || "No end date"); setLinkedGoalId(habit.goal || "")
         setIcon(habit.icon || "")
         const idx = HABIT_COLORS.findIndex(c => c.name === habit.color)
         if (idx >= 0) setColorIdx(idx)
-        const sch = habit.schedule || { type: "anytime" }
-        setScheduleType(sch.type || "anytime")
+        const sch = habit.schedule || { type: "fixed" }
+        setScheduleType(sch.type || "fixed")
         if (sch.type === "preferred") {
           setPreferredSlot(sch.slot || "morning")
           setUseSpecificTime(!!sch.time)
           setPreferredTime(sch.time || "08:00")
         } else if (sch.type === "fixed") {
-          setFixedTime(sch.time || "08:00")
+          setFixedStartTime(sch.time || "08:00")
+          setFixedEndTime(sch.endTime || "08:30")
         }
-        const rem = habit.reminder || { enabled: false }
-        setReminderEnabled(rem.enabled || false)
+        const rem = habit.reminder || { enabled: true }
+        setReminderEnabled(rem.enabled ?? true)
         if (rem.enabled && "before" in rem) {
           setReminderBefore(rem.before || 15)
           setReminderAfter(rem.after || 30)
@@ -1267,41 +1305,65 @@ const HabitModal = ({
           setTotalDurationCustom(td)
         }
       } catch {
-        setName(""); setDescription(""); setCategory("Mindfulness"); setCustomCategory("")
+        setName(""); setWhyItMatters(""); setCategory("Mindfulness"); setCustomCategory("")
         setDuration("10 mins"); setTotalDuration("365 days"); setTotalDurationCustom("")
-        setScheduleType("anytime"); setPreferredSlot("morning")
-        setUseSpecificTime(false); setPreferredTime("08:00"); setFixedTime("08:00")
-        setReminderEnabled(false); setReminderBefore(15); setReminderAfter(30)
-        setGoal(""); setWhyItMatters(""); setIcon(""); setColorIdx(0)
+        setScheduleType("fixed"); setPreferredSlot("morning")
+        setUseSpecificTime(false); setPreferredTime("08:00"); setFixedStartTime("08:00"); setFixedEndTime("08:30")
+        setReminderEnabled(true); setReminderBefore(15); setReminderAfter(30)
+        setLinkedGoalId(""); setIcon(""); setColorIdx(0)
         setRecurrenceType("daily"); setCustomDays([]); setInterval(2)
       }
     } else {
-      setName(""); setDescription(""); setCategory("Mindfulness"); setCustomCategory("")
+      setName(""); setWhyItMatters(""); setCategory("Mindfulness"); setCustomCategory("")
       setDuration("10 mins"); setTotalDuration("No end date"); setTotalDurationCustom("")
-      setScheduleType("anytime"); setPreferredSlot("morning")
-      setUseSpecificTime(false); setPreferredTime("08:00"); setFixedTime("08:00")
-      setReminderEnabled(false); setReminderBefore(15); setReminderAfter(30)
-      setGoal(""); setWhyItMatters(""); setIcon(""); setColorIdx(0)
+      setScheduleType("fixed"); setPreferredSlot("morning")
+      setUseSpecificTime(false); setPreferredTime("08:00"); setFixedStartTime("08:00"); setFixedEndTime("08:30")
+      setReminderEnabled(true); setReminderBefore(15); setReminderAfter(30)
+      setLinkedGoalId(""); setIcon(""); setColorIdx(0)
       setRecurrenceType("daily"); setCustomDays([]); setInterval(2)
     }
   }, [habit])
+
+  useEffect(() => {
+    if (!categoryOpen) return
+    const handler = (e: MouseEvent) => { if (categoryRef && !categoryRef.contains(e.target as Node)) setCategoryOpen(false) }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [categoryOpen, categoryRef])
+
+  const filteredCategories = CATEGORIES.filter(c => c.toLowerCase().includes(categorySearch.toLowerCase()))
+  const toggleDay = (day: string) => {
+    if (!requireDays) {
+      setCustomDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
+      return
+    }
+    setCustomDays(prev => {
+      if (prev.includes(day)) return prev.filter(d => d !== day)
+      if (prev.length >= targetDays) return prev
+      return [...prev, day]
+    })
+  }
 
   if (!isOpen) return null
 
   const buildSchedule = (): HabitSchedule => {
     if (scheduleType === "anytime") return { type: "anytime" }
-    if (scheduleType === "fixed") return { type: "fixed", time: fixedTime }
-    if (useSpecificTime) return { type: "preferred", time: preferredTime }
-    return { type: "preferred", slot: preferredSlot }
+    if (scheduleType === "fixed") return { type: "fixed", time: fixedStartTime, endTime: fixedEndTime }
+    return { type: "preferred", time: preferredTime }
   }
 
   const buildReminder = (): HabitReminder => {
-    if (!reminderEnabled || scheduleType !== "fixed") return { enabled: false }
+    if (!reminderEnabled) return { enabled: false }
     return { enabled: true, before: reminderBefore, after: reminderAfter }
   }
 
   const buildRecurrence = (): HabitRecurrence => {
-    return { type: recurrenceType, customDays: recurrenceType === "custom_days" ? customDays : undefined, interval: (recurrenceType === "every_x_days" || recurrenceType === "every_x_weeks") ? interval : undefined }
+    const dayBased = recurrenceType === "weekdays" || recurrenceType === "weekends" || recurrenceType === "custom_days" || requireDays
+    return {
+      type: recurrenceType,
+      customDays: dayBased ? selectedDays : undefined,
+      interval: (recurrenceType === "every_x_days" || recurrenceType === "every_x_weeks" || recurrenceType === "monthly") ? interval : undefined,
+    }
   }
 
   const effectiveTotalDuration = totalDuration === "custom" ? (totalDurationCustom || "No end date") : totalDuration
@@ -1314,68 +1376,152 @@ const HabitModal = ({
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
         </div>
         <div className="space-y-4">
+          {/* ─── Basic Information ─── */}
           <div>
             <label className="text-sm font-medium">Habit Name</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Morning Journal" className="mt-1" />
           </div>
           <div>
-            <label className="text-sm font-medium">Description</label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Write for 10 minutes" className="mt-1" />
+            <label className="text-sm font-medium">Why This Habit Matters</label>
+            <Input value={whyItMatters} onChange={(e) => setWhyItMatters(e.target.value)} placeholder="Why is this habit important to your life?" className="mt-1" />
           </div>
-          <div>
+          <div ref={setCategoryRef}>
             <label className="text-sm font-medium">Category</label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {CATEGORIES.map((cat) => (
-                <Button key={cat} variant={category === cat ? "default" : "outline"} size="sm" onClick={() => setCategory(cat)}
-                  className={category === cat ? "bg-[#1E0E6B] text-white" : ""}>
-                  {cat}
-                </Button>
-              ))}
+            <div className="relative mt-1">
+              <button type="button" onClick={() => setCategoryOpen(!categoryOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-[#1E0E6B]/30 bg-white/50 dark:bg-white/5 text-left hover:border-[#1E0E6B]/50 transition-colors">
+                <span className={category ? "text-foreground" : "text-muted-foreground"}>{category || "Select Category"}</span>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${categoryOpen ? "rotate-180" : ""}`} />
+              </button>
+              {categoryOpen && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-[#1E0E6B]/20 rounded-lg shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-[#1E0E6B]/10">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <input value={categorySearch} onChange={(e) => setCategorySearch(e.target.value)} placeholder="Search categories..." autoFocus
+                        className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[#1E0E6B]/20 bg-white/50 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-[#1E0E6B]" />
+                    </div>
+                  </div>
+                  <div className="max-h-52 overflow-y-auto p-1">
+                    {filteredCategories.map(cat => (
+                      <button key={cat} type="button" onClick={() => { setCategory(cat); setCategoryOpen(false); setCategorySearch("") }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors ${category === cat ? "bg-[#1E0E6B]/10 text-[#1E0E6B]" : "hover:bg-muted"}`}>
+                        <span>{cat}</span>
+                        {category === cat && <Check className="h-4 w-4 ml-auto text-[#1E0E6B]" />}
+                      </button>
+                    ))}
+                    {categorySearch.trim() && !CATEGORIES.some(c => c.toLowerCase() === categorySearch.trim().toLowerCase()) && (
+                      <button type="button" onClick={() => { setCustomCategory(categorySearch.trim()); setCategory("Custom"); setCategoryOpen(false); setCategorySearch("") }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-left text-[#EB9E5B] hover:bg-[#EB9E5B]/10 transition-colors">
+                        <span>＋ Create “{categorySearch.trim()}”</span>
+                      </button>
+                    )}
+                    {filteredCategories.length === 0 && !categorySearch.trim() && (
+                      <p className="px-3 py-2 text-xs text-muted-foreground">No categories found.</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             {category === "Custom" && (
               <Input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)}
                 placeholder="Enter your custom category name" className="mt-2" />
             )}
+            {category && category !== "Custom" && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-[11px] font-medium">
+                  {category}
+                  <button type="button" onClick={() => setCategory("")} className="hover:text-red-500"><X className="h-3 w-3" /></button>
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Duration per session */}
+          {/* ─── Recurrence ─── */}
           <div>
-            <label className="text-sm font-medium">Duration (per session)</label>
-            <Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="e.g., 10 mins" className="mt-1" />
+            <label className="text-sm font-medium">Recurrence</label>
+            <div className="relative mt-1">
+              <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as string)}
+                className="w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8">
+              <option value="daily">Daily (Recommended)</option>
+              <option value="weekdays">Weekdays</option>
+              <option value="weekends">Weekends</option>
+              <option value="twice_per_week">Twice per Week</option>
+              <option value="three_per_week">Three Times per Week</option>
+              <option value="four_per_week">Four Times per Week</option>
+              <option value="five_per_week">Five Times per Week</option>
+              <option value="custom_days">Custom Days</option>
+              <option value="every_x_days">Every X Days</option>
+              <option value="every_x_weeks">Every X Weeks</option>
+              <option value="monthly">Monthly</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+            </div>
           </div>
 
-          {/* Habit Duration & Recurrence - Compact Dropdowns */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Dynamic Day Selection */}
+          {requireDays && (
             <div>
-              <label className="text-sm font-medium">Recurrence</label>
-              <div className="relative">
-                <select value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value as string)}
-                  className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8">
-                <option value="daily">Daily (Recommended)</option>
-                <option value="weekdays">Weekdays</option>
-                <option value="weekends">Weekends</option>
-                <option value="twice_per_week">Twice per Week</option>
-                <option value="three_per_week">Three Times per Week</option>
-                <option value="four_per_week">Four Times per Week</option>
-                <option value="five_per_week">Five Times per Week</option>
-                <option value="custom_days">Custom Days</option>
-                <option value="every_x_days">Every X Days</option>
-                <option value="every_x_weeks">Every X Weeks</option>
-                <option value="monthly">Monthly</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
+              <p className="text-sm font-medium">Choose Your Days</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {WEEK_DAYS.map(day => {
+                  const isSel = selectedDays.includes(day)
+                  const atLimit = isSel === false && selectedDays.length >= targetDays
+                  return (
+                    <button key={day} type="button" onClick={() => toggleDay(day)}
+                      disabled={atLimit}
+                      className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${isSel ? "bg-[#1E0E6B] text-white border-[#1E0E6B]" : atLimit ? "border-white/15 text-muted-foreground opacity-40 cursor-not-allowed" : "border-[#1E0E6B]/30 hover:border-[#1E0E6B]/60"}`}>
+                      {day}
+                    </button>
+                  )
+                })}
+              </div>
+              {selectedDays.length !== targetDays && (
+                <p className="text-[11px] text-amber-600 mt-1.5">Please choose exactly {targetDays} days.</p>
+              )}
+            </div>
+          )}
+          {(recurrenceType === "custom_days") && (
+            <div>
+              <p className="text-sm font-medium">Choose Your Days</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {WEEK_DAYS.map(day => {
+                  const isSel = selectedDays.includes(day)
+                  return (
+                    <button key={day} type="button" onClick={() => toggleDay(day)}
+                      className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${isSel ? "bg-[#1E0E6B] text-white border-[#1E0E6B]" : "border-[#1E0E6B]/30 hover:border-[#1E0E6B]/60"}`}>
+                      {day}
+                    </button>
+                  )
+                })}
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">Habit Duration</label>
-              <div className="relative">
-                <select value={totalDuration === "No end date" ? "indefinite" : totalDuration} onChange={(e) => {
-                  const val = e.target.value
-                  if (val === "indefinite") setTotalDuration("No end date")
-                  else if (val === "custom") setTotalDuration("custom")
-                  else setTotalDuration(val)
-                }}
-                  className="mt-1 w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8">
+          )}
+          {recurrenceType === "monthly" && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Choose Day of Month</span>
+              <Input type="number" min={1} max={28} value={interval} onChange={(e) => setInterval(Math.min(28, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-sm h-8" />
+            </div>
+          )}
+          {(recurrenceType === "every_x_days" || recurrenceType === "every_x_weeks") && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Every</span>
+              <Input type="number" min="2" max="365" value={interval}
+                onChange={(e) => setInterval(parseInt(e.target.value) || 2)} className="w-20 text-sm h-8" />
+              <span className="text-sm">{recurrenceType === "every_x_days" ? "days" : "weeks"}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm font-medium">Habit Duration</label>
+            <div className="relative mt-1">
+              <select value={totalDuration === "No end date" ? "indefinite" : totalDuration} onChange={(e) => {
+                const val = e.target.value
+                if (val === "indefinite") setTotalDuration("No end date")
+                else if (val === "custom") setTotalDuration("custom")
+                else setTotalDuration(val)
+              }}
+                className="w-full appearance-none px-3 py-2 text-sm border border-[#1E0E6B]/60 rounded-lg bg-white/50 dark:bg-white/5 focus:border-[#1E0E6B] focus:ring-1 focus:ring-[#1E0E6B] cursor-pointer pr-8">
                 <option value="7 days">7 Days</option>
                 <option value="14 days">14 Days</option>
                 <option value="21 days">21 Days</option>
@@ -1387,33 +1533,13 @@ const HabitModal = ({
                 <option value="indefinite">Indefinite</option>
                 <option value="custom">Custom...</option>
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
-              </div>
-              {totalDuration === "custom" && (
-                <Input value={totalDurationCustom} onChange={(e) => setTotalDurationCustom(e.target.value)}
-                  placeholder="e.g., 50 days, 73 days" className="mt-2" />
-              )}
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
             </div>
+            {totalDuration === "custom" && (
+              <Input value={totalDurationCustom} onChange={(e) => setTotalDurationCustom(e.target.value)}
+                placeholder="e.g., 50 days, 73 days" className="mt-2" />
+            )}
           </div>
-          {recurrenceType === "custom_days" && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {WEEK_DAYS.map(day => (
-                <Button key={day} variant={customDays.includes(day) ? "default" : "outline"} size="sm"
-                  onClick={() => setCustomDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])}
-                  className={`text-xs ${customDays.includes(day) ? "bg-[#1E0E6B] text-white" : ""}`}>
-                  {day.slice(0, 3)}
-                </Button>
-              ))}
-            </div>
-          )}
-          {(recurrenceType === "every_x_days" || recurrenceType === "every_x_weeks") && (
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-sm">Every</span>
-              <Input type="number" min="2" max="365" value={interval}
-                onChange={(e) => setInterval(parseInt(e.target.value) || 2)} className="w-20 text-sm h-8" />
-              <span className="text-sm">{recurrenceType === "every_x_days" ? "days" : "weeks"}</span>
-            </div>
-          )}
 
           {/* Difficulty Level */}
           <div>
@@ -1449,11 +1575,11 @@ const HabitModal = ({
             </div>
           </div>
 
-          {/* Schedule */}
+          {/* Schedule Type */}
           <div>
-            <label className="text-sm font-medium">Habit Schedule</label>
+            <label className="text-sm font-medium">Schedule Type</label>
             <div className="space-y-2 mt-2">
-              {(["anytime", "preferred", "fixed"] as const).map(type => (
+              {(["fixed", "preferred", "anytime"] as const).map(type => (
                 <label key={type} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${scheduleType === type ? "border-[#1E0E6B] bg-[#1E0E6B]/5" : "border-white/20 hover:border-white/40"}`}>
                   <input type="radio" name="scheduleType" checked={scheduleType === type} onChange={() => setScheduleType(type)}
                     className="accent-[#1E0E6B]" />
@@ -1470,72 +1596,61 @@ const HabitModal = ({
             </div>
           </div>
 
+          {scheduleType === "fixed" && (
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Fixed Time</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Start Time</label>
+                  <Input type="time" value={fixedStartTime} onChange={(e) => setFixedStartTime(e.target.value)} className="mt-1 w-full" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">End Time</label>
+                  <Input type="time" value={fixedEndTime} onChange={(e) => setFixedEndTime(e.target.value)} className="mt-1 w-full" />
+                </div>
+              </div>
+              {calculatedDuration ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
+                  <Clock className="h-3.5 w-3.5 text-[#1E0E6B]" />
+                  <span className="text-sm text-[#1E0E6B]">Duration: {calculatedDuration}</span>
+                </div>
+              ) : (
+                <p className="text-xs text-red-500">End Time must be later than Start Time.</p>
+              )}
+            </div>
+          )}
+
           {scheduleType === "preferred" && (
             <div className="space-y-2">
               <label className="text-sm font-medium">Preferred Time</label>
-              <div className="flex flex-wrap gap-2">
-                {(["morning", "afternoon", "evening", "night"] as const).map(slot => (
-                  <Button key={slot} variant={preferredSlot === slot && !useSpecificTime ? "default" : "outline"} size="sm"
-                    onClick={() => { setPreferredSlot(slot); setUseSpecificTime(false) }}
-                    className={!useSpecificTime && preferredSlot === slot ? "bg-[#1E0E6B] text-white" : ""}>
-                    {slot[0].toUpperCase() + slot.slice(1)}
-                  </Button>
-                ))}
-              </div>
-              <div className="flex items-center gap-3 mt-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="radio" checked={useSpecificTime} onChange={() => setUseSpecificTime(true)} className="accent-[#1E0E6B]" />
-                  Specific Time
-                </label>
-                {useSpecificTime && (
-                  <Input type="time" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} className="w-32" />
-                )}
-              </div>
+              <Input type="time" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} className="w-40" />
             </div>
           )}
 
-          {scheduleType === "fixed" && (
-            <div>
-              <label className="text-sm font-medium">Fixed Time</label>
-              <Input type="time" value={fixedTime} onChange={(e) => setFixedTime(e.target.value)} className="mt-1 w-40" />
-            </div>
-          )}
-
-          {/* Reminder Settings - Only for Fixed Time */}
-          {scheduleType === "fixed" && (
-            <div>
-              <label className="text-sm font-medium">Reminder Settings</label>
-              <div className="mt-2 space-y-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} className="accent-[#1E0E6B]" />
-                  Enable Reminder
-                </label>
-                {reminderEnabled && (
-                  <div className="flex gap-4">
-                    <div>
-                      <label className="text-xs text-muted-foreground">Before (min)</label>
-                      <Input type="number" min="5" max="120" value={reminderBefore} onChange={(e) => setReminderBefore(parseInt(e.target.value) || 15)} className="mt-1 w-24 text-sm h-8" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">After (min)</label>
-                      <Input type="number" min="0" max="120" value={reminderAfter} onChange={(e) => setReminderAfter(parseInt(e.target.value) || 30)} className="mt-1 w-24 text-sm h-8" />
-                    </div>
+          {/* Reminder Settings */}
+          <div>
+            <label className="text-sm font-medium">Reminder</label>
+            <div className="mt-2 space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} className="accent-[#1E0E6B]" />
+                Enable Reminder
+              </label>
+              {reminderEnabled && (
+                <div className="flex gap-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Before (min)</label>
+                    <Input type="number" min="5" max="120" value={reminderBefore} onChange={(e) => setReminderBefore(parseInt(e.target.value) || 15)} className="mt-1 w-24 text-sm h-8" />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">After (min)</label>
+                    <Input type="number" min="0" max="120" value={reminderAfter} onChange={(e) => setReminderAfter(parseInt(e.target.value) || 30)} className="mt-1 w-24 text-sm h-8" />
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          <div>
-            <label className="text-sm font-medium">Goal</label>
-            <Input value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="e.g., Write daily" className="mt-1" />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Why This Habit Matters</label>
-            <Input value={whyItMatters} onChange={(e) => setWhyItMatters(e.target.value)} placeholder="e.g., Start each day with intention" className="mt-1" />
           </div>
 
-          {/* Linked Goal */}
+          {/* ─── Relationships ─── */}
           <div>
             <label className="text-sm font-medium">Linked Goal</label>
             {!goals || goals.length === 0 ? (
@@ -1570,7 +1685,7 @@ const HabitModal = ({
             )}
           </div>
 
-          {/* Colour & Icon */}
+          {/* ─── Appearance ─── */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
               <label className="text-sm font-medium">Colour</label>
@@ -1638,15 +1753,16 @@ const HabitModal = ({
             <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
             <Button onClick={() => {
               if (name.trim()) {
+                if (scheduleType === "fixed" && !calculatedDuration) return
                 const selectedColor = HABIT_COLORS[colorIdx]
                 onSave({
-                  name, description, category: category === "Custom" ? "Custom" : category,
+                  name, description: "", category: category === "Custom" ? "Custom" : category,
                   customCategory: category === "Custom" ? customCategory : undefined,
-                  duration, totalDuration: effectiveTotalDuration,
+                  duration: calculatedDuration || "10 mins", totalDuration: effectiveTotalDuration,
                   recurrence: buildRecurrence(),
                   schedule: buildSchedule(),
                   reminder: buildReminder(),
-                  goal: linkedGoalId || goal, whyItMatters,
+                  goal: linkedGoalId, whyItMatters,
                   completedToday: habit?.completedToday || false,
                   color: selectedColor.name, colorHex: selectedColor.hex, icon,
                   difficulty, streakFreeze, paused,
@@ -1790,6 +1906,21 @@ export function HabitsPage() {
       }
     }))
   }, [selectedDate])
+
+  const togglePin = useCallback((id: string) => {
+    setHabits(prev => {
+      const habit = prev.find(h => h.id === id)
+      if (!habit) return prev
+      if (!habit.pinned) {
+        const pinnedCount = prev.filter(h => h.pinned).length
+        if (pinnedCount >= 5) {
+          addToast("Pin limit reached", "You can pin up to 5 Focus Habits. Unpin another habit first.")
+          return prev
+        }
+      }
+      return prev.map(h => h.id === id ? { ...h, pinned: !h.pinned } : h)
+    })
+  }, [])
 
   const handleRecoverStreak = useCallback(() => {
     if (!recoveryState) return
@@ -1935,6 +2066,7 @@ export function HabitsPage() {
       case "colour": result.sort((a, b) => (a.color || "").localeCompare(b.color || "")); break
       case "schedule_type": result.sort((a, b) => (a.schedule?.type || "anytime").localeCompare(b.schedule?.type || "anytime")); break
     }
+    result.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
     return result
   }, [habits, searchQuery, sortBy, activeFilter, selectedDate])
 
@@ -1958,11 +2090,8 @@ export function HabitsPage() {
   })
   const monthlyPercent = monthScheduled > 0 ? Math.round((monthCompleted / monthScheduled) * 100) : 0
 
-  // Overall Intent Score (weighted average excluding paused/archived/future habits)
   const activeHabits = habits.filter(h => !h.paused)
-  const overallIntentScore = activeHabits.length > 0
-    ? Math.round(activeHabits.reduce((sum, h) => sum + h.habitScore, 0) / activeHabits.length)
-    : 0
+  const activeHabitsCount = activeHabits.length
 
   return (
     <div className="space-y-6">
@@ -1973,36 +2102,6 @@ export function HabitsPage() {
             <p className="text-muted-foreground">Build your identity through consistent action</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Circular Intent Score with Label */}
-            <div className="relative flex flex-col items-center gap-0.5">
-              <button
-                onClick={() => setShowOverallScoreBreakdown(!showOverallScoreBreakdown)}
-                className="relative h-9 w-9 shrink-0 cursor-pointer hover:scale-105 transition-transform"
-              >
-                <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5"
-                    className="text-[#1E0E6B]/15" />
-                  <circle
-                    cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5"
-                    className="text-[#1E0E6B]"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 15}
-                    strokeDashoffset={2 * Math.PI * 15 * (1 - overallIntentScore / 100)}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-[#1E0E6B]">{overallIntentScore}</span>
-                </div>
-              </button>
-              <span className="text-[9px] text-muted-foreground font-medium">Overall Intent Score</span>
-              {showOverallScoreBreakdown && (
-                <OverallIntentScoreBreakdown
-                  habits={habits}
-                  overallIntentScore={overallIntentScore}
-                  onClose={() => setShowOverallScoreBreakdown(false)}
-                />
-              )}
-            </div>
             <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }}
               className="glow h-9 shrink-0">
               <Plus className="mr-1 h-4 w-4" /> Add Habit
@@ -2016,11 +2115,13 @@ export function HabitsPage() {
       </HabitsErrorBoundary>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" />
-        </div>
+        {activeHabitsCount >= 15 && (
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" />
+          </div>
+        )}
         <div className="relative">
           <select
             value={activeView}
@@ -2130,6 +2231,7 @@ export function HabitsPage() {
             onDelete={deleteHabit}
             linkedGoals={linkedGoals}
             onViewAnalytics={handleOpenAnalytics}
+            onPin={togglePin}
           />
         </HabitsErrorBoundary>
       )}

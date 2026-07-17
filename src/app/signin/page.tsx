@@ -104,7 +104,7 @@ export default function SignInPage() {
 
           <div>
             <h2 className="text-lg font-semibold">Welcome back</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Sign in to continue your journey</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Sign in to continue your progress</p>
           </div>
 
           {/* Email Form */}

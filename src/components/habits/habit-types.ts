@@ -6,7 +6,7 @@ export interface HabitRecurrence {
   interval?: number
 }
 
-export type HabitSchedule = { type: string; slot?: string; time?: string }
+export type HabitSchedule = { type: string; slot?: string; time?: string; endTime?: string }
 export type HabitReminder = { enabled: boolean; before?: number; after?: number }
 
 export type CompletionQuality = "perfect" | "good" | "partial" | "missed"
@@ -43,6 +43,7 @@ export interface Habit {
   lastMissedRecovery?: string
   archived?: boolean
   archivedDate?: string
+  pinned?: boolean
 }
 
 export type TrackerPeriod = "week" | "month" | "year"

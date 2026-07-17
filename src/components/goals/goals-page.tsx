@@ -22,7 +22,7 @@ import {
   generateSmartNextAction,
   detectCelebration,
   calcGoalForecast, calcCompletionProbability, calcGoalMomentum,
-  getMotivationalQuote, getMotivationalNudge, buildGoalJourney,
+  getMotivationalQuote, getMotivationalNudge,
   resolveGoalWeights,
 } from "./goal-utils"
 import { EditGoalModal } from "./edit-goal-modal"

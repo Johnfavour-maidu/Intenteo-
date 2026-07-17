@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import { CheckCircle2, Flame, Target, GripVertical } from "lucide-react"
+import { CheckCircle2, Flame, Target, GripVertical, Pin } from "lucide-react"
 import {
   getHealthState, HEALTH_CONFIG,
   calcTrend, TREND_CONFIG,
@@ -39,6 +39,7 @@ interface Habit {
   lastMissedRecovery?: string
   archived?: boolean
   archivedDate?: string
+  pinned?: boolean
 }
 
 type TrackerPeriod = "week" | "month" | "year"
@@ -133,6 +134,7 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1">
                           <span className="font-medium text-xs text-[#1E0E6B] truncate">{habit.name}</span>
+                          {habit.pinned && <Pin className="h-2.5 w-2.5 text-amber-500 fill-amber-400 shrink-0" />}
                           {goal && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: goal.colorHex }} />}
                         </div>
                         <div className="flex items-center gap-1 text-[10px] mt-0.5">
