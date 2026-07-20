@@ -135,7 +135,7 @@ export function TodayDashboard() {
   const completedTasksToday = tasks.filter((t: any) => t.completed).length
   const remainingTasks = totalTasksToday - completedTasksToday
 
-  // Calculate Intent Score using the 5-component engine
+  // Calculate Intent Score using the 4-component engine
   const intentScore = useMemo(() => {
     const breakdown = calculateIntentScore()
     setIntentBreakdown(breakdown)
@@ -469,12 +469,7 @@ export function TodayDashboard() {
                           indicatorClassName="text-[#1E0E6B]"
                         />
                         <div className="flex-1 text-left">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-[#1E0E6B]">Intent Score</span>
-                            <span className="text-xs font-semibold" style={{ color: intentBreakdown?.ratingColor }}>
-                              {intentBreakdown?.rating}
-                            </span>
-                          </div>
+                          <span className="text-sm font-bold text-[#1E0E6B]">Intent Score</span>
                           <p className="text-[10px] text-muted-foreground mt-0.5">How intentionally you lived today</p>
                         </div>
                         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", intentScoreExpanded && "rotate-180")} />
@@ -495,27 +490,19 @@ export function TodayDashboard() {
                               {intentBreakdown.components.map((comp) => (
                                 <div key={comp.id} className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <span className={cn("text-sm", comp.status === "complete" ? "text-emerald-500" : comp.status === "unavailable" ? "text-muted-foreground" : "text-red-400")}>
-                                      {comp.status === "complete" ? "✅" : comp.status === "unavailable" ? "—" : "❌"}
+                                    <span className={cn("text-sm", comp.complete ? "text-emerald-500" : "text-red-400")}>
+                                      {comp.complete ? "✅" : "❌"}
                                     </span>
-                                    <span className={cn("text-xs", comp.status === "unavailable" ? "text-muted-foreground line-through" : "")}>{comp.label}</span>
+                                    <span className="text-xs">{comp.label}</span>
                                   </div>
                                   <span className="text-xs font-medium tabular-nums">
-                                    {comp.status === "unavailable" ? (
-                                      <span className="text-muted-foreground">Not Scheduled</span>
-                                    ) : (
-                                      <span>{comp.earned} / {comp.max}</span>
-                                    )}
+                                    <span className={comp.earnedPercent > 0 ? "text-foreground" : "text-muted-foreground"}>
+                                      {comp.earnedPercent}%
+                                    </span>
+                                    <span className="text-muted-foreground"> of {comp.maxPercent}%</span>
                                   </span>
                                 </div>
                               ))}
-
-                              {intentBreakdown.redistributionMessage && (
-                                <div className="flex items-start gap-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 mt-2">
-                                  <span className="text-blue-500 text-xs mt-0.5">ℹ️</span>
-                                  <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">{intentBreakdown.redistributionMessage}</p>
-                                </div>
-                              )}
 
                               <div className="border-t border-border/50 pt-3">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Today&apos;s Insight</p>

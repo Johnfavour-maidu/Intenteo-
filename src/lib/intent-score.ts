@@ -5,37 +5,29 @@ import { loadTodayIntention } from "@/lib/intention-library"
 export interface IntentScoreComponent {
   id: string
   label: string
-  baseWeight: number
-  earned: number
-  max: number
-  available: boolean
-  status: "complete" | "incomplete" | "unavailable"
+  earnedPercent: number
+  maxPercent: number
+  complete: boolean
 }
 
 export interface IntentScoreBreakdown {
   total: number
-  rating: string
-  ratingColor: string
   components: IntentScoreComponent[]
-  redistributed: boolean
-  redistributionMessage: string | null
   insight: string
 }
 
 export interface DailyIntentScore {
   date: string
   score: number
-  rating: string
   breakdown: IntentScoreBreakdown
   timestamp: string
 }
 
-const BASE_WEIGHTS = {
-  intention: 0.20,
-  tasks: 0.25,
-  habits: 0.30,
+const WEIGHTS = {
+  tasks: 0.35,
+  habits: 0.35,
+  intention: 0.15,
   reflection: 0.15,
-  alignment: 0.10,
 }
 
 function getTodayISO(): string {
@@ -55,98 +47,50 @@ function hasJournalEntryToday(): boolean {
   } catch { return false }
 }
 
-function hasReviewDueToday(): { available: boolean; completed: boolean } {
-  if (typeof window === "undefined") return { available: false, completed: false }
-  try {
-    const stored = localStorage.getItem("intenteo-vision")
-    if (!stored) return { available: false, completed: false }
-    const data = JSON.parse(stored)
-    const today = getTodayISO()
-
-    // Check purpose review
-    if (data.purpose?.lastReviewedAt) {
-      const lastReview = data.purpose.lastReviewedAt.split("T")[0]
-      if (lastReview === today) return { available: true, completed: true }
-    }
-
-    // Check goals for review due
-    const goals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
-    if (Array.isArray(goals)) {
-      const hasReviewDue = goals.some((g: { reviewFrequency?: string; lastReviewedAt?: string }) => {
-        if (!g.reviewFrequency || g.reviewFrequency === "none") return false
-        if (!g.lastReviewedAt) return true
-        const lastReview = new Date(g.lastReviewedAt)
-        const freqDays: Record<string, number> = {
-          weekly: 7, biweekly: 14, monthly: 30, bimonthly: 60, quarterly: 90
-        }
-        const days = freqDays[g.reviewFrequency] || 30
-        const nextReview = new Date(lastReview)
-        nextReview.setDate(nextReview.getDate() + days)
-        return nextReview <= new Date(today)
-      })
-      if (hasReviewDue) return { available: true, completed: false }
-    }
-
-    return { available: false, completed: false }
-  } catch { return { available: false, completed: false } }
-}
-
-function getRating(score: number): { label: string; color: string } {
-  if (score >= 95) return { label: "Outstanding", color: "#7C3AED" }
-  if (score >= 85) return { label: "Excellent", color: "#1E0E6B" }
-  if (score >= 70) return { label: "Good", color: "#22C55E" }
-  if (score >= 55) return { label: "Needs Attention", color: "#F59E0B" }
-  return { label: "Reset Tomorrow", color: "#6B7280" }
-}
-
 function generateInsight(
   intentionSet: boolean,
   taskPercent: number,
   habitPercent: number,
   hasReflection: boolean,
-  alignmentAvailable: boolean,
-  alignmentCompleted: boolean,
   total: number,
 ): string {
-  const strongAreas: string[] = []
-  const weakAreas: string[] = []
+  const missing: string[] = []
+  if (!intentionSet) missing.push("intention")
+  if (taskPercent < 50) missing.push("tasks")
+  if (habitPercent < 50) missing.push("habits")
+  if (!hasReflection) missing.push("reflection")
 
-  if (intentionSet) strongAreas.push("intention")
-  else weakAreas.push("intention")
-
-  if (taskPercent >= 80) strongAreas.push("tasks")
-  else if (taskPercent < 50) weakAreas.push("tasks")
-
-  if (habitPercent >= 80) strongAreas.push("habits")
-  else if (habitPercent < 50) weakAreas.push("habits")
-
-  if (hasReflection) strongAreas.push("reflection")
-  else weakAreas.push("reflection")
-
-  if (alignmentAvailable && !alignmentCompleted) weakAreas.push("alignment review")
+  const done: string[] = []
+  if (intentionSet) done.push("intention")
+  if (taskPercent >= 80) done.push("tasks")
+  if (habitPercent >= 80) done.push("habits")
+  if (hasReflection) done.push("reflection")
 
   if (total >= 95) {
     return "Outstanding day! You engaged fully with every intentional opportunity available to you. Keep building this momentum."
   }
-  if (total >= 85) {
-    if (weakAreas.length === 0) return "Excellent work! You are living with great intention today. Every action compounds."
-    return `Excellent progress! Your ${strongAreas[0]} practice is strong. ${weakAreas.length > 0 ? `A quick ${weakAreas[0]} check-in would complete your intentional cycle.` : "Keep going."}`
-  }
-  if (total >= 70) {
-    if (weakAreas.length > 0) {
-      const suggestions: Record<string, string> = {
-        intention: "Take a moment to set or revisit your intention for today.",
-        tasks: "Spend 10 minutes on your pending tasks to build momentum.",
-        habits: "Complete one more habit to strengthen your streak.",
-        reflection: "Spend five minutes journaling to complete today's intentional cycle.",
-        "alignment review": "Take a quick alignment review to stay on course.",
-      }
-      return `Good progress! ${suggestions[weakAreas[0]] || "Keep going."}`
+  if (total >= 80) {
+    if (missing.length === 0) return "Excellent work! You are living with great intention today. Every action compounds."
+    const next = missing[0]
+    const prompts: Record<string, string> = {
+      intention: "Take a moment to set or revisit your intention for today.",
+      tasks: "Spend 10 minutes on your pending tasks to build momentum.",
+      habits: "Complete one more habit to strengthen your streak.",
+      reflection: "Spend five minutes journaling to complete today's intentional cycle.",
     }
-    return "Good day. You are building consistency, which is the foundation of transformation."
+    return `Great progress! Your ${done[0] || "efforts"} are strong. ${prompts[next] || "Keep going."}`
   }
-  if (total >= 55) {
-    return "You have started well. Choose one intentional action right now to build momentum. Even small steps count."
+  if (total >= 50) {
+    if (missing.length > 0) {
+      const prompts: Record<string, string> = {
+        intention: "Set your intention for today to anchor your focus.",
+        tasks: "Complete one task to build momentum.",
+        habits: "Check off one habit to strengthen your streak.",
+        reflection: "Write a quick reflection to close your intentional cycle.",
+      }
+      return `You have started well. ${prompts[missing[0]] || "Choose one action to build momentum."}`
+    }
+    return "You are building consistency. Keep going."
   }
   return "Every day is a fresh start. Pick one thing: set your intention, complete a habit, or write a quick reflection. Start small."
 }
@@ -179,116 +123,51 @@ export function calculateIntentScore(): IntentScoreBreakdown {
   } catch {}
 
   const hasReflection = hasJournalEntryToday()
-  const alignment = hasReviewDueToday()
 
-  // Calculate raw scores (0-1 of base weight)
-  const taskPercent = totalTasksToday > 0 ? completedTasksToday / totalTasksToday : 0
-  const habitPercent = totalHabits > 0 ? completedHabits / totalHabits : 0
+  const taskRatio = totalTasksToday > 0 ? completedTasksToday / totalTasksToday : 0
+  const habitRatio = totalHabits > 0 ? completedHabits / totalHabits : 0
 
-  // Build components
+  const taskEarned = taskRatio * WEIGHTS.tasks * 100
+  const habitEarned = habitRatio * WEIGHTS.habits * 100
+  const intentionEarned = intentionSet ? WEIGHTS.intention * 100 : 0
+  const reflectionEarned = hasReflection ? WEIGHTS.reflection * 100 : 0
+
+  const total = Math.round(taskEarned + habitEarned + intentionEarned + reflectionEarned)
+
   const components: IntentScoreComponent[] = [
-    {
-      id: "intention",
-      label: "Daily Intention",
-      baseWeight: BASE_WEIGHTS.intention,
-      earned: intentionSet ? 1 : 0,
-      max: 1,
-      available: true,
-      status: intentionSet ? "complete" : "incomplete",
-    },
     {
       id: "tasks",
       label: "Tasks",
-      baseWeight: BASE_WEIGHTS.tasks,
-      earned: totalTasksToday > 0 ? taskPercent : 0,
-      max: 1,
-      available: totalTasksToday > 0,
-      status: totalTasksToday > 0 ? (taskPercent >= 1 ? "complete" : "incomplete") : "unavailable",
+      earnedPercent: Math.round(taskEarned),
+      maxPercent: Math.round(WEIGHTS.tasks * 100),
+      complete: totalTasksToday > 0 && taskRatio >= 1,
     },
     {
       id: "habits",
       label: "Habits",
-      baseWeight: BASE_WEIGHTS.habits,
-      earned: totalHabits > 0 ? habitPercent : 0,
-      max: 1,
-      available: totalHabits > 0,
-      status: totalHabits > 0 ? (habitPercent >= 1 ? "complete" : "incomplete") : "unavailable",
+      earnedPercent: Math.round(habitEarned),
+      maxPercent: Math.round(WEIGHTS.habits * 100),
+      complete: totalHabits > 0 && habitRatio >= 1,
+    },
+    {
+      id: "intention",
+      label: "Daily Intention",
+      earnedPercent: Math.round(intentionEarned),
+      maxPercent: Math.round(WEIGHTS.intention * 100),
+      complete: intentionSet,
     },
     {
       id: "reflection",
       label: "Reflection",
-      baseWeight: BASE_WEIGHTS.reflection,
-      earned: hasReflection ? 1 : 0,
-      max: 1,
-      available: true,
-      status: hasReflection ? "complete" : "incomplete",
-    },
-    {
-      id: "alignment",
-      label: "Alignment Reviews",
-      baseWeight: BASE_WEIGHTS.alignment,
-      earned: alignment.available ? (alignment.completed ? 1 : 0) : 0,
-      max: 1,
-      available: alignment.available,
-      status: !alignment.available ? "unavailable" : (alignment.completed ? "complete" : "incomplete"),
+      earnedPercent: Math.round(reflectionEarned),
+      maxPercent: Math.round(WEIGHTS.reflection * 100),
+      complete: hasReflection,
     },
   ]
 
-  // Dynamic weight redistribution
-  const availableComponents = components.filter(c => c.available)
-  const unavailableComponents = components.filter(c => !c.available)
-  let redistributed = false
+  const insight = generateInsight(intentionSet, taskRatio * 100, habitRatio * 100, hasReflection, total)
 
-  if (unavailableComponents.length > 0 && availableComponents.length > 0) {
-    redistributed = true
-    const totalUnavailableWeight = unavailableComponents.reduce((sum, c) => sum + c.baseWeight, 0)
-    const totalAvailableBaseWeight = availableComponents.reduce((sum, c) => sum + c.baseWeight, 0)
-
-    availableComponents.forEach(c => {
-      const proportion = totalAvailableBaseWeight > 0 ? c.baseWeight / totalAvailableBaseWeight : 1 / availableComponents.length
-      c.baseWeight += totalUnavailableWeight * proportion
-    })
-  }
-
-  // Calculate total score
-  let total = 0
-  components.forEach(c => {
-    if (c.available) {
-      total += c.earned * c.baseWeight * 100
-    }
-  })
-  total = Math.round(Math.min(100, Math.max(0, total)))
-
-  // Calculate display values (out of weight * 100)
-  components.forEach(c => {
-    if (c.available) {
-      c.earned = Math.round(c.earned * c.baseWeight * 100)
-      c.max = Math.round(c.baseWeight * 100)
-    } else {
-      c.earned = 0
-      c.max = 0
-    }
-  })
-
-  const { label: rating, color: ratingColor } = getRating(total)
-
-  let redistributionMessage: string | null = null
-  if (redistributed) {
-    const unavailableLabels = unavailableComponents.map(c => c.label.toLowerCase()).join(", ")
-    redistributionMessage = `No ${unavailableLabels} scheduled today. ${unavailableComponents.length === 1 ? "Its" : "Their"} weighting has been automatically redistributed across today's available intentional activities.`
-  }
-
-  const insight = generateInsight(
-    intentionSet,
-    taskPercent * 100,
-    habitPercent * 100,
-    hasReflection,
-    alignment.available,
-    alignment.completed,
-    total,
-  )
-
-  return { total, rating, ratingColor, components, redistributed, redistributionMessage, insight }
+  return { total, components, insight }
 }
 
 export function saveDailyIntentScore(score: IntentScoreBreakdown): void {
@@ -297,7 +176,6 @@ export function saveDailyIntentScore(score: IntentScoreBreakdown): void {
   const entry: DailyIntentScore = {
     date: today,
     score: score.total,
-    rating: score.rating,
     breakdown: score,
     timestamp: new Date().toISOString(),
   }
