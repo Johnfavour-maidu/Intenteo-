@@ -66,6 +66,7 @@ const mainNav: NavSection[] = [
 
 const bottomNav: NavItem[] = [
   { title: "Browse Trackers", href: "/browse-trackers", icon: Compass },
+  { title: "Library & Resources", href: "/library", icon: BookOpen },
   { title: "Reports & Exports", href: "/reports", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
 ]

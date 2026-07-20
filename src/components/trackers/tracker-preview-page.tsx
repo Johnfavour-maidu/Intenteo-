@@ -167,6 +167,22 @@ const PREVIEW_DATA: Record<string, {
     ],
     streak: 45,
   },
+  mindfulness: {
+    stats: [
+      { label: "This Week", value: "6 sessions", change: "+2", trend: "up" },
+      { label: "Total Minutes", value: "185 min", change: "+45 min", trend: "up" },
+      { label: "Avg Session", value: "22 min", change: "+3 min", trend: "up" },
+      { label: "Streak", value: "14 days", change: "+5", trend: "up" },
+    ],
+    chartBars: [20, 15, 30, 25, 0, 20, 35, 25, 15, 30, 20, 25, 30, 20],
+    calendarDots: [2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2],
+    recentEntries: [
+      { date: "Today", value: "25 min - Guided Meditation", note: "Body scan for stress relief" },
+      { date: "Yesterday", value: "15 min - Breathwork", note: "Box breathing before bed" },
+      { date: "2 days ago", value: "30 min - Silent Meditation", note: "Morning stillness practice" },
+    ],
+    streak: 14,
+  },
   custom: {
     stats: [
       { label: "Current", value: "--", change: "", trend: "neutral" },

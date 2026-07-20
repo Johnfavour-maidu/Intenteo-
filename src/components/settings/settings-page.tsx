@@ -58,6 +58,22 @@ import {
   type UserSettings,
   type ProfileSettings,
 } from "@/lib/user-settings"
+import {
+  REMINDER_SOUNDS,
+  SOUND_CATEGORIES,
+  getSelectedSound,
+  setSelectedSound,
+  getReminderVolume,
+  setReminderVolume,
+  getRepeatReminder,
+  setRepeatReminder,
+  getVibrationEnabled,
+  setVibrationEnabled,
+  getSilentMode,
+  setSilentMode,
+  playPreviewSound,
+  type ReminderSound,
+} from "@/lib/reminder-sounds"
 import { useUserProfile } from "@/lib/user-profile-context"
 
 type SettingsTab = "profile" | "security" | "help"
@@ -202,6 +218,14 @@ export function SettingsPage() {
   const [teoReflectionReminders, setTeoReflectionReminders] = useState(true)
   const [teoCoachingIntensity, setTeoCoachingIntensity] = useState("moderate")
 
+  // Reminder sounds
+  const [reminderSoundId, setReminderSoundId] = useState("default")
+  const [reminderVolume, setReminderVolumeState] = useState(80)
+  const [repeatReminder, setRepeatReminderState] = useState(false)
+  const [vibrationEnabled, setVibrationEnabledState] = useState(true)
+  const [silentMode, setSilentModeState] = useState(false)
+  const [soundCategory, setSoundCategory] = useState<"all" | "chime" | "nature" | "digital" | "instrument">("all")
+
   // Security settings (existing)
   const [secSettings, setSecSettings] = useState<SecuritySettings>(() => loadSecuritySettings())
   const [devices, setDevices] = useState<DeviceInfo[]>([])
@@ -291,6 +315,12 @@ export function SettingsPage() {
     setTeoDailyMotivation(s.teoPreferences.dailyMotivation)
     setTeoReflectionReminders(s.teoPreferences.reflectionReminders)
     setTeoCoachingIntensity(s.teoPreferences.coachingIntensity)
+
+    setReminderSoundId(getSelectedSound())
+    setReminderVolumeState(getReminderVolume())
+    setRepeatReminderState(getRepeatReminder())
+    setVibrationEnabledState(getVibrationEnabled())
+    setSilentModeState(getSilentMode())
 
     setSettingsLoading(false)
   }, [])
@@ -778,6 +808,76 @@ export function SettingsPage() {
               <ToggleRow id="rem-projects" label="Projects" desc="Project deadline alerts" checked={reminderProjects} onCheckedChange={(v) => handleFocusToggle(setReminderProjects, v)} />
               <ToggleRow id="rem-calendar" label="Calendar" desc="Upcoming events and reminders" checked={reminderCalendar} onCheckedChange={(v) => handleFocusToggle(setReminderCalendar, v)} />
               <ToggleRow id="rem-teo" label="Téo" desc="AI coach notifications" checked={reminderTeo} onCheckedChange={(v) => handleFocusToggle(setReminderTeo, v)} />
+            </div>
+            <Separator />
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Reminder Sounds</p>
+              <div className="grid grid-cols-3 gap-1.5 mb-3">
+                {SOUND_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSoundCategory(cat.id)}
+                    className={`px-2 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
+                      soundCategory === cat.id ? "bg-[#1E0E6B] text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-1 max-h-[280px] overflow-y-auto pr-1">
+                {REMINDER_SOUNDS
+                  .filter((s) => soundCategory === "all" || s.category === soundCategory)
+                  .map((sound) => (
+                    <div
+                      key={sound.id}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        reminderSoundId === sound.id
+                          ? "border-[#1E0E6B] bg-[#1E0E6B]/5"
+                          : "border-border/50 hover:border-border"
+                      }`}
+                      onClick={() => { setReminderSoundId(sound.id); setSelectedSound(sound.id) }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{sound.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{sound.description}</p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); playPreviewSound(sound.id) }}
+                        className="h-7 w-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors shrink-0"
+                        title="Preview sound"
+                      >
+                        <span className="text-xs">▶</span>
+                      </button>
+                      {reminderSoundId === sound.id && (
+                        <span className="text-[10px] text-[#1E0E6B] font-medium shrink-0">Selected</span>
+                      )}
+                    </div>
+                  ))}
+              </div>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-16">Volume</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={reminderVolume}
+                    onChange={(e) => { const v = parseInt(e.target.value); setReminderVolumeState(v); setReminderVolume(v) }}
+                    className="flex-1 h-1.5 accent-[#1E0E6B]"
+                  />
+                  <span className="text-[10px] text-muted-foreground w-8 text-right">{reminderVolume}%</span>
+                </div>
+                <ToggleRow id="rem-repeat" label="Repeat Reminder" desc="Repeat sound until acknowledged" checked={repeatReminder} onCheckedChange={(v) => { setRepeatReminderState(v); setRepeatReminder(v) }} />
+                <ToggleRow id="rem-vibration" label="Vibration" desc="Vibrate with notification" checked={vibrationEnabled} onCheckedChange={(v) => { setVibrationEnabledState(v); setVibrationEnabled(v) }} />
+                <ToggleRow id="rem-silent" label="Silent Mode" desc="Suppress all notification sounds" checked={silentMode} onCheckedChange={(v) => { setSilentModeState(v); setSilentMode(v) }} />
+                <button
+                  onClick={() => { setReminderSoundId("default"); setSelectedSound("default"); setReminderVolumeState(80); setReminderVolume(80); setRepeatReminderState(false); setRepeatReminder(false); setVibrationEnabledState(true); setVibrationEnabled(true); setSilentModeState(false); setSilentMode(false) }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Reset to defaults
+                </button>
+              </div>
             </div>
             <Separator />
             <div>
