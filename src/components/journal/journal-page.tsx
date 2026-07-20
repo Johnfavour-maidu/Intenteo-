@@ -2328,6 +2328,7 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
   isDictating = false,
 }, ref) {
   const editorRef = useRef<HTMLDivElement>(null)
+  const lastUserHtml = useRef(value)
   const [charCount, setCharCount] = useState(0)
   const [isEditorEmpty, setIsEditorEmpty] = useState(true)
   const [currentFontSize, setCurrentFontSize] = useState<"12" | "14" | "16" | "18" | "24" | "32">("14")
@@ -2337,8 +2338,10 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
 
   useEffect(() => {
     if (isDictating) return
+    if (editorRef.current && lastUserHtml.current === value) return
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value
+      lastUserHtml.current = value
       setCharCount(editorRef.current.textContent?.length || 0)
       setIsEditorEmpty((editorRef.current.textContent || "").trim().length === 0)
     }
@@ -2351,6 +2354,7 @@ const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(function 
 
   const handleInput = useCallback(() => {
     const html = editorRef.current?.innerHTML || ""
+    lastUserHtml.current = html
     const text = editorRef.current?.textContent || ""
     setCharCount(text.length)
     setIsEditorEmpty(text.trim().length === 0 || text.trim() === "\n")
