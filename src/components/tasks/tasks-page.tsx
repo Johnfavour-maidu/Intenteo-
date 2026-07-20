@@ -7,6 +7,7 @@ import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
+import { LearnMoreSection } from "@/components/learn-more-section"
 import { Input } from "@/components/ui/input"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { AutosuggestInput } from "@/components/ui/autosuggest-input"
@@ -44,7 +45,6 @@ import {
   Sparkles,
   Target as TargetIcon,
   MoreHorizontal,
-  BookOpen,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast, ToastContainer } from "./task-toast"
@@ -1513,9 +1513,7 @@ export function TasksPage() {
             </p>
           </div>
           <div className="flex items-center gap-2.5">
-            <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 h-9">
-              <BookOpen className="h-3.5 w-3.5" /> Learn
-            </Button>
+
             <ProductivityScore percentage={productivity} />
 
             {/* Calendar History */}
@@ -2185,6 +2183,11 @@ export function TasksPage() {
           const focusTarget = tasks.find((x) => !x.completed && !isFutureTask(x))
           if (focusTarget) setFocusTask(focusTarget)
         }}
+      />
+      <LearnMoreSection
+        title="Productive Execution"
+        description="Learn practical techniques for prioritization, deep work, and completing meaningful tasks effectively."
+        onOpen={() => setLearnOpen(true)}
       />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="tasks" />
     </div>

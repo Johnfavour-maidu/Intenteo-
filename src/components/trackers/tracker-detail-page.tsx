@@ -4,11 +4,12 @@ import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
+import { LearnMoreSection } from "@/components/learn-more-section"
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import {
   ArrowLeft, Pin, PinOff, Eye, Check, Star, Users, BarChart3,
-  Zap, Shield, TrendingUp, BookOpen,
+  Zap, Shield, TrendingUp,
 } from "lucide-react"
 import {
   getTrackerTemplate,
@@ -169,22 +170,11 @@ export function TrackerDetailPage({ trackerId }: { trackerId: string }) {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <BookOpen className="h-5 w-5" style={{ color: tracker.colorHex }} />
-              Resources & Learning
-            </h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              Deepen your understanding with curated resources.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5">
-            <BookOpen className="h-3.5 w-3.5" /> Learn
-          </Button>
-        </div>
-      </GlassCard>
+      <LearnMoreSection
+        title={tracker.name}
+        description="Deepen your understanding with curated resources."
+        onOpen={() => setLearnOpen(true)}
+      />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} trackerId={trackerId} title={`${tracker.name} Resources`} />
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center pb-8">

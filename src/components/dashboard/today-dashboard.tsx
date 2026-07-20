@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
+import { LearnMoreSection } from "@/components/learn-more-section"
 import { GlassCard } from "@/components/ui/glass-card"
 import { DailyReviewModal } from "@/components/tasks/tasks-page"
 import { DailyIntentionModal } from "@/components/intentions/daily-intention-modal"
@@ -288,11 +289,7 @@ export function TodayDashboard() {
               <Target className="h-3.5 w-3.5" />
               <span className="hidden sm:inline text-xs">Habit</span>
             </Button>
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5"
-              onClick={() => setLearnOpen(true)}>
-              <BookOpen className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Learn</span>
-            </Button>
+
 
             {/* Secondary actions */}
             <div className="relative">
@@ -764,6 +761,11 @@ export function TodayDashboard() {
 
       {/* ─── Daily Intention Morning Modal ─── */}
       <DailyIntentionModal onSelect={(text) => setIntention(text)} />
+      <LearnMoreSection
+        title="Intentional Living"
+        description="Discover practical ways to live today's intention with greater purpose, focus, and consistency."
+        onOpen={() => setLearnOpen(true)}
+      />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="today" />
     </div>
   )

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
+import { LearnMoreSection } from "@/components/learn-more-section"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -1622,9 +1623,7 @@ export function VisionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Life Vision Framework</h1>
           <p className="text-muted-foreground">Your future begins with clarity.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 h-9 shrink-0">
-          <BookOpen className="h-3.5 w-3.5" /> Learn
-        </Button>
+
       </div>
 
       {/* 1. Purpose (Hero) */}
@@ -1675,6 +1674,11 @@ export function VisionsPage() {
           <p>Each vision is tied to a life area and can contain milestones, goals, and reviews. Think of visions as the chapters of the life story you are writing.</p>
         </EducationalModal>
       )}
+      <LearnMoreSection
+        title="Purpose & Vision"
+        description="Strengthen your life vision with resources on purpose, values, long-term thinking, and intentional planning."
+        onOpen={() => setLearnOpen(true)}
+      />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="visions" />
     </div>
   )
