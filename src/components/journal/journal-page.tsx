@@ -741,6 +741,16 @@ function CalendarListPanel({
     )
   }, [entries, searchQuery])
 
+  const highlightText = useCallback((text: string, query: string): React.ReactNode => {
+    if (!query.trim()) return text
+    const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"))
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase()
+        ? <mark key={i} className="bg-amber-200 text-foreground rounded px-0.5">{part}</mark>
+        : part
+    )
+  }, [])
+
   const dayEntries = useMemo(() => {
     return filteredEntries
       .filter((e) => e.dateISO === selectedDate)
@@ -855,6 +865,7 @@ function CalendarListPanel({
                     const isToday = iso === today
                     const isSelected = iso === selectedDate
                     const hasEntry = entryDates[iso]
+                    const hasSearchMatch = searchQuery.trim() && filteredEntries.some((e) => e.dateISO === iso)
                     return (
                       <button
                         key={iso}
@@ -864,11 +875,13 @@ function CalendarListPanel({
                             ? "bg-primary text-primary-foreground font-semibold shadow-sm"
                             : isToday
                               ? "bg-primary/10 text-primary font-medium"
-                              : "text-foreground hover:bg-muted/60"
+                              : hasSearchMatch
+                                ? "bg-amber-100 text-amber-800 font-medium ring-1 ring-amber-300"
+                                : "text-foreground hover:bg-muted/60"
                         }`}
                       >
                         {day}
-                        {hasEntry && <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-primary" />}
+                        {hasEntry && <span className={`absolute bottom-0.5 h-1 w-1 rounded-full ${hasSearchMatch ? "bg-amber-500" : "bg-primary"}`} />}
                       </button>
                     )
                   })}
@@ -884,23 +897,58 @@ function CalendarListPanel({
                     {dayEntries.map((entry) => {
                       const cfg = journalTypeConfig[entry.type]
                       return (
-                        <button
-                          key={entry.id}
-                          onClick={() => onSelectEntry(entry)}
-                          className="w-full text-left p-2.5 rounded-xl border border-border/50 bg-background hover:shadow-md transition-all duration-200"
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
-                            <span className="text-xs font-semibold truncate">{entry.title}</span>
-                            {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                        <div key={entry.id} className="group relative">
+                          <button
+                            onClick={() => onSelectEntry(entry)}
+                            className="w-full text-left p-2.5 rounded-xl border border-border/50 bg-background hover:shadow-md transition-all duration-200"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
+                              <span className="text-xs font-semibold truncate">{highlightText(entry.title, searchQuery)}</span>
+                              {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                              <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
+                              <span>·</span>
+                              <span>{entry.time}</span>
+                              {entry.mood && <><span>·</span><span>{entry.mood}</span></>}
+                            </div>
+                          </button>
+                          <div className="absolute right-1.5 top-1.5">
+                            <div className="relative">
+                              <Button
+                                variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
+                              >
+                                <MoreHorizontal className="h-3 w-3" />
+                              </Button>
+                              <AnimatePresence>
+                                {openMenuId === entry.id && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    className="absolute right-0 top-full mt-1 w-40 rounded-xl border bg-background shadow-xl p-1 z-20"
+                                  >
+                                    <button onClick={() => { onDuplicateEntry(entry); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                      <Copy className="h-3 w-3" /> Duplicate
+                                    </button>
+                                    <button onClick={() => { onToggleFavorite(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                      <Star className="h-3 w-3" /> {entry.favorited ? "Unstar" : "Star"}
+                                    </button>
+                                    <button onClick={() => { onTogglePin(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+                                      <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin" : "Pin"}
+                                    </button>
+                                    <div className="h-px bg-border my-1" />
+                                    <button onClick={() => { onDeleteEntry(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
+                                      <Trash2 className="h-3 w-3" /> Delete
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                            <span className="font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
-                            <span>·</span>
-                            <span>{entry.time}</span>
-                            {entry.mood && <><span>·</span><span>{entry.mood}</span></>}
-                          </div>
-                        </button>
+                        </div>
                       )
                     })}
                   </div>
@@ -924,7 +972,7 @@ function CalendarListPanel({
                       >
                         <div className="flex items-center gap-2 mb-1">
                           {entry.pinned && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
-                          <span className="text-sm font-semibold truncate">{entry.title}</span>
+                          <span className="text-sm font-semibold truncate">{highlightText(entry.title, searchQuery)}</span>
                           {entry.favorited && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1.5">
@@ -935,7 +983,7 @@ function CalendarListPanel({
                           <span>·</span>
                           <span>{estimateReadTime(entry.content)} min read</span>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">{entry.content}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">{highlightText(entry.content.slice(0, 120), searchQuery)}</p>
                         {entry.tags.length > 0 && (
                           <div className="flex items-center gap-1 mt-1.5">
                             {entry.tags.map((tag) => (
@@ -1659,6 +1707,7 @@ function VoiceRecorder({ onAdd }: {
 }) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
+  const recordingTimeRef = useRef(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -1668,6 +1717,7 @@ function VoiceRecorder({ onAdd }: {
       if (timerRef.current) clearInterval(timerRef.current)
       setIsRecording(false)
       setRecordingTime(0)
+      recordingTimeRef.current = 0
     } else {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -1682,7 +1732,7 @@ function VoiceRecorder({ onAdd }: {
             id: `audio-${Date.now()}`,
             name: `Recording`,
             url,
-            duration: recordingTime,
+            duration: recordingTimeRef.current,
             createdAt: new Date().toISOString(),
           })
           stream.getTracks().forEach((t) => t.stop())
@@ -1690,7 +1740,11 @@ function VoiceRecorder({ onAdd }: {
         mediaRecorder.start()
         setIsRecording(true)
         setRecordingTime(0)
-        timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000)
+        recordingTimeRef.current = 0
+        timerRef.current = setInterval(() => {
+          recordingTimeRef.current += 1
+          setRecordingTime(recordingTimeRef.current)
+        }, 1000)
       } catch {
         console.log("Microphone access denied")
       }
@@ -1995,7 +2049,7 @@ export function FormattingToolbar({
               initial={{ opacity: 0, scale: 0.95, y: -4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-44 rounded-xl border bg-background shadow-xl p-2 z-50"
+              className="absolute left-0 bottom-full mb-1 w-44 rounded-xl border bg-background shadow-xl p-2 z-50"
             >
               <div className="grid grid-cols-4 gap-1">
                 {TEXT_COLOURS.map((c) => (
@@ -2037,7 +2091,7 @@ export function FormattingToolbar({
               initial={{ opacity: 0, scale: 0.95, y: -4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              className="absolute left-0 top-full mt-1 w-36 rounded-xl border bg-background shadow-xl p-2 z-50"
+              className="absolute left-0 bottom-full mb-1 w-36 rounded-xl border bg-background shadow-xl p-2 z-50"
             >
               <div className="grid grid-cols-4 gap-1">
                 {HIGHLIGHT_COLOURS.map((c) => (
@@ -2846,6 +2900,13 @@ function WritingArea({
   const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false, strikeThrough: false, insertUnorderedList: false, insertOrderedList: false, justifyLeft: false, justifyCenter: false, justifyRight: false })
   const [location, setLocation] = useState<string>("")
   const [locationLoading, setLocationLoading] = useState(false)
+  const [locationEnabled, setLocationEnabled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("intenteo-journal-location-enabled")
+      return stored !== null ? stored === "true" : true
+    }
+    return true
+  })
   const [cameraOpen, setCameraOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
@@ -2853,6 +2914,7 @@ function WritingArea({
   const [tableContextMenu, setTableContextMenu] = useState<{ x: number; y: number; cell: HTMLTableCellElement | null }>({ x: 0, y: 0, cell: null })
   const [floatingToolbarTable, setFloatingToolbarTable] = useState<HTMLTableElement | null>(null)
   const [confirmDeleteTable, setConfirmDeleteTable] = useState<{ table: HTMLTableElement; empty: boolean } | null>(null)
+  const [titleRequired, setTitleRequired] = useState(false)
 
   useEffect(() => {
     if (initialType) {
@@ -2884,6 +2946,10 @@ function WritingArea({
   useEffect(() => {
     localStorage.setItem("intenteo-journal-page-style", pageStyle)
   }, [pageStyle])
+
+  useEffect(() => {
+    localStorage.setItem("intenteo-journal-location-enabled", String(locationEnabled))
+  }, [locationEnabled])
 
   useEffect(() => {
     if (resetKey > 0) {
@@ -3101,13 +3167,17 @@ function WritingArea({
   }, [])
 
   const handleSave = useCallback(() => {
+    if (!title.trim()) {
+      setTitleRequired(true)
+      return
+    }
     if (!contentText.trim()) return
     const now = new Date()
 
     if (editingEntry) {
       const updated: JournalEntry = {
         ...editingEntry,
-        title: title || "Untitled Entry",
+        title: title.trim(),
         content: contentText,
         contentHtml: contentHtml || undefined,
         type,
@@ -3126,7 +3196,7 @@ function WritingArea({
     } else {
       const entry: JournalEntry = {
         id: `entry-${Date.now()}`,
-        title: title || "Untitled Entry",
+        title: title.trim(),
         content: contentText,
         contentHtml: contentHtml || undefined,
         type,
@@ -3178,6 +3248,10 @@ function WritingArea({
   }, [])
 
   const handleGetLocation = useCallback(async () => {
+    if (!locationEnabled) {
+      setLocation("Location tracking is disabled in settings")
+      return
+    }
     setLocationLoading(true)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -3195,7 +3269,7 @@ function WritingArea({
       setLocation("Location unavailable")
       setLocationLoading(false)
     }
-  }, [])
+  }, [locationEnabled])
 
   const addRecording = useCallback((recording: AudioRecording) => {
     setRecordings((prev) => [...prev, recording])
@@ -3534,11 +3608,12 @@ function WritingArea({
                 onAdd={addRecording}
               />
             </div>
-            <Tooltip label="Location">
+            <Tooltip label={locationEnabled ? "Location (Right-click to disable)" : "Location disabled (Right-click to enable)"}>
               <button
-                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${locationLoading ? "animate-pulse" : ""}`}
+                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 ${locationLoading ? "animate-pulse" : ""} ${!locationEnabled ? "opacity-50" : ""}`}
                 style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
                 onClick={handleGetLocation}
+                onContextMenu={(e) => { e.preventDefault(); setLocationEnabled((v) => !v) }}
               >
                 <MapPinIcon className="h-4 w-4" />
               </button>
@@ -3637,6 +3712,52 @@ function WritingArea({
           }}
           onDeleteTable={() => handleDeleteTableRequest(floatingToolbarTable)}
         />
+      )}
+
+      {titleRequired && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50"
+          onClick={() => setTitleRequired(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 10 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.95, y: 10 }}
+            className="bg-background rounded-2xl border shadow-xl p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <PenLine className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold">Title Required</h3>
+                <p className="text-xs text-muted-foreground">Every entry needs a title to be saved.</p>
+              </div>
+            </div>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter a title for your entry..."
+              className="w-full text-sm px-3 py-2 rounded-lg border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary mb-4"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && title.trim()) {
+                  setTitleRequired(false)
+                }
+              }}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => setTitleRequired(false)}>Cancel</Button>
+              <Button size="sm" className="text-xs glow" disabled={!title.trim()} onClick={() => { if (title.trim()) setTitleRequired(false) }}>
+                <Check className="h-3 w-3 mr-1" /> Confirm
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {confirmDeleteTable && (

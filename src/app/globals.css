@@ -377,4 +377,12 @@
       #bfc4cc 28px
     );
   }
+  .journal-page-lined table.je-table {
+    margin: 0 0 28px 0;
+  }
+  .journal-page-lined table.je-table td {
+    line-height: 28px;
+    padding: 0 12px;
+    vertical-align: middle;
+  }
 }
