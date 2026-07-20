@@ -38,7 +38,7 @@ import {
   List,
   LayoutList,
   Circle,
-  Pin,
+  Star,
 } from "lucide-react"
 import { VerticalView } from "./vertical-view"
 import { ListView } from "./list-view"
@@ -46,8 +46,8 @@ import { useToast, ToastContainer } from "../tasks/task-toast"
 import { HabitAnalyticsDrawer } from "./habit-analytics-drawer"
 import {
   getHealthState, HEALTH_CONFIG, calcLifecycleStage, LIFECYCLE_CONFIG,
-  calcTrend, TREND_CONFIG, generateSmartRecommendation,
-  getScoreBreakdown, generateCoaching, calcWeightedCompletionRate, calcIntentScoreWithQuality,
+  calcTrend, TREND_CONFIG,
+  generateCoaching, calcWeightedCompletionRate, calcIntentScoreWithQuality,
   getRecoveryPenalty,
   type CompletionQuality as CQ,
 } from "./habit-utils"
@@ -451,197 +451,6 @@ const AnimatedValue = ({ value, suffix = "" }: { value: number; suffix?: string 
   return <span>{animated}{suffix}</span>
 }
 
-/* ─── Intent Score Breakdown Popover ─── */
-
-const IntentScoreBreakdown = ({
-  habit,
-  onClose,
-  onViewAnalytics,
-}: {
-  habit: Habit
-  onClose: () => void
-  onViewAnalytics?: (h: Habit) => void
-}) => {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [onClose])
-
-  const breakdown = useMemo(() => getScoreBreakdown(habit), [habit])
-  const recommendation = useMemo(() => generateSmartRecommendation(habit), [habit])
-  const health = useMemo(() => getHealthState(habit.habitScore, habit.consistency), [habit.habitScore, habit.consistency])
-  const healthCfg = HEALTH_CONFIG[health]
-
-  return (
-    <div ref={ref} className="absolute z-[100] top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {habit.icon && <span className="text-lg">{habit.icon}</span>}
-          <div>
-            <h4 className="font-semibold text-sm">{habit.name}</h4>
-            <p className="text-[10px] text-muted-foreground">{habit.customCategory || habit.category}</p>
-          </div>
-        </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Health Badge */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${healthCfg.bg} ${healthCfg.color}`}>
-          {healthCfg.icon} {healthCfg.label}
-        </span>
-      </div>
-
-      <div className="text-center mb-3">
-        <div className="text-2xl font-bold text-[#1E0E6B]">{habit.habitScore} / 100</div>
-      </div>
-
-      <div className="space-y-2">
-        {breakdown.map((item) => (
-          <div key={item.label}>
-            <div className="flex items-center justify-between mb-0.5">
-              <span className="text-xs text-muted-foreground">{item.label}</span>
-              <span className="text-xs font-medium">{item.raw}</span>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div className={`h-1.5 rounded-full ${item.color}`} style={{ width: `${(item.points / item.max) * 100}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 pt-3 border-t border-white/20">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">TOTAL</span>
-          <span className="text-lg font-bold text-[#1E0E6B]">{habit.habitScore} / 100</span>
-        </div>
-      </div>
-      <div className="mt-3 pt-3 border-t border-white/20">
-        <div className="flex items-center gap-1 mb-1.5">
-          <Info className="h-3 w-3 text-muted-foreground" />
-          <p className="text-xs font-medium text-muted-foreground">Smart Next Action</p>
-        </div>
-        <p className="text-[10px] text-muted-foreground">{recommendation}</p>
-      </div>
-      {onViewAnalytics && (
-        <button
-          onClick={() => { onViewAnalytics(habit); onClose() }}
-          className="w-full mt-3 text-center text-xs font-medium text-[#1E0E6B] py-1.5 rounded-lg bg-[#1E0E6B]/5 hover:bg-[#1E0E6B]/10 transition-colors"
-        >
-          View Full Analytics →
-        </button>
-      )}
-    </div>
-  )
-}
-
-/* ─── Overall Intent Score Breakdown Popover ─── */
-
-const OverallIntentScoreBreakdown = ({
-  habits,
-  overallIntentScore,
-  onClose,
-}: {
-  habits: Habit[]
-  overallIntentScore: number
-  onClose: () => void
-}) => {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [onClose])
-
-  const activeHabits = habits.filter(h => !h.paused)
-  const activeCount = activeHabits.length
-  const avgHabitScore = activeCount > 0 ? Math.round(activeHabits.reduce((sum, h) => sum + h.habitScore, 0) / activeCount) : 0
-
-  const suggestions = [
-    "Complete habits more consistently.",
-    "Maintain longer streaks.",
-    "Complete habits around preferred times.",
-    "Build consistency over time.",
-  ]
-
-  return (
-    <div ref={ref} className="absolute z-50 top-full mt-2 right-0 w-72 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-white/20">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h4 className="font-semibold text-sm">Overall Intent Score</h4>
-          <p className="text-[10px] text-muted-foreground">How your score is calculated</p>
-        </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="text-center mb-4">
-        <div className="text-3xl font-bold text-[#1E0E6B]">{overallIntentScore}</div>
-        <p className="text-xs text-muted-foreground">Current Score</p>
-      </div>
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Active Habits</span>
-          <span className="font-medium">{activeCount}</span>
-        </div>
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Average Habit Intent Score</span>
-          <span className="font-medium">{avgHabitScore} / 100</span>
-        </div>
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Based on</span>
-          <span className="font-medium">Weighted average</span>
-        </div>
-      </div>
-      <div className="pt-3 border-t border-white/20">
-        <p className="text-xs font-medium text-muted-foreground mb-1.5">Based on</p>
-        <ul className="space-y-1">
-          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-            <span className="text-muted-foreground mt-0.5">•</span>
-            <span>Completion</span>
-          </li>
-          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-            <span className="text-muted-foreground mt-0.5">•</span>
-            <span>Consistency</span>
-          </li>
-          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-            <span className="text-muted-foreground mt-0.5">•</span>
-            <span>Streaks</span>
-          </li>
-          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-            <span className="text-muted-foreground mt-0.5">•</span>
-            <span>Time Accuracy (where applicable)</span>
-          </li>
-          <li className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-            <span className="text-muted-foreground mt-0.5">•</span>
-            <span>Difficulty weighting</span>
-          </li>
-        </ul>
-      </div>
-      <div className="mt-3 pt-3 border-t border-white/20">
-        <p className="text-xs font-medium text-muted-foreground mb-1.5">How to improve</p>
-        <ul className="space-y-1">
-          {suggestions.map((s, i) => (
-            <li key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-              <span className="text-emerald-500 mt-0.5">✔</span>
-              <span>{s}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  )
-}
-
 const SummaryCard = ({
   label,
   primary,
@@ -968,6 +777,7 @@ const TrackerView = ({
   period,
   onToggleCell,
   onEdit,
+  onPin,
   linkedGoals,
   draggedId,
   dragOverId,
@@ -975,15 +785,13 @@ const TrackerView = ({
   onDragOver,
   onDrop,
   onDragEnd,
-  habitScoreBreakdownHabit,
-  onHabitScoreBreakdown,
-  onViewAnalytics,
 }: {
   habits: Habit[]
   selectedDate: Date
   period: TrackerPeriod
   onToggleCell: (habitId: string, dateStr: string) => void
   onEdit: (habit: Habit) => void
+  onPin?: (habitId: string) => void
   linkedGoals?: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
   draggedId?: string | null
   dragOverId?: string | null
@@ -991,9 +799,6 @@ const TrackerView = ({
   onDragOver?: (e: React.DragEvent, id: string) => void
   onDrop?: (id: string) => void
   onDragEnd?: () => void
-  habitScoreBreakdownHabit?: Habit | null
-  onHabitScoreBreakdown?: (habit: Habit | null) => void
-  onViewAnalytics?: (habit: Habit) => void
 }) => {
   const [hoveredCell, setHoveredCell] = useState<{ habitId: string; date: string } | null>(null)
 
@@ -1027,15 +832,16 @@ const TrackerView = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse min-w-[1050px]">
+      <table className="w-full border-collapse min-w-[900px]">
         <thead>
           <tr className="border-b border-white/20">
-            <th className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[40px] border-r border-white/10"></th>
-            <th className="sticky left-[40px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[200px] border-r border-white/10">Habit</th>
-            <th className="sticky left-[240px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[100px] border-r border-white/10">Category</th>
-            <th className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[80px] border-r border-white/10">Duration</th>
-            <th className="sticky left-[420px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[120px] border-r border-white/10">Linked Goal</th>
-            <th className="sticky left-[540px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[90px] border-r border-white/10">Intent Score</th>
+            <th className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-center font-medium text-sm min-w-[44px] border-r border-white/10">
+              <Star className="h-4 w-4 mx-auto text-muted-foreground" />
+            </th>
+            <th className="sticky left-[44px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[220px] border-r border-white/10">Habit</th>
+            <th className="sticky left-[264px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[100px] border-r border-white/10">Category</th>
+            <th className="sticky left-[364px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[80px] border-r border-white/10">Duration</th>
+            <th className="sticky left-[444px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 text-left font-medium text-sm min-w-[140px] border-r border-white/10">Linked Goal</th>
             {dates.map((date) => {
               const dateStr = formatDateISO(date)
               const isToday = dateStr === today
@@ -1062,36 +868,38 @@ const TrackerView = ({
               onDrop={() => onDrop?.(habit.id)}
               onDragEnd={onDragEnd}
               className={`border-b border-[#1E0E6B]/10 transition-colors cursor-grab active:cursor-grabbing ${isDragging ? "opacity-40" : ""} ${isDragOver ? "border-t-2 border-t-[#1E0E6B]" : ""} hover:bg-white/30 dark:hover:bg-white/5`}>
-              <td className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
-                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: habit.colorHex }} />
+              <td className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10 text-center">
+                <button
+                  onClick={() => onPin?.(habit.id)}
+                  className="mx-auto transition-colors"
+                  title={habit.pinned ? "Unpin habit" : "Pin as Focus Habit"}
+                >
+                  <Star className={`h-4 w-4 ${habit.pinned ? "text-amber-500 fill-amber-400" : "text-gray-300 hover:text-amber-400"}`} />
+                </button>
               </td>
-              <td className="sticky left-[40px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+              <td className="sticky left-[44px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <button onClick={() => onEdit(habit)} className="flex items-center gap-2 hover:opacity-70 transition-opacity text-left">
                   {habit.icon ? <span className="text-lg shrink-0">{habit.icon}</span> : <span className="w-5 shrink-0" />}
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1">
-                      <p className="font-medium text-sm text-[#1E0E6B] hover:underline leading-tight truncate">{habit.name}</p>
-                      {habit.pinned && <Pin className="h-3 w-3 text-amber-500 fill-amber-400 shrink-0" />}
-                    </div>
+                    <p className="font-medium text-sm text-[#1E0E6B] hover:underline leading-tight truncate">{habit.name}</p>
                     <div className="flex items-center gap-1 flex-wrap">
                       <Flame className="h-2.5 w-2.5 shrink-0" style={{ color: habit.colorHex }} />
                       <span className="text-[10px] text-muted-foreground">{habit.streak} streak</span>
                       {(habit.streakFreeze || 0) > 0 && <span className="text-[10px]">❄️{habit.streakFreeze}</span>}
                       {habit.paused && <span className="text-[10px] text-amber-500 font-medium">⏸ Paused</span>}
                       {habit.archived && <span className="text-[10px] text-gray-400 font-medium">📦 Archived</span>}
-                      {(() => { const h = getHealthState(habit.habitScore, habit.consistency); const hc = HEALTH_CONFIG[h]; return <span className={`text-[9px] font-medium px-1 py-0 rounded ${hc.bg} ${hc.color}`}>{hc.icon}</span> })()}
                       {(() => { const t = calcTrend(habit); const tc = TREND_CONFIG[t]; return <span className={`text-[9px] ${tc.color}`}>{tc.icon}</span> })()}
                       {getScheduleBadge(habit.schedule)}
                     </div>
                   </div>
                 </button>
               </td>
-              <td className="sticky left-[240px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+              <td className="sticky left-[264px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <div className="flex items-center gap-1">
                   <Badge variant="secondary" className="text-[10px]">{habit.customCategory || habit.category}</Badge>
                 </div>
               </td>
-              <td className="sticky left-[340px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+              <td className="sticky left-[364px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 {(() => {
                   const completedCount = Object.keys(habit.completions || {}).filter(k => habit.completions[k]?.completed).length
                   const totalStr = habit.totalDuration || "No end date"
@@ -1106,7 +914,7 @@ const TrackerView = ({
                   return <span className="text-[10px] text-muted-foreground font-medium">{completedCount} / ∞</span>
                 })()}
               </td>
-              <td className="sticky left-[420px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
+              <td className="sticky left-[444px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
                 <button onClick={() => onEdit(habit)} className="text-left hover:opacity-70 transition-opacity cursor-pointer w-full">
                 {(() => {
                   const linkedGoal = linkedGoals?.find(g => g.title === habit.goal)
@@ -1114,30 +922,13 @@ const TrackerView = ({
                     return (
                       <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: linkedGoal.colorHex }} />
-                        <span className="text-[10px] font-medium text-[#1E0E6B] truncate max-w-[100px]">{linkedGoal.title}</span>
+                        <span className="text-[10px] font-medium text-[#1E0E6B] truncate max-w-[120px]">{linkedGoal.title}</span>
                       </div>
                     )
                   }
                   return <span className="text-[10px] text-muted-foreground italic">No linked goal</span>
                 })()}
                 </button>
-              </td>
-              <td className="sticky left-[540px] z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 border-r border-white/10">
-                <div className="relative">
-                  <button
-                    onClick={() => onHabitScoreBreakdown?.(habitScoreBreakdownHabit?.id === habit.id ? null : habit)}
-                    className={`text-sm font-semibold cursor-pointer hover:opacity-80 transition-opacity ${habit.habitScore >= 80 ? "text-emerald-500" : habit.habitScore >= 50 ? "text-amber-500" : "text-red-500"}`}
-                  >
-                    {habit.habitScore}
-                  </button>
-                  {habitScoreBreakdownHabit?.id === habit.id && (
-                    <IntentScoreBreakdown
-                      habit={habit}
-                      onClose={() => onHabitScoreBreakdown?.(null)}
-                      onViewAnalytics={onViewAnalytics}
-                    />
-                  )}
-                </div>
               </td>
               {dates.map((date) => {
                 const dateStr = formatDateISO(date)
@@ -1795,8 +1586,6 @@ export function HabitsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
-  const [showOverallScoreBreakdown, setShowOverallScoreBreakdown] = useState(false)
-  const [habitScoreBreakdownHabit, setHabitScoreBreakdownHabit] = useState<Habit | null>(null)
   const [analyticsDrawerHabit, setAnalyticsDrawerHabit] = useState<Habit | null>(null)
   const [recoveryState, setRecoveryState] = useState<{ habitId: string; date: string; habitName: string } | null>(null)
   const [activeView, setActiveView] = useState<ViewMode>("table")
@@ -2114,12 +1903,12 @@ export function HabitsPage() {
         <SummaryBar habits={habits} selectedDate={selectedDate} activeFilter={activeFilter} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
       </HabitsErrorBoundary>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         {activeHabitsCount >= 15 && (
-          <div className="relative flex-1">
+          <div className="relative flex-1 sm:flex-none sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search habits..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] max-w-md" />
+              className="pl-9 bg-white/50 dark:bg-white/5 border-2 border-[#1E0E6B]/60 focus:border-[#1E0E6B] w-full" />
           </div>
         )}
         <div className="relative">
@@ -2154,8 +1943,8 @@ export function HabitsPage() {
             <option value="all">All</option>
             <option value="completed_today">Completed Today</option>
             <option value="not_completed">Not Completed</option>
-            <option value="highest_score">Highest Intent Score</option>
-            <option value="lowest_score">Lowest Intent Score</option>
+            <option value="highest_score">Highest Score</option>
+            <option value="lowest_score">Lowest Score</option>
             <option value="longest_streak">Longest Streak</option>
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -2183,7 +1972,7 @@ export function HabitsPage() {
         <HabitsErrorBoundary fallbackLabel="habit tracker">
           <div className="bg-white/50 dark:bg-white/5 rounded-xl border border-white/20 overflow-hidden">
             {filteredAndSorted.length > 0 ? (
-              <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} linkedGoals={linkedGoals} draggedId={draggedId} dragOverId={dragOverId} onDragStart={handleHabitDragStart} onDragOver={handleHabitDragOver} onDrop={handleHabitDrop} onDragEnd={handleHabitDragEnd} habitScoreBreakdownHabit={habitScoreBreakdownHabit} onHabitScoreBreakdown={setHabitScoreBreakdownHabit} onViewAnalytics={handleOpenAnalytics} />
+              <TrackerView habits={filteredAndSorted} selectedDate={selectedDate} period={trackerPeriod} onToggleCell={toggleHabit} onEdit={(h) => { setEditingHabit(h); setIsModalOpen(true) }} onPin={togglePin} linkedGoals={linkedGoals} draggedId={draggedId} dragOverId={dragOverId} onDragStart={handleHabitDragStart} onDragOver={handleHabitDragOver} onDrop={handleHabitDrop} onDragEnd={handleHabitDragEnd} />
             ) : (
               <div className="text-center py-12">
                 <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

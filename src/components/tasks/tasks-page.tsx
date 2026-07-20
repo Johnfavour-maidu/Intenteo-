@@ -42,11 +42,13 @@ import {
   Timer,
   Sparkles,
   Target as TargetIcon,
+  MoreHorizontal,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast, ToastContainer } from "./task-toast"
 import { formatDateDDMMYYYY, formatDateLong } from "@/lib/date-utils"
 import { DateInput } from "@/components/ui/date-input"
+import { ReminderModal } from "@/components/reminders/reminder-modal"
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   priority: "#EF4444",
@@ -514,6 +516,7 @@ export function TasksPage() {
   const [dragType, setDragType] = useState<"task" | "subtask" | null>(null)
   const [dragSourceTaskId, setDragSourceTaskId] = useState<string | null>(null)
   const [movePopoverTaskId, setMovePopoverTaskId] = useState<string | null>(null)
+  const [menuOpenTaskId, setMenuOpenTaskId] = useState<string | null>(null)
   const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -535,7 +538,6 @@ export function TasksPage() {
   const [formTimeRangeType, setFormTimeRangeType] = useState<import("./types").TimeRange>("anytime")
   const [formLinkedHabitId, setFormLinkedHabitId] = useState("")
   const [formLinkedGoalId, setFormLinkedGoalId] = useState("")
-  const [formIntention, setFormIntention] = useState("")
   const [formReminder, setFormReminder] = useState(true)
   const [recurringEditPrompt, setRecurringEditPrompt] = useState<{ task: Task; scope: "this" | "thisAndFuture" | "all" } | null>(null)
   const [carryOverOpen, setCarryOverOpen] = useState(false)
@@ -547,71 +549,8 @@ export function TasksPage() {
   const [formMonthlyWeekdayIndex, setFormMonthlyWeekdayIndex] = useState(0)
   const [formMonthlyWeekdayOrdinal, setFormMonthlyWeekdayOrdinal] = useState(1)
 
-  // Feature: Reminders Panel
-  const [remindersPanelOpen, setRemindersPanelOpen] = useState(false)
-  const [reminders, setReminders] = useState<{ id: string; title: string; date: string; createdAt: string }[]>([])
-
-  const loadReminders = useCallback(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
-      if (Array.isArray(stored)) setReminders(stored)
-    } catch { setReminders([]) }
-  }, [])
-
-  useEffect(() => { loadReminders() }, [loadReminders])
-
-  const removeReminder = useCallback((id: string) => {
-    setReminders(prev => {
-      const next = prev.filter(r => r.id !== id)
-      localStorage.setItem("intenteo-reminders", JSON.stringify(next))
-      return next
-    })
-  }, [])
-
-  const addReminderAsTask = useCallback((reminder: { id: string; title: string }) => {
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title: reminder.title,
-      whyItMatters: "",
-      priority: "progress" as TaskPriority,
-      deadline: "Today",
-      date: new Date().toISOString().split("T")[0],
-      dueTime: "",
-      timeRange: "",
-      timeRangeType: "anytime" as any,
-      estimatedDuration: 0,
-      notes: "",
-      subtasks: [],
-      recurrence: "none" as any,
-      completed: false,
-      order: 0,
-      createdAt: new Date().toISOString(),
-    }
-    setTasks(prev => [newTask, ...prev])
-    removeReminder(reminder.id)
-  }, [removeReminder])
-
-  const getReminderSmartDate = useCallback((dateStr: string) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const target = new Date(dateStr + "T00:00:00")
-    target.setHours(0, 0, 0, 0)
-    const diffMs = target.getTime() - today.getTime()
-    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-    if (diffDays === 0) return { label: "Today", color: "text-emerald-600 dark:text-emerald-400" }
-    if (diffDays === 1) return { label: "Tomorrow", color: "text-orange-500 dark:text-orange-400" }
-    if (diffDays < 0) return { label: `Overdue \u2022 ${diffDays === -1 ? "Yesterday" : `${Math.abs(diffDays)} days ago`}`, color: "text-red-500 dark:text-red-400" }
-    const dayName = target.toLocaleDateString("en-US", { weekday: "short" })
-    const dayNum = target.getDate()
-    const monthName = target.toLocaleDateString("en-US", { month: "short" })
-    return { label: `${dayName}, ${dayNum} ${monthName}`, color: "text-blue-600 dark:text-blue-400" }
-  }, [])
-
-  const formatCreatedDate = useCallback((dateStr: string) => {
-    if (!dateStr) return ""
-    const d = new Date(dateStr)
-    return d.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-  }, [])
+  // Feature: Reminders
+  const [reminderModalOpen, setReminderModalOpen] = useState(false)
 
   // Feature: Focus Mode
   const [focusTask, setFocusTask] = useState<Task | null>(null)
@@ -630,6 +569,17 @@ export function TasksPage() {
     try { setHabitsData(JSON.parse(localStorage.getItem("intenteo-habits") || "[]")) } catch {}
     try { setProjectsData(JSON.parse(localStorage.getItem("intenteo-projects") || "[]")) } catch {}
   }, [])
+
+  // Close overflow menu on click outside
+  useEffect(() => {
+    if (!menuOpenTaskId) return
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest("[data-task-menu]")) setMenuOpenTaskId(null)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [menuOpenTaskId])
 
   // Route change cleanup: clear all temporary UI state when leaving Tasks page
   useEffect(() => {
@@ -1013,7 +963,6 @@ export function TasksPage() {
       dailyCompletions: formRecurrence === "daily" ? { [formDate]: false } : undefined,
       linkedHabitId: formLinkedHabitId || undefined,
       linkedGoalId: formLinkedGoalId || undefined,
-      todayIntention: formIntention || undefined,
       reminder: formReminder,
     }
     setTasks((prev) => [...prev, newTask])
@@ -1023,9 +972,9 @@ export function TasksPage() {
     setFormRecurrence("none"); setFormRecurrenceInterval(1); setFormRecurrenceWeekdays([])
     setFormMonthlyRepeatMode("dayOfMonth"); setFormMonthlyWeekdayIndex(0); setFormMonthlyWeekdayOrdinal(1)
     setFormSubtasks([]); setFormDate(todayISO)
-    setFormTimeRangeType("anytime"); setFormLinkedHabitId(""); setFormLinkedGoalId(""); setFormIntention(""); setFormReminder(true)
+    setFormTimeRangeType("anytime"); setFormLinkedHabitId(""); setFormLinkedGoalId(""); setFormReminder(true)
     setCreateOpen(false)
-  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formRecurrenceInterval, formRecurrenceWeekdays, formSubtasks, formDate, formTimeRangeType, formLinkedHabitId, formLinkedGoalId, formIntention, todayISO, tasks.length])
+  }, [formTitle, formWhy, formPriority, formStartHour, formStartMin, formEndHour, formEndMin, formRecurrence, formRecurrenceInterval, formRecurrenceWeekdays, formSubtasks, formDate, formTimeRangeType, formLinkedHabitId, formLinkedGoalId, todayISO, tasks.length])
 
   const handleSaveEdit = useCallback(() => {
     if (!editingTask) return
@@ -1203,7 +1152,7 @@ export function TasksPage() {
           <div className="hidden sm:block w-[160px] shrink-0">Time Range</div>
           <div className="hidden sm:block w-[80px] shrink-0">Duration</div>
           <div className="w-[140px] shrink-0">Progress</div>
-          <div className="w-[120px] shrink-0">Actions</div>
+          <div className="w-[48px] shrink-0"></div>
         </div>
 
         <LayoutGroup>
@@ -1322,41 +1271,62 @@ export function TasksPage() {
                       <span className="text-[10px] text-muted-foreground w-7 text-right">{progress}%</span>
                     </div>
 
-                    {/* Actions */}
-                    <div className="w-[120px] shrink-0 flex items-center gap-1">
-                      {!isViewingPast && !future && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                          onClick={(e) => { e.stopPropagation(); setEditingTask({ ...task }) }}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {!isViewingPast && !future && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                          onClick={(e) => { e.stopPropagation(); duplicateTask(task) }}>
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                        onClick={(e) => { e.stopPropagation(); setFocusTask(task) }}>
-                        <Target className="h-3.5 w-3.5" />
-                      </Button>
-                      <div className="relative">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-muted"
-                          onClick={(e) => { e.stopPropagation(); setMovePopoverTaskId(movePopoverTaskId === task.id ? null : task.id) }}>
-                          <ArrowRightLeft className="h-3.5 w-3.5" />
-                        </Button>
-                        <AnimatePresence>
-                          {movePopoverTaskId === task.id && (
-                            <MoveTaskPopover taskId={task.id} currentDeadline={task.deadline} onMove={moveTask} onClose={() => setMovePopoverTaskId(null)} />
-                          )}
-                        </AnimatePresence>
-                      </div>
-                      {!isViewingPast && !future && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 text-destructive"
-                          onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                    {/* Actions — Overflow Menu */}
+                    <div data-task-menu className="w-[48px] shrink-0 flex items-center justify-end relative">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setMenuOpenTaskId(menuOpenTaskId === task.id ? null : task.id) }}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Task actions"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                      <AnimatePresence>
+                        {menuOpenTaskId === task.id && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                            className="absolute right-0 top-full mt-1 w-48 rounded-xl border bg-background shadow-xl p-1 z-50"
+                          >
+                            {isCompleted ? (
+                              <>
+                                <button onClick={() => { handleToggleTask(task.id); setMenuOpenTaskId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> Mark as Incomplete
+                                </button>
+                                <button onClick={() => { duplicateTask(task); setMenuOpenTaskId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
+                                  <Copy className="h-3.5 w-3.5" /> Duplicate
+                                </button>
+                                <div className="h-px bg-border my-1" />
+                                <button onClick={() => { deleteTask(task.id); setMenuOpenTaskId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
+                                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {!isViewingPast && !future && (
+                                  <button onClick={() => { setEditingTask({ ...task }); setMenuOpenTaskId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
+                                    <Pencil className="h-3.5 w-3.5" /> Edit
+                                  </button>
+                                )}
+                                <button onClick={() => { duplicateTask(task); setMenuOpenTaskId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
+                                  <Copy className="h-3.5 w-3.5" /> Duplicate
+                                </button>
+                                {!isViewingPast && !future && (
+                                  <button onClick={() => { setFocusTask(task); setMenuOpenTaskId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-muted transition-colors text-left">
+                                    <Target className="h-3.5 w-3.5" /> Focus Mode
+                                  </button>
+                                )}
+                                <div className="h-px bg-border my-1" />
+                                {!isViewingPast && !future && (
+                                  <button onClick={() => { deleteTask(task.id); setMenuOpenTaskId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
+                                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
 
@@ -1368,7 +1338,7 @@ export function TasksPage() {
         </LayoutGroup>
       </div>
     )
-  }, [sortedTasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, movePopoverTaskId, moveSubtask, moveSubtaskInfo, isViewingPast, isFutureTask, isCompletedPastTask])
+  }, [sortedTasks, expandedTasks, expandAll, draggedId, dragOverId, dragType, getSubtaskProgress, handleTaskDragStart, handleTaskDragOver, handleTaskDrop, handleDragEnd, handleToggleTask, toggleExpanded, renderSubtasks, deleteTask, moveTask, menuOpenTaskId, isViewingPast, isFutureTask, isCompletedPastTask])
 
   /* ═══════════════════════════════════════════════════════ */
   /* BOARD VIEW                                              */
@@ -1701,15 +1671,10 @@ export function TasksPage() {
               variant="outline"
               size="sm"
               className="h-8 gap-1.5 border-[#1E0E6B]/30 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 text-xs"
-              onClick={() => { setRemindersPanelOpen(true); loadReminders() }}
+              onClick={() => setReminderModalOpen(true)}
             >
               <Bell className="h-3.5 w-3.5" />
-              View Reminders
-              {reminders.length > 0 && (
-                <span className="ml-1 h-5 min-w-[20px] px-1 rounded-full bg-[#1E0E6B] text-white text-[10px] font-medium flex items-center justify-center">
-                  {reminders.length}
-                </span>
-              )}
+              Reminders
             </Button>
 
             {/* Sort */}
@@ -1780,6 +1745,13 @@ export function TasksPage() {
                       onChange={(e) => editingTask ? setEditingTask({ ...editingTask, title: e.target.value }) : setFormTitle(e.target.value)}
                       suggestions={taskTitleSuggestions}
                       className="mt-1" autoFocus />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Why This Task Matters</label>
+                    <Input placeholder="Why is this task important? (Optional)"
+                      value={editingTask ? editingTask.whyItMatters : formWhy}
+                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, whyItMatters: e.target.value }) : setFormWhy(e.target.value)}
+                      className="mt-1" />
                   </div>
                   <div>
                     <DateInput
@@ -2018,13 +1990,6 @@ export function TasksPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Why It Matters</label>
-                    <Input placeholder="Optional: Why is this important?"
-                      value={editingTask ? editingTask.whyItMatters : formWhy}
-                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, whyItMatters: e.target.value }) : setFormWhy(e.target.value)}
-                      className="mt-1" />
-                  </div>
-                  <div>
                     <label className="text-xs font-medium text-muted-foreground">Linked Habit</label>
                     <div className="relative">
                       <select
@@ -2063,13 +2028,6 @@ export function TasksPage() {
                       </select>
                       <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Today&apos;s Intention</label>
-                    <Input placeholder="Optional: What's the intention behind this task?"
-                      value={editingTask ? (editingTask.todayIntention || "") : formIntention}
-                      onChange={(e) => editingTask ? setEditingTask({ ...editingTask, todayIntention: e.target.value || undefined }) : setFormIntention(e.target.value)}
-                      className="mt-1" />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-6">
@@ -2201,80 +2159,12 @@ export function TasksPage() {
         />
       )}
 
-      {/* Reminder Panel */}
-      <AnimatePresence>
-        {remindersPanelOpen && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-              onClick={() => setRemindersPanelOpen(false)} />
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="fixed right-0 top-0 h-full w-full max-w-sm z-50 bg-background border-l shadow-2xl overflow-y-auto">
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-semibold">Reminders</h2>
-                    {reminders.length > 0 && (
-                      <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center">
-                        {reminders.length}
-                      </span>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRemindersPanelOpen(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {reminders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Bell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">No reminders yet</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">Quick reminders appear here</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {reminders.map((r) => {
-                      const smartDate = getReminderSmartDate(r.date)
-                      const createdFormatted = formatCreatedDate(r.createdAt)
-                      return (
-                        <motion.div key={r.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                          className="p-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
-                          <p className="text-sm font-medium mb-1">{r.title}</p>
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
-                            <span className={`text-xs font-medium ${smartDate.color}`}>{smartDate.label}</span>
-                          </div>
-                          {createdFormatted && (
-                            <p className="text-[10px] text-muted-foreground/60 mb-2">Created: {createdFormatted}</p>
-                          )}
-                          <div className="flex items-center gap-1.5">
-                            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
-                              onClick={() => addReminderAsTask(r)}>
-                              <Plus className="h-3 w-3" />
-                              Add to Today&apos;s Tasks
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1"
-                              onClick={() => removeReminder(r.id)}>
-                              <CheckCircle2 className="h-3 w-3" />
-                              Done
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 text-[11px] px-2 gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => removeReminder(r.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </motion.div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Reminder Modal */}
+      <ReminderModal
+        open={reminderModalOpen}
+        onClose={() => setReminderModalOpen(false)}
+        defaultSource="task"
+      />
 
       <TeoAssistant
         open={teoOpen}

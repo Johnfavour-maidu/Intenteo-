@@ -1,13 +1,15 @@
 "use client"
 
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import { GlassCard } from "@/components/ui/glass-card"
 import { DailyReviewModal } from "@/components/tasks/tasks-page"
+import { DailyIntentionModal } from "@/components/intentions/daily-intention-modal"
+import { IntentionLibrary } from "@/components/intentions/intention-library"
+import { loadTodayIntention, saveTodayIntention, addRecentlyUsed } from "@/lib/intention-library"
 import {
   Target,
   CheckCircle2,
@@ -23,6 +25,7 @@ import {
   ChevronRight,
   Zap,
   Bell,
+  BookOpen,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
@@ -78,8 +81,8 @@ const sampleHabits: Habit[] = [
 export function TodayDashboard() {
   const router = useRouter()
   // State
-  const [intention, setIntention] = useState("Be fully present in every conversation and create meaningful connections.")
-  const [editingIntention, setEditingIntention] = useState(false)
+  const [intention, setIntention] = useState("")
+  const [showIntentionLibrary, setShowIntentionLibrary] = useState(false)
   const [tasks, setTasks] = useState(sampleTasks)
   const [habits, setHabits] = useState(sampleHabits)
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
@@ -93,10 +96,23 @@ export function TodayDashboard() {
   const [reminderCalYear, setReminderCalYear] = useState(() => new Date().getFullYear())
   const [reminderCalDay, setReminderCalDay] = useState(() => new Date().getDate())
 
+  useEffect(() => {
+    const existing = loadTodayIntention()
+    if (existing) setIntention(existing.intention.text)
+  }, [])
+
   const addToast = useCallback((msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }, [])
+
+  const handleIntentionSelect = useCallback((text: string, isCustom: boolean) => {
+    setIntention(text)
+    saveTodayIntention(text, isCustom)
+    addRecentlyUsed(text, isCustom)
+    setShowIntentionLibrary(false)
+    addToast("Intention set for today!")
+  }, [addToast])
 
   const reminderDateKey = `${reminderCalYear}-${String(reminderCalMonth + 1).padStart(2, "0")}-${String(reminderCalDay).padStart(2, "0")}`
   const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` })()
@@ -255,35 +271,64 @@ export function TodayDashboard() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setEditingIntention(!editingIntention)}
+                  onClick={() => setShowIntentionLibrary(!showIntentionLibrary)}
                 >
-                  <PenLine className="h-4 w-4" />
+                  {showIntentionLibrary ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Done
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="h-4 w-4 mr-1" />
+                      Browse Library
+                    </>
+                  )}
                 </Button>
               </div>
               
-              {editingIntention ? (
-                <div className="space-y-3">
-                  <Textarea
-                    value={intention}
-                    onChange={(e) => setIntention(e.target.value)}
-                    className="text-lg min-h-[80px] bg-transparent border-primary/20 focus:border-primary"
-                    placeholder="What matters most today?"
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => setEditingIntention(false)}>
-                      Save
+              {showIntentionLibrary ? (
+                <IntentionLibrary onSelect={handleIntentionSelect} />
+              ) : intention ? (
+                <>
+                  <p className="text-xl md:text-2xl font-medium leading-relaxed">
+                    &ldquo;{intention}&rdquo;
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowIntentionLibrary(true)}
+                      className="border-[#1E0E6B]/20"
+                    >
+                      <PenLine className="h-3.5 w-3.5 mr-1" />
+                      Change
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingIntention(false)}>
-                      Cancel
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-lg text-muted-foreground">Choose how you want to show up today.</p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setShowIntentionLibrary(true)}
+                      className="bg-[#1E0E6B] hover:bg-[#1E0E6B]/90 text-white"
+                    >
+                      <Target className="h-4 w-4 mr-1" />
+                      Set Intention
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowIntentionLibrary(true)}
+                      className="border-[#1E0E6B]/20"
+                    >
+                      <PenLine className="h-4 w-4 mr-1" />
+                      Write My Own
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <>
-                  <p className="text-xl md:text-2xl font-medium leading-relaxed">
-                    &quot;{intention}&quot;
-                  </p>
-                </>
               )}
             </div>
           </GlassCard>
@@ -617,6 +662,9 @@ export function TodayDashboard() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Daily Intention Morning Modal */}
+      <DailyIntentionModal onSelect={(text) => setIntention(text)} />
     </div>
   )
 }

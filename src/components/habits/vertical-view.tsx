@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import { CheckCircle2, Flame, Target, GripVertical, Pin } from "lucide-react"
+import { CheckCircle2, Flame, Target, GripVertical, Star } from "lucide-react"
 import {
   getHealthState, HEALTH_CONFIG,
   calcTrend, TREND_CONFIG,
@@ -59,13 +59,6 @@ interface VerticalViewProps {
   onDragEnd?: () => void
   onViewAnalytics?: (habit: Habit) => void
   onShowToast?: (message: string, subtext?: string) => void
-}
-
-const getScoreColor = (score: number): string => {
-  if (score >= 80) return "#22C55E"
-  if (score >= 60) return "#EAB308"
-  if (score >= 40) return "#F97316"
-  return "#EF4444"
 }
 
 const formatISO = (d: Date): string => {
@@ -134,7 +127,7 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1">
                           <span className="font-medium text-xs text-[#1E0E6B] truncate">{habit.name}</span>
-                          {habit.pinned && <Pin className="h-2.5 w-2.5 text-amber-500 fill-amber-400 shrink-0" />}
+                          {habit.pinned && <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-400 shrink-0" />}
                           {goal && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: goal.colorHex }} />}
                         </div>
                         <div className="flex items-center gap-1 text-[10px] mt-0.5">
@@ -142,9 +135,6 @@ export const VerticalView: React.FC<VerticalViewProps> = ({
                           <span className="text-orange-500">{habit.streak}</span>
                           <span className={`text-[9px] font-medium px-1 py-0 rounded ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon}</span>
                           <span className={`text-[9px] ${trendCfg.color}`}>{trendCfg.icon}</span>
-                          <button onClick={(e) => { e.stopPropagation(); onViewAnalytics?.(habit) }} className="font-medium hover:underline" style={{ color: getScoreColor(habit.habitScore) }}>
-                            {habit.habitScore}
-                          </button>
                         </div>
                       </div>
                     </button>

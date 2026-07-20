@@ -71,7 +71,9 @@ import {
   Search,
   Circle,
   Grid3X3,
+  Bell,
 } from "lucide-react"
+import { ReminderModal } from "@/components/reminders/reminder-modal"
 
 
 const EMOJI_CATEGORIES = [
@@ -2908,6 +2910,7 @@ function WritingArea({
     return true
   })
   const [cameraOpen, setCameraOpen] = useState(false)
+  const [reminderModalOpen, setReminderModalOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
@@ -3618,6 +3621,15 @@ function WritingArea({
                 <MapPinIcon className="h-4 w-4" />
               </button>
             </Tooltip>
+            <Tooltip label="Set Reminder">
+              <button
+                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
+                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
+                onClick={() => setReminderModalOpen(true)}
+              >
+                <Bell className="h-4 w-4" />
+              </button>
+            </Tooltip>
           </div>
 
           <div className="flex items-center gap-3">
@@ -3666,6 +3678,13 @@ function WritingArea({
           />
         )}
       </AnimatePresence>
+
+      <ReminderModal
+        open={reminderModalOpen}
+        onClose={() => setReminderModalOpen(false)}
+        defaultSource="journal"
+        defaultTitle={title || ""}
+      />
 
       {tableDialogOpen && (
         <InsertTableDialog

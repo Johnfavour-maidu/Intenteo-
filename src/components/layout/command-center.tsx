@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { ReminderModal } from "@/components/reminders/reminder-modal"
+import { loadReminders as loadAllRemindersUnified, saveReminders as saveAllRemindersUnified, formatDateKey as formatDateKeyUtil } from "@/lib/reminder-types"
 
 interface CommandCenterProps {
   open: boolean
@@ -62,7 +64,7 @@ interface ReminderItem {
 
 function loadRemindersForDate(dateKey: string): ReminderItem[] {
   try {
-    const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+    const reminders = loadAllRemindersUnified()
     if (Array.isArray(reminders)) {
       return reminders
         .filter((r: any) => r.date === dateKey)
@@ -79,16 +81,11 @@ function loadRemindersForDate(dateKey: string): ReminderItem[] {
 }
 
 function saveReminders(reminders: any[]) {
-  localStorage.setItem("intenteo-reminders", JSON.stringify(reminders))
+  saveAllRemindersUnified(reminders)
 }
 
 function loadAllReminders(): any[] {
-  try {
-    const raw = localStorage.getItem("intenteo-reminders")
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  return loadAllRemindersUnified()
 }
 
 export function CommandCenter({ open, onClose }: CommandCenterProps) {
@@ -103,6 +100,7 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   const [reminderText, setReminderText] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState("")
+  const [reminderModalOpen, setReminderModalOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -156,14 +154,18 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   const handleSaveReminder = () => {
     if (!reminderText.trim() || !selectedDateKey || isPastDate) return
     try {
-      const existing = loadAllReminders()
+      const existing = loadAllRemindersUnified()
       existing.push({
         id: crypto.randomUUID(),
         title: reminderText.trim(),
         date: selectedDateKey,
+        time: "",
+        frequency: "one-time",
+        completed: false,
+        source: "task",
         createdAt: new Date().toISOString(),
       })
-      saveReminders(existing)
+      saveAllRemindersUnified(existing)
     } catch {}
     setReminderText("")
     setShowReminderForm(false)
@@ -171,22 +173,22 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
   }
 
   const handleToggleDone = (id: string) => {
-    const all = loadAllReminders()
+    const all = loadAllRemindersUnified()
     const updated = all.map((r) => r.id === id ? { ...r, completed: !r.completed } : r)
-    saveReminders(updated)
+    saveAllRemindersUnified(updated)
     setRefreshKey((k) => k + 1)
   }
 
   const handleDelete = (id: string) => {
-    const all = loadAllReminders()
-    saveReminders(all.filter((r) => r.id !== id))
+    const all = loadAllRemindersUnified()
+    saveAllRemindersUnified(all.filter((r) => r.id !== id))
     setRefreshKey((k) => k + 1)
   }
 
   const handleEditSave = (id: string) => {
     if (!editText.trim()) return
-    const all = loadAllReminders()
-    saveReminders(all.map((r) => r.id === id ? { ...r, title: editText.trim() } : r))
+    const all = loadAllRemindersUnified()
+    saveAllRemindersUnified(all.map((r) => r.id === id ? { ...r, title: editText.trim() } : r))
     setEditingId(null)
     setEditText("")
     setRefreshKey((k) => k + 1)
@@ -357,19 +359,35 @@ export function CommandCenter({ open, onClose }: CommandCenterProps) {
           )}
 
           {/* Footer */}
-          <div className="border-t px-4 py-2.5">
+          <div className="border-t px-4 py-2.5 flex gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full text-xs h-7"
+              className="flex-1 text-xs h-7"
+              onClick={() => { setReminderModalOpen(true) }}
+            >
+              <Bell className="h-3.5 w-3.5 mr-1.5" />
+              View All Reminders
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 text-xs h-7"
               onClick={() => { router.push("/calendar"); onClose() }}
             >
               <Calendar className="h-3.5 w-3.5 mr-1.5" />
-              Open Full Calendar
+              Full Calendar
             </Button>
           </div>
         </motion.div>
       )}
+
+      {/* Reminder Modal */}
+      <ReminderModal
+        open={reminderModalOpen}
+        onClose={() => setReminderModalOpen(false)}
+        defaultSource="task"
+      />
     </AnimatePresence>
   )
 }

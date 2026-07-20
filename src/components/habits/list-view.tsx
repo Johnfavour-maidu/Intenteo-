@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Flame, Target, Edit3, Trash2, CheckCircle2, Clock, Pin } from "lucide-react"
+import { Flame, Target, Edit3, Trash2, CheckCircle2, Clock, Star } from "lucide-react"
 import {
   getHealthState, HEALTH_CONFIG,
   calcTrend, TREND_CONFIG,
@@ -53,13 +53,6 @@ interface ListViewProps {
   linkedGoals: { id: string; title: string; linkedHabits: string[]; colorHex: string }[]
   onViewAnalytics?: (habit: Habit) => void
   onPin?: (habitId: string) => void
-}
-
-const getScoreColor = (score: number): string => {
-  if (score >= 80) return "#22C55E"
-  if (score >= 60) return "#EAB308"
-  if (score >= 40) return "#F97316"
-  return "#EF4444"
 }
 
 const getScheduleLabel = (schedule: { type: string; slot?: string; time?: string }): string => {
@@ -133,7 +126,7 @@ export const ListView: React.FC<ListViewProps> = ({
                   <div>
                     <div className="flex items-center gap-1.5">
                       <h4 className="font-semibold text-foreground">{habit.name}</h4>
-                      {habit.pinned && <Pin className="h-3 w-3 text-amber-500 fill-amber-400" />}
+                      {habit.pinned && <Star className="h-3 w-3 text-amber-500 fill-amber-400" />}
                     </div>
                     <p className="text-xs text-muted-foreground">{habit.category}</p>
                   </div>
@@ -141,18 +134,14 @@ export const ListView: React.FC<ListViewProps> = ({
                 <div className="flex items-center gap-1">
                   {onPin && (
                     <button onClick={() => onPin(habit.id)} className={`p-1 rounded transition-colors ${habit.pinned ? "text-amber-500" : "text-muted-foreground hover:text-amber-400"}`} title={habit.pinned ? "Unpin habit" : "Pin as Focus Habit"}>
-                      <Pin className={`h-3.5 w-3.5 ${habit.pinned ? "fill-amber-400" : ""}`} />
+                      <Star className={`h-4 w-4 ${habit.pinned ? "fill-amber-400" : ""}`} />
                     </button>
                   )}
-                  <span className={`text-[9px] font-medium px-1 py-0 rounded ${healthCfg.bg} ${healthCfg.color}`}>{healthCfg.icon}</span>
-                  <button onClick={() => onViewAnalytics?.(habit)}>
-                    <Badge
-                      variant="outline"
-                      className="text-xs cursor-pointer hover:opacity-80"
-                      style={{ borderColor: getScoreColor(habit.habitScore), color: getScoreColor(habit.habitScore) }}
-                    >
-                      {habit.habitScore}%
-                    </Badge>
+                  <button onClick={() => onEdit(habit)} className="p-1 rounded text-muted-foreground hover:text-[#1E0E6B] transition-colors" title="Edit habit">
+                    <Edit3 className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => setShowDeleteConfirm(showDeleteConfirm === habit.id ? null : habit.id)} className="p-1 rounded text-muted-foreground hover:text-red-500 transition-colors" title="Delete habit">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -233,51 +222,35 @@ export const ListView: React.FC<ListViewProps> = ({
                     </>
                   )}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onEdit(habit)}
-                  className="h-8 px-2"
-                >
-                  <Edit3 className="h-4 w-4" />
-                </Button>
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(showDeleteConfirm === habit.id ? null : habit.id)}
-                    className="h-8 px-2 text-red-500 hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  {showDeleteConfirm === habit.id && (
-                    <div className="absolute right-0 top-full mt-1 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-white/20 min-w-[120px]">
-                      <p className="text-xs text-muted-foreground mb-2">Delete habit?</p>
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="h-6 text-xs flex-1"
-                          onClick={() => {
-                            onDelete(habit.id)
-                            setShowDeleteConfirm(null)
-                          }}
-                        >
-                          Delete
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-xs"
-                          onClick={() => setShowDeleteConfirm(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
+
+              {/* Delete Confirmation Popover */}
+              {showDeleteConfirm === habit.id && (
+                <div className="absolute right-3 top-12 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-white/20 min-w-[120px]">
+                  <p className="text-xs text-muted-foreground mb-2">Delete habit?</p>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-6 text-xs flex-1"
+                      onClick={() => {
+                        onDelete(habit.id)
+                        setShowDeleteConfirm(null)
+                      }}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs"
+                      onClick={() => setShowDeleteConfirm(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}
