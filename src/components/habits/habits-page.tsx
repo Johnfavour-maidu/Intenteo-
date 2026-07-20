@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Component, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
-import { LearnMoreSection } from "@/components/learn-more-section"
+import { LearnMoreButton } from "@/components/learn-more-section"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
@@ -2066,11 +2066,7 @@ export function HabitsPage() {
       )}
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <LearnMoreSection
-        title="Habit Formation"
-        description="Explore identity-based habits, consistency strategies, and techniques for building lasting routines."
-        onOpen={() => setLearnOpen(true)}
-      />
+      <LearnMoreButton onOpen={() => setLearnOpen(true)} />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="habits" />
     </div>
   )

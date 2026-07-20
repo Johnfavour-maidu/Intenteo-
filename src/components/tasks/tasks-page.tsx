@@ -7,7 +7,7 @@ import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
-import { LearnMoreSection } from "@/components/learn-more-section"
+import { LearnMoreButton } from "@/components/learn-more-section"
 import { Input } from "@/components/ui/input"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { AutosuggestInput } from "@/components/ui/autosuggest-input"
@@ -2184,11 +2184,7 @@ export function TasksPage() {
           if (focusTarget) setFocusTask(focusTarget)
         }}
       />
-      <LearnMoreSection
-        title="Productive Execution"
-        description="Learn practical techniques for prioritization, deep work, and completing meaningful tasks effectively."
-        onOpen={() => setLearnOpen(true)}
-      />
+      <LearnMoreButton onOpen={() => setLearnOpen(true)} />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="tasks" />
     </div>
   )

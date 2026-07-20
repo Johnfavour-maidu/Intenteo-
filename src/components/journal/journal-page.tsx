@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
-import { LearnMoreSection } from "@/components/learn-more-section"
+import { LearnMoreButton } from "@/components/learn-more-section"
 import { Input } from "@/components/ui/input"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
@@ -4183,11 +4183,7 @@ export function JournalPage() {
           </p>
         </div>
       </div>
-      <LearnMoreSection
-        title="Journaling & Reflection"
-        description="Improve your journaling practice with prompts, reflection techniques, and writing exercises."
-        onOpen={() => setLearnOpen(true)}
-      />
+      <LearnMoreButton onOpen={() => setLearnOpen(true)} />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="journal" />
     </div>
   )

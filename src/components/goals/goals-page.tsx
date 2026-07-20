@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
-import { LearnMoreSection } from "@/components/learn-more-section"
+import { LearnMoreButton } from "@/components/learn-more-section"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ProgressRing } from "@/components/ui/progress-ring"
@@ -1748,11 +1748,7 @@ export function GoalsPage() {
           setReviewGoal(null)
         }} />
       )}
-      <LearnMoreSection
-        title="Goal Achievement"
-        description="Learn proven strategies for setting meaningful goals, planning milestones, and staying committed over time."
-        onOpen={() => setLearnOpen(true)}
-      />
+      <LearnMoreButton onOpen={() => setLearnOpen(true)} />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="goals" />
     </div>
   )

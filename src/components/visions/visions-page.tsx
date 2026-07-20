@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
-import { LearnMoreSection } from "@/components/learn-more-section"
+import { LearnMoreButton } from "@/components/learn-more-section"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -1674,11 +1674,7 @@ export function VisionsPage() {
           <p>Each vision is tied to a life area and can contain milestones, goals, and reviews. Think of visions as the chapters of the life story you are writing.</p>
         </EducationalModal>
       )}
-      <LearnMoreSection
-        title="Purpose & Vision"
-        description="Strengthen your life vision with resources on purpose, values, long-term thinking, and intentional planning."
-        onOpen={() => setLearnOpen(true)}
-      />
+      <LearnMoreButton onOpen={() => setLearnOpen(true)} />
       <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="visions" />
     </div>
   )
