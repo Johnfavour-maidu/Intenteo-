@@ -51,7 +51,7 @@ interface IntentionLibraryProps {
 }
 
 export function IntentionLibrary({ onSelect, compact }: IntentionLibraryProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("library")
+  const [activeTab, setActiveTab] = useState<TabKey>("write")
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedCategory, setExpandedCategory] = useState<IntentionCategory | null>(null)
   const [favorites, setFavorites] = useState<string[]>([])
@@ -97,8 +97,8 @@ export function IntentionLibrary({ onSelect, compact }: IntentionLibraryProps) {
   }, [searchQuery])
 
   const tabs = [
-    { key: "library" as TabKey, label: "Library", icon: BookOpen },
     { key: "write" as TabKey, label: "Write Your Own", icon: PenLine },
+    { key: "library" as TabKey, label: "Library", icon: BookOpen },
     { key: "favorites" as TabKey, label: "Favorites", icon: Heart },
     { key: "recent" as TabKey, label: "Recently Used", icon: Clock },
   ]

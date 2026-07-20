@@ -79,7 +79,6 @@ export function TodayDashboard() {
   // ─── Data Loading ───
   const [tasks, setTasks] = useState<any[]>([])
   const [habits, setHabits] = useState<any[]>([])
-  const [visions, setVisions] = useState<any[]>([])
   const [userName, setUserName] = useState("")
 
   useEffect(() => {
@@ -105,11 +104,6 @@ export function TodayDashboard() {
     } catch {}
 
     try {
-      const storedVisions = JSON.parse(localStorage.getItem("intenteo-visions") || "[]")
-      if (Array.isArray(storedVisions)) setVisions(storedVisions)
-    } catch {}
-
-    try {
       const profile = JSON.parse(localStorage.getItem("intenteo-user-profile") || "{}")
       if (profile?.name) setUserName(profile.name)
     } catch {}
@@ -130,6 +124,15 @@ export function TodayDashboard() {
   const totalTasksToday = tasks.length
   const completedTasksToday = tasks.filter((t: any) => t.completed).length
   const remainingTasks = totalTasksToday - completedTasksToday
+
+  const intentScore = useMemo(() => {
+    let score = 0
+    if (intention) score += 20
+    score += habitPercent * 0.4
+    const taskPercent = totalTasksToday > 0 ? (completedTasksToday / totalTasksToday) * 100 : 0
+    score += taskPercent * 0.4
+    return Math.round(Math.min(100, score))
+  }, [intention, habitPercent, totalTasksToday, completedTasksToday])
 
   const currentStreak = useMemo(() => {
     let maxStreak = 0
@@ -377,13 +380,13 @@ export function TodayDashboard() {
                   <div className="flex gap-3">
                     <Button onClick={() => setShowIntentionLibrary(true)}
                       className="bg-[#1E0E6B] hover:bg-[#1E0E6B]/90 text-white">
-                      <BookOpen className="h-4 w-4 mr-1.5" />
-                      Choose From Library
+                      <PenLine className="h-4 w-4 mr-1.5" />
+                      Write My Own
                     </Button>
                     <Button variant="outline" onClick={() => setShowIntentionLibrary(true)}
                       className="border-[#1E0E6B]/20">
-                      <PenLine className="h-4 w-4 mr-1.5" />
-                      Write My Own
+                      <BookOpen className="h-4 w-4 mr-1.5" />
+                      Choose From Library
                     </Button>
                   </div>
                 </div>
@@ -420,10 +423,10 @@ export function TodayDashboard() {
                       {[
                         { icon: <CheckCircle2 className="h-4 w-4" />, label: "Tasks Due", value: remainingTasks, color: "text-blue-600 dark:text-blue-400" },
                         { icon: <Repeat className="h-4 w-4" />, label: "Habits Remaining", value: totalHabits - completedHabits, color: "text-orange-500 dark:text-orange-400" },
-                        { icon: <Bell className="h-4 w-4" />, label: "Reminders", value: reminderCount, color: "text-purple-600 dark:text-purple-400" },
-                        { icon: <Eye className="h-4 w-4" />, label: "Vision Reviews", value: visions.length, color: "text-[#1E0E6B]" },
+                        { icon: <Bell className="h-4 w-4" />, label: "Today's Reminders", value: reminderCount, color: "text-purple-600 dark:text-purple-400", onClick: () => setReminderModalOpen(true) },
+                        { icon: <Target className="h-4 w-4" />, label: "Intent Score", value: `${intentScore}%`, color: "text-[#1E0E6B]", onClick: undefined },
                       ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30">
+                        <div key={i} className={cn("flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30", item.onClick && "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={item.onClick}>
                           <span className={item.color}>{item.icon}</span>
                           <div>
                             <div className="text-lg font-bold leading-none">{item.value}</div>
