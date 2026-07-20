@@ -326,13 +326,13 @@
     border-spacing: 0;
     width: 100%;
     margin: 8px 0;
-    border: 1px solid #c7d2fe;
+    border: 1px solid rgba(199, 210, 254, 0.7);
     border-radius: 10px;
     overflow: hidden;
     background: white;
   }
   [contenteditable] table.je-table td {
-    border: 1px solid #c7d2fe;
+    border: 1px solid rgba(199, 210, 254, 0.5);
     padding: 8px 12px;
     min-width: 60px;
     vertical-align: top;
@@ -379,10 +379,22 @@
   }
   .journal-page-lined table.je-table {
     margin: 0 0 28px 0;
+    background: white;
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(199, 210, 254, 0.7);
+    border-radius: 10px;
+    overflow: hidden;
   }
   .journal-page-lined table.je-table td {
     line-height: 28px;
-    padding: 0 12px;
+    padding: 6px 12px;
     vertical-align: middle;
+    border: 1px solid rgba(199, 210, 254, 0.5);
+    background: white;
+  }
+  .journal-page-lined table.je-table tr:first-child td {
+    background: #f5f3ff;
+    font-weight: 600;
   }
 }

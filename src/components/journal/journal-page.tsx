@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, memo, forwardRef, useImperativeHandle } from "react"
+import { createPortal } from "react-dom"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -71,9 +72,7 @@ import {
   Search,
   Circle,
   Grid3X3,
-  Bell,
 } from "lucide-react"
-import { ReminderModal } from "@/components/reminders/reminder-modal"
 
 
 const EMOJI_CATEGORIES = [
@@ -584,6 +583,69 @@ const StreakCircle = memo(function StreakCircle({ streak }: { streak: number }) 
 })
 
 /* ────────────────────────────────────────────────────── */
+/* Journal Entry Portal Menu                             */
+/* ────────────────────────────────────────────────────── */
+
+function JournalEntryMenu({
+  entry,
+  anchorRect,
+  onDuplicateEntry,
+  onToggleFavorite,
+  onTogglePin,
+  onDeleteEntry,
+  onClose,
+}: {
+  entry: JournalEntry
+  anchorRect: DOMRect
+  onDuplicateEntry: (entry: JournalEntry) => void
+  onToggleFavorite: (id: string) => void
+  onTogglePin: (id: string) => void
+  onDeleteEntry: (id: string) => void
+  onClose: () => void
+}) {
+  const menuRef = useRef<HTMLDivElement>(null)
+  const menuHeight = 180
+  const spaceBelow = window.innerHeight - anchorRect.bottom
+  const openUp = spaceBelow < menuHeight
+  const top = openUp ? anchorRect.top - menuHeight - 4 : anchorRect.bottom + 4
+  const left = Math.min(anchorRect.left, window.innerWidth - 180)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [onClose])
+
+  return createPortal(
+    <motion.div
+      ref={menuRef}
+      initial={{ opacity: 0, scale: 0.95, y: openUp ? 4 : -4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: openUp ? 4 : -4 }}
+      className="fixed w-44 rounded-xl border bg-background shadow-xl p-1 z-[9999]"
+      style={{ top, left }}
+    >
+      <button onClick={() => { onDuplicateEntry(entry); onClose() }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+        <Copy className="h-3 w-3" /> Duplicate
+      </button>
+      <button onClick={() => { onToggleFavorite(entry.id); onClose() }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+        <Star className="h-3 w-3" /> {entry.favorited ? "Unstar" : "Star"}
+      </button>
+      <button onClick={() => { onTogglePin(entry.id); onClose() }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
+        <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin" : "Pin"}
+      </button>
+      <div className="h-px bg-border my-1" />
+      <button onClick={() => { onDeleteEntry(entry.id); onClose() }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
+        <Trash2 className="h-3 w-3" /> Delete
+      </button>
+    </motion.div>,
+    document.body
+  )
+}
+
+/* ────────────────────────────────────────────────────── */
 /* Popover Calendar                                      */
 /* ────────────────────────────────────────────────────── */
 
@@ -725,6 +787,7 @@ function CalendarListPanel({
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [menuAnchorRect, setMenuAnchorRect] = useState<DOMRect | null>(null)
 
   useEffect(() => {
     const handler = () => setOpenMenuId(null)
@@ -920,32 +983,21 @@ function CalendarListPanel({
                             <div className="relative">
                               <Button
                                 variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
+                                onClick={(e) => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setMenuAnchorRect(rect); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
                               >
                                 <MoreHorizontal className="h-3 w-3" />
                               </Button>
                               <AnimatePresence>
-                                {openMenuId === entry.id && (
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                                    className="absolute right-0 top-full mt-1 w-40 rounded-xl border bg-background shadow-xl p-1 z-20"
-                                  >
-                                    <button onClick={() => { onDuplicateEntry(entry); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                      <Copy className="h-3 w-3" /> Duplicate
-                                    </button>
-                                    <button onClick={() => { onToggleFavorite(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                      <Star className="h-3 w-3" /> {entry.favorited ? "Unstar" : "Star"}
-                                    </button>
-                                    <button onClick={() => { onTogglePin(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                      <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin" : "Pin"}
-                                    </button>
-                                    <div className="h-px bg-border my-1" />
-                                    <button onClick={() => { onDeleteEntry(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
-                                      <Trash2 className="h-3 w-3" /> Delete
-                                    </button>
-                                  </motion.div>
+                                {openMenuId === entry.id && menuAnchorRect && (
+                                  <JournalEntryMenu
+                                    entry={entry}
+                                    anchorRect={menuAnchorRect}
+                                    onDuplicateEntry={onDuplicateEntry}
+                                    onToggleFavorite={onToggleFavorite}
+                                    onTogglePin={onTogglePin}
+                                    onDeleteEntry={onDeleteEntry}
+                                    onClose={() => { setOpenMenuId(null); setMenuAnchorRect(null) }}
+                                  />
                                 )}
                               </AnimatePresence>
                             </div>
@@ -998,32 +1050,21 @@ function CalendarListPanel({
                         <div className="relative">
                           <Button
                             variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
+                            onClick={(e) => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setMenuAnchorRect(rect); setOpenMenuId(openMenuId === entry.id ? null : entry.id) }}
                           >
                             <MoreHorizontal className="h-3.5 w-3.5" />
                           </Button>
                           <AnimatePresence>
-                            {openMenuId === entry.id && (
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                                className="absolute right-0 top-full mt-1 w-40 rounded-xl border bg-background shadow-xl p-1 z-20"
-                              >
-                                <button onClick={() => { onDuplicateEntry(entry); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                  <Copy className="h-3 w-3" /> Duplicate
-                                </button>
-                                <button onClick={() => { onToggleFavorite(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                  <Star className="h-3 w-3" /> {entry.favorited ? "Unstar" : "Star"}
-                                </button>
-                                <button onClick={() => { onTogglePin(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-muted transition-colors text-left">
-                                  <Pin className="h-3 w-3" /> {entry.pinned ? "Unpin from Sidebar" : "Pin to Sidebar"}
-                                </button>
-                                <div className="h-px bg-border my-1" />
-                                <button onClick={() => { onDeleteEntry(entry.id); setOpenMenuId(null) }} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-left">
-                                  <Trash2 className="h-3 w-3" /> Delete
-                                </button>
-                              </motion.div>
+                            {openMenuId === entry.id && menuAnchorRect && (
+                              <JournalEntryMenu
+                                entry={entry}
+                                anchorRect={menuAnchorRect}
+                                onDuplicateEntry={onDuplicateEntry}
+                                onToggleFavorite={onToggleFavorite}
+                                onTogglePin={onTogglePin}
+                                onDeleteEntry={onDeleteEntry}
+                                onClose={() => { setOpenMenuId(null); setMenuAnchorRect(null) }}
+                              />
                             )}
                           </AnimatePresence>
                         </div>
@@ -1710,13 +1751,16 @@ function VoiceRecorder({ onAdd }: {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const recordingTimeRef = useRef(0)
+  const capturedDurationRef = useRef(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const toggleRecording = useCallback(async () => {
     if (isRecording) {
-      mediaRecorderRef.current?.stop()
+      // Capture duration BEFORE stopping (onstop may fire async)
+      capturedDurationRef.current = recordingTimeRef.current
       if (timerRef.current) clearInterval(timerRef.current)
+      mediaRecorderRef.current?.stop()
       setIsRecording(false)
       setRecordingTime(0)
       recordingTimeRef.current = 0
@@ -1734,7 +1778,7 @@ function VoiceRecorder({ onAdd }: {
             id: `audio-${Date.now()}`,
             name: `Recording`,
             url,
-            duration: recordingTimeRef.current,
+            duration: capturedDurationRef.current,
             createdAt: new Date().toISOString(),
           })
           stream.getTracks().forEach((t) => t.stop())
@@ -2910,7 +2954,6 @@ function WritingArea({
     return true
   })
   const [cameraOpen, setCameraOpen] = useState(false)
-  const [reminderModalOpen, setReminderModalOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [playingRecordingId, setPlayingRecordingId] = useState<string | null>(null)
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
@@ -3621,15 +3664,6 @@ function WritingArea({
                 <MapPinIcon className="h-4 w-4" />
               </button>
             </Tooltip>
-            <Tooltip label="Set Reminder">
-              <button
-                className="h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
-                style={{ backgroundColor: "var(--brand-primary)", color: "white" }}
-                onClick={() => setReminderModalOpen(true)}
-              >
-                <Bell className="h-4 w-4" />
-              </button>
-            </Tooltip>
           </div>
 
           <div className="flex items-center gap-3">
@@ -3678,13 +3712,6 @@ function WritingArea({
           />
         )}
       </AnimatePresence>
-
-      <ReminderModal
-        open={reminderModalOpen}
-        onClose={() => setReminderModalOpen(false)}
-        defaultSource="journal"
-        defaultTitle={title || ""}
-      />
 
       {tableDialogOpen && (
         <InsertTableDialog
