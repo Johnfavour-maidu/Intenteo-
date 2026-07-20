@@ -74,13 +74,12 @@ export function TodayDashboard() {
   const [streakModalOpen, setStreakModalOpen] = useState(false)
   const [reminderModalOpen, setReminderModalOpen] = useState(false)
   const [quickActionsExpanded, setQuickActionsExpanded] = useState(false)
+  const [glanceOpen, setGlanceOpen] = useState(true)
 
   // ─── Data Loading ───
   const [tasks, setTasks] = useState<any[]>([])
   const [habits, setHabits] = useState<any[]>([])
-  const [goals, setGoals] = useState<any[]>([])
   const [visions, setVisions] = useState<any[]>([])
-  const [purpose, setPurpose] = useState<any>(null)
   const [userName, setUserName] = useState("")
 
   useEffect(() => {
@@ -106,18 +105,8 @@ export function TodayDashboard() {
     } catch {}
 
     try {
-      const storedGoals = JSON.parse(localStorage.getItem("intenteo-goals") || "[]")
-      if (Array.isArray(storedGoals)) setGoals(storedGoals)
-    } catch {}
-
-    try {
       const storedVisions = JSON.parse(localStorage.getItem("intenteo-visions") || "[]")
       if (Array.isArray(storedVisions)) setVisions(storedVisions)
-    } catch {}
-
-    try {
-      const storedPurpose = JSON.parse(localStorage.getItem("intenteo-purpose") || "null")
-      setPurpose(storedPurpose)
     } catch {}
 
     try {
@@ -141,12 +130,6 @@ export function TodayDashboard() {
   const totalTasksToday = tasks.length
   const completedTasksToday = tasks.filter((t: any) => t.completed).length
   const remainingTasks = totalTasksToday - completedTasksToday
-
-  const topGoal = useMemo(() => {
-    const active = goals.filter((g: any) => !g.archived && (g.progress || 0) < 100)
-    if (active.length === 0) return null
-    return active.sort((a: any, b: any) => (b.progress || 0) - (a.progress || 0))[0]
-  }, [goals])
 
   const currentStreak = useMemo(() => {
     let maxStreak = 0
@@ -409,206 +392,175 @@ export function TodayDashboard() {
           </GlassCard>
         </motion.div>
 
-        {/* ─── Section 2: Today at a Glance ─── */}
+        {/* ─── Section 2: Today at a Glance (Collapsible) ─── */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}>
           <Card>
-            <CardContent className="p-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Today at a Glance</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { icon: <CheckCircle2 className="h-4 w-4" />, label: "Tasks Due", value: remainingTasks, color: "text-blue-600 dark:text-blue-400" },
-                  { icon: <Repeat className="h-4 w-4" />, label: "Habits Remaining", value: totalHabits - completedHabits, color: "text-orange-500 dark:text-orange-400" },
-                  { icon: <Bell className="h-4 w-4" />, label: "Reminders", value: reminderCount, color: "text-purple-600 dark:text-purple-400" },
-                  { icon: <Target className="h-4 w-4" />, label: "Active Goals", value: goals.filter((g: any) => !g.archived && (g.progress || 0) < 100).length, color: "text-[#EB9E5B]" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30">
-                    <span className={item.color}>{item.icon}</span>
-                    <div>
-                      <div className="text-lg font-bold leading-none">{item.value}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">{item.label}</div>
+            <button
+              onClick={() => setGlanceOpen(!glanceOpen)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors rounded-2xl"
+            >
+              <div className="flex items-center gap-2">
+                <span className={cn("h-4 w-4 transition-transform", glanceOpen ? "rotate-0" : "rotate-0")}>
+                  {glanceOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                </span>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today at a Glance</h2>
+              </div>
+            </button>
+            <AnimatePresence initial={false}>
+              {glanceOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { icon: <CheckCircle2 className="h-4 w-4" />, label: "Tasks Due", value: remainingTasks, color: "text-blue-600 dark:text-blue-400" },
+                        { icon: <Repeat className="h-4 w-4" />, label: "Habits Remaining", value: totalHabits - completedHabits, color: "text-orange-500 dark:text-orange-400" },
+                        { icon: <Bell className="h-4 w-4" />, label: "Reminders", value: reminderCount, color: "text-purple-600 dark:text-purple-400" },
+                        { icon: <Eye className="h-4 w-4" />, label: "Vision Reviews", value: visions.length, color: "text-[#1E0E6B]" },
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30">
+                          <span className={item.color}>{item.icon}</span>
+                          <div>
+                            <div className="text-lg font-bold leading-none">{item.value}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{item.label}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Card>
         </motion.div>
 
-        {/* ─── Section 3: Today's Goal Focus ─── */}
-        {topGoal && (
+        {/* ─── Section 3: Today's Focus + Habits (Two-Column) ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Today's Focus */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
-            <Card>
+            <Card className="h-full">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today&apos;s Goal</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    Today&apos;s Focus
+                  </h2>
                   <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary"
-                    onClick={() => router.push("/goals")}>
+                    onClick={() => router.push("/tasks")}>
                     View All <ArrowRight className="h-3 w-3 ml-1" />
                   </Button>
                 </div>
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{topGoal.title}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div>
-                        <div className="text-[10px] text-muted-foreground">Progress</div>
-                        <div className="text-sm font-bold text-primary">{topGoal.progress || 0}%</div>
-                      </div>
-                      {topGoal.nextMilestone && (
-                        <div>
-                          <div className="text-[10px] text-muted-foreground">Next Milestone</div>
-                          <div className="text-sm font-medium">{topGoal.nextMilestone}</div>
-                        </div>
-                      )}
-                      {topGoal.deadline && (
-                        <div>
-                          <div className="text-[10px] text-muted-foreground">Deadline</div>
-                          <div className="text-sm font-medium">{topGoal.deadline}</div>
-                        </div>
-                      )}
-                    </div>
+                {priorityTasks.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No priority tasks for today. Well done!</p>
                   </div>
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-primary">{topGoal.progress || 0}%</div>
-                    </div>
+                ) : (
+                  <div className="space-y-2">
+                    {priorityTasks.map((task: any) => (
+                      <motion.div key={task.id} layout
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/30 transition-all duration-200">
+                        <button onClick={() => toggleTask(task.id)} className="shrink-0">
+                          <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{task.title}</span>
+                            <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                          </div>
+                          {task.timeRange && task.timeRange !== "Anytime" && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                              <Clock className="h-3 w-3" />
+                              {task.timeRange}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                    {remainingTasks > 3 && (
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        + {remainingTasks - 3} more task{remainingTasks - 3 !== 1 ? "s" : ""}
+                      </p>
+                    )}
                   </div>
-                </div>
-                {/* Progress bar */}
-                <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${topGoal.progress || 0}%` }}
-                    transition={{ duration: 1, delay: 0.3 }}
-                    className="h-full rounded-full bg-gradient-to-r from-[#1E0E6B] to-[#EB9E5B]"
-                  />
-                </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
-        )}
 
-        {/* ─── Section 4: Today's Focus (max 3 tasks) ─── */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  Today&apos;s Focus
-                </h2>
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary"
-                  onClick={() => router.push("/tasks")}>
-                  View All <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-
-              {priorityTasks.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No priority tasks for today. Well done!</p>
+          {/* Today's Habits */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
+            <Card className="h-full">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="font-semibold flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-primary" />
+                      Today&apos;s Habits
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {completedHabits} of {totalHabits} completed
+                      {totalHabits > 0 && <span className="ml-1.5 text-primary font-medium">({habitPercent}%)</span>}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary"
+                    onClick={() => router.push("/habits")}>
+                    View All <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {priorityTasks.map((task: any, idx: number) => (
-                    <motion.div key={task.id} layout
-                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/30 transition-all duration-200">
-                      <button onClick={() => toggleTask(task.id)} className="shrink-0">
-                        <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{task.title}</span>
-                          <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                {habits.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No habits yet. Start building consistency!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {habits.slice(0, 5).map((habit: any) => (
+                      <motion.div key={habit.id} layout
+                        className={cn(
+                          "flex items-center gap-3 p-2.5 rounded-lg transition-all duration-200",
+                          habit.completedToday ? "bg-primary/5" : "hover:bg-muted/30"
+                        )}>
+                        <button onClick={() => toggleHabit(habit.id)} className="shrink-0">
+                          {habit.completedToday ? (
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+                              <CheckCircle2 className="h-5 w-5 text-primary" />
+                            </motion.div>
+                          ) : (
+                            <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                          )}
+                        </button>
+                        <span className="text-lg">{habit.icon || "🎯"}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className={cn("text-sm font-medium", habit.completedToday && "line-through text-muted-foreground")}>
+                            {habit.name}
+                          </span>
                         </div>
-                        {task.timeRange && task.timeRange !== "Anytime" && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                            <Clock className="h-3 w-3" />
-                            {task.timeRange}
+                        {(habit.streak || 0) > 0 && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                            <Flame className="h-3 w-3 text-orange-400" />
+                            {habit.streak}
                           </div>
                         )}
-                      </div>
-                    </motion.div>
-                  ))}
-                  {remainingTasks > 3 && (
-                    <p className="text-xs text-muted-foreground text-center pt-1">
-                      + {remainingTasks - 3} more task{remainingTasks - 3 !== 1 ? "s" : ""}
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* ─── Section 5: Today's Habits ─── */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="font-semibold flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-primary" />
-                    Today&apos;s Habits
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {completedHabits} of {totalHabits} completed
-                    {totalHabits > 0 && <span className="ml-1.5 text-primary font-medium">({habitPercent}%)</span>}
-                  </p>
-                </div>
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary"
-                  onClick={() => router.push("/habits")}>
-                  View All <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-
-              {habits.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No habits yet. Start building consistency!</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {habits.slice(0, 6).map((habit: any) => (
-                    <motion.div key={habit.id} layout
-                      className={cn(
-                        "flex items-center gap-3 p-2.5 rounded-lg transition-all duration-200",
-                        habit.completedToday ? "bg-primary/5" : "hover:bg-muted/30"
-                      )}>
-                      <button onClick={() => toggleHabit(habit.id)} className="shrink-0">
-                        {habit.completedToday ? (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}>
-                            <CheckCircle2 className="h-5 w-5 text-primary" />
-                          </motion.div>
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
-                        )}
-                      </button>
-                      <span className="text-lg">{habit.icon || "🎯"}</span>
-                      <div className="flex-1 min-w-0">
-                        <span className={cn("text-sm font-medium", habit.completedToday && "line-through text-muted-foreground")}>
-                          {habit.name}
-                        </span>
-                      </div>
-                      {(habit.streak || 0) > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                          <Flame className="h-3 w-3 text-orange-400" />
-                          {habit.streak}
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
-                  {habits.length > 6 && (
-                    <p className="text-xs text-muted-foreground text-center pt-1">
-                      + {habits.length - 6} more habit{habits.length - 6 !== 1 ? "s" : ""}
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+                      </motion.div>
+                    ))}
+                    {habits.length > 5 && (
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        + {habits.length - 5} more habit{habits.length - 5 !== 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
 
         {/* ─── Section 6: Today's Reflection ─── */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}>

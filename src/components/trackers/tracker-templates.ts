@@ -1,6 +1,6 @@
 "use client"
 
-export type TrackerCategory = "All" | "Mental Wellness" | "Health" | "Fitness" | "Lifestyle" | "Finance" | "Content Creation" | "Education" | "Business" | "Custom"
+export type TrackerCategory = "All" | "Mental Wellness" | "Health" | "Fitness" | "Lifestyle" | "Finance" | "Content Creation" | "Education" | "Business" | "Mindfulness" | "Custom"
 
 export type ChartType = "line" | "bar" | "calendar_heatmap" | "pie" | "progress_ring" | "streak_counter"
 
@@ -57,7 +57,7 @@ export interface CustomTrackerConfig {
 }
 
 export const TRACKER_CATEGORIES: TrackerCategory[] = [
-  "All", "Mental Wellness", "Health", "Fitness", "Lifestyle", "Business", "Finance", "Education", "Content Creation", "Custom"
+  "All", "Mental Wellness", "Health", "Fitness", "Mindfulness", "Lifestyle", "Business", "Finance", "Education", "Content Creation", "Custom"
 ]
 
 export const MEASUREMENT_UNITS: { value: MeasurementUnit; label: string }[] = [
@@ -279,6 +279,27 @@ export const TRACKER_TEMPLATES: TrackerTemplate[] = [
     defaultFrequency: "monthly",
     previewSections: ["Revenue trend line", "Lead conversion chart", "Project progress cards", "Sales pipeline"],
     benefits: ["Track business growth", "Monitor key metrics", "Make informed decisions", "Identify growth opportunities"],
+  },
+  {
+    id: "mindfulness",
+    name: "Mindfulness Tracker",
+    description: "Track meditation, breathwork, prayer, and mindful practices to build inner peace and emotional resilience.",
+    category: "Mindfulness",
+    icon: "🧘",
+    color: "violet",
+    colorHex: "#7C3AED",
+    features: ["Session logging", "Multiple practice types", "Mood before/after", "Streak tracking", "Weekly summaries", "Guided practice links", "Duration tracking", "Reflection prompts"],
+    targetAudience: "Anyone seeking mental clarity, stress reduction, spiritual growth, or emotional balance through mindfulness practice",
+    whatItAchieves: "Build a consistent mindfulness practice, reduce stress, increase self-awareness, and develop emotional resilience through tracked, intentional stillness.",
+    metrics: [
+      { id: "duration", name: "Duration", unit: "minutes" },
+      { id: "sessions", name: "Sessions", unit: "points" },
+    ],
+    supportedCharts: ["bar", "line", "streak_counter", "calendar_heatmap", "progress_ring"],
+    defaultFrequency: "daily",
+    defaultTarget: 20,
+    previewSections: ["Session calendar", "Duration trends", "Practice type breakdown", "Streak counter", "Mood comparison", "Weekly summary"],
+    benefits: ["Reduce stress and anxiety", "Build emotional resilience", "Improve focus and clarity", "Deepen spiritual practice", "Track mood improvements", "Develop consistent stillness habits"],
   },
   {
     id: "custom",
