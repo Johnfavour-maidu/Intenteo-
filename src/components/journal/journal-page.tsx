@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect, memo, forward
 import { createPortal } from "react-dom"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { ResourcesModal } from "@/components/resources-modal"
 import { Input } from "@/components/ui/input"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
@@ -3955,6 +3956,7 @@ export function JournalPage() {
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
   const [calendarPanelOpen, setCalendarPanelOpen] = useState(false)
+  const [learnOpen, setLearnOpen] = useState(false)
   const [starredOpen, setStarredOpen] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [resetKey, setResetKey] = useState(0)
@@ -4096,6 +4098,9 @@ export function JournalPage() {
               <p className="text-sm text-muted-foreground mt-1">{greeting}</p>
             </div>
             <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 h-9">
+                <BookOpen className="h-3.5 w-3.5" /> Learn
+              </Button>
               <Tooltip label="Browse Entries">
                 <button
                   className="h-9 w-9 rounded-full text-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
@@ -4179,6 +4184,7 @@ export function JournalPage() {
           </p>
         </div>
       </div>
+      <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="journal" />
     </div>
   )
 }

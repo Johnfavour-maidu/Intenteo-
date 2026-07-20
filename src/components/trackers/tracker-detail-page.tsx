@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { ResourcesModal } from "@/components/resources-modal"
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import {
@@ -21,6 +22,7 @@ import { getResourcesByTracker, TRACKER_RESOURCE_MAP, type Resource } from "@/li
 export function TrackerDetailPage({ trackerId }: { trackerId: string }) {
   const router = useRouter()
   const [isPinned, setIsPinned] = useState(false)
+  const [learnOpen, setLearnOpen] = useState(false)
   const tracker = getTrackerTemplate(trackerId)
 
   useEffect(() => {
@@ -168,53 +170,22 @@ export function TrackerDetailPage({ trackerId }: { trackerId: string }) {
       </GlassCard>
 
       <GlassCard className="p-6">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <BookOpen className="h-5 w-5" style={{ color: tracker.colorHex }} />
-          Resources & Learning
-        </h2>
-        <p className="text-muted-foreground text-sm mb-4">
-          Deepen your understanding with curated resources related to {tracker.name.toLowerCase()}.
-        </p>
-        {(() => {
-          const categories = TRACKER_RESOURCE_MAP[trackerId] || []
-          const resources = getResourcesByTracker(trackerId)
-          if (resources.length === 0) return null
-          return (
-            <>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {categories.map((cat) => (
-                  <span key={cat} className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: `${tracker.colorHex}15`, color: tracker.colorHex }}>
-                    {cat}
-                  </span>
-                ))}
-              </div>
-              <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                {resources.slice(0, 4).map((resource) => (
-                  <div key={resource.id} className="p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-foreground truncate">{resource.title}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{resource.description}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">{resource.type}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">{resource.difficulty}</span>
-                      {resource.readTime && <span className="text-[10px] text-muted-foreground">{resource.readTime}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/library?category=${categories[0] || "Purpose"}`)}
-                className="gap-2"
-              >
-                <BookOpen className="h-3.5 w-3.5" /> View All Resources in Library
-              </Button>
-            </>
-          )
-        })()}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <BookOpen className="h-5 w-5" style={{ color: tracker.colorHex }} />
+              Resources & Learning
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Deepen your understanding with curated resources.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5">
+            <BookOpen className="h-3.5 w-3.5" /> Learn
+          </Button>
+        </div>
       </GlassCard>
+      <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} trackerId={trackerId} title={`${tracker.name} Resources`} />
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center pb-8">
         <Button

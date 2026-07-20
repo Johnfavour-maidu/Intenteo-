@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { Task, TaskPriority, TaskView, Subtask } from "./types"
 import { sampleTasks } from "./task-data"
 import { Button } from "@/components/ui/button"
+import { ResourcesModal } from "@/components/resources-modal"
 import { Input } from "@/components/ui/input"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { AutosuggestInput } from "@/components/ui/autosuggest-input"
@@ -43,6 +44,7 @@ import {
   Sparkles,
   Target as TargetIcon,
   MoreHorizontal,
+  BookOpen,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast, ToastContainer } from "./task-toast"
@@ -520,6 +522,7 @@ export function TasksPage() {
   const [moveSubtaskInfo, setMoveSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [learnOpen, setLearnOpen] = useState(false)
 
   const { toasts, addToast, removeToast } = useToast()
 
@@ -1510,6 +1513,9 @@ export function TasksPage() {
             </p>
           </div>
           <div className="flex items-center gap-2.5">
+            <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 h-9">
+              <BookOpen className="h-3.5 w-3.5" /> Learn
+            </Button>
             <ProductivityScore percentage={productivity} />
 
             {/* Calendar History */}
@@ -2180,6 +2186,7 @@ export function TasksPage() {
           if (focusTarget) setFocusTask(focusTarget)
         }}
       />
+      <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="tasks" />
     </div>
   )
 }

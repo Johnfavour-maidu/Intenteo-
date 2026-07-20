@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { ResourcesModal } from "@/components/resources-modal"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ProgressRing } from "@/components/ui/progress-ring"
@@ -10,7 +11,7 @@ import {
   Plus, Target, TrendingUp, Calendar, ChevronRight, ChevronDown,
   CheckCircle2, Clock, X, Search, Trash2, Zap, Folder, ListChecks,
   Link2, AlertTriangle, Info, Eye, Star, Edit3, ImagePlus,
-  ChevronLeft, GripVertical, BarChart3,
+  ChevronLeft, GripVertical, BarChart3, BookOpen,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -1438,6 +1439,7 @@ export function GoalsPage() {
   const [reviewGoal, setReviewGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
   const [viewMode, setViewMode] = useState<"board" | "list">("board")
+  const [learnOpen, setLearnOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -1555,6 +1557,9 @@ export function GoalsPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div><h1 className="text-3xl font-bold tracking-tight">Goals</h1><p className="text-muted-foreground">Your life vision in action</p></div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 h-9">
+            <BookOpen className="h-3.5 w-3.5" /> Learn
+          </Button>
           <div className="flex items-center border border-[#1E0E6B]/60 rounded-lg overflow-hidden">
             <Button variant={viewMode === "board" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("board")} className={viewMode === "board" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>Cards</Button>
             <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className={viewMode === "list" ? "bg-[#1E0E6B] text-white rounded-none" : "rounded-none"}>List</Button>
@@ -1744,6 +1749,7 @@ export function GoalsPage() {
           setReviewGoal(null)
         }} />
       )}
+      <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="goals" />
     </div>
   )
 }

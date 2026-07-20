@@ -193,3 +193,70 @@ export function toggleSavedResource(id: string): void {
 export function isResourceSaved(id: string): boolean {
   return getSavedResources().includes(id)
 }
+
+// ─── Module-keyed resources for contextual Learn modals ───
+
+export type ModuleKey = "today" | "goals" | "habits" | "journal" | "visions" | "tasks"
+
+export const MODULE_RESOURCES: Record<ModuleKey, { title: string; resources: Resource[] }> = {
+  today: {
+    title: "Living Intentionally",
+    resources: [
+      { id: "today-1", title: "Living with Purpose Every Day", description: "How to align your daily actions with your deeper purpose and values.", category: "Purpose", type: "guide", difficulty: "beginner", content: "", tags: ["intentional", "daily"], readTime: "5 min" },
+      { id: "today-2", title: "Morning Routines That Set You Up for Success", description: "Design a morning routine that energizes and focuses you for the day ahead.", category: "Productivity", type: "guide", difficulty: "beginner", content: "", tags: ["morning", "routine"], readTime: "6 min" },
+      { id: "today-3", title: "The Power of Daily Intentions", description: "Why setting a daily intention transforms how you show up in every area of life.", category: "Purpose", type: "article", difficulty: "beginner", content: "", tags: ["intention", "purpose"], readTime: "4 min" },
+      { id: "today-4", title: "Evening Reviews: Closing Your Day with Clarity", description: "A simple evening practice to reflect, learn, and prepare for tomorrow.", category: "Journal", type: "exercise", difficulty: "beginner", content: "", tags: ["evening", "reflection"], readTime: "5 min" },
+      { id: "today-5", title: "Daily Planning with Intention", description: "Move beyond to-do lists. Plan your day around what truly matters.", category: "Productivity", type: "guide", difficulty: "beginner", content: "", tags: ["planning", "daily"], readTime: "5 min" },
+    ],
+  },
+  goals: {
+    title: "Goal Setting & Achievement",
+    resources: [
+      { id: "goals-r1", title: "Milestone Planning", description: "Break any big goal into manageable milestones that create momentum.", category: "Goals", type: "guide", difficulty: "beginner", content: "", tags: ["milestones", "planning"], readTime: "8 min" },
+      { id: "goals-r2", title: "Long-Term Goal Strategy", description: "Set goals that stretch you while staying realistic and measurable.", category: "Goals", type: "article", difficulty: "intermediate", content: "", tags: ["strategy", "long-term"], readTime: "7 min" },
+      { id: "goals-r3", title: "Goal Review Template", description: "A structured template for weekly and monthly goal reviews.", category: "Goals", type: "template", difficulty: "beginner", content: "", tags: ["review", "template"], readTime: "5 min" },
+      { id: "goals-r4", title: "Annual Planning Framework", description: "Set your annual vision and break it into quarterly, monthly, and weekly goals.", category: "Goals", type: "framework", difficulty: "intermediate", content: "", tags: ["annual", "planning"], readTime: "10 min" },
+      { id: "goals-r5", title: "Goal Examples & Templates", description: "Real examples of well-structured goals across every area of life.", category: "Goals", type: "template", difficulty: "beginner", content: "", tags: ["examples", "templates"], readTime: "6 min" },
+    ],
+  },
+  habits: {
+    title: "Habit Building & Mastery",
+    resources: [
+      { id: "habits-r1", title: "Habit Stacking", description: "Link new habits to existing routines for seamless integration.", category: "Habits", type: "guide", difficulty: "beginner", content: "", tags: ["stacking", "routine"], readTime: "6 min" },
+      { id: "habits-r2", title: "Identity-Based Habits", description: "Shift from outcome-focused to identity-focused habits for lasting change.", category: "Habits", type: "article", difficulty: "intermediate", content: "", tags: ["identity", "behavior"], readTime: "8 min" },
+      { id: "habits-r3", title: "Keystone Habits", description: "Discover the one habit that triggers a chain reaction of positive change.", category: "Habits", type: "article", difficulty: "beginner", content: "", tags: ["keystone", "catalyst"], readTime: "5 min" },
+      { id: "habits-r4", title: "Breaking Bad Habits", description: "Science-backed strategies for eliminating unwanted behaviors.", category: "Habits", type: "guide", difficulty: "beginner", content: "", tags: ["breaking", "replacement"], readTime: "7 min" },
+      { id: "habits-r5", title: "Habit Troubleshooting Guide", description: "A systematic checklist to diagnose why a habit is not sticking.", category: "Habits", type: "checklist", difficulty: "intermediate", content: "", tags: ["troubleshooting", "diagnostic"], readTime: "10 min" },
+    ],
+  },
+  journal: {
+    title: "Reflection & Journaling",
+    resources: [
+      { id: "journal-r1", title: "100 Reflection Prompts", description: "A curated collection of prompts for morning, evening, and deep reflection.", category: "Journal", type: "prompt", difficulty: "beginner", content: "", tags: ["prompts", "reflection"], readTime: "10 min" },
+      { id: "journal-r2", title: "Gratitude Journaling", description: "How gratitude journaling rewires your brain for happiness.", category: "Journal", type: "article", difficulty: "beginner", content: "", tags: ["gratitude", "wellbeing"], readTime: "6 min" },
+      { id: "journal-r3", title: "Decision Journaling Framework", description: "Document and learn from your decisions over time.", category: "Journal", type: "template", difficulty: "intermediate", content: "", tags: ["decisions", "learning"], readTime: "8 min" },
+      { id: "journal-r4", title: "Morning Pages Practice", description: "The transformative practice of writing three pages every morning.", category: "Journal", type: "exercise", difficulty: "beginner", content: "", tags: ["morning", "pages"], readTime: "5 min" },
+      { id: "journal-r5", title: "Evening Reflection Ritual", description: "A calming end-of-day practice to process and release.", category: "Journal", type: "exercise", difficulty: "beginner", content: "", tags: ["evening", "ritual"], readTime: "5 min" },
+    ],
+  },
+  visions: {
+    title: "Vision & Purpose",
+    resources: [
+      { id: "visions-r1", title: "Discovering Your Purpose", description: "A step-by-step guide to uncovering your deeper meaning and mission.", category: "Purpose", type: "guide", difficulty: "beginner", content: "", tags: ["purpose", "meaning"], readTime: "8 min" },
+      { id: "visions-r2", title: "Writing Better Visions", description: "Craft vivid, emotionally resonant pictures of your ideal future.", category: "Vision", type: "guide", difficulty: "beginner", content: "", tags: ["vision", "writing"], readTime: "10 min" },
+      { id: "visions-r3", title: "Future Self Exercise", description: "A powerful journaling exercise to connect with who you are becoming.", category: "Vision", type: "exercise", difficulty: "intermediate", content: "", tags: ["future-self", "journaling"], readTime: "15 min" },
+      { id: "visions-r4", title: "Core Values Clarification", description: "Identify and prioritize the values that guide your decisions.", category: "Purpose", type: "exercise", difficulty: "beginner", content: "", tags: ["values", "identity"], readTime: "15 min" },
+      { id: "visions-r5", title: "Long-Term Thinking Exercises", description: "Expand your time horizon and make decisions from your future self.", category: "Vision", type: "exercise", difficulty: "intermediate", content: "", tags: ["long-term", "thinking"], readTime: "10 min" },
+    ],
+  },
+  tasks: {
+    title: "Focus & Execution",
+    resources: [
+      { id: "tasks-r1", title: "Deep Work Principles", description: "Create blocks of uninterrupted focus for your most important work.", category: "Tasks", type: "guide", difficulty: "intermediate", content: "", tags: ["focus", "deep-work"], readTime: "8 min" },
+      { id: "tasks-r2", title: "Time Blocking Mastery", description: "Take control of your schedule by assigning every hour a purpose.", category: "Tasks", type: "guide", difficulty: "beginner", content: "", tags: ["time-blocking", "scheduling"], readTime: "7 min" },
+      { id: "tasks-r3", title: "The Eisenhower Matrix", description: "Use the urgent-important matrix to focus on what truly matters.", category: "Tasks", type: "framework", difficulty: "beginner", content: "", tags: ["priorities", "matrix"], readTime: "5 min" },
+      { id: "tasks-r4", title: "Task Batching Techniques", description: "Group similar tasks together to minimize context switching.", category: "Tasks", type: "guide", difficulty: "beginner", content: "", tags: ["batching", "efficiency"], readTime: "5 min" },
+      { id: "tasks-r5", title: "The Two-Minute Rule", description: "If it takes less than 2 minutes, do it now. Eliminate procrastination.", category: "Tasks", type: "framework", difficulty: "beginner", content: "", tags: ["two-minute", "momentum"], readTime: "4 min" },
+    ],
+  },
+}

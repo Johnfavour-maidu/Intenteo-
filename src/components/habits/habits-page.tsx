@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, Component, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
+import { ResourcesModal } from "@/components/resources-modal"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
@@ -39,6 +40,7 @@ import {
   LayoutList,
   Circle,
   Star,
+  BookOpen,
 } from "lucide-react"
 import { VerticalView } from "./vertical-view"
 import { ListView } from "./list-view"
@@ -1581,6 +1583,7 @@ export function HabitsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortMode>("all")
   const [activeFilter, setActiveFilter] = useState<CardFilter>(null)
+  const [learnOpen, setLearnOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -1891,6 +1894,9 @@ export function HabitsPage() {
             <p className="text-muted-foreground">Build your identity through consistent action</p>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => setLearnOpen(true)} className="gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5 h-9">
+              <BookOpen className="h-3.5 w-3.5" /> Learn
+            </Button>
             <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true) }}
               className="glow h-9 shrink-0">
               <Plus className="mr-1 h-4 w-4" /> Add Habit
@@ -2062,6 +2068,7 @@ export function HabitsPage() {
       )}
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="habits" />
     </div>
   )
 }

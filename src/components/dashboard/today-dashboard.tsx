@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { ResourcesModal } from "@/components/resources-modal"
 import { GlassCard } from "@/components/ui/glass-card"
 import { DailyReviewModal } from "@/components/tasks/tasks-page"
 import { DailyIntentionModal } from "@/components/intentions/daily-intention-modal"
@@ -79,6 +80,7 @@ export function TodayDashboard() {
   const [toast, setToast] = useState<string | null>(null)
   const [streakModalOpen, setStreakModalOpen] = useState(false)
   const [reminderModalOpen, setReminderModalOpen] = useState(false)
+  const [learnOpen, setLearnOpen] = useState(false)
   const [quickActionsExpanded, setQuickActionsExpanded] = useState(false)
   const [glanceOpen, setGlanceOpen] = useState(true)
   const [intentScoreExpanded, setIntentScoreExpanded] = useState(false)
@@ -285,6 +287,11 @@ export function TodayDashboard() {
               onClick={() => router.push("/habits")}>
               <Target className="h-3.5 w-3.5" />
               <span className="hidden sm:inline text-xs">Habit</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-[#1E0E6B]/20 text-[#1E0E6B] hover:bg-[#1E0E6B]/5"
+              onClick={() => setLearnOpen(true)}>
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Learn</span>
             </Button>
 
             {/* Secondary actions */}
@@ -770,6 +777,7 @@ export function TodayDashboard() {
 
       {/* ─── Daily Intention Morning Modal ─── */}
       <DailyIntentionModal onSelect={(text) => setIntention(text)} />
+      <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="today" />
     </div>
   )
 }
