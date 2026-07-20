@@ -12,6 +12,12 @@ import { loadTodayIntention, saveTodayIntention, addRecentlyUsed } from "@/lib/i
 import type { Intention } from "@/lib/intention-library"
 import { INTENTION_LIBRARY, findLinkedGoals, findLinkedVisions, findLinkedPurpose } from "@/lib/intention-library"
 import { ReminderModal } from "@/components/reminders/reminder-modal"
+import { ProgressRing } from "@/components/ui/progress-ring"
+import {
+  calculateIntentScore,
+  saveDailyIntentScore,
+  type IntentScoreBreakdown,
+} from "@/lib/intent-score"
 import {
   Target,
   CheckCircle2,
@@ -75,6 +81,8 @@ export function TodayDashboard() {
   const [reminderModalOpen, setReminderModalOpen] = useState(false)
   const [quickActionsExpanded, setQuickActionsExpanded] = useState(false)
   const [glanceOpen, setGlanceOpen] = useState(true)
+  const [intentScoreExpanded, setIntentScoreExpanded] = useState(false)
+  const [intentBreakdown, setIntentBreakdown] = useState<IntentScoreBreakdown | null>(null)
 
   // ─── Data Loading ───
   const [tasks, setTasks] = useState<any[]>([])
@@ -125,14 +133,19 @@ export function TodayDashboard() {
   const completedTasksToday = tasks.filter((t: any) => t.completed).length
   const remainingTasks = totalTasksToday - completedTasksToday
 
+  // Calculate Intent Score using the 5-component engine
   const intentScore = useMemo(() => {
-    let score = 0
-    if (intention) score += 20
-    score += habitPercent * 0.4
-    const taskPercent = totalTasksToday > 0 ? (completedTasksToday / totalTasksToday) * 100 : 0
-    score += taskPercent * 0.4
-    return Math.round(Math.min(100, score))
-  }, [intention, habitPercent, totalTasksToday, completedTasksToday])
+    const breakdown = calculateIntentScore()
+    setIntentBreakdown(breakdown)
+    return breakdown.total
+  }, [intention, habitPercent, totalTasksToday, completedTasksToday, habits])
+
+  // Save daily score whenever it changes
+  useEffect(() => {
+    if (intentBreakdown) {
+      saveDailyIntentScore(intentBreakdown)
+    }
+  }, [intentBreakdown])
 
   const currentStreak = useMemo(() => {
     let maxStreak = 0
@@ -419,12 +432,11 @@ export function TodayDashboard() {
                   className="overflow-hidden"
                 >
                   <div className="px-4 pb-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       {[
                         { icon: <CheckCircle2 className="h-4 w-4" />, label: "Tasks Due", value: remainingTasks, color: "text-blue-600 dark:text-blue-400" },
                         { icon: <Repeat className="h-4 w-4" />, label: "Habits Remaining", value: totalHabits - completedHabits, color: "text-orange-500 dark:text-orange-400" },
                         { icon: <Bell className="h-4 w-4" />, label: "Today's Reminders", value: reminderCount, color: "text-purple-600 dark:text-purple-400", onClick: () => setReminderModalOpen(true) },
-                        { icon: <Target className="h-4 w-4" />, label: "Intent Score", value: `${intentScore}%`, color: "text-[#1E0E6B]", onClick: undefined },
                       ].map((item, i) => (
                         <div key={i} className={cn("flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30", item.onClick && "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={item.onClick}>
                           <span className={item.color}>{item.icon}</span>
@@ -434,6 +446,78 @@ export function TodayDashboard() {
                           </div>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Intent Score Card - Expandable */}
+                    <div className="mt-3">
+                      <button
+                        onClick={() => setIntentScoreExpanded(!intentScoreExpanded)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-[#1E0E6B]/5 to-[#1E0E6B]/10 border border-[#1E0E6B]/10 hover:from-[#1E0E6B]/10 hover:to-[#1E0E6B]/15 transition-all"
+                      >
+                        <ProgressRing
+                          value={intentScore}
+                          size={48}
+                          strokeWidth={4}
+                          showLabel={true}
+                          indicatorClassName="text-[#1E0E6B]"
+                        />
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-[#1E0E6B]">Intent Score</span>
+                            <span className="text-xs font-semibold" style={{ color: intentBreakdown?.ratingColor }}>
+                              {intentBreakdown?.rating}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">How intentionally you lived today</p>
+                        </div>
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", intentScoreExpanded && "rotate-180")} />
+                      </button>
+
+                      <AnimatePresence>
+                        {intentScoreExpanded && intentBreakdown && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-2 p-3 rounded-xl border border-border/50 bg-background space-y-3">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Today&apos;s Breakdown</p>
+
+                              {intentBreakdown.components.map((comp) => (
+                                <div key={comp.id} className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn("text-sm", comp.status === "complete" ? "text-emerald-500" : comp.status === "unavailable" ? "text-muted-foreground" : "text-red-400")}>
+                                      {comp.status === "complete" ? "✅" : comp.status === "unavailable" ? "—" : "❌"}
+                                    </span>
+                                    <span className={cn("text-xs", comp.status === "unavailable" ? "text-muted-foreground line-through" : "")}>{comp.label}</span>
+                                  </div>
+                                  <span className="text-xs font-medium tabular-nums">
+                                    {comp.status === "unavailable" ? (
+                                      <span className="text-muted-foreground">Not Scheduled</span>
+                                    ) : (
+                                      <span>{comp.earned} / {comp.max}</span>
+                                    )}
+                                  </span>
+                                </div>
+                              ))}
+
+                              {intentBreakdown.redistributionMessage && (
+                                <div className="flex items-start gap-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 mt-2">
+                                  <span className="text-blue-500 text-xs mt-0.5">ℹ️</span>
+                                  <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">{intentBreakdown.redistributionMessage}</p>
+                                </div>
+                              )}
+
+                              <div className="border-t border-border/50 pt-3">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Today&apos;s Insight</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">{intentBreakdown.insight}</p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 </motion.div>
