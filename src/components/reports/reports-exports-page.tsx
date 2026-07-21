@@ -104,19 +104,28 @@ function Section({ title, icon: Icon, count, children, defaultOpen = false }: {
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border border-[#1E0E6B]/10 rounded-xl overflow-hidden bg-white dark:bg-gray-950">
+    <div className={`rounded-xl border overflow-hidden bg-white dark:bg-gray-950 transition-all duration-200 ${open ? "border-[#1E0E6B]/20 shadow-sm" : "border-[#1E0E6B]/10 hover:border-[#1E0E6B]/15 hover:shadow-sm"}`}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#1E0E6B]/3 transition-colors"
+        className={`w-full flex items-center gap-3 px-5 py-4 transition-all duration-200 ${open ? "bg-[#1E0E6B]/[0.04]" : "hover:bg-[#1E0E6B]/[0.03]"}`}
       >
-        <Icon className="h-5 w-5 text-[#1E0E6B]" />
+        <div className={`p-1.5 rounded-lg transition-colors duration-200 ${open ? "bg-[#1E0E6B]/10" : "bg-[#1E0E6B]/5"}`}>
+          <Icon className="h-4 w-4 text-[#1E0E6B]" />
+        </div>
         <span className="font-semibold text-foreground flex-1 text-left">{title}</span>
         {count !== undefined && (
           <Badge variant="secondary" className="text-xs bg-[#1E0E6B]/10 text-[#1E0E6B] border-0">{count}</Badge>
         )}
         {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
       </button>
-      {open && <div className="px-5 pb-5 border-t border-[#1E0E6B]/5">{children}</div>}
+      <div className={`grid transition-all duration-200 ease-in-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5 border-t border-[#1E0E6B]/5 relative">
+            <div className={`absolute left-0 top-0 bottom-0 w-0.5 bg-[#1E0E6B]/20 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} />
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -348,7 +357,7 @@ export function ReportsExportsPage() {
       </div>
 
       {/* Reports Section */}
-      <Section title="Reports" icon={FileText} defaultOpen>
+      <Section title="Reports" icon={FileText}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
           <ReportCard
             title="Goal Progress Report"
@@ -441,51 +450,56 @@ export function ReportsExportsPage() {
         </div>
       </Section>
 
-      {/* Exports Section */}
+      {/* Exports Section (merged with Export History) */}
       <Section title="Exports" icon={Download}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-          <ExportCard
-            title="Excel Workbook"
-            description="Export all data — goals, habits, tasks, visions, reviews — into a structured workbook"
-            icon={FileSpreadsheet}
-            format=".xlsx"
-          />
-          <ExportCard
-            title="PDF Report"
-            description="Generate a beautifully formatted report of your intentional living progress"
-            icon={FileText}
-            format=".pdf"
-          />
-          <ExportCard
-            title="CSV Export"
-            description="Raw data export for custom analysis in spreadsheets or data tools"
-            icon={File}
-            format=".csv"
-          />
-          <ExportCard
-            title="JSON Backup"
-            description="Complete data backup of your entire Intenteo workspace"
-            icon={File}
-            format=".json"
-          />
+        {/* Export Options */}
+        <div className="mt-4">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Export Options</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <ExportCard
+              title="Excel Workbook"
+              description="Export all data — goals, habits, tasks, visions, reviews — into a structured workbook"
+              icon={FileSpreadsheet}
+              format=".xlsx"
+            />
+            <ExportCard
+              title="PDF Report"
+              description="Generate a beautifully formatted report of your intentional living progress"
+              icon={FileText}
+              format=".pdf"
+            />
+            <ExportCard
+              title="CSV Export"
+              description="Raw data export for custom analysis in spreadsheets or data tools"
+              icon={File}
+              format=".csv"
+            />
+            <ExportCard
+              title="JSON Backup"
+              description="Complete data backup of your entire Intenteo workspace"
+              icon={File}
+              format=".json"
+            />
+          </div>
         </div>
-      </Section>
 
-      {/* Export History Section */}
-      <Section title="Export History" icon={Clock}>
-        {hasData ? (
-          <div className="mt-4 text-center py-8">
-            <Clock className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No exports yet</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">Your export history will appear here</p>
-          </div>
-        ) : (
-          <div className="mt-4 text-center py-8">
-            <BarChart3 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Start using Intenteo to generate reports</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">Add goals, habits, and tasks to see your analytics</p>
-          </div>
-        )}
+        {/* Export History */}
+        <div className="mt-6">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Export History</h4>
+          {hasData ? (
+            <div className="text-center py-6 rounded-lg border border-dashed border-[#1E0E6B]/10">
+              <Clock className="h-7 w-7 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No exports yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Generated exports will appear here</p>
+            </div>
+          ) : (
+            <div className="text-center py-6 rounded-lg border border-dashed border-[#1E0E6B]/10">
+              <BarChart3 className="h-7 w-7 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Start using Intenteo to generate reports</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Add goals, habits, and tasks to see your analytics</p>
+            </div>
+          )}
+        </div>
       </Section>
 
       {/* Empty State */}
