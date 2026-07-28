@@ -415,6 +415,15 @@ export function SettingsPage() {
     return () => window.removeEventListener("beforeunload", handler)
   }, [isDirty])
 
+  // ─── Birthday auto-format (dd/mm/yyyy) ───
+  const handleBirthdayChange = useCallback((raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 8)
+    let formatted = digits
+    if (digits.length > 2) formatted = digits.slice(0, 2) + "/" + digits.slice(2)
+    if (digits.length > 4) formatted = digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4)
+    setProfileBirthday(formatted)
+  }, [])
+
   // ─── Validation on blur ───
   const validateProfileFields = useCallback(() => {
     const nameV = profileName.trim() ? "" : "Name is required."
@@ -721,10 +730,10 @@ export function SettingsPage() {
                   <option>Spanish</option>
                 </select>
               </div>
-              <FieldRow label="Birthday" value={profileBirthday} onChange={setProfileBirthday} placeholder="dd/mm/yyyy" error={birthdayError} />
+              <FieldRow label="Birthday" value={profileBirthday} onChange={handleBirthdayChange} placeholder="dd/mm/yyyy" error={birthdayError} />
             </div>
             <div className="flex justify-end pt-2">
-              <GradientButton size="sm" gradient="orange" disabled={!isDirty} loading={profileSaving} loadingText="Saving..." onClick={handleSaveProfile}>
+              <GradientButton size="sm" gradient="orange" disabled={!isDirty} loading={profileSaving} loadingText="Saving..." onClick={handleSaveProfile} className={isDirty ? "shadow-[0_0_12px_rgba(235,158,91,0.5)] hover:shadow-[0_0_18px_rgba(235,158,91,0.6)] animate-pulse" : ""}>
                 Save Changes
               </GradientButton>
             </div>
