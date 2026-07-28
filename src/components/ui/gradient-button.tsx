@@ -26,10 +26,10 @@ export function GradientButton({
     <Button
       disabled={isDisabled}
       className={cn(
-        "px-6 shadow-sm disabled:opacity-50 transition-all duration-200",
+        "px-6 shadow-sm transition-all duration-200",
         gradient === "primary" && "bg-[#1E0E6B] hover:bg-[#1E0E6B]/90 text-white shadow-[#1E0E6B]/20",
         gradient === "danger" && "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-500/90 hover:to-red-600/90 text-white",
-        gradient === "orange" && "bg-gradient-to-r from-[#EB9E5B] to-[#EB9E5B]/80 hover:from-[#EB9E5B]/90 hover:to-[#EB9E5B]/70 text-white",
+        gradient === "orange" && "bg-gradient-to-r from-[#E8873A] via-[#EB9E5B] to-[#F0B97A] hover:from-[#D97A30] hover:via-[#E8934E] hover:to-[#EDAE6A] text-white shadow-[#EB9E5B]/30 shadow-md",
         className
       )}
       {...props}

@@ -735,7 +735,7 @@ export function SettingsPage() {
               <FieldRow label="Birthday" value={profileBirthday} onChange={handleBirthdayChange} placeholder="dd/mm/yyyy" error={birthdayError} />
             </div>
             <div className="flex justify-end pt-2">
-              <GradientButton size="sm" gradient="orange" disabled={!isDirty} loading={profileSaving} loadingText="Saving..." onClick={handleSaveProfile} className={isDirty ? "shadow-[0_0_12px_rgba(235,158,91,0.5)] hover:shadow-[0_0_18px_rgba(235,158,91,0.6)] animate-pulse" : ""}>
+              <GradientButton size="sm" gradient="orange" disabled={!isDirty} loading={profileSaving} loadingText="Saving..." onClick={handleSaveProfile}>
                 Save Changes
               </GradientButton>
             </div>
