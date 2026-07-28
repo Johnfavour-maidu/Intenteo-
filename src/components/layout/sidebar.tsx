@@ -128,7 +128,7 @@ export function Sidebar() {
               <img
                 src="/logo.png"
                 alt="Intenteo"
-                className="h-12 w-auto max-w-[220px] object-contain dark:mix-blend-plus-lighter"
+                className="h-12 w-auto max-w-[220px] object-contain dark:mix-blend-multiply"
                 style={{ imageRendering: "auto" }}
               />
             </Link>
@@ -139,7 +139,7 @@ export function Sidebar() {
               <img
                 src="/favicon.png"
                 alt="Intenteo"
-                className="h-10 w-10 object-contain dark:mix-blend-plus-lighter"
+                className="h-10 w-10 object-contain dark:mix-blend-multiply"
                 style={{ imageRendering: "auto" }}
               />
             </Link>

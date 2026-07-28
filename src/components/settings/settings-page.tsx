@@ -499,6 +499,8 @@ export function SettingsPage() {
 
   const handleBackgroundColorChange = useCallback((c: string) => {
     setBackgroundColor(c)
+    document.documentElement.style.setProperty("--background", c)
+    window.dispatchEvent(new Event("user-settings-changed"))
     setTimeout(() => saveNonProfileSettings(), 0)
   }, [saveNonProfileSettings])
 

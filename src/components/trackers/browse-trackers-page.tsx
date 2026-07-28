@@ -182,7 +182,7 @@ function TrackerCard({
   onPreview: () => void
 }) {
   return (
-    <GlassCard className="group relative p-5 flex flex-col hover:shadow-lg hover:shadow-black/5 transition-all duration-200 hover:-translate-y-0.5" style={{ borderColor: `${tracker.colorHex}40` }}>
+    <GlassCard className="group relative p-5 flex flex-col hover:shadow-lg hover:shadow-black/5 transition-all duration-200 hover:-translate-y-0.5 border-2" style={{ borderColor: tracker.colorHex }}>
       <div className="flex items-start justify-between mb-3">
         <div
           className="h-12 w-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
@@ -237,7 +237,7 @@ function TrackerListItem({
   onPreview: () => void
 }) {
   return (
-    <GlassCard className="flex items-center gap-4 p-4 hover:shadow-md hover:shadow-black/5 transition-all duration-200" style={{ borderColor: `${tracker.colorHex}40` }}>
+    <GlassCard className="flex items-center gap-4 p-4 hover:shadow-md hover:shadow-black/5 transition-all duration-200 border-2" style={{ borderColor: tracker.colorHex }}>
       <div
         className="h-12 w-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
         style={{ backgroundColor: `${tracker.colorHex}15` }}
