@@ -128,7 +128,7 @@ export function Sidebar() {
               <img
                 src="/logo.png"
                 alt="Intenteo"
-                className="h-12 w-auto max-w-[220px] object-contain"
+                className="h-12 w-auto max-w-[220px] object-contain dark:mix-blend-plus-lighter"
                 style={{ imageRendering: "auto" }}
               />
             </Link>
@@ -139,7 +139,7 @@ export function Sidebar() {
               <img
                 src="/favicon.png"
                 alt="Intenteo"
-                className="h-10 w-10 object-contain"
+                className="h-10 w-10 object-contain dark:mix-blend-plus-lighter"
                 style={{ imageRendering: "auto" }}
               />
             </Link>
@@ -210,7 +210,7 @@ export function Sidebar() {
                           className={cn(
                             "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                             pathname === item.href
-                              ? "bg-primary/10 text-primary"
+                              ? "bg-primary/10 text-foreground"
                               : "text-foreground hover:bg-muted/50",
                             collapsed && "justify-center px-2"
                           )}
@@ -294,7 +294,7 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
                   pathname === item.href
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/10 text-foreground"
                     : "text-foreground hover:bg-muted/50",
                   collapsed && "justify-center px-2"
                 )}
