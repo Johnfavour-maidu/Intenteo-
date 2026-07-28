@@ -9,7 +9,9 @@ import { GlobalFloatingTeo } from "@/components/teo/global-floating-teo"
 import { UserProfileProvider } from "@/lib/user-profile-context"
 import { useAuth } from "@/lib/auth-context"
 import { loadUserSettings } from "@/lib/user-settings"
+import { carryUnfinishedTasksForward, registerKeyboardShortcuts } from "@/lib/settings-actions"
 import { useTheme } from "next-themes"
+import { useRouter } from "next/navigation"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -20,6 +22,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { resolvedTheme } = useTheme()
   const [bgColor, setBgColor] = useState("#FAFBFF")
   const { isSignedIn } = useAuth()
+  const router = useRouter()
 
   const isDark = resolvedTheme === "dark"
 
@@ -48,6 +51,17 @@ export function MainLayout({ children }: MainLayoutProps) {
     }, 3000)
     return () => clearInterval(interval)
   }, [])
+
+  // Carry unfinished tasks forward on app load
+  useEffect(() => {
+    carryUnfinishedTasksForward()
+  }, [])
+
+  // Register keyboard shortcuts
+  useEffect(() => {
+    const cleanup = registerKeyboardShortcuts(router)
+    return cleanup
+  }, [router])
 
   if (!isSignedIn) {
     return <>{children}</>

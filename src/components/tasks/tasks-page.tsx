@@ -49,6 +49,7 @@ import {
 import { useRouter } from "next/navigation"
 import { useToast, ToastContainer } from "./task-toast"
 import { formatDateDDMMYYYY, formatDateLong } from "@/lib/date-utils"
+import { playCompletionSoundIfEnabled, isIntentScoreVisible } from "@/lib/settings-actions"
 import { DateInput } from "@/components/ui/date-input"
 import { ReminderModal } from "@/components/reminders/reminder-modal"
 
@@ -523,6 +524,7 @@ export function TasksPage() {
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [learnOpen, setLearnOpen] = useState(false)
+  const [showIntentScore, setShowIntentScore] = useState(true)
 
   const { toasts, addToast, removeToast } = useToast()
 
@@ -571,6 +573,7 @@ export function TasksPage() {
     try { setGoalsData(JSON.parse(localStorage.getItem("intenteo-goals") || "[]")) } catch {}
     try { setHabitsData(JSON.parse(localStorage.getItem("intenteo-habits") || "[]")) } catch {}
     try { setProjectsData(JSON.parse(localStorage.getItem("intenteo-projects") || "[]")) } catch {}
+    setShowIntentScore(isIntentScoreVisible())
   }, [])
 
   // Close overflow menu on click outside
@@ -761,6 +764,9 @@ export function TasksPage() {
     if (totalToday === 0) return
     if (completedToday !== totalToday) return
     try {
+      const settings = JSON.parse(localStorage.getItem("intenteo-user-settings") || "{}")
+      const enableReview = settings?.focusProductivity?.enableDailyReview !== false
+      if (!enableReview) return
       const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
       const already = reviews.some((r: { date: string }) => r.date === todayISO)
       if (!already) setReviewOpen(true)
@@ -816,8 +822,10 @@ export function TasksPage() {
   const handleToggleTask = useCallback((id: string) => {
     const task = tasks.find((t) => t.id === id)
     if (!task || isFutureTask(task) || isCompletedPastTask(task)) return
+    const wasCompleted = task.completed
     if (!task.completed) addToast()
     toggleTask(id)
+    if (!wasCompleted) playCompletionSoundIfEnabled()
   }, [tasks, toggleTask, addToast, isFutureTask, isCompletedPastTask])
 
   const toggleSubtask = useCallback((taskId: string, subtaskId: string) => {
@@ -1514,7 +1522,7 @@ export function TasksPage() {
           </div>
           <div className="flex items-center gap-2.5">
 
-            <ProductivityScore percentage={productivity} />
+            {showIntentScore && <ProductivityScore percentage={productivity} />}
 
             {/* Calendar History */}
             <div className="relative">

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/lib/auth-context"
+import { applyBackgroundColor, resetBackgroundColor } from "@/components/providers/background-color-provider"
 import { SettingsToastContainer, useSettingsToast } from "./settings-toast"
 import { HelpCenter } from "./help-center"
 import { ContactUs } from "./contact-us"
@@ -93,14 +94,26 @@ function Section({ id, title, children, isOpen, onToggle, isHighlighted = false 
   )
 }
 
-function ToggleRow({ label, desc, checked, onCheckedChange, id }: {
-  label: string; desc?: string; checked: boolean; onCheckedChange: (v: boolean) => void; id?: string
+function ToggleRow({ label, desc, tooltip, checked, onCheckedChange, id }: {
+  label: string; desc?: string; tooltip?: string; checked: boolean; onCheckedChange: (v: boolean) => void; id?: string
 }) {
   return (
     <div className="flex items-center justify-between py-2">
-      <div>
-        <p className="font-medium text-sm">{label}</p>
-        {desc && <p className="text-xs text-muted-foreground">{desc}</p>}
+      <div className="flex items-center gap-2">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <p className="font-medium text-sm">{label}</p>
+            {tooltip && (
+              <div className="group relative">
+                <Info className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs text-foreground bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-56 z-50 pointer-events-none">
+                  {tooltip}
+                </div>
+              </div>
+            )}
+          </div>
+          {desc && <p className="text-xs text-muted-foreground">{desc}</p>}
+        </div>
       </div>
       <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
@@ -499,7 +512,11 @@ export function SettingsPage() {
 
   const handleBackgroundColorChange = useCallback((c: string) => {
     setBackgroundColor(c)
-    document.documentElement.style.setProperty("--background", c)
+    if (c !== "#FAFBFF") {
+      applyBackgroundColor(c)
+    } else {
+      resetBackgroundColor()
+    }
     window.dispatchEvent(new Event("user-settings-changed"))
     setTimeout(() => saveNonProfileSettings(), 0)
   }, [saveNonProfileSettings])
@@ -793,12 +810,27 @@ export function SettingsPage() {
 
           {/* Section 3: Focus & Productivity */}
           <Section id="focus-productivity" title="Focus & Productivity" isOpen={openSection === "focus-productivity"} onToggle={() => toggleSection("focus-productivity")}>
-            <ToggleRow id="completion-sound" label="Play Completion Sound" desc="Play a subtle sound when a task or habit is completed" checked={completionSound} onCheckedChange={(v) => handleFocusToggle(setCompletionSound, v)} />
-            <ToggleRow id="carry-tasks" label="Carry Unfinished Tasks Forward" desc="Automatically move incomplete tasks to the next day" checked={carryTasksForward} onCheckedChange={(v) => handleFocusToggle(setCarryTasksForward, v)} />
-            <ToggleRow id="daily-review" label="Enable Daily Review" desc="Show the end-of-day Review Today experience" checked={enableDailyReview} onCheckedChange={(v) => handleFocusToggle(setEnableDailyReview, v)} />
-            <ToggleRow id="productivity-score" label="Show Productivity Score" desc="Display your daily score throughout the app" checked={showProductivityScore} onCheckedChange={(v) => handleFocusToggle(setShowProductivityScore, v)} />
-            <ToggleRow id="streak-celebrations" label="Show Streak Celebrations" desc="Celebrate streak milestones and achievements" checked={showStreakCelebrations} onCheckedChange={(v) => handleFocusToggle(setShowStreakCelebrations, v)} />
-            <ToggleRow id="keyboard-shortcuts" label="Keyboard Shortcuts" desc="Enable Ctrl+K, Ctrl+/, Ctrl+N shortcuts" checked={keyboardShortcuts} onCheckedChange={(v) => handleFocusToggle(setKeyboardShortcuts, v)} />
+            <ToggleRow id="completion-sound" label="Play Completion Sound" desc="Play a subtle sound when a task or habit is completed" tooltip="Plays the reminder sound you selected in Notification Settings whenever you complete a task, habit, or intention." checked={completionSound} onCheckedChange={(v) => handleFocusToggle(setCompletionSound, v)} />
+            <ToggleRow id="carry-tasks" label="Carry Unfinished Tasks Forward" desc="Automatically move incomplete tasks to the next day" tooltip="At midnight or on first login, every incomplete task from yesterday is duplicated into today. Completed and archived tasks are not copied." checked={carryTasksForward} onCheckedChange={(v) => handleFocusToggle(setCarryTasksForward, v)} />
+            <ToggleRow id="daily-review" label="Enable Daily Review" desc="Show the end-of-day Review Today experience" tooltip="Prompts you with a daily review modal in the evening or on first login after 6 PM. Reviews are stored in your journal history." checked={enableDailyReview} onCheckedChange={(v) => handleFocusToggle(setEnableDailyReview, v)} />
+            <ToggleRow id="productivity-score" label="Show Intent Score" desc="Display your daily Intent Score throughout the app" tooltip="Toggles visibility of the Intent Score on the Today page, Tasks page, and Reports. The score is still calculated in the background for analytics." checked={showProductivityScore} onCheckedChange={(v) => handleFocusToggle(setShowProductivityScore, v)} />
+            <ToggleRow id="streak-celebrations" label="Show Streak Celebrations" desc="Celebrate streak milestones and achievements" tooltip="Shows confetti and celebration animations when you reach habit streak milestones like 3, 7, 14, 30, 50, or 100 days." checked={showStreakCelebrations} onCheckedChange={(v) => handleFocusToggle(setShowStreakCelebrations, v)} />
+            <ToggleRow id="keyboard-shortcuts" label="Keyboard Shortcuts" desc="Enable Ctrl+N, Ctrl+J, Ctrl+H, Ctrl+G, Ctrl+T, Ctrl+/ shortcuts" tooltip="Register global keyboard shortcuts: Ctrl+N (New Task), Ctrl+J (Journal), Ctrl+H (Habits), Ctrl+G (Goals), Ctrl+T (Today), Ctrl+/ (Search), Esc (Close Modal)." checked={keyboardShortcuts} onCheckedChange={(v) => handleFocusToggle(setKeyboardShortcuts, v)} />
+            <Separator className="my-3" />
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" className="text-xs text-muted-foreground hover:text-red-500 hover:border-red-500/30" onClick={() => {
+                if (confirm("Reset all Focus & Productivity settings to defaults?")) {
+                  setCompletionSound(true)
+                  setCarryTasksForward(false)
+                  setEnableDailyReview(true)
+                  setShowProductivityScore(true)
+                  setShowStreakCelebrations(true)
+                  setKeyboardShortcuts(true)
+                }
+              }}>
+                <RefreshCw className="h-3 w-3 mr-1.5" /> Reset to Defaults
+              </Button>
+            </div>
           </Section>
 
           {/* Section 4: Calendar & Notifications */}

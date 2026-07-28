@@ -20,6 +20,7 @@ import {
   saveDailyIntentScore,
   type IntentScoreBreakdown,
 } from "@/lib/intent-score"
+import { isIntentScoreVisible } from "@/lib/settings-actions"
 import {
   Target,
   CheckCircle2,
@@ -86,6 +87,7 @@ export function TodayDashboard() {
   const [glanceOpen, setGlanceOpen] = useState(true)
   const [intentScoreExpanded, setIntentScoreExpanded] = useState(false)
   const [intentBreakdown, setIntentBreakdown] = useState<IntentScoreBreakdown | null>(null)
+  const [showIntentScore, setShowIntentScore] = useState(true)
 
   // ─── Data Loading ───
   const [tasks, setTasks] = useState<any[]>([])
@@ -118,6 +120,8 @@ export function TodayDashboard() {
       const profile = JSON.parse(localStorage.getItem("intenteo-user-profile") || "{}")
       if (profile?.name) setUserName(profile.name)
     } catch {}
+
+    setShowIntentScore(isIntentScoreVisible())
   }, [])
 
   // ─── Computed Values ───
@@ -453,6 +457,7 @@ export function TodayDashboard() {
                     </div>
 
                     {/* Intent Score Card - Expandable */}
+                    {showIntentScore && (
                     <div className="mt-3">
                       <button
                         onClick={() => setIntentScoreExpanded(!intentScoreExpanded)}
@@ -510,6 +515,7 @@ export function TodayDashboard() {
                         )}
                       </AnimatePresence>
                     </div>
+                    )}
                   </div>
                 </motion.div>
               )}

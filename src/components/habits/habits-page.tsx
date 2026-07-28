@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useUndoRedo } from "@/components/providers/undo-redo-provider"
 import { formatDateDDMMYYYY } from "@/lib/date-utils"
+import { playCompletionSoundIfEnabled } from "@/lib/settings-actions"
 import {
   Plus,
   CheckCircle2,
@@ -1650,6 +1651,8 @@ export function HabitsPage() {
       addToast("This habit isn't available yet.", "You'll be able to check it on the scheduled day.")
       return
     }
+    const habit = habits.find(h => h.id === id)
+    const wasCompleted = habit?.completions[targetDate]?.completed || false
     setHabits(prev => prev.map(habit => {
       if (habit.id !== id) return habit
       if (habit.paused) return habit
@@ -1697,6 +1700,7 @@ export function HabitsPage() {
         streakFreeze: newFreezes,
       }
     }))
+    if (!wasCompleted) playCompletionSoundIfEnabled()
   }, [selectedDate])
 
   const togglePin = useCallback((id: string) => {

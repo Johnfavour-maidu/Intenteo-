@@ -102,7 +102,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r bg-card/50 backdrop-blur-xl transition-all duration-200 ease-in-out",
+        "fixed left-0 top-0 z-40 h-screen border-r bg-background transition-all duration-200 ease-in-out",
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
@@ -111,7 +111,7 @@ export function Sidebar() {
         variant="ghost"
         size="icon"
         onClick={toggleCollapsed}
-        className="absolute -right-3 top-6 z-50 h-6 w-6 rounded-full border bg-card shadow-md hover:bg-muted"
+        className="absolute -right-3 top-6 z-50 h-6 w-6 rounded-full border bg-background shadow-md hover:bg-muted"
       >
         {collapsed ? (
           <ChevronRight className="h-3 w-3" />

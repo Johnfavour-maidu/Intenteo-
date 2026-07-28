@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
 import { LearnMoreButton } from "@/components/learn-more-section"
+import { shouldShowStreakCelebrations } from "@/lib/settings-actions"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ProgressRing } from "@/components/ui/progress-ring"
@@ -1439,6 +1440,7 @@ export function GoalsPage() {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [reviewGoal, setReviewGoal] = useState<Goal | null>(null)
   const [celebration, setCelebration] = useState<{ show: boolean; milestone: string; progress: number; goalId: string } | null>(null)
+  const [showCelebrations, setShowCelebrations] = useState(true)
   const [viewMode, setViewMode] = useState<"board" | "list">("board")
   const [learnOpen, setLearnOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -1461,6 +1463,7 @@ export function GoalsPage() {
     } finally {
       setIsLoading(false)
     }
+    setShowCelebrations(shouldShowStreakCelebrations())
   }, [])
 
   useEffect(() => { if (!isLoading) localStorage.setItem("intenteo-goals", JSON.stringify(goals)) }, [goals, isLoading])
@@ -1717,7 +1720,7 @@ export function GoalsPage() {
       </>
 
       {/* Enhanced Celebration Overlay */}
-      {celebration && (
+      {celebration && showCelebrations && (
         <div className="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center">
           <div className="absolute inset-0 overflow-hidden">
             {[...Array(20)].map((_, i) => (
