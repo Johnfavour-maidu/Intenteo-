@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Route guard
   useEffect(() => {
     if (!hydrated) return
-    if (!isSignedIn && pathname !== "/signin") {
+    if (!isSignedIn && pathname !== "/signin" && pathname !== "/signup") {
       router.push("/signin")
     }
   }, [hydrated, isSignedIn, pathname, router])

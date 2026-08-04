@@ -1,75 +1,49 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { TeoIcon } from "@/components/ui/teo-icon"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, User } from "lucide-react"
 import { loadUserSettings, updateUserSettings } from "@/lib/user-settings"
+import Link from "next/link"
 
-const DEMO_EMAIL = "john@intenteo.com"
-const DEMO_PASSWORD = "intenteo2026"
-
-export default function SignInPage() {
+export default function SignUpPage() {
   const { isSignedIn, signIn } = useAuth()
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [profileName, setProfileName] = useState("")
-  const [profileUsername, setProfileUsername] = useState("")
-
-  useEffect(() => {
-    try {
-      const settings = loadUserSettings()
-      setProfileName(settings.profile.name || "John Favour")
-      setProfileUsername(settings.profile.username || "Favourite")
-    } catch {
-      setProfileName("John Favour")
-      setProfileUsername("Favourite")
-    }
-  }, [])
 
   if (isSignedIn) return null
 
-  const handleDemoLogin = () => {
-    setLoading(true)
+  const handleSignUp = (e: React.FormEvent) => {
+    e.preventDefault()
     setError("")
-    // Set demo profile on first login
-    try {
-      const settings = loadUserSettings()
-      if (!settings.profile.name) {
+    if (!name.trim() || !email || !password) {
+      setError("All fields are required.")
+      return
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.")
+      return
+    }
+    setLoading(true)
+    setTimeout(() => {
+      try {
+        const settings = loadUserSettings()
         updateUserSettings({
           profile: {
             ...settings.profile,
-            name: "John Favour",
-            username: "Favourite",
-            email: DEMO_EMAIL,
+            name: name.trim(),
+            email,
+            username: name.trim().split(" ")[0].toLowerCase(),
           },
         })
-      }
-    } catch {}
-    setTimeout(() => {
+        localStorage.setItem("intenteo-user-password", password)
+      } catch {}
       signIn()
-    }, 800)
-  }
-
-  const handleEmailLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    if (!email || !password) return
-    setLoading(true)
-    // Accept demo credentials or any email/password combo
-    setTimeout(() => {
-      if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-        signIn()
-      } else if (email && password) {
-        // Accept any credentials for demo purposes
-        signIn()
-      } else {
-        setError("Invalid credentials. Try the demo login below.")
-        setLoading(false)
-      }
     }, 800)
   }
 
@@ -87,28 +61,29 @@ export default function SignInPage() {
           <p className="text-muted-foreground mt-1">Live with Intentionality</p>
         </div>
 
-        {/* Sign In Card */}
+        {/* Sign Up Card */}
         <div className="bg-white dark:bg-gray-950 rounded-2xl shadow-xl shadow-black/5 border border-[#1E0E6B]/10 p-6 space-y-5">
-          {/* Profile Preview */}
-          {profileName && (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1E0E6B] text-white shrink-0">
-                <User className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{profileName}</p>
-                <p className="text-xs text-muted-foreground truncate">@{profileUsername}</p>
-              </div>
-            </div>
-          )}
-
           <div>
-            <h2 className="text-lg font-semibold">Welcome back</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Sign in to continue your progress</p>
+            <h2 className="text-lg font-semibold">Create your account</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Start your intentional living journey</p>
           </div>
 
-          {/* Email Form */}
-          <form onSubmit={handleEmailLogin} className="space-y-3">
+          {/* Sign Up Form */}
+          <form onSubmit={handleSignUp} className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-foreground">Full Name</label>
+              <div className="relative mt-1">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); setError("") }}
+                  placeholder="Your full name"
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-[#1E0E6B]/20 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 focus:border-[#1E0E6B]/40 transition-all"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="text-sm font-medium text-foreground">Email</label>
               <div className="relative mt-1">
@@ -117,7 +92,7 @@ export default function SignInPage() {
                   type="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError("") }}
-                  placeholder={DEMO_EMAIL}
+                  placeholder="you@example.com"
                   className="w-full h-10 pl-10 pr-4 rounded-lg border border-[#1E0E6B]/20 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 focus:border-[#1E0E6B]/40 transition-all"
                 />
               </div>
@@ -131,7 +106,7 @@ export default function SignInPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError("") }}
-                  placeholder="Enter your password"
+                  placeholder="At least 6 characters"
                   className="w-full h-10 pl-10 pr-10 rounded-lg border border-[#1E0E6B]/20 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#1E0E6B]/30 focus:border-[#1E0E6B]/40 transition-all"
                 />
                 <button
@@ -150,13 +125,13 @@ export default function SignInPage() {
 
             <button
               type="submit"
-              disabled={!email || !password || loading}
+              disabled={!name.trim() || !email || !password || loading}
               className="w-full h-10 rounded-lg bg-[#1E0E6B] text-white text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#1E0E6B]/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>Sign In <ArrowRight className="h-4 w-4" /></>
+                <>Create Account <ArrowRight className="h-4 w-4" /></>
               )}
             </button>
           </form>
@@ -171,37 +146,22 @@ export default function SignInPage() {
             </div>
           </div>
 
-          {/* Demo Login */}
+          {/* Continue with Google */}
           <button
-            onClick={handleDemoLogin}
+            onClick={() => { setLoading(true); setTimeout(() => signIn(), 800) }}
             disabled={loading}
-            className="w-full h-10 rounded-lg border border-[#1E0E6B] text-[#1E0E6B] text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#1E0E6B]/5 transition-all disabled:opacity-40"
+            className="w-full h-10 rounded-lg border border-[#1E0E6B]/20 text-sm font-medium flex items-center justify-center gap-2 hover:bg-muted/50 transition-all disabled:opacity-40"
           >
-            {loading ? (
-              <div className="h-4 w-4 border-2 border-[#1E0E6B]/30 border-t-[#1E0E6B] rounded-full animate-spin" />
-            ) : (
-              <>Continue with Demo</>
-            )}
+            <svg className="h-4 w-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continue with Google
           </button>
 
-          {/* Demo Credentials */}
-          <div className="rounded-lg bg-muted/50 border border-[#1E0E6B]/5 p-3 space-y-1.5">
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Demo Credentials</p>
-            <div className="flex items-center gap-2 text-xs">
-              <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
-              <span className="text-foreground font-mono">{DEMO_EMAIL}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
-              <span className="text-foreground font-mono">{DEMO_PASSWORD}</span>
-            </div>
-          </div>
           {/* Sign In Link */}
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <a href="/signup" className="text-[#1E0E6B] font-medium hover:underline">
-              Create one
-            </a>
+            Already have an account?{" "}
+            <Link href="/signin" className="text-[#1E0E6B] font-medium hover:underline">
+              Sign in
+            </Link>
           </p>
         </div>
 
