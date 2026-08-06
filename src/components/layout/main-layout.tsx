@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { Sidebar } from "./sidebar"
+import { MobileNav } from "./mobile-nav"
 import { Header } from "./header"
 import { useSidebar } from "./sidebar-context"
 import { cn } from "@/lib/utils"
@@ -73,10 +74,13 @@ export function MainLayout({ children }: MainLayoutProps) {
         className="min-h-screen bg-background transition-colors duration-300"
         style={!isDark ? { backgroundColor: bgColor } : undefined}
       >
+        {/* Desktop sidebar — hidden on mobile */}
         <Sidebar />
+
+        {/* Desktop content area */}
         <div
           className={cn(
-            "transition-all duration-200 ease-in-out",
+            "transition-all duration-200 ease-in-out hidden md:block",
             collapsed ? "pl-[72px]" : "pl-64"
           )}
         >
@@ -85,6 +89,18 @@ export function MainLayout({ children }: MainLayoutProps) {
             {children}
           </main>
         </div>
+
+        {/* Mobile content area — no sidebar, bottom nav padding */}
+        <div className="md:hidden">
+          <Header />
+          <main className="p-4 pb-20">
+            {children}
+          </main>
+        </div>
+
+        {/* Mobile bottom navigation */}
+        <MobileNav />
+
         <GlobalFloatingTeo />
       </div>
     </UserProfileProvider>

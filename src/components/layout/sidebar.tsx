@@ -18,7 +18,7 @@ import {
   BarChart3,
   Pin,
   ChevronDown,
-  Sun,
+  CalendarDays,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -40,13 +40,36 @@ interface NavItem {
   badge?: string
 }
 
-const navItems: NavItem[] = [
-  { title: "My Day", href: "/", icon: Sun },
-  { title: "Tasks", href: "/tasks", icon: CheckSquare },
-  { title: "Habits", href: "/habits", icon: Repeat },
-  { title: "Journal", href: "/journal", icon: BookOpen },
-  { title: "Goals", href: "/goals", icon: Target },
-  { title: "Visions", href: "/visions", icon: Star },
+interface NavSection {
+  section: string
+  items: NavItem[]
+}
+
+const mainNav: NavSection[] = [
+  {
+    section: "Main",
+    items: [
+      { title: "Today", href: "/", icon: CalendarDays },
+    ],
+  },
+  {
+    section: "Execution",
+    items: [
+      { title: "Tasks", href: "/tasks", icon: CheckSquare },
+      { title: "Habits", href: "/habits", icon: Repeat },
+      { title: "Journal", href: "/journal", icon: BookOpen },
+    ],
+  },
+  {
+    section: "Planning",
+    items: [
+      { title: "Goals", href: "/goals", icon: Target },
+      { title: "Visions", href: "/visions", icon: Star },
+    ],
+  },
+]
+
+const bottomNav: NavItem[] = [
   { title: "Browse Trackers", href: "/browse-trackers", icon: Compass },
   { title: "Reports & Exports", href: "/reports", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
@@ -58,6 +81,17 @@ export function Sidebar() {
   const { name, username, avatar, avatarFocalPoint } = useUserProfile()
   const [quickItems, setQuickItems] = useState<QuickAccessItem[]>([])
   const [qaExpanded, setQaExpanded] = useState(true)
+  const [planningExpanded, setPlanningExpanded] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("intenteo-planning-expanded")
+      return stored ? JSON.parse(stored) : true
+    }
+    return true
+  })
+
+  useEffect(() => {
+    localStorage.setItem("intenteo-planning-expanded", JSON.stringify(planningExpanded))
+  }, [planningExpanded])
 
   const refreshQuickItems = useCallback(() => {
     setQuickItems(getQuickAccessItems())
@@ -73,7 +107,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r bg-background transition-all duration-200 ease-in-out",
+        "hidden md:flex fixed left-0 top-0 z-40 h-screen border-r bg-background transition-all duration-200 ease-in-out flex-col",
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
@@ -143,34 +177,67 @@ export function Sidebar() {
 
         <Separator />
 
-        {/* Navigation — flat list */}
+        {/* Main Navigation — Sectioned */}
         <ScrollArea className="flex-1 px-4 py-3">
-          <nav className="space-y-0.5">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
-                  pathname === item.href
-                    ? "bg-primary/10 text-foreground"
-                    : "text-foreground hover:bg-muted/50",
-                  collapsed && "justify-center px-2"
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && (
-                  <>
-                    <span>{item.title}</span>
-                    {item.badge && (
-                      <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
-                )}
-              </Link>
-            ))}
+          <nav className="space-y-1">
+            {mainNav.map((section, sectionIndex) => {
+              const isPlanning = section.section === "Planning"
+              return (
+                <div key={section.section} className={cn("space-y-1", sectionIndex > 0 && "pt-3")}>
+                  {isPlanning ? (
+                    <div className="px-3 mb-1.5">
+                      <button
+                        onClick={() => setPlanningExpanded(!planningExpanded)}
+                        className="flex items-center gap-2 w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/30"
+                        aria-expanded={planningExpanded}
+                      >
+                        <ChevronDown
+                          className={cn("h-3 w-3 shrink-0 transition-transform duration-200", planningExpanded && "rotate-180")}
+                        />
+                        {!collapsed && <span>{section.section}</span>}
+                      </button>
+                    </div>
+                  ) : (
+                    !collapsed && (
+                      <div className="px-3 mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">
+                          {section.section}
+                        </span>
+                      </div>
+                    )
+                  )}
+                  {(planningExpanded || !isPlanning) && (
+                    <div className={cn("space-y-1", collapsed && "space-y-0")}>
+                      {section.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
+                            pathname === item.href
+                              ? "bg-primary/10 text-foreground"
+                              : "text-foreground hover:bg-muted/50",
+                            collapsed && "justify-center px-2"
+                          )}
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {!collapsed && (
+                            <>
+                              <span>{item.title}</span>
+                              {item.badge && (
+                                <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </nav>
 
           {/* Pinned Items */}
@@ -221,6 +288,28 @@ export function Sidebar() {
             </div>
           )}
         </ScrollArea>
+
+        {/* Bottom Utility — Browse Trackers, Reports, Settings */}
+        <div className="border-t px-4 py-3">
+          <nav className="space-y-1">
+            {bottomNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
+                  pathname === item.href
+                    ? "bg-primary/10 text-foreground"
+                    : "text-foreground hover:bg-muted/50",
+                  collapsed && "justify-center px-2"
+                )}
+              >
+                <item.icon className="h-5 w-5 shrink-0" />
+                {!collapsed && <span>{item.title}</span>}
+              </Link>
+            ))}
+          </nav>
+        </div>
       </div>
     </aside>
   )

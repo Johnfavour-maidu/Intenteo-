@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
-import { Bell, Moon, Sun, Menu, Search, Calendar, User, Settings, Map, LogOut, ChevronDown, BarChart3 } from "lucide-react"
+import { Bell, Moon, Sun, Search, Calendar, User, Settings, LogOut, ChevronDown, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useTheme } from "next-themes"
@@ -111,9 +111,6 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-4 md:px-6">
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-5 w-5" />
-        </Button>
 
         <div className="relative flex-1 max-w-xs">
           <button

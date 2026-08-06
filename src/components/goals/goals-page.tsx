@@ -1444,6 +1444,8 @@ export function GoalsPage() {
   const [viewMode, setViewMode] = useState<"board" | "list">("board")
   const [learnOpen, setLearnOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [focusExpanded, setFocusExpanded] = useState(true)
+  const [allGoalsExpanded, setAllGoalsExpanded] = useState(true)
 
   useEffect(() => {
     try {
@@ -1616,28 +1618,39 @@ export function GoalsPage() {
             <>
               {filteredAndSorted.some(g => g.focused) && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <button onClick={() => setFocusExpanded(!focusExpanded)} className="flex items-center gap-2 group">
+                    {focusExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" /> : <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform" />}
                     <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                     <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Focus Goals</h2>
                     <span className="text-xs text-muted-foreground/60">({filteredAndSorted.filter(g => g.focused).length}/5)</span>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredAndSorted.filter(g => g.focused).sort((a, b) => (a.focusOrder ?? 0) - (b.focusOrder ?? 0)).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => {}} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
-                    ))}
-                  </div>
+                  </button>
+                  {focusExpanded && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {filteredAndSorted.filter(g => g.focused).sort((a, b) => (a.focusOrder ?? 0) - (b.focusOrder ?? 0)).map(goal => (
+                        <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => {}} isFocused onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {filteredAndSorted.some(g => !g.focused) && (
                 <div className="space-y-3">
-                  {filteredAndSorted.some(g => g.focused) && (
-                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">All Goals</h2>
+                  <button onClick={() => setAllGoalsExpanded(!allGoalsExpanded)} className="flex items-center gap-2 group">
+                    {allGoalsExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" /> : <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform" />}
+                    {filteredAndSorted.some(g => g.focused) && (
+                      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">All Goals</h2>
+                    )}
+                    {!filteredAndSorted.some(g => g.focused) && (
+                      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Goals</h2>
+                    )}
+                  </button>
+                  {allGoalsExpanded && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {filteredAndSorted.filter(g => !g.focused).map(goal => (
+                        <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => {}} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
+                      ))}
+                    </div>
                   )}
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredAndSorted.filter(g => !g.focused).map(goal => (
-                      <GoalCard key={goal.id} goal={goal} projects={projects} habits={habits} visions={visions} values={values} onClick={() => {}} isFocused={false} onToggleFocus={toggleFocusGoal} focusCount={goals.filter(g => g.focused).length} onEdit={(g) => setSelectedGoal(g)} onDelete={deleteGoal} onReview={(g) => setReviewGoal(g)} />
-                    ))}
-                  </div>
                 </div>
               )}
             </>
