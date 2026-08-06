@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
-  LayoutDashboard,
   CheckSquare,
   Target,
   BookOpen,
@@ -14,17 +13,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
-  Compass,
   BarChart3,
   Pin,
   ChevronDown,
   CalendarDays,
+  Compass,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { UserAvatar } from "@/components/ui/user-avatar"
-import { useSidebar } from "./sidebar-context"
+import { useSidebar } from "@/components/layout/sidebar-context"
 import { useUserProfile } from "@/lib/user-profile-context"
 import {
   getQuickAccessItems,
@@ -38,6 +36,11 @@ interface NavItem {
   href: string
   icon: React.ComponentType<{ className?: string }>
   badge?: string
+}
+
+interface NavSection {
+  section: string
+  items: NavItem[]
 }
 
 const topNav: NavItem[] = [
@@ -58,7 +61,12 @@ const bottomNav: NavItem[] = [
   { title: "Settings", href: "/settings", icon: Settings },
 ]
 
-export function Sidebar() {
+const mainNav: NavSection[] = [
+  { section: "Main", items: topNav },
+  { section: "Planning", items: planningItems },
+]
+
+export function DesktopSidebar() {
   const pathname = usePathname()
   const { collapsed, toggleCollapsed } = useSidebar()
   const { name, username, avatar, avatarFocalPoint } = useUserProfile()
@@ -94,7 +102,6 @@ export function Sidebar() {
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
-      {/* Collapse/Expand Arrow */}
       <Button
         variant="ghost"
         size="icon"
@@ -109,7 +116,6 @@ export function Sidebar() {
       </Button>
 
       <div className="flex h-full flex-col">
-        {/* Logo */}
         {!collapsed ? (
           <div className="flex h-16 w-full items-center justify-start px-4">
             <Link href="/" className="flex items-center shrink-0">
@@ -136,7 +142,6 @@ export function Sidebar() {
 
         <Separator />
 
-        {/* User Profile */}
         <Link href="/settings?tab=profile" className={cn("flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors", collapsed && "justify-center")}>
           {avatar ? (
             <div className="h-10 w-10 rounded-full overflow-hidden shrink-0">
@@ -148,7 +153,9 @@ export function Sidebar() {
               />
             </div>
           ) : (
-            <UserAvatar size="md" fallback={name ? name.charAt(0).toUpperCase() : "U"} status="online" />
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">{name ? name.charAt(0).toUpperCase() : "U"}</span>
+            </div>
           )}
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
@@ -160,62 +167,68 @@ export function Sidebar() {
 
         <Separator />
 
-        {/* Navigation */}
         <ScrollArea className="flex-1 px-4 py-3">
           <nav className="space-y-1">
-            {topNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
-                  pathname === item.href
-                    ? "bg-primary/10 text-foreground"
-                    : "text-foreground hover:bg-muted/50",
-                  collapsed && "justify-center px-2"
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.title}</span>}
-              </Link>
-            ))}
-
-            {/* Planning — collapsible */}
-            <div className="pt-3">
-              <button
-                onClick={() => setPlanningExpanded(!planningExpanded)}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/30"
-                aria-expanded={planningExpanded}
-              >
-                <ChevronDown
-                  className={cn("h-3 w-3 shrink-0 transition-transform duration-200", planningExpanded && "rotate-180")}
-                />
-                {!collapsed && <span>Planning</span>}
-              </button>
-              {planningExpanded && (
-                <div className={cn("space-y-1", collapsed && "space-y-0")}>
-                  {planningItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
-                        pathname === item.href
-                          ? "bg-primary/10 text-foreground"
-                          : "text-foreground hover:bg-muted/50",
-                        collapsed && "justify-center px-2"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </Link>
-                  ))}
+            {mainNav.map((section, sectionIndex) => {
+              const isPlanning = section.section === "Planning"
+              return (
+                <div key={section.section} className={cn("space-y-1", sectionIndex > 0 && "pt-3")}>
+                  {isPlanning ? (
+                    <div className="px-3 mb-1.5">
+                      <button
+                        onClick={() => setPlanningExpanded(!planningExpanded)}
+                        className="flex items-center gap-2 w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/30"
+                        aria-expanded={planningExpanded}
+                      >
+                        <ChevronDown
+                          className={cn("h-3 w-3 shrink-0 transition-transform duration-200", planningExpanded && "rotate-180")}
+                        />
+                        {!collapsed && <span>{section.section}</span>}
+                      </button>
+                    </div>
+                  ) : (
+                    !collapsed && (
+                      <div className="px-3 mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">
+                          {section.section}
+                        </span>
+                      </div>
+                    )
+                  )}
+                  {(planningExpanded || !isPlanning) && (
+                    <div className={cn("space-y-1", collapsed && "space-y-0")}>
+                      {section.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200",
+                            pathname === item.href
+                              ? "bg-primary/10 text-foreground"
+                              : "text-foreground hover:bg-muted/50",
+                            collapsed && "justify-center px-2"
+                          )}
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {!collapsed && (
+                            <>
+                              <span>{item.title}</span>
+                              {item.badge && (
+                                <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              )
+            })}
           </nav>
 
-          {/* Pinned Items */}
           {quickItems.length > 0 && !collapsed && (
             <div className="mt-4">
               <button
@@ -264,7 +277,6 @@ export function Sidebar() {
           )}
         </ScrollArea>
 
-        {/* Bottom Utility — Browse Trackers, Reports, Settings */}
         <div className="border-t px-4 py-3">
           <nav className="space-y-1">
             {bottomNav.map((item) => (

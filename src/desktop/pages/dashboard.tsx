@@ -1,0 +1,561 @@
+"use client"
+
+import React, { useState, useCallback, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { ResourcesModal } from "@/components/resources-modal"
+import { LearnMoreButton } from "@/components/learn-more-section"
+import { GlassCard } from "@/components/ui/glass-card"
+import { DailyReviewModal } from "@/components/tasks/tasks-page"
+import { DailyIntentionModal } from "@/components/intentions/daily-intention-modal"
+import { IntentionLibrary } from "@/components/intentions/intention-library"
+import { loadTodayIntention, saveTodayIntention, addRecentlyUsed } from "@/lib/intention-library"
+import type { Intention, StoredIntention } from "@/lib/intention-library"
+import { INTENTION_LIBRARY, findLinkedGoals, findLinkedVisions, findLinkedPurpose } from "@/lib/intention-library"
+import { ReminderModal } from "@/components/reminders/reminder-modal"
+import { IntentScorePanel, TasksPanel, HabitsPanel, GoalsPanel } from "@/desktop/components"
+import {
+  Target,
+  CheckCircle2,
+  Plus,
+  PenLine,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Bell,
+  BookOpen,
+  Trophy,
+  Flame,
+  Eye,
+  Repeat,
+} from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
+
+const REFLECTION_PROMPTS = [
+  "What would make today meaningful?",
+  "How can you better live your values today?",
+  "What kind of person do you want to become today?",
+  "What are you most grateful for right now?",
+  "What small act of kindness can you offer today?",
+  "What would you do if you weren't afraid?",
+  "How can you show up for someone you love today?",
+  "What habit, if practiced today, would compound over time?",
+  "What deserves your full attention today?",
+  "If today were your last day, what would you prioritize?",
+  "What energy do you want to bring into every room today?",
+  "What is one thing you can let go of today?",
+]
+
+function getTodayISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+export function DesktopDashboard() {
+  const router = useRouter()
+
+  const [intention, setIntention] = useState("")
+  const [intentionData, setIntentionData] = useState<StoredIntention | null>(null)
+  const [showIntentionLibrary, setShowIntentionLibrary] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const [streakModalOpen, setStreakModalOpen] = useState(false)
+  const [reminderModalOpen, setReminderModalOpen] = useState(false)
+  const [learnOpen, setLearnOpen] = useState(false)
+  const [quickActionsExpanded, setQuickActionsExpanded] = useState(false)
+  const [glanceOpen, setGlanceOpen] = useState(true)
+
+  const [tasks, setTasks] = useState<any[]>([])
+  const [habits, setHabits] = useState<any[]>([])
+  const [userName, setUserName] = useState("")
+
+  useEffect(() => {
+    try {
+      const stored = loadTodayIntention()
+      if (stored) {
+        setIntention(stored.intention.text)
+        setIntentionData(stored.intention)
+      }
+    } catch {}
+
+    try {
+      const storedTasks = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
+      if (Array.isArray(storedTasks)) {
+        const today = getTodayISO()
+        setTasks(storedTasks.filter((t: any) => t.date === today && !t.completed))
+      }
+    } catch {}
+
+    try {
+      const storedHabits = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
+      if (Array.isArray(storedHabits)) setHabits(storedHabits.filter((h: any) => !h.archived && !h.paused))
+    } catch {}
+
+    try {
+      const profile = JSON.parse(localStorage.getItem("intenteo-user-profile") || "{}")
+      if (profile?.name) setUserName(profile.name)
+    } catch {}
+  }, [])
+
+  const today = getTodayISO()
+  const completedHabits = habits.filter((h: any) => h.completedToday).length
+  const totalHabits = habits.length
+  const habitPercent = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0
+
+  const totalTasksToday = tasks.length
+  const completedTasksToday = tasks.filter((t: any) => t.completed).length
+  const remainingTasks = totalTasksToday - completedTasksToday
+
+  const currentStreak = useMemo(() => {
+    let maxStreak = 0
+    habits.forEach((h: any) => {
+      if ((h.streak || 0) > maxStreak) maxStreak = h.streak || 0
+    })
+    return maxStreak
+  }, [habits])
+
+  const bestStreak = useMemo(() => {
+    let best = 0
+    habits.forEach((h: any) => {
+      if ((h.bestStreak || 0) > best) best = h.bestStreak || 0
+    })
+    return best || currentStreak
+  }, [habits, currentStreak])
+
+  const [reminderCount, setReminderCount] = useState(0)
+  useEffect(() => {
+    try {
+      const reminders = JSON.parse(localStorage.getItem("intenteo-reminders") || "[]")
+      if (Array.isArray(reminders)) {
+        const todayR = reminders.filter((r: any) => r.date === today && !r.completed)
+        setReminderCount(todayR.length)
+      }
+    } catch {}
+  }, [today])
+
+  const reflectionPrompt = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
+    return REFLECTION_PROMPTS[dayOfYear % REFLECTION_PROMPTS.length]
+  }, [])
+
+  const addToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2500)
+  }, [])
+
+  const handleIntentionSelect = useCallback((text: string, isCustom: boolean) => {
+    setIntention(text)
+    saveTodayIntention(text, isCustom)
+    addRecentlyUsed(text, isCustom)
+    setShowIntentionLibrary(false)
+    addToast("Intention set for today!")
+  }, [addToast])
+
+  const toggleHabit = useCallback((id: string) => {
+    setHabits((prev) =>
+      prev.map((h: any) => h.id === id ? { ...h, completedToday: !h.completedToday } : h)
+    )
+    try {
+      const all = JSON.parse(localStorage.getItem("intenteo-habits") || "[]")
+      const updated = all.map((h: any) => h.id === id ? { ...h, completedToday: !h.completedToday } : h)
+      localStorage.setItem("intenteo-habits", JSON.stringify(updated))
+    } catch {}
+  }, [])
+
+  const toggleTask = useCallback((id: string) => {
+    setTasks((prev) => prev.filter((t: any) => t.id !== id))
+    try {
+      const all = JSON.parse(localStorage.getItem("intenteo-tasks") || "[]")
+      const updated = all.map((t: any) => t.id === id ? { ...t, completed: true } : t)
+      localStorage.setItem("intenteo-tasks", JSON.stringify(updated))
+    } catch {}
+  }, [])
+
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return "Good morning"
+    if (hour < 17) return "Good afternoon"
+    return "Good evening"
+  }
+
+  const getFormattedDate = () => {
+    const now = new Date()
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
+  }
+
+  const displayName = userName || "there"
+
+  const linkedIntention = useMemo(() => {
+    if (!intentionData) return null
+    const found = INTENTION_LIBRARY.find(i => i.text === intention)
+    if (!found) return null
+    const linkedGoals = findLinkedGoals(found)
+    const linkedVisions = findLinkedVisions(found)
+    const linkedPurpose = findLinkedPurpose(found)
+    return { goals: linkedGoals, visions: linkedVisions, purpose: linkedPurpose }
+  }, [intention, intentionData])
+
+  const streakStats = useMemo(() => {
+    const streaks = habits
+      .filter((h: any) => (h.streak || 0) > 0)
+      .sort((a: any, b: any) => (b.streak || 0) - (a.streak || 0))
+      .slice(0, 5)
+    return {
+      current: currentStreak,
+      best: bestStreak,
+      topHabits: streaks.map((h: any) => ({ name: h.name, icon: h.icon, streak: h.streak })),
+      totalHabits: totalHabits,
+      completedToday: completedHabits,
+    }
+  }, [habits, currentStreak, bestStreak, totalHabits, completedHabits])
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* ─── Header ─── */}
+      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b">
+        <div className="flex items-center justify-between px-4 md:px-6 py-3">
+          <div>
+            <h1 className="text-xl font-semibold">
+              {getGreeting()}, <span className="text-gradient">{displayName}</span>
+            </h1>
+            <p className="text-sm text-muted-foreground">{getFormattedDate()}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+              onClick={() => router.push("/tasks")}>
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Task</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+              onClick={() => router.push("/journal?type=quick")}>
+              <PenLine className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Journal</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+              onClick={() => router.push("/habits")}>
+              <Target className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Habit</span>
+            </Button>
+
+            <div className="relative">
+              <Button variant="ghost" size="icon" className="h-9 w-9"
+                onClick={() => setQuickActionsExpanded(!quickActionsExpanded)}>
+                <ChevronDown className={cn("h-4 w-4 transition-transform", quickActionsExpanded && "rotate-180")} />
+              </Button>
+              <AnimatePresence>
+                {quickActionsExpanded && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setQuickActionsExpanded(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="absolute right-0 top-full mt-2 z-50 w-48 bg-white dark:bg-gray-900 rounded-xl border shadow-xl overflow-hidden"
+                    >
+                      {[
+                        { icon: <Calendar className="h-4 w-4" />, label: "Calendar", action: () => router.push("/calendar") },
+                        { icon: <Bell className="h-4 w-4" />, label: "Reminders", action: () => { setReminderModalOpen(true); setQuickActionsExpanded(false) } },
+                        { icon: <Sparkles className="h-4 w-4" />, label: "Ask Teo", action: () => router.push("/coach") },
+                      ].map((action, i) => (
+                        <button key={i}
+                          onClick={() => { action.action(); setQuickActionsExpanded(false) }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left">
+                          <span className="text-muted-foreground">{action.icon}</span>
+                          {action.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <button
+              onClick={() => setStreakModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg shadow-orange-500/25">
+                <Flame className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <div className="text-[10px] text-muted-foreground leading-none">Streak</div>
+                <div className="text-sm font-bold leading-tight">{currentStreak} Days</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Main Content ─── */}
+      <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto space-y-6">
+
+        {/* ─── Section 1: Today's Intention (Hero) ─── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <GlassCard variant="primary" className="p-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[#EB9E5B]/5 to-transparent rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 text-primary mb-4">
+                <Target className="h-5 w-5" />
+                <span className="text-sm font-medium uppercase tracking-wider">Today&apos;s Intention</span>
+              </div>
+
+              {showIntentionLibrary ? (
+                <IntentionLibrary onSelect={handleIntentionSelect} />
+              ) : intention ? (
+                <div className="space-y-4">
+                  <p className="text-2xl md:text-3xl font-medium leading-relaxed italic text-primary/90">
+                    &ldquo;{intention}&rdquo;
+                  </p>
+                  {linkedIntention && (linkedIntention.goals.length > 0 || linkedIntention.visions.length > 0 || linkedIntention.purpose) && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {linkedIntention.purpose && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#1E0E6B]/10 text-[#1E0E6B] text-xs font-medium">
+                          <span className="text-[10px]">Purpose</span>
+                          {linkedIntention.purpose}
+                        </span>
+                      )}
+                      {linkedIntention.visions.slice(0, 1).map((v) => (
+                        <span key={v.id} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 text-xs font-medium">
+                          <Eye className="h-3 w-3" />
+                          {v.title}
+                        </span>
+                      ))}
+                      {linkedIntention.goals.slice(0, 2).map((g) => (
+                        <span key={g.id} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#EB9E5B]/10 text-[#EB9E5B] text-xs font-medium">
+                          <Target className="h-3 w-3" />
+                          {g.title}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => setShowIntentionLibrary(true)}
+                    className="border-[#1E0E6B]/20 mt-2">
+                    <PenLine className="h-3.5 w-3.5 mr-1" />
+                    Change Intention
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xl text-muted-foreground">Who do you want to be today?</p>
+                  <div className="flex gap-3">
+                    <Button onClick={() => setShowIntentionLibrary(true)}
+                      className="bg-[#1E0E6B] hover:bg-[#1E0E6B]/90 text-white">
+                      <PenLine className="h-4 w-4 mr-1.5" />
+                      Write My Own
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowIntentionLibrary(true)}
+                      className="border-[#1E0E6B]/20">
+                      <BookOpen className="h-4 w-4 mr-1.5" />
+                      Choose From Library
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </GlassCard>
+        </motion.div>
+
+        {/* ─── Section 2: Today at a Glance (Collapsible) ─── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}>
+          <Card>
+            <button
+              onClick={() => setGlanceOpen(!glanceOpen)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors rounded-2xl"
+            >
+              <div className="flex items-center gap-2">
+                <span className={cn("h-4 w-4 transition-transform", glanceOpen ? "rotate-0" : "rotate-0")}>
+                  {glanceOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                </span>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today at a Glance</h2>
+              </div>
+            </button>
+            <AnimatePresence initial={false}>
+              {glanceOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { icon: <CheckCircle2 className="h-4 w-4" />, label: "Tasks Due", value: remainingTasks, color: "text-blue-600 dark:text-blue-400" },
+                        { icon: <Repeat className="h-4 w-4" />, label: "Habits Remaining", value: totalHabits - completedHabits, color: "text-orange-500 dark:text-orange-400" },
+                        { icon: <Bell className="h-4 w-4" />, label: "Today's Reminders", value: reminderCount, color: "text-purple-600 dark:text-purple-400", onClick: () => setReminderModalOpen(true) },
+                      ].map((item, i) => (
+                        <div key={i} className={cn("flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30", item.onClick && "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={item.onClick}>
+                          <span className={item.color}>{item.icon}</span>
+                          <div>
+                            <div className="text-lg font-bold leading-none">{item.value}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{item.label}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <IntentScorePanel
+                      habitPercent={habitPercent}
+                      totalTasksToday={totalTasksToday}
+                      completedTasksToday={completedTasksToday}
+                      habits={habits}
+                      intention={intention}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Card>
+        </motion.div>
+
+        {/* ─── Section 3: Tasks + Habits (Two-Column) ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+            <TasksPanel tasks={tasks} onToggleTask={toggleTask} />
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
+            <HabitsPanel
+              habits={habits}
+              completedCount={completedHabits}
+              totalCount={totalHabits}
+              percent={habitPercent}
+              onToggleHabit={toggleHabit}
+            />
+          </motion.div>
+        </div>
+
+        {/* ─── Section 4: Goals ─── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+          <GoalsPanel />
+        </motion.div>
+
+        {/* ─── Section 5: Today's Reflection ─── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}>
+          <Card className="bg-gradient-to-br from-[#1E0E6B]/5 to-transparent border-[#1E0E6B]/10">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 text-primary mb-3">
+                <BookOpen className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-wider">Today&apos;s Reflection</span>
+              </div>
+              <p className="text-lg font-medium italic text-primary/80 mb-4">
+                &ldquo;{reflectionPrompt}&rdquo;
+              </p>
+              <Button size="sm" onClick={() => router.push("/journal?type=reflection")}
+                className="bg-[#1E0E6B] hover:bg-[#1E0E6B]/90 text-white">
+                <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                Answer in Journal
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <div className="h-4" />
+      </div>
+
+      {/* ─── Toast ─── */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-foreground text-background text-sm px-4 py-2 rounded-full shadow-lg">
+          {toast}
+        </div>
+      )}
+
+      {/* ─── Streak Modal ─── */}
+      <AnimatePresence>
+        {streakModalOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+              onClick={() => setStreakModalOpen(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-orange-500/25">
+                  <Flame className="h-8 w-8 text-white" />
+                </div>
+                <h2 className="text-lg font-bold">Your Streaks</h2>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="text-center p-3 rounded-xl bg-muted/50">
+                  <div className="text-2xl font-bold text-primary">{streakStats.current}</div>
+                  <div className="text-xs text-muted-foreground">Current Streak</div>
+                </div>
+                <div className="text-center p-3 rounded-xl bg-muted/50">
+                  <div className="text-2xl font-bold text-[#EB9E5B]">{streakStats.best}</div>
+                  <div className="text-xs text-muted-foreground">Best Streak</div>
+                </div>
+              </div>
+
+              {streakStats.topHabits.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Top Habits</p>
+                  <div className="space-y-1.5">
+                    {streakStats.topHabits.map((h, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm">
+                        <span>{h.icon}</span>
+                        <span className="flex-1">{h.name}</span>
+                        <span className="font-medium text-primary">{h.streak} days</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground mb-4">
+                <div className="flex items-center gap-1">
+                  <Trophy className="h-3.5 w-3.5 text-[#EB9E5B]" />
+                  {streakStats.completedToday}/{streakStats.totalHabits} habits today
+                </div>
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={() => setStreakModalOpen(false)}>
+                Close
+              </Button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ReminderModal open={reminderModalOpen} onClose={() => setReminderModalOpen(false)} defaultSource="task" />
+
+      {reviewOpen && (
+        <DailyReviewModal
+          date={today}
+          tasksCompleted={completedTasksToday}
+          totalTasks={totalTasksToday}
+          productivity={habitPercent}
+          completedHabits={completedHabits}
+          totalHabits={totalHabits}
+          habitNames={habits.map((h: any) => ({ name: h.name, completed: h.completedToday || false, score: h.completedToday ? 100 : 0 }))}
+          taskList={tasks.map((t: any) => ({ id: t.id, title: t.title, completed: t.completed, subtasks: [] }))}
+          existingReview={null}
+          router={router}
+          onClose={() => setReviewOpen(false)}
+          onSave={(data) => {
+            try {
+              const reviews = JSON.parse(localStorage.getItem("intenteo-reviews") || "[]")
+              reviews.push({ date: today, ...data, productivity: habitPercent, tasksCompleted: completedTasksToday, completedHabits, totalHabits, createdAt: new Date().toISOString() })
+              localStorage.setItem("intenteo-reviews", JSON.stringify(reviews))
+            } catch {}
+            addToast("Daily review saved")
+            setReviewOpen(false)
+          }}
+        />
+      )}
+
+      <DailyIntentionModal onSelect={(text) => setIntention(text)} />
+      <LearnMoreButton onOpen={() => setLearnOpen(true)} />
+      <ResourcesModal open={learnOpen} onClose={() => setLearnOpen(false)} moduleKey="today" />
+    </div>
+  )
+}
