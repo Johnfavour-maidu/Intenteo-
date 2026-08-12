@@ -12,7 +12,7 @@ import {
   MonthlyRepeatMode,
   TasksSortMode,
 } from "@/shared/types"
-import { sampleTasks } from "./task-data"
+import { sampleTasks } from "@/components/tasks/task-data"
 import { Button } from "@/components/ui/button"
 import { ResourcesModal } from "@/components/resources-modal"
 import { LearnMoreButton } from "@/components/learn-more-section"
@@ -55,7 +55,7 @@ import {
   MoreHorizontal,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useToast, ToastContainer } from "./task-toast"
+import { useToast, ToastContainer } from "@/components/tasks/task-toast"
 import { formatDateDDMMYYYY, formatDateLong } from "@/shared/utils"
 import { playCompletionSoundIfEnabled, isIntentScoreVisible } from "@/lib/settings-actions"
 import { DateInput } from "@/components/ui/date-input"

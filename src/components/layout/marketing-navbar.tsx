@@ -1,0 +1,166 @@
+"use client"
+
+import React, { useState, useEffect } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { Menu, X } from "lucide-react"
+
+const navItems = [
+  { label: "Home", href: "/" },
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "Features", href: "/features" },
+  { label: "Learn", href: "/learn" },
+  { label: "About", href: "/about" },
+]
+
+export function MarketingNavbar() {
+  const pathname = usePathname()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false)
+    }
+    if (mobileOpen) {
+      window.addEventListener("keydown", handleEscape)
+      return () => window.removeEventListener("keydown", handleEscape)
+    }
+  }, [mobileOpen])
+
+  const isActive = (href: string) => pathname === href
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Logo */}
+          <Link href="/" className="flex items-center">
+            <img
+              src="/branding/logo-primary.png"
+              alt="Intenteo"
+              className="h-8 w-auto object-contain dark:mix-blend-multiply dark:invert"
+            />
+          </Link>
+
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-foreground",
+                  isActive(item.href)
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link
+              href="/signin"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Log In
+            </Link>
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center rounded-lg bg-[#1E0E6B] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#1E0E6B]/90 transition-colors"
+            >
+              Get Started
+            </Link>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="md:hidden p-2 rounded-lg text-foreground hover:bg-muted/50 transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Drawer */}
+      {mobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[50] bg-black/40 backdrop-blur-sm md:hidden"
+            onClick={() => setMobileOpen(false)}
+          />
+
+          {/* Drawer */}
+          <div className="fixed top-0 right-0 z-[51] h-screen w-[280px] max-w-[80vw] bg-background border-l border-border shadow-xl md:hidden flex flex-col animate-in slide-in-from-right duration-300">
+            {/* Handle */}
+            <div className="flex h-16 items-center justify-between px-4 border-b">
+              <Link
+                href="/"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center"
+              >
+                <img
+                  src="/branding/logo-primary.png"
+                  alt="Intenteo"
+                  className="h-7 w-auto object-contain dark:mix-blend-multiply dark:invert"
+                />
+              </Link>
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto py-4">
+              <div className="flex flex-col gap-1 px-2">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all",
+                      isActive(item.href)
+                        ? "bg-[#1E0E6B]/10 text-[#1E0E6B]"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+
+            {/* CTA Buttons */}
+            <div className="border-t p-4 space-y-3">
+              <Link
+                href="/signin"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center rounded-lg border border-[#1E0E6B]/20 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center rounded-lg bg-[#1E0E6B] px-4 py-3 text-sm font-medium text-white hover:bg-[#1E0E6B]/90 transition-colors"
+              >
+                Get Started
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
+}

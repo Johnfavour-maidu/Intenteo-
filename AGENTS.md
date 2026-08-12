@@ -4,6 +4,53 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+## Project Architecture (Refactored)
+
+The codebase is split into 4 layers:
+
+### `src/shared/` — Business Logic (platform-agnostic)
+- `types/` — All domain types (Task, Goal, Habit, Vision, etc.)
+- `utils/` — cn(), formatDate, formatTime, calculateIntentScore
+- `calculations/` — Intent Score engine, habit-utils, goal-utils, reminder-types
+- `context/` — Auth context, user profile context
+- `hooks/` — useSidebar, useUndoRedo
+- `store/` — localStorage-backed stores (user-settings, security, quick-access, etc.)
+- `services/` — Reminder sounds, resources
+- `auth/` — Auth context
+- `api/` — DB layer
+- `database/` — Schema
+- `constants/` — APP_NAME, STORAGE_KEYS
+- `components/` — Shared UI primitives (Button, Input, Card, Badge, etc.)
+
+### `src/desktop/` — Desktop Web UI
+- `layouts/desktop-layout.tsx` — Desktop shell with sidebar + header
+- `navigation/` — Sidebar, header
+- `pages/` — Dashboard, tasks, habits, goals, journal, reports, settings, focus
+- `components/` — Cards (intent-score, tasks, habits, goals), settings, reports, shared-ui
+
+### `src/mobile/` — Mobile App UI (React Native)
+- `layouts/` — Mobile app shell, auth layout, main layout
+- `navigation/` — Root stack navigator, bottom tabs
+- `screens/` — Dashboard, tasks, habits, goals, journal, vision, profile, trackers, notifications, settings
+- `components/` — UI primitives, habits, goals
+
+### `src/router/` — Platform Routing
+- `platform-detector.tsx` — usePlatform() hook (desktop/mobile detection)
+- `app-shell.tsx` — AppShell (loads DesktopApp or MobileApp)
+- `index.ts` — Barrel exports
+
+### Import Conventions
+- Desktop pages import from `@/shared/` for types/utils/calculations
+- Desktop pages import from `@/components/` for UI primitives
+- Mobile screens import from `intenteo-mobile/src/` for theme/components/storage
+- Original files in `src/components/` remain as the source of truth; `src/desktop/` and `src/mobile/` reference them
+
+### Build Commands
+- `npm run lint` — ESLint
+- `npm run typecheck` — TypeScript type check
+- `npx tsc --noEmit` — Quick type check
+- `npm run build` — Production build
+
 ## Habits Page — Complete
 
 - **Habit Intelligence System** (10 features delivered):

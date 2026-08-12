@@ -32,7 +32,7 @@ export default function DownloadPage() {
           <div className="flex items-center justify-center gap-3 text-xs text-gray-400 mb-6">
             <span>v1.0.0</span>
             <span className="w-1 h-1 bg-gray-300 rounded-full" />
-            <span>~74 MB</span>
+            <span>~78 MB</span>
             <span className="w-1 h-1 bg-gray-300 rounded-full" />
             <span>Android 7.0+</span>
           </div>

@@ -135,7 +135,7 @@ export type TrackerPeriod = "week" | "month" | "year"
 // GOALS (components/goals/types.ts)
 // ══════════════════════════════════════════════════════════════
 
-export interface Milestone { id: string; title: string; completed: boolean; weight?: number }
+export interface Milestone { id: string; title: string; completed: boolean; weight?: number; dueDate?: string; status?: "not-started" | "in-progress" | "completed"; priority?: "low" | "medium" | "high" }
 
 export interface GoalProjectTimeline {
   id: string; projectName: string; description: string; startDate: string; endDate: string

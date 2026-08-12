@@ -1,0 +1,8 @@
+export { DesktopDashboard } from "./dashboard"
+export { DesktopTasksPage } from "./tasks"
+export { HabitsPage as DesktopHabitsPage } from "./habits"
+export { GoalsPage as DesktopGoalsPage } from "./goals"
+export { JournalPage as DesktopJournalPage } from "./journal"
+export { DesktopReportsPage } from "./reports"
+export { DesktopSettingsPage } from "./settings"
+export { FocusTimerPage } from "./focus"

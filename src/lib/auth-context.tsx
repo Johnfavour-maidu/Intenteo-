@@ -5,14 +5,26 @@ import { useRouter, usePathname } from "next/navigation"
 
 const AUTH_KEY = "intenteo-auth"
 
+const PUBLIC_ROUTES = new Set([
+  "/",
+  "/signin",
+  "/signup",
+  "/how-it-works",
+  "/features",
+  "/learn",
+  "/about",
+])
+
 interface AuthContextType {
   isSignedIn: boolean
+  isHydrated: boolean
   signIn: () => void
   signOut: () => void
 }
 
 const AuthContext = createContext<AuthContextType>({
   isSignedIn: false,
+  isHydrated: false,
   signIn: () => {},
   signOut: () => {},
 })
@@ -50,16 +62,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/signin")
   }, [router])
 
-  // Route guard
+  // Route guard — redirect non-authed users away from app routes
   useEffect(() => {
     if (!hydrated) return
-    if (!isSignedIn && pathname !== "/signin" && pathname !== "/signup") {
+    if (!isSignedIn && !PUBLIC_ROUTES.has(pathname)) {
       router.push("/signin")
     }
   }, [hydrated, isSignedIn, pathname, router])
 
   return (
-    <AuthContext.Provider value={{ isSignedIn, signIn, signOut }}>
+    <AuthContext.Provider value={{ isSignedIn, isHydrated: hydrated, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )
