@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
+import { MarketingLogo } from "@/components/marketing/marketing-logo"
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -34,14 +35,7 @@ export function MarketingNavbar() {
     <>
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <img
-              src="/branding/logo-primary.png"
-              alt="Intenteo"
-              className="h-8 w-auto object-contain dark:mix-blend-multiply dark:invert"
-            />
-          </Link>
+          <MarketingLogo size="md" />
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
@@ -71,7 +65,8 @@ export function MarketingNavbar() {
             </Link>
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center rounded-lg bg-[#1E0E6B] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#1E0E6B]/90 transition-colors"
+              className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#EB9E5B]/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#EB9E5B]/30 active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg, #EB9E5B 0%, #F5A623 100%)" }}
             >
               Get Started
             </Link>
@@ -91,27 +86,13 @@ export function MarketingNavbar() {
       {/* Mobile Drawer */}
       {mobileOpen && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 z-[50] bg-black/40 backdrop-blur-sm md:hidden"
             onClick={() => setMobileOpen(false)}
           />
-
-          {/* Drawer */}
           <div className="fixed top-0 right-0 z-[51] h-screen w-[280px] max-w-[80vw] bg-background border-l border-border shadow-xl md:hidden flex flex-col animate-in slide-in-from-right duration-300">
-            {/* Handle */}
             <div className="flex h-16 items-center justify-between px-4 border-b">
-              <Link
-                href="/"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center"
-              >
-                <img
-                  src="/branding/logo-primary.png"
-                  alt="Intenteo"
-                  className="h-7 w-auto object-contain dark:mix-blend-multiply dark:invert"
-                />
-              </Link>
+              <MarketingLogo size="sm" onClick={() => setMobileOpen(false)} />
               <button
                 onClick={() => setMobileOpen(false)}
                 className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
@@ -120,7 +101,6 @@ export function MarketingNavbar() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-
             <nav className="flex-1 overflow-y-auto py-4">
               <div className="flex flex-col gap-1 px-2">
                 {navItems.map((item) => (
@@ -140,8 +120,6 @@ export function MarketingNavbar() {
                 ))}
               </div>
             </nav>
-
-            {/* CTA Buttons */}
             <div className="border-t p-4 space-y-3">
               <Link
                 href="/signin"
@@ -153,7 +131,8 @@ export function MarketingNavbar() {
               <Link
                 href="/signup"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center rounded-lg bg-[#1E0E6B] px-4 py-3 text-sm font-medium text-white hover:bg-[#1E0E6B]/90 transition-colors"
+                className="flex items-center justify-center rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 active:scale-[0.98]"
+                style={{ background: "linear-gradient(135deg, #EB9E5B 0%, #F5A623 100%)" }}
               >
                 Get Started
               </Link>

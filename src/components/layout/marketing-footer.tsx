@@ -1,21 +1,16 @@
 import Link from "next/link"
-import { TeoIcon } from "@/components/ui/teo-icon"
+import { MarketingLogo } from "@/components/marketing/marketing-logo"
 
 export function MarketingFooter() {
   return (
     <footer className="w-full border-t border-border/40 bg-background/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="grid gap-10 md:grid-cols-4">
-          {/* Logo + Statement */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <TeoIcon size="sm" />
-              <span className="text-xl font-bold">Intenteo</span>
-            </div>
+            <MarketingLogo size="sm" />
             <p className="text-sm text-muted-foreground">Live with intention.</p>
           </div>
 
-          {/* Product */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Product</h3>
             <div className="flex flex-col gap-2">
@@ -24,7 +19,6 @@ export function MarketingFooter() {
             </div>
           </div>
 
-          {/* Learn */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Learn</h3>
             <div className="flex flex-col gap-2">
@@ -35,7 +29,6 @@ export function MarketingFooter() {
             </div>
           </div>
 
-          {/* Company */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Company</h3>
             <div className="flex flex-col gap-2">
