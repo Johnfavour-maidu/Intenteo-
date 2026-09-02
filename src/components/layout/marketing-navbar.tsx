@@ -64,8 +64,8 @@ export function MarketingNavbar() {
             </Link>
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#EB9E5B]/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#EB9E5B]/30 active:scale-[0.98]"
-              style={{ background: "linear-gradient(135deg, #EB9E5B 0%, #F5A623 100%)" }}
+              className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
             >
               Get Started
             </Link>
@@ -130,8 +130,8 @@ export function MarketingNavbar() {
               <Link
                 href="/signup"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 active:scale-[0.98]"
-                style={{ background: "linear-gradient(135deg, #EB9E5B 0%, #F5A623 100%)" }}
+                className="flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-200 active:scale-[0.98]"
+                style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
               >
                 Get Started
               </Link>
