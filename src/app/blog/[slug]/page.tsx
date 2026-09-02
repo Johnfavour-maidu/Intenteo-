@@ -1,12 +1,14 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 import { MarketingLayout } from "@/components/layout/marketing-layout"
-import { ArrowLeft, Calendar, Clock } from "lucide-react"
+import { ArrowLeft, ArrowRight, Calendar, Clock } from "lucide-react"
 
 interface BlogPost {
   slug: string
   title: string
+  excerpt: string
   category: string
   date: string
   readTime: string
@@ -17,6 +19,7 @@ const posts: Record<string, BlogPost> = {
   "why-purpose-matters-more-than-productivity": {
     slug: "why-purpose-matters-more-than-productivity",
     title: "Why Purpose Matters More Than Productivity",
+    excerpt: "Productivity without purpose is just motion. Discover why clarifying your 'why' is the most important step.",
     category: "Purpose",
     date: "Aug 28, 2026",
     readTime: "5 min read",
@@ -31,6 +34,7 @@ const posts: Record<string, BlogPost> = {
   "the-architecture-of-lasting-habits": {
     slug: "the-architecture-of-lasting-habits",
     title: "The Architecture of Lasting Habits",
+    excerpt: "Most habits fail not because of willpower, but because of poor design. Learn the identity-based approach.",
     category: "Habits",
     date: "Aug 21, 2026",
     readTime: "6 min read",
@@ -45,6 +49,7 @@ const posts: Record<string, BlogPost> = {
   "how-daily-reflection-changes-everything": {
     slug: "how-daily-reflection-changes-everything",
     title: "How Daily Reflection Changes Everything",
+    excerpt: "Five minutes of honest reflection at the end of your day can reshape tomorrow.",
     category: "Reflection",
     date: "Aug 14, 2026",
     readTime: "4 min read",
@@ -59,6 +64,7 @@ const posts: Record<string, BlogPost> = {
   "setting-goals-that-actually-mean-something": {
     slug: "setting-goals-that-actually-mean-something",
     title: "Setting Goals That Actually Mean Something",
+    excerpt: "Goals tied to your purpose feel different. Learn how to set objectives that motivate you from the inside out.",
     category: "Goals",
     date: "Aug 7, 2026",
     readTime: "5 min read",
@@ -73,6 +79,7 @@ const posts: Record<string, BlogPost> = {
   "the-practice-of-mindful-productivity": {
     slug: "the-practice-of-mindful-productivity",
     title: "The Practice of Mindful Productivity",
+    excerpt: "Being busy and being intentional are not the same thing. How to slow down and focus on what matters.",
     category: "Mindfulness",
     date: "Jul 31, 2026",
     readTime: "4 min read",
@@ -87,6 +94,7 @@ const posts: Record<string, BlogPost> = {
   "building-a-life-of-intention": {
     slug: "building-a-life-of-intention",
     title: "Building a Life of Intention, Not Just Efficiency",
+    excerpt: "Efficiency gets more done. Intention gets the right things done. Here's how to shift from doing more to living better.",
     category: "Productivity",
     date: "Jul 24, 2026",
     readTime: "5 min read",
@@ -101,6 +109,7 @@ const posts: Record<string, BlogPost> = {
   "the-difference-between-goals-and-purpose": {
     slug: "the-difference-between-goals-and-purpose",
     title: "The Difference Between Goals and Purpose",
+    excerpt: "Goals are destinations. Purpose is the compass. Understanding the distinction changes how you plan your life.",
     category: "Purpose",
     date: "Aug 15, 2026",
     readTime: "4 min read",
@@ -115,6 +124,7 @@ const posts: Record<string, BlogPost> = {
   "how-to-clarify-your-values-in-30-minutes": {
     slug: "how-to-clarify-your-values-in-30-minutes",
     title: "How to Clarify Your Values in 30 Minutes",
+    excerpt: "A simple exercise to identify the principles that guide your decisions.",
     category: "Purpose",
     date: "Jul 30, 2026",
     readTime: "3 min read",
@@ -129,6 +139,7 @@ const posts: Record<string, BlogPost> = {
   "why-you-dont-need-more-willpower": {
     slug: "why-you-dont-need-more-willpower",
     title: "You Don't Need More Willpower",
+    excerpt: "Willpower is a finite resource. The real trick is designing habits that don't rely on it at all.",
     category: "Habits",
     date: "Aug 8, 2026",
     readTime: "4 min read",
@@ -143,6 +154,7 @@ const posts: Record<string, BlogPost> = {
   "the-2-minute-rule-that-changes-everything": {
     slug: "the-2-minute-rule-that-changes-everything",
     title: "The 2-Minute Rule That Changes Everything",
+    excerpt: "If a habit takes less than two minutes to start, you'll actually do it. Here's how to build momentum.",
     category: "Habits",
     date: "Jul 22, 2026",
     readTime: "3 min read",
@@ -157,6 +169,7 @@ const posts: Record<string, BlogPost> = {
   "the-three-questions-that-reveal-your-alignment": {
     slug: "the-three-questions-that-reveal-your-alignment",
     title: "The Three Questions That Reveal Your Alignment",
+    excerpt: "What went well? What didn't? How aligned did I feel? Three simple questions that unlock self-awareness.",
     category: "Reflection",
     date: "Aug 1, 2026",
     readTime: "3 min read",
@@ -171,6 +184,7 @@ const posts: Record<string, BlogPost> = {
   "why-journaling-alone-isnt-enough": {
     slug: "why-journaling-alone-isnt-enough",
     title: "Why Journaling Alone Isn't Enough",
+    excerpt: "Journaling is powerful, but without structure it becomes venting. Here's how to turn writing into insight.",
     category: "Reflection",
     date: "Jul 18, 2026",
     readTime: "5 min read",
@@ -185,6 +199,7 @@ const posts: Record<string, BlogPost> = {
   "the-problem-with-smart-goals": {
     slug: "the-problem-with-smart-goals",
     title: "The Problem with SMART Goals",
+    excerpt: "SMART goals are everywhere, but they miss one crucial ingredient: meaning. Here's a better framework.",
     category: "Goals",
     date: "Jul 25, 2026",
     readTime: "4 min read",
@@ -199,6 +214,7 @@ const posts: Record<string, BlogPost> = {
   "how-to-break-big-goals-into-daily-actions": {
     slug: "how-to-break-big-goals-into-daily-actions",
     title: "How to Break Big Goals into Daily Actions",
+    excerpt: "A big goal without daily steps is just a wish. Here's the reverse-engineering method that actually works.",
     category: "Goals",
     date: "Jul 12, 2026",
     readTime: "5 min read",
@@ -213,6 +229,7 @@ const posts: Record<string, BlogPost> = {
   "single-tasking-in-a-multitasking-world": {
     slug: "single-tasking-in-a-multitasking-world",
     title: "Single-Tasking in a Multitasking World",
+    excerpt: "Multitasking feels productive but destroys focus. Here's why doing one thing at a time is the real superpower.",
     category: "Mindfulness",
     date: "Jul 16, 2026",
     readTime: "4 min read",
@@ -227,6 +244,7 @@ const posts: Record<string, BlogPost> = {
   "the-morning-intention-practice": {
     slug: "the-morning-intention-practice",
     title: "The Morning Intention Practice",
+    excerpt: "Before you check your phone, check in with yourself. A 2-minute morning practice that changes your day.",
     category: "Mindfulness",
     date: "Jul 3, 2026",
     readTime: "3 min read",
@@ -241,6 +259,7 @@ const posts: Record<string, BlogPost> = {
   "why-more-productivity-hacks-wont-save-you": {
     slug: "why-more-productivity-hacks-wont-save-you",
     title: "Why More Productivity Hacks Won't Save You",
+    excerpt: "You don't need another app, another system, another hack. You need clarity on what actually matters.",
     category: "Productivity",
     date: "Jul 10, 2026",
     readTime: "4 min read",
@@ -255,6 +274,7 @@ const posts: Record<string, BlogPost> = {
   "the-quiet-power-of-saying-no": {
     slug: "the-quiet-power-of-saying-no",
     title: "The Quiet Power of Saying No",
+    excerpt: "Every yes is a no to something else. How intentional refusal becomes the foundation of intentional living.",
     category: "Productivity",
     date: "Jun 28, 2026",
     readTime: "4 min read",
@@ -266,6 +286,30 @@ const posts: Record<string, BlogPost> = {
       "Intenteó helps you see where your time goes. When you can see the gap between your intentions and your actions, saying no becomes easier — because you know what you're protecting.",
     ],
   },
+}
+
+/* ─── All posts list for related articles ─── */
+const allPostsList = Object.values(posts)
+
+/* ─── Related articles logic ─── */
+function getRelatedArticles(currentSlug: string, currentCategory: string) {
+  const sameCategory = allPostsList.filter(
+    (p) => p.slug !== currentSlug && p.category === currentCategory
+  )
+  const otherCategory = allPostsList.filter(
+    (p) => p.slug !== currentSlug && p.category !== currentCategory
+  )
+  const related = [...sameCategory, ...otherCategory].slice(0, 3)
+  return related
+}
+
+const categoryColors: Record<string, string> = {
+  Purpose: "bg-[#1E0E6B]/8 text-[#1E0E6B]",
+  Habits: "bg-emerald-500/8 text-emerald-700",
+  Reflection: "bg-orange-500/8 text-orange-700",
+  Goals: "bg-blue-500/8 text-blue-700",
+  Mindfulness: "bg-purple-500/8 text-purple-700",
+  Productivity: "bg-cyan-500/8 text-cyan-700",
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -288,66 +332,115 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = posts[slug]
   if (!post) notFound()
 
+  const related = getRelatedArticles(slug, post.category)
+
   return (
     <MarketingLayout>
-      <article className="py-16 md:py-24">
+      <article className="pt-6 pb-16 md:pt-8 md:pb-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl">
-            {/* Back link */}
+          <div className="mx-auto max-w-[720px]">
+            {/* ─── Back link ─── */}
             <Link
               href="/blog"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+              className="reveal reveal-delay-1 visible inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 mb-8"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Blog
             </Link>
 
-            {/* Header */}
-            <div className="mb-8">
-              <span className="inline-block rounded-full bg-[#1E0E6B]/10 px-3 py-1 text-xs font-semibold text-[#1E0E6B] mb-4">
+            {/* ─── Article Header ─── */}
+            <header className="mb-10">
+              <span className={cn(
+                "reveal visible inline-block rounded-full px-3.5 py-1 text-xs font-semibold mb-5",
+                categoryColors[post.category] || "bg-[#1E0E6B]/10 text-[#1E0E6B]"
+              )}>
                 {post.category}
               </span>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl leading-tight">
+
+              <h1 className="reveal reveal-delay-1 visible text-3xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight text-foreground leading-[1.15]">
                 {post.title}
               </h1>
-              <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
+
+              <div className="reveal reveal-delay-2 visible mt-5 flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
                   {post.date}
                 </span>
+                <span className="text-border">·</span>
                 <span className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
                   {post.readTime}
                 </span>
               </div>
-            </div>
 
-            {/* Content */}
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
+              <div className="reveal reveal-delay-2 visible mt-8 h-px bg-border" />
+            </header>
+
+            {/* ─── Article Content ─── */}
+            <div className="reveal reveal-delay-3 visible">
               {post.content.map((paragraph, i) => (
-                <p key={i} className="text-base text-muted-foreground leading-relaxed mb-6">
+                <p
+                  key={i}
+                  className="text-[17px] sm:text-lg text-foreground/80 leading-[1.8] mb-7"
+                >
                   {paragraph}
                 </p>
               ))}
             </div>
 
-            {/* CTA */}
-            <div className="mt-12 rounded-2xl bg-[#1E0E6B] p-8 text-center">
-              <h2 className="text-xl font-bold text-white">
+            {/* ─── CTA ─── */}
+            <div className="mt-14 rounded-2xl bg-[#1E0E6B] p-8 sm:p-10 text-center">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
                 Ready to live with more intention?
               </h2>
-              <p className="mt-2 text-sm text-white/70">
+              <p className="mt-2.5 text-sm sm:text-base text-white/70">
                 Intenteó helps you connect your purpose to your daily actions.
               </p>
               <Link
                 href="/signup"
-                className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
+                className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]"
                 style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
               >
                 Get Started Free
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
+
+          {/* ─── Related Articles ─── */}
+          {related.length > 0 && (
+            <div className="mx-auto max-w-[960px] mt-16">
+              <div className="h-px bg-border mb-12" />
+              <h2 className="text-2xl font-bold tracking-tight text-foreground mb-8">
+                Continue Reading
+              </h2>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {related.map((rel) => (
+                  <Link
+                    key={rel.slug}
+                    href={`/blog/${rel.slug}`}
+                    className="group block rounded-2xl border border-[#1E0E6B]/10 bg-white dark:bg-card p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-[#1E0E6B]/[0.06] hover:-translate-y-1 hover:border-[#1E0E6B]/20"
+                  >
+                    <span className={cn(
+                      "inline-block rounded-full px-3 py-1 text-xs font-semibold mb-4",
+                      categoryColors[rel.category] || "bg-[#1E0E6B]/10 text-[#1E0E6B]"
+                    )}>
+                      {rel.category}
+                    </span>
+                    <h3 className="text-base font-bold text-foreground group-hover:text-[#1E0E6B] transition-colors duration-300 leading-snug line-clamp-2">
+                      {rel.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      {rel.excerpt}
+                    </p>
+                    <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#1E0E6B] group-hover:gap-2 transition-all duration-300">
+                      Read <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </article>
     </MarketingLayout>

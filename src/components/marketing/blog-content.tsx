@@ -1,10 +1,30 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { ArrowRight, Calendar, Clock } from "lucide-react"
 
+/* ─── Scroll reveal hook ─── */
+function useReveal(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (prefersReduced) { setVisible(true); return }
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.unobserve(el) } },
+      { threshold, rootMargin: "0px 0px -40px 0px" }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return { ref, visible }
+}
+
+/* ─── Post data ─── */
 interface BlogPost {
   slug: string
   title: string
@@ -15,7 +35,6 @@ interface BlogPost {
 }
 
 const posts: BlogPost[] = [
-  // Purpose (3)
   {
     slug: "why-purpose-matters-more-than-productivity",
     title: "Why Purpose Matters More Than Productivity",
@@ -40,7 +59,6 @@ const posts: BlogPost[] = [
     date: "Jul 30, 2026",
     readTime: "3 min read",
   },
-  // Habits (3)
   {
     slug: "the-architecture-of-lasting-habits",
     title: "The Architecture of Lasting Habits",
@@ -65,7 +83,6 @@ const posts: BlogPost[] = [
     date: "Jul 22, 2026",
     readTime: "3 min read",
   },
-  // Reflection (3)
   {
     slug: "how-daily-reflection-changes-everything",
     title: "How Daily Reflection Changes Everything",
@@ -90,7 +107,6 @@ const posts: BlogPost[] = [
     date: "Jul 18, 2026",
     readTime: "5 min read",
   },
-  // Goals (3)
   {
     slug: "setting-goals-that-actually-mean-something",
     title: "Setting Goals That Actually Mean Something",
@@ -115,7 +131,6 @@ const posts: BlogPost[] = [
     date: "Jul 12, 2026",
     readTime: "5 min read",
   },
-  // Mindfulness (3)
   {
     slug: "the-practice-of-mindful-productivity",
     title: "The Practice of Mindful Productivity",
@@ -140,7 +155,6 @@ const posts: BlogPost[] = [
     date: "Jul 3, 2026",
     readTime: "3 min read",
   },
-  // Productivity (3)
   {
     slug: "building-a-life-of-intention",
     title: "Building a Life of Intention, Not Just Efficiency",
@@ -169,46 +183,59 @@ const posts: BlogPost[] = [
 
 const allCategories = ["All", ...Array.from(new Set(posts.map((p) => p.category)))]
 
+const categoryColors: Record<string, string> = {
+  Purpose: "bg-[#1E0E6B]/8 text-[#1E0E6B]",
+  Habits: "bg-emerald-500/8 text-emerald-700",
+  Reflection: "bg-orange-500/8 text-orange-700",
+  Goals: "bg-blue-500/8 text-blue-700",
+  Mindfulness: "bg-purple-500/8 text-purple-700",
+  Productivity: "bg-cyan-500/8 text-cyan-700",
+}
+
 export function BlogContent() {
   const [activeCategory, setActiveCategory] = useState("All")
 
+  const { ref: heroRef, visible: heroVis } = useReveal()
+  const { ref: filtersRef, visible: filtersVis } = useReveal()
+  const { ref: featuredRef, visible: featuredVis } = useReveal(0.1)
+
+  const featured = posts[0]
   const filtered = activeCategory === "All"
-    ? posts
-    : posts.filter((p) => p.category === activeCategory)
+    ? posts.slice(1)
+    : posts.filter((p) => p.category === activeCategory && p.slug !== featured.slug)
 
   return (
-    <section className="pt-8 pb-16 md:pt-10 md:pb-24">
+    <section className="pt-8 pb-16 md:pt-12 md:pb-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mx-auto max-w-2xl text-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        {/* ─── Hero ─── */}
+        <div
+          ref={heroRef}
+          className={cn("mx-auto max-w-2xl text-center mb-10 reveal", heroVis && "visible")}
+        >
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             Blog
           </h1>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
             Thoughts on purpose, habits, reflection, and living intentionally.
           </p>
         </div>
 
-        {/* Category Filter */}
-        <div className="mx-auto max-w-3xl mb-10">
-          <div className="flex flex-wrap items-center justify-center gap-2">
+        {/* ─── Category Filters ─── */}
+        <div
+          ref={filtersRef}
+          className={cn("mx-auto max-w-3xl mb-12 reveal", filtersVis && "visible")}
+        >
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-center">
             {allCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                  "shrink-0 rounded-full px-5 py-2 text-sm font-medium transition-all duration-250 border",
                   activeCategory === cat
-                    ? "bg-[#1E0E6B] text-white shadow-sm"
-                    : "bg-white text-muted-foreground border-2 border-transparent hover:text-foreground",
-                  cat !== "All" && activeCategory !== cat && "border-transparent",
-                  cat !== "All" && activeCategory !== cat && "hover:border-[#FF7A00]/40"
+                    ? "bg-[#1E0E6B] text-white border-[#1E0E6B] shadow-sm"
+                    : "bg-white text-muted-foreground border-[#1E0E6B]/10 hover:border-[#1E0E6B]/25 hover:text-foreground hover:bg-[#1E0E6B]/[0.02]"
                 )}
-                style={
-                  cat !== "All" && activeCategory !== cat
-                    ? { borderImage: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%) 1", borderImageSlice: 1, borderRadius: "9999px", borderWidth: "2px", borderStyle: "solid" }
-                    : undefined
-                }
               >
                 {cat}
               </button>
@@ -216,50 +243,140 @@ export function BlogContent() {
           </div>
         </div>
 
-        {/* Posts Grid */}
-        <div className="mx-auto max-w-4xl">
+        {/* ─── Featured Article ─── */}
+        {activeCategory === "All" && (
+          <div
+            ref={featuredRef}
+            className={cn("mx-auto max-w-4xl mb-14 reveal", featuredVis && "visible")}
+          >
+            <Link
+              href={`/blog/${featured.slug}`}
+              className="group block rounded-3xl border border-[#1E0E6B]/10 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730] dark:border-[#1E0E6B]/15 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-[#1E0E6B]/[0.06] hover:-translate-y-1"
+            >
+              <div className="grid lg:grid-cols-5 gap-0">
+                {/* Visual */}
+                <div className="lg:col-span-2 relative h-48 lg:h-auto bg-gradient-to-br from-[#1E0E6B] via-[#2A1480] to-[#3D1FA0] flex items-center justify-center p-8">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-white/5 rounded-3xl rotate-6 scale-95" />
+                    <div className="absolute inset-0 bg-white/5 rounded-3xl -rotate-3 scale-105" />
+                    <div className="relative bg-white/10 backdrop-blur-sm rounded-2xl px-8 py-6 border border-white/10">
+                      <span className="text-5xl font-bold text-white/90">i</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="lg:col-span-3 p-8 lg:p-10 flex flex-col justify-center">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#EB9E5B]">
+                      Featured
+                    </span>
+                    <span className={cn(
+                      "rounded-full px-3 py-1 text-xs font-semibold",
+                      categoryColors[featured.category] || "bg-[#1E0E6B]/10 text-[#1E0E6B]"
+                    )}>
+                      {featured.category}
+                    </span>
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground group-hover:text-[#1E0E6B] transition-colors duration-300 leading-snug">
+                    {featured.title}
+                  </h2>
+
+                  <p className="mt-3 text-base text-muted-foreground leading-relaxed line-clamp-2">
+                    {featured.excerpt}
+                  </p>
+
+                  <div className="mt-5 flex items-center gap-5">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {featured.date}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        {featured.readTime}
+                      </span>
+                    </div>
+                    <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-semibold text-[#1E0E6B] group-hover:gap-2.5 transition-all duration-300">
+                      Read Article <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* ─── Article Grid ─── */}
+        <div className="mx-auto max-w-5xl">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((post) => (
-              <Link
-                key={post.slug}
-                href={`/blog/${post.slug}`}
-                className="group rounded-2xl border-2 border-[#1E0E6B]/15 p-6 text-left transition-all duration-300 hover:shadow-lg hover:border-[#1E0E6B]/30"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="rounded-full bg-[#1E0E6B]/10 px-3 py-1 text-xs font-semibold text-[#1E0E6B]">
-                    {post.category}
-                  </span>
-                </div>
-                <h2 className="text-lg font-bold text-foreground group-hover:text-[#1E0E6B] transition-colors leading-snug">
-                  {post.title}
-                </h2>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                  {post.excerpt}
-                </p>
-                <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {post.date}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {post.readTime}
-                  </span>
-                </div>
-                <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#1E0E6B] opacity-0 group-hover:opacity-100 transition-opacity">
-                  Read more <ArrowRight className="h-3 w-3" />
-                </div>
-              </Link>
+            {filtered.map((post, i) => (
+              <BlogCard key={post.slug} post={post} index={i} />
             ))}
           </div>
 
           {filtered.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No posts in this category yet.</p>
+            <div className="text-center py-16">
+              <p className="text-muted-foreground text-lg">No posts in this category yet.</p>
             </div>
           )}
         </div>
       </div>
     </section>
+  )
+}
+
+/* ─── Blog Card Component ─── */
+function BlogCard({ post, index }: { post: BlogPost; index: number }) {
+  const { ref, visible } = useReveal(0.05)
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "reveal",
+        visible && "visible"
+      )}
+      style={{ transitionDelay: `${Math.min(index * 60, 300)}ms` }}
+    >
+      <Link
+        href={`/blog/${post.slug}`}
+        className="group block h-full rounded-2xl border border-[#1E0E6B]/10 bg-white dark:bg-card p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-[#1E0E6B]/[0.06] hover:-translate-y-1 hover:border-[#1E0E6B]/20"
+      >
+        <div className="flex items-center gap-2.5 mb-4">
+          <span className={cn(
+            "rounded-full px-3 py-1 text-xs font-semibold",
+            categoryColors[post.category] || "bg-[#1E0E6B]/10 text-[#1E0E6B]"
+          )}>
+            {post.category}
+          </span>
+        </div>
+
+        <h3 className="text-lg font-bold text-foreground group-hover:text-[#1E0E6B] transition-colors duration-300 leading-snug line-clamp-2">
+          {post.title}
+        </h3>
+
+        <p className="mt-2.5 text-sm text-muted-foreground leading-relaxed line-clamp-3">
+          {post.excerpt}
+        </p>
+
+        <div className="mt-5 flex items-center justify-between">
+          <div className="flex items-center gap-3.5 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {post.date}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {post.readTime}
+            </span>
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#1E0E6B] opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all duration-300">
+            Read <ArrowRight className="h-3 w-3" />
+          </span>
+        </div>
+      </Link>
+    </div>
   )
 }
