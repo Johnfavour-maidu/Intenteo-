@@ -30,21 +30,19 @@ export default function SignUpPage() {
       return
     }
     setLoading(true)
-    setTimeout(() => {
-      try {
-        const settings = loadUserSettings()
-        updateUserSettings({
-          profile: {
-            ...settings.profile,
-            name: name.trim(),
-            email,
-            username: name.trim().split(" ")[0].toLowerCase(),
-          },
-        })
-        localStorage.setItem("intenteo-user-password", password)
-      } catch {}
-      signIn()
-    }, 800)
+    try {
+      const settings = loadUserSettings()
+      updateUserSettings({
+        profile: {
+          ...settings.profile,
+          name: name.trim(),
+          email,
+          username: name.trim().split(" ")[0].toLowerCase(),
+        },
+      })
+      localStorage.setItem("intenteo-user-password", password)
+    } catch {}
+    signIn()
   }
 
   return (
@@ -148,7 +146,7 @@ export default function SignUpPage() {
 
           {/* Continue with Google */}
           <button
-            onClick={() => { setLoading(true); setTimeout(() => signIn(), 800) }}
+            onClick={() => { setLoading(true); signIn() }}
             disabled={loading}
             className="w-full h-10 rounded-lg border border-[#1E0E6B]/20 text-sm font-medium flex items-center justify-center gap-2 hover:bg-muted/50 transition-all disabled:opacity-40"
           >

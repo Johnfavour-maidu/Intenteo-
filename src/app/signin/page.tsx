@@ -49,9 +49,7 @@ export default function SignInPage() {
         })
       }
     } catch {}
-    setTimeout(() => {
-      signIn()
-    }, 800)
+    signIn()
   }
 
   const handleEmailLogin = (e: React.FormEvent) => {
@@ -59,18 +57,14 @@ export default function SignInPage() {
     setError("")
     if (!email || !password) return
     setLoading(true)
-    // Accept demo credentials or any email/password combo
-    setTimeout(() => {
-      if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-        signIn()
-      } else if (email && password) {
-        // Accept any credentials for demo purposes
-        signIn()
-      } else {
-        setError("Invalid credentials. Try the demo login below.")
-        setLoading(false)
-      }
-    }, 800)
+    if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      signIn()
+    } else if (email && password) {
+      signIn()
+    } else {
+      setError("Invalid credentials. Try the demo login below.")
+      setLoading(false)
+    }
   }
 
   return (

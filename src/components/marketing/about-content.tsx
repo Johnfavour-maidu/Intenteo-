@@ -40,10 +40,10 @@ function OrangeButton({ children, className, ...props }: React.ComponentProps<ty
     <Link
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-md shadow-[#EB9E5B]/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#EB9E5B]/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB9E5B]/50 focus-visible:ring-offset-2",
+        "inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 focus-visible:ring-offset-2",
         className
       )}
-      style={{ background: "linear-gradient(135deg, #EB9E5B 0%, #F5A623 100%)" }}
+      style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
     >
       {children}
     </Link>
@@ -55,7 +55,7 @@ function SubtleButton({ children, className, ...props }: React.ComponentProps<ty
     <Link
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl border border-[#1E0E6B]/15 bg-white/80 px-8 py-3.5 text-base font-semibold text-foreground transition-all duration-300 hover:bg-muted/30 dark:bg-gray-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E0E6B]/30 focus-visible:ring-offset-2",
+        "inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#1E0E6B]/40 bg-white/80 px-8 py-3.5 text-base font-semibold text-foreground transition-all duration-300 hover:bg-[#1E0E6B]/5 dark:bg-gray-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E0E6B]/30 focus-visible:ring-offset-2",
         className
       )}
     >
@@ -73,7 +73,7 @@ function AboutHero() {
   const { ref: r3, visible: v3 } = useReveal()
 
   return (
-    <section className="relative pt-28 pb-20 md:pt-32 md:pb-28 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
+    <section className="relative pt-20 pb-16 md:pt-24 md:pb-20 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <div ref={r1} className={cn("reveal", v1 && "visible")}>
@@ -90,7 +90,7 @@ function AboutHero() {
             )}
           >
             Productivity should serve a{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1E0E6B] to-[#3D1FA0]">
+            <span className="text-foreground">
               meaningful life
             </span>.
           </h1>
@@ -150,7 +150,7 @@ function WhySection() {
   const { ref: cardsRef, visible: cardsVis } = useReveal(0.1)
 
   return (
-    <section className="py-20 md:py-24">
+    <section className="py-14 md:py-18">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <div
@@ -198,7 +198,7 @@ function WhySection() {
               <div
                 key={card.title}
                 className={cn(
-                  "rounded-2xl border border-[#1E0E6B]/8 p-5 text-center transition-all duration-300 hover:shadow-md hover:border-[#1E0E6B]/15 reveal",
+                  "rounded-2xl border-2 border-[#1E0E6B]/20 p-5 text-center transition-all duration-300 hover:shadow-md hover:border-[#1E0E6B]/40 reveal",
                   cardsVis && "visible",
                   i === 0 && "reveal-delay-1",
                   i === 1 && "reveal-delay-2",
@@ -243,9 +243,9 @@ function FrameworkSection() {
   const { ref, visible } = useReveal(0.1)
 
   return (
-    <section className="py-20 md:py-24 bg-[#F8F6FF]/30 dark:bg-[#0F0D1A]/40">
+    <section className="py-14 md:py-18 bg-[#F8F6FF]/30 dark:bg-[#0F0D1A]/40">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center mb-14">
+        <div className="mx-auto max-w-2xl text-center mb-8">
           <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
             The Intenteó Framework
           </span>
@@ -470,7 +470,7 @@ function FinalCTA() {
   const { ref, visible } = useReveal()
 
   return (
-    <section className="py-20 md:py-28 bg-[#1E0E6B]">
+    <section className="py-12 md:py-16 bg-[#1E0E6B]">
       <div
         ref={ref}
         className={cn("container mx-auto px-4 sm:px-6 lg:px-8 reveal", visible && "visible")}
