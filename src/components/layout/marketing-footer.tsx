@@ -14,8 +14,8 @@ export function MarketingFooter() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Product</h3>
             <div className="flex flex-col gap-2">
-              <Link href="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</Link>
               <Link href="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
+              <Link href="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
             </div>
           </div>
 
@@ -32,7 +32,6 @@ export function MarketingFooter() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Company</h3>
             <div className="flex flex-col gap-2">
-              <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
               <a href="mailto:hello@intenteo.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</a>
             </div>
           </div>

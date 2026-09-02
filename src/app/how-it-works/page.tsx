@@ -4,10 +4,10 @@ import { HowItWorksContent } from "@/components/marketing/how-it-works-content"
 
 export const metadata: Metadata = {
   title: "How Intenteó Works — Live With Intention",
-  description: "Intenteó connects your purpose, vision, goals, tasks, habits, and reflection into a single intentional living system.",
+  description: "Six steps to intentional living, plus a full breakdown of every feature — purpose, goals, tasks, habits, reflection, and more.",
   openGraph: {
     title: "How Intenteó Works — Live With Intention",
-    description: "Intenteó connects your purpose, vision, goals, tasks, habits, and reflection into a single intentional living system.",
+    description: "Six steps to intentional living, plus a full breakdown of every feature — purpose, goals, tasks, habits, reflection, and more.",
     siteName: "Intenteo",
   },
 }

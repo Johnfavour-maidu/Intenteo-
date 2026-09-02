@@ -10,9 +10,8 @@ import { MarketingLogo } from "@/components/marketing/marketing-logo"
 const navItems = [
   { label: "Home", href: "/" },
   { label: "How It Works", href: "/how-it-works" },
-  { label: "Features", href: "/features" },
   { label: "Learn", href: "/learn" },
-  { label: "About", href: "/about" },
+  { label: "Blog", href: "/blog" },
 ]
 
 export function MarketingNavbar() {

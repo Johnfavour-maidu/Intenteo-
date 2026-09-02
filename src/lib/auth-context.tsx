@@ -10,10 +10,15 @@ const PUBLIC_ROUTES = new Set([
   "/signin",
   "/signup",
   "/how-it-works",
-  "/features",
   "/learn",
-  "/about",
+  "/blog",
 ])
+
+function isPublicRoute(pathname: string): boolean {
+  if (PUBLIC_ROUTES.has(pathname)) return true
+  if (pathname.startsWith("/blog/")) return true
+  return false
+}
 
 interface AuthContextType {
   isSignedIn: boolean
@@ -65,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Route guard — redirect non-authed users away from app routes
   useEffect(() => {
     if (!hydrated) return
-    if (!isSignedIn && !PUBLIC_ROUTES.has(pathname)) {
+    if (!isSignedIn && !isPublicRoute(pathname)) {
       router.push("/signin")
     }
   }, [hydrated, isSignedIn, pathname, router])
