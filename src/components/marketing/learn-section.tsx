@@ -33,7 +33,7 @@ export function LearnSection() {
             Explore intentional living.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Practical guidance rooted in the Intenteó philosophy.
+            Practical guidance rooted in the Intentéo philosophy.
           </p>
         </div>
 

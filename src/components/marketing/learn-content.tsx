@@ -42,6 +42,9 @@ interface Category {
   title: string
   description: string
   topics: string[]
+  slug: string
+  color: string
+  iconBg: string
 }
 
 const categories: Category[] = [
@@ -50,42 +53,54 @@ const categories: Category[] = [
     title: "Purpose",
     description: "Finding your purpose and clarifying what matters.",
     topics: ["Finding your purpose", "Clarifying your values", "Defining what matters"],
+    slug: "purpose",
+    color: "border-[#1E0E6B]/20 hover:border-[#1E0E6B]/40",
+    iconBg: "bg-[#1E0E6B]/10 text-[#1E0E6B]",
   },
   {
-    icon: Target,
+    icon: Eye,
     title: "Vision",
     description: "Creating a meaningful vision and thinking long-term.",
     topics: ["Creating a meaningful vision", "Thinking long term", "Connecting vision to goals"],
+    slug: "vision",
+    color: "border-purple-500/20 hover:border-purple-500/40",
+    iconBg: "bg-purple-500/10 text-purple-600",
   },
   {
     icon: Target,
     title: "Goals",
     description: "Setting meaningful goals and tracking progress.",
     topics: ["Setting meaningful goals", "Milestones", "Planning"],
+    slug: "goals",
+    color: "border-blue-500/20 hover:border-blue-500/40",
+    iconBg: "bg-blue-500/10 text-blue-600",
   },
   {
     icon: Repeat,
     title: "Habits",
     description: "Building habits that last through identity and consistency.",
     topics: ["Building habits", "Consistency", "Identity-based habits"],
+    slug: "habits",
+    color: "border-emerald-500/20 hover:border-emerald-500/40",
+    iconBg: "bg-emerald-500/10 text-emerald-600",
   },
   {
     icon: BookOpen,
     title: "Productivity",
     description: "Focus, prioritization, and intentional planning.",
     topics: ["Focus", "Prioritization", "Intentional planning"],
+    slug: "productivity",
+    color: "border-cyan-500/20 hover:border-cyan-500/40",
+    iconBg: "bg-cyan-500/10 text-cyan-600",
   },
   {
-    icon: BookOpen,
+    icon: BarChart3,
     title: "Reflection",
     description: "Journaling, prompts, and daily review practices.",
     topics: ["Journaling", "Reflection prompts", "Reviewing your day"],
-  },
-  {
-    icon: Sun,
-    title: "Mindfulness",
-    description: "Meditation, presence, and awareness in daily life.",
-    topics: ["Meditation", "Presence", "Awareness"],
+    slug: "reflection",
+    color: "border-orange-500/20 hover:border-orange-500/40",
+    iconBg: "bg-orange-500/10 text-orange-600",
   },
 ]
 
@@ -167,7 +182,7 @@ export function LearnContent() {
               Learn
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              Practical guidance rooted in the Intenteó philosophy of intentional living.
+              Practical guidance rooted in the Intent&eacute;o philosophy of intentional living.
             </p>
           </div>
 
@@ -176,10 +191,13 @@ export function LearnContent() {
               {categories.map((cat) => (
                 <Link
                   key={cat.title}
-                  href="/learn"
-                  className="group rounded-xl border border-[#1E0E6B]/10 p-5 text-left transition-all hover:shadow-md hover:border-[#1E0E6B]/20"
+                  href={`/learn/${cat.slug}`}
+                  className={cn(
+                    "group rounded-xl border p-5 text-left transition-all hover:shadow-md",
+                    cat.color
+                  )}
                 >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#1E0E6B]/10 text-[#1E0E6B]">
+                  <div className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-lg", cat.iconBg)}>
                     <cat.icon className="h-5 w-5" />
                   </div>
                   <h3 className="font-semibold text-foreground group-hover:text-[#1E0E6B] transition-colors">{cat.title}</h3>
@@ -187,9 +205,12 @@ export function LearnContent() {
                   <div className="mt-3 space-y-1">
                     {cat.topics.map((topic) => (
                       <div key={topic} className="text-xs text-muted-foreground/70">
-                        • {topic}
+                        &bull; {topic}
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#1E0E6B] group-hover:gap-2 transition-all duration-300">
+                    Learn More <ArrowRight className="h-3 w-3" />
                   </div>
                 </Link>
               ))}
@@ -198,7 +219,7 @@ export function LearnContent() {
         </div>
       </section>
 
-      {/* ─── Why Intenteó Exists ─── */}
+      {/* ─── Why Intent&eacute;o Exists ─── */}
       <section className="py-14 md:py-18">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl">
@@ -207,16 +228,16 @@ export function LearnContent() {
               className={cn("reveal", whyTitleVis && "visible")}
             >
               <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-                Why we built Intenteó
+                Why we built Intent&eacute;o
               </span>
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Why Intenteó exists
+                Why Intent&eacute;o exists
               </h2>
             </div>
 
             <div className="mt-8 space-y-5 text-base text-muted-foreground leading-relaxed">
               <p>
-                Intenteó exists because productivity should serve a meaningful life —
+                Intent&eacute;o exists because productivity should serve a meaningful life —
                 not become the purpose itself.
               </p>
               <p>
@@ -227,13 +248,13 @@ export function LearnContent() {
                 another, tasks in a third.
               </p>
               <p>
-                Intenteó connects these layers. It starts with your purpose and walks
+                Intent&eacute;o connects these layers. It starts with your purpose and walks
                 down through your vision, your goals, your daily actions, your habits,
                 and your reflection. Each layer informs the next. Each action is tied
                 to meaning.
               </p>
               <p>
-                We built Intenteó for anyone who wants to do less randomly and more
+                We built Intent&eacute;o for anyone who wants to do less randomly and more
                 meaningfully.
               </p>
             </div>
@@ -270,13 +291,13 @@ export function LearnContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-8">
             <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-              The Intenteó Framework
+              The Intent&eacute;o Framework
             </span>
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               From what matters to what you do
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Intenteó connects the bigger picture with the actions of everyday life.
+              Intent&eacute;o connects the bigger picture with the actions of everyday life.
             </p>
           </div>
 
@@ -335,14 +356,14 @@ export function LearnContent() {
       </section>
 
       {/* ─── Intent Score ─── */}
-      <section className="py-20 md:py-24">
+      <section className="py-10 md:py-14">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl">
             {/* Mobile */}
             <div className="lg:hidden">
               <div
                 ref={scoreVisualRef}
-                className={cn("flex justify-center mb-10 reveal", scoreVisualVis && "visible")}
+                className={cn("flex justify-center mb-6 reveal", scoreVisualVis && "visible")}
               >
                 <div className="relative">
                   <svg width="160" height="160" viewBox="0 0 120 120" className="transform -rotate-90">
@@ -369,9 +390,6 @@ export function LearnContent() {
               </div>
 
               <div ref={scoreTextRef} className={cn("text-center reveal", scoreTextVis && "visible")}>
-                <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-                  Intent Score
-                </span>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                   Measure intention, not just productivity.
                 </h2>
@@ -417,9 +435,6 @@ export function LearnContent() {
               </div>
 
               <div ref={scoreTextRef} className={cn("reveal reveal-delay-1", scoreTextVis && "visible")}>
-                <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-                  Intent Score
-                </span>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                   Measure intention, not just productivity.
                 </h2>
@@ -438,22 +453,22 @@ export function LearnContent() {
       </section>
 
       {/* ─── Final CTA ─── */}
-      <section className="py-12 md:py-16 bg-[#1E0E6B]">
+      <section className="py-8 md:py-10 bg-[#1E0E6B]">
         <div
           ref={ctaRef}
           className={cn("container mx-auto px-4 sm:px-6 lg:px-8 reveal", ctaVis && "visible")}
         >
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
               Your day has a direction.
             </h2>
-            <p className="mt-4 text-lg text-white/70">
-              Intenteó helps you turn what matters into how you live.
+            <p className="mt-3 text-base text-white/70">
+              Intent&eacute;o helps you turn what matters into how you live.
             </p>
-            <div className="mt-8">
+            <div className="mt-6">
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]"
                 style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
               >
                 Start Living With Intention

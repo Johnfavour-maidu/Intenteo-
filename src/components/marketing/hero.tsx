@@ -11,7 +11,7 @@ export function MarketingHero() {
             Live with intention.
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Intenteó connects your purpose, goals, tasks, habits, and reflection
+            Intentéo connects your purpose, goals, tasks, habits, and reflection
             so your everyday actions move you toward the life you want to live.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">

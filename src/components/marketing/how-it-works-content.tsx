@@ -108,7 +108,7 @@ export function HowItWorksContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-16">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              How Intenteó works
+              How Intentéo works
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
               Six simple steps to connect your everyday actions with lasting meaning.

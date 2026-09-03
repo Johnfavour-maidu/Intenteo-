@@ -78,7 +78,7 @@ function AboutHero() {
         <div className="mx-auto max-w-3xl text-center">
           <div ref={r1} className={cn("reveal", v1 && "visible")}>
             <span className="inline-block rounded-full bg-[#EB9E5B]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#EB9E5B]">
-              About Intenteó
+              About Intentéo
             </span>
           </div>
 
@@ -102,7 +102,7 @@ function AboutHero() {
               v3 && "visible"
             )}
           >
-            Intenteó helps you connect your purpose, vision, goals, tasks, habits and
+            Intentéo helps you connect your purpose, vision, goals, tasks, habits and
             reflection — so you can live with greater intention.
           </p>
 
@@ -158,16 +158,16 @@ function WhySection() {
             className={cn("reveal", titleVis && "visible")}
           >
             <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-              Why we built Intenteó
+              Why we built Intentéo
             </span>
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Why Intenteó exists
+              Why Intentéo exists
             </h2>
           </div>
 
           <div className="mt-8 space-y-5 text-base text-muted-foreground leading-relaxed">
             <p>
-              Intenteó exists because productivity should serve a meaningful life —
+              Intentéo exists because productivity should serve a meaningful life —
               not become the purpose itself.
             </p>
             <p>
@@ -178,13 +178,13 @@ function WhySection() {
               another, tasks in a third.
             </p>
             <p>
-              Intenteó connects these layers. It starts with your purpose and walks
+              Intentéo connects these layers. It starts with your purpose and walks
               down through your vision, your goals, your daily actions, your habits,
               and your reflection. Each layer informs the next. Each action is tied
               to meaning.
             </p>
             <p>
-              We built Intenteó for anyone who wants to do less randomly and more
+              We built Intentéo for anyone who wants to do less randomly and more
               meaningfully.
             </p>
           </div>
@@ -247,13 +247,13 @@ function FrameworkSection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center mb-8">
           <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-            The Intenteó Framework
+            The Intentéo Framework
           </span>
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             From what matters to what you do
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Intenteó connects the bigger picture with the actions of everyday life.
+            Intentéo connects the bigger picture with the actions of everyday life.
           </p>
         </div>
 
@@ -480,7 +480,7 @@ function FinalCTA() {
             Your day has a direction.
           </h2>
           <p className="mt-4 text-lg text-white/70">
-            Intenteó helps you turn what matters into how you live.
+            Intentéo helps you turn what matters into how you live.
           </p>
           <div className="mt-8">
             <OrangeButton href="/signup">

@@ -11,7 +11,7 @@ export function ProblemSection() {
             disconnected from what actually matters.
           </p>
           <p className="mt-4 text-lg text-muted-foreground">
-            Intenteó brings your bigger direction into your everyday life.
+            Intentéo brings your bigger direction into your everyday life.
             It connects what you do with why it matters.
           </p>
         </div>

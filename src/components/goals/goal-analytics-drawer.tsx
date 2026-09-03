@@ -284,7 +284,7 @@ export const GoalAnalyticsDrawer: React.FC<GoalAnalyticsDrawerProps> = ({
           </div>
         </div>
 
-        {/* 8. Intenteó Insight */}
+        {/* 8. Intentéo Insight */}
         <div className="p-3 rounded-xl bg-[#1E0E6B]/5 border border-[#1E0E6B]/10">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Sparkles className="h-3.5 w-3.5 text-[#EB9E5B]" />

@@ -11,7 +11,7 @@ export function IntentScoreSection() {
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
             Intent Score reflects how intentionally you lived your day based on
-            the activities that matter within Intenteó.
+            the activities that matter within Intentéo.
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-2">
