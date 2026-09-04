@@ -83,7 +83,7 @@ function SubtleButton({ children, className, href, ...props }: React.ButtonHTMLA
 
 function BrowserFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("rounded-2xl border border-[#1E0E6B]/10 bg-white dark:bg-gray-950 shadow-2xl shadow-[#1E0E6B]/10 overflow-hidden", className)}>
+    <div className={cn("rounded-2xl border border-[#1E0E6B]/10 bg-white dark:bg-gray-950 shadow-2xl shadow-[#1E0E6B]/10 overflow-hidden transition-all duration-500 hover:shadow-[#1E0E6B]/20 hover:-translate-y-1", className)}>
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1E0E6B]/10 bg-[#F8F6FF] dark:bg-gray-900">
         <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
         <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
@@ -308,25 +308,24 @@ function HeroSection() {
             into a single living system — so every action moves you forward.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <OrangeButton href="/signup">Start Living Intentionally</OrangeButton>
-            <SubtleButton href="#framework">See How It Works</SubtleButton>
+            <OrangeButton href="#">Download the App</OrangeButton>
+            <SubtleButton href="/learn">Learn More</SubtleButton>
           </div>
         </div>
-
       </div>
     </section>
   )
 }
-
 
 function ProductSection({ index }: { index: number }) {
   const { ref, visible } = useReveal(0.1)
   const screen = SCREENS[index]
   const ScreenComponent = screen.component
   const isReversed = index % 2 === 1
+  const isLast = index === SCREENS.length - 1
 
   return (
-    <section className="py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
+    <section className="relative py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn(
           "reveal grid items-center gap-10 lg:gap-16",
@@ -350,6 +349,13 @@ function ProductSection({ index }: { index: number }) {
           </div>
         </div>
       </div>
+      {/* Progression connector */}
+      {!isLast && (
+        <div className="hidden md:block absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-10">
+          <div className="w-px h-10 bg-gradient-to-b from-[#1E0E6B]/20 to-[#1E0E6B]/5" />
+          <div className="w-2 h-2 rounded-full bg-[#1E0E6B]/20 mx-auto -mt-1" />
+        </div>
+      )}
     </section>
   )
 }
@@ -368,18 +374,18 @@ function IntentScoreSection() {
           <div className="flex justify-center">
             <div className="relative w-48 h-48">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
+                <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" strokeWidth="8" className="text-[#1E0E6B]/5" />
                 <circle
-                  cx="60" cy="60" r="54" fill="none" stroke="url(#scoreGradient)" strokeWidth="8"
+                  cx="60" cy="60" r="54" fill="none" stroke="url(#hiScoreGradient)" strokeWidth="8"
                   strokeLinecap="round"
                   strokeDasharray={circumference}
                   strokeDashoffset={dashOffset}
                   className="transition-all duration-1000 ease-out"
                 />
                 <defs>
-                  <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#FF5A1F" />
-                    <stop offset="100%" stopColor="#FFB000" />
+                  <linearGradient id="hiScoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#1E0E6B" />
+                    <stop offset="100%" stopColor="#3D1FA0" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -397,9 +403,9 @@ function IntentScoreSection() {
             </p>
             <div className="space-y-3">
               {[
-                { label: "Tasks completed", value: "3 of 5", color: "bg-[#FF5A1F]" },
+                { label: "Tasks completed", value: "3 of 5", color: "bg-[#1E0E6B]" },
                 { label: "Habits practiced", value: "4 of 5", color: "bg-[#EB9E5B]" },
-                { label: "Goal alignment", value: "High", color: "bg-[#1E0E6B]" },
+                { label: "Goal alignment", value: "High", color: "bg-[#3D1FA0]" },
                 { label: "Reflection logged", value: "Yes", color: "bg-green-500" },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
@@ -416,53 +422,29 @@ function IntentScoreSection() {
   )
 }
 
-
-function FeaturesGrid() {
-  const { ref, visible } = useReveal(0.1)
-  const features = [
-    { icon: "📊", title: "Smart Analytics", desc: "Health badges, trends, and lifecycle stages for every goal and habit." },
-    { icon: "🔄", title: "Recovery System", desc: "Missed a habit? Accept the penalty or recover your streak." },
-    { icon: "🎯", title: "Focus Mode", desc: "Deep work sessions with ambient sounds and task timer." },
-    { icon: "📈", title: "Score Breakdown", desc: "Understand exactly what drives your daily Intent Score." },
-    { icon: "🔔", title: "Smart Reminders", desc: "Context-aware nudges based on your patterns and goals." },
-    { icon: "🏆", title: "Celebrations", desc: "Milestone confetti at 25%, 50%, 75%, and 100% progress." },
-  ]
-  return (
-    <section className="py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("reveal text-center mb-10", visible && "visible")}>
-          <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Everything works together</h2>
-          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">Built-in intelligence that connects every piece of your life.</p>
-        </div>
-        <div ref={ref} className={cn("reveal reveal-delay-2", visible && "visible")}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {features.map((f, i) => (
-              <div key={i} className={cn("reveal rounded-xl border border-[#1E0E6B]/10 bg-white dark:bg-gray-950 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all", `reveal-delay-${i + 1}`)}>
-                <span className="text-2xl">{f.icon}</span>
-                <h3 className="mt-3 text-sm font-semibold text-foreground">{f.title}</h3>
-                <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function FinalCTA() {
   const { ref, visible } = useReveal(0.15)
   return (
-    <section className="py-10 md:py-16 bg-white dark:bg-gray-950">
+    <section className="py-10 md:py-16 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center max-w-2xl mx-auto", visible && "visible")}>
-          <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Ready to live intentionally?</h2>
-          <p className="mt-4 text-muted-foreground">
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to live intentionally?</h2>
+          <p className="mt-4 text-white/70">
             Your purpose, goals, tasks, habits, and reflections — all in one place. Start building the life you want today.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <OrangeButton href="/signup">Get Started Free</OrangeButton>
-            <SubtleButton href="/learn">Learn More</SubtleButton>
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#FF5A1F]/20 hover:shadow-xl hover:shadow-[#FF5A1F]/30 hover:-translate-y-0.5 transition-all"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="#"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur px-7 py-3.5 text-base font-semibold text-white hover:bg-white/20 transition-colors"
+            >
+              Download the App
+            </Link>
           </div>
         </div>
       </div>
@@ -478,7 +460,6 @@ export function HowItWorksContent() {
         <ProductSection key={i} index={i} />
       ))}
       <IntentScoreSection />
-      <FeaturesGrid />
       <FinalCTA />
     </>
   )

@@ -68,6 +68,12 @@ export function MarketingNavbar() {
               Log In
             </Link>
             <Link
+              href="#"
+              className="inline-flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 bg-white/80 px-4 py-2 text-sm font-semibold text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
+            >
+              Download App
+            </Link>
+            <Link
               href="/signup"
               className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]"
               style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
@@ -125,6 +131,13 @@ export function MarketingNavbar() {
               </div>
             </nav>
             <div className="border-t p-4 space-y-3">
+              <Link
+                href="#"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 px-4 py-3 text-sm font-semibold text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
+              >
+                Download App
+              </Link>
               <Link
                 href="/signin"
                 onClick={() => setMobileOpen(false)}
