@@ -312,7 +312,7 @@ function HeroSection() {
           </div>
         </div>
         {/* Hero visual — framework pills */}
-        <div className={cn("reveal mt-14 max-w-3xl mx-auto reveal-delay-2", visible && "visible")}>
+        <div className={cn("reveal mt-10 max-w-3xl mx-auto reveal-delay-2", visible && "visible")}>
           <div className="flex flex-wrap justify-center gap-2">
             {STAGES.map((s) => (
               <div key={s.id} className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#1E0E6B]/10 bg-white/80 dark:bg-gray-950/60 text-sm font-medium text-foreground">
@@ -330,9 +330,9 @@ function HeroSection() {
 function FrameworkTimeline() {
   const { ref, visible } = useReveal(0.1)
   return (
-    <section id="framework" className="py-16 md:py-20 bg-white dark:bg-gray-950">
+    <section id="framework" className="py-10 md:py-14 bg-white dark:bg-gray-950">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("reveal text-center mb-12", visible && "visible")}>
+        <div ref={ref} className={cn("reveal text-center mb-8", visible && "visible")}>
           <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-3">The Intenteo Framework</p>
           <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Six stages. One connected journey.</h2>
           <p className="mt-4 text-muted-foreground max-w-xl mx-auto">Each stage builds on the last, creating a complete system for intentional living.</p>
@@ -385,7 +385,7 @@ function ProductSection({ index }: { index: number }) {
   const isReversed = index % 2 === 1
 
   return (
-    <section className="py-14 md:py-20 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
+    <section className="py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn(
           "reveal grid items-center gap-10 lg:gap-16",
@@ -420,7 +420,7 @@ function IntentScoreSection() {
   const dashOffset = circumference - (score / 100) * circumference
 
   return (
-    <section className="py-16 md:py-24 bg-white dark:bg-gray-950">
+    <section className="py-10 md:py-16 bg-white dark:bg-gray-950">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal grid lg:grid-cols-2 gap-12 items-center", visible && "visible")}>
           {/* Animated ring */}
@@ -478,7 +478,7 @@ function IntentScoreSection() {
 function ConnectedSummary() {
   const { ref, visible } = useReveal(0.15)
   return (
-    <section className="py-16 md:py-20 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A] text-white">
+    <section className="py-10 md:py-14 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A] text-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center", visible && "visible")}>
           <h2 className="text-3xl font-bold sm:text-4xl mb-4">One connected system</h2>
@@ -527,7 +527,7 @@ function FeaturesGrid() {
     { icon: "🏆", title: "Celebrations", desc: "Milestone confetti at 25%, 50%, 75%, and 100% progress." },
   ]
   return (
-    <section className="py-16 md:py-20 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
+    <section className="py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center mb-10", visible && "visible")}>
           <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Everything works together</h2>
@@ -552,7 +552,7 @@ function FeaturesGrid() {
 function FinalCTA() {
   const { ref, visible } = useReveal(0.15)
   return (
-    <section className="py-16 md:py-24 bg-white dark:bg-gray-950">
+    <section className="py-10 md:py-16 bg-white dark:bg-gray-950">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center max-w-2xl mx-auto", visible && "visible")}>
           <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Ready to live intentionally?</h2>
