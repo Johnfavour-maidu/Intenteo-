@@ -12,11 +12,13 @@ const PUBLIC_ROUTES = new Set([
   "/how-it-works",
   "/learn",
   "/blog",
+  "/about",
 ])
 
 function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.has(pathname)) return true
   if (pathname.startsWith("/blog/")) return true
+  if (pathname.startsWith("/learn/")) return true
   return false
 }
 

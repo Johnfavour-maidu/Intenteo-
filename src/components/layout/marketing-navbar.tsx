@@ -12,6 +12,7 @@ const navItems = [
   { label: "How It Works", href: "/how-it-works" },
   { label: "Learn", href: "/learn" },
   { label: "Blog", href: "/blog" },
+  { label: "About", href: "/about" },
 ]
 
 export function MarketingNavbar() {
@@ -28,7 +29,11 @@ export function MarketingNavbar() {
     }
   }, [mobileOpen])
 
-  const isActive = (href: string) => pathname === href
+  const isActive = (href: string) => {
+    if (href === "/learn") return pathname === "/learn" || pathname.startsWith("/learn/")
+    if (href === "/blog") return pathname === "/blog" || pathname.startsWith("/blog/")
+    return pathname === href
+  }
 
   return (
     <>
