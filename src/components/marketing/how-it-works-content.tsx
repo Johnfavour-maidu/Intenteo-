@@ -14,10 +14,11 @@ function useReveal(threshold = 0.15) {
     if (prefersReduced) { setVisible(true); return }
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setVisible(true); obs.unobserve(el) } },
-      { threshold, rootMargin: "0px 0px -40px 0px" }
+      { threshold, rootMargin: "0px 0px -20px 0px" }
     )
     obs.observe(el)
-    return () => obs.disconnect()
+    const fallback = setTimeout(() => { setVisible(true); obs.disconnect() }, 800)
+    return () => { obs.disconnect(); clearTimeout(fallback) }
   }, [threshold])
   return { ref, visible }
 }
@@ -311,72 +312,12 @@ function HeroSection() {
             <SubtleButton href="#framework">See How It Works</SubtleButton>
           </div>
         </div>
-        {/* Hero visual — framework pills */}
-        <div className={cn("reveal mt-10 max-w-3xl mx-auto reveal-delay-2", visible && "visible")}>
-          <div className="flex flex-wrap justify-center gap-2">
-            {STAGES.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#1E0E6B]/10 bg-white/80 dark:bg-gray-950/60 text-sm font-medium text-foreground">
-                <span className="text-[#1E0E6B]">{s.icon}</span>
-                {s.label}
-              </div>
-            ))}
-          </div>
-        </div>
+
       </div>
     </section>
   )
 }
 
-function FrameworkTimeline() {
-  const { ref, visible } = useReveal(0.1)
-  return (
-    <section id="framework" className="py-10 md:py-14 bg-white dark:bg-gray-950">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("reveal text-center mb-8", visible && "visible")}>
-          <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-3">The Intenteo Framework</p>
-          <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Six stages. One connected journey.</h2>
-          <p className="mt-4 text-muted-foreground max-w-xl mx-auto">Each stage builds on the last, creating a complete system for intentional living.</p>
-        </div>
-        {/* Desktop: horizontal timeline */}
-        <div ref={ref} className={cn("reveal hidden md:block reveal-delay-2", visible && "visible")}>
-          <div className="relative max-w-5xl mx-auto">
-            <div className="absolute top-10 left-0 right-0 h-0.5 bg-gradient-to-r from-[#1E0E6B]/20 via-[#EB9E5B]/40 to-[#1E0E6B]/20" />
-            <div className="relative grid grid-cols-6 gap-4">
-              {STAGES.map((s, i) => (
-                <div key={s.id} className="text-center">
-                  <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-[#1E0E6B] to-[#2D1A8B] flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-[#1E0E6B]/20">
-                    {s.icon}
-                  </div>
-                  <h3 className="mt-4 text-sm font-semibold text-foreground">{s.label}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">{s.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        {/* Mobile: vertical timeline */}
-        <div ref={ref} className={cn("reveal md:hidden reveal-delay-2", visible && "visible")}>
-          <div className="relative max-w-sm mx-auto pl-8">
-            <div className="absolute top-0 bottom-0 left-3 w-0.5 bg-gradient-to-b from-[#1E0E6B]/30 to-[#EB9E5B]/30" />
-            <div className="space-y-8">
-              {STAGES.map((s, i) => (
-                <div key={s.id} className="relative flex items-start gap-4">
-                  <div className="absolute -left-5 w-8 h-8 rounded-lg bg-gradient-to-br from-[#1E0E6B] to-[#2D1A8B] flex items-center justify-center text-white text-sm font-bold shadow-md">
-                    {s.icon}
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-sm font-semibold text-foreground">{s.label}</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{s.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
 
 function ProductSection({ index }: { index: number }) {
   const { ref, visible } = useReveal(0.1)
@@ -475,46 +416,6 @@ function IntentScoreSection() {
   )
 }
 
-function ConnectedSummary() {
-  const { ref, visible } = useReveal(0.15)
-  return (
-    <section className="py-10 md:py-14 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A] text-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("reveal text-center", visible && "visible")}>
-          <h2 className="text-3xl font-bold sm:text-4xl mb-4">One connected system</h2>
-          <p className="text-white/70 max-w-xl mx-auto mb-12">Nothing exists in isolation. Every habit reinforces a goal. Every task serves a vision. Every reflection deepens your purpose.</p>
-        </div>
-        <div ref={ref} className={cn("reveal reveal-delay-2", visible && "visible")}>
-          {/* Desktop flow */}
-          <div className="hidden md:flex items-center justify-center gap-3 max-w-4xl mx-auto">
-            {STAGES.map((s, i) => (
-              <div key={s.id} className="flex items-center gap-3">
-                <div className="px-5 py-3 rounded-xl bg-white/10 backdrop-blur border border-white/10 text-center">
-                  <span className="text-xl">{s.icon}</span>
-                  <p className="text-xs font-medium mt-1">{s.label}</p>
-                </div>
-                {i < STAGES.length - 1 && (
-                  <svg className="w-6 h-6 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-              </div>
-            ))}
-          </div>
-          {/* Mobile flow */}
-          <div className="md:hidden grid grid-cols-3 gap-3 max-w-sm mx-auto">
-            {STAGES.map((s) => (
-              <div key={s.id} className="px-3 py-3 rounded-xl bg-white/10 backdrop-blur border border-white/10 text-center">
-                <span className="text-lg">{s.icon}</span>
-                <p className="text-[10px] font-medium mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
 
 function FeaturesGrid() {
   const { ref, visible } = useReveal(0.1)
@@ -573,12 +474,10 @@ export function HowItWorksContent() {
   return (
     <>
       <HeroSection />
-      <FrameworkTimeline />
       {SCREENS.map((_, i) => (
         <ProductSection key={i} index={i} />
       ))}
       <IntentScoreSection />
-      <ConnectedSummary />
       <FeaturesGrid />
       <FinalCTA />
     </>
