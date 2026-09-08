@@ -295,19 +295,19 @@ const SCREENS = [
 ]
 
 function HeroSection() {
-  const { ref, visible } = useReveal()
+  const { ref, visible } = useReveal(0.05)
   return (
-    <section className="relative pt-24 pb-16 md:pt-28 md:pb-20 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative pt-20 pb-10 md:pt-24 md:pb-14 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div ref={ref} className={cn("reveal text-center max-w-4xl mx-auto", visible && "visible")}>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
             One system.<br />Every part of your life.
           </h1>
-          <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Intenteo connects purpose, vision, goals, tasks, habits, and reflection
-            into a single living system — so every action moves you forward.
+            into a single living system&nbsp;&mdash; so every action moves you forward.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <OrangeButton href="#">Download the App</OrangeButton>
             <SubtleButton href="/learn">Learn More</SubtleButton>
           </div>
@@ -384,8 +384,8 @@ function IntentScoreSection() {
                 />
                 <defs>
                   <linearGradient id="hiScoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#1E0E6B" />
-                    <stop offset="100%" stopColor="#3D1FA0" />
+                    <stop offset="0%" stopColor="#FF5A1F" />
+                    <stop offset="100%" stopColor="#FFB000" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -425,7 +425,7 @@ function IntentScoreSection() {
 function FinalCTA() {
   const { ref, visible } = useReveal(0.15)
   return (
-    <section className="py-10 md:py-16 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A]">
+    <section className="py-8 md:py-12 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center max-w-2xl mx-auto", visible && "visible")}>
           <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to live intentionally?</h2>
@@ -456,6 +456,15 @@ export function HowItWorksContent() {
   return (
     <>
       <HeroSection />
+      <section className="pt-10 pb-2 md:pt-14 md:pb-4 bg-white dark:bg-gray-950">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto">
+            <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-2">The Intenteo Journey</p>
+            <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Six steps to intentional living</h2>
+            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Each step builds naturally on the last, connecting your purpose to your daily actions.</p>
+          </div>
+        </div>
+      </section>
       {SCREENS.map((_, i) => (
         <ProductSection key={i} index={i} />
       ))}
