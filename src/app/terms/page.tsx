@@ -1,11 +1,10 @@
 import type { Metadata } from "next"
 import { MarketingLayout } from "@/components/layout/marketing-layout"
-import { TermsContent } from "@/components/marketing/terms-content"
+import { TermsContent } from "@/components/marketing/legal/terms-content"
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Intenteo",
-  description:
-    "Intenteo's Terms of Service. Read the terms governing your use of the Intenteo platform.",
+  title: "Terms of Service | Intenteo",
+  description: "Review the terms governing your use of Intenteo.",
 }
 
 export default function TermsPage() {

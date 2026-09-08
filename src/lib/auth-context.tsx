@@ -13,6 +13,8 @@ const PUBLIC_ROUTES = new Set([
   "/learn",
   "/blog",
   "/about",
+  "/privacy",
+  "/terms",
 ])
 
 function isPublicRoute(pathname: string): boolean {
