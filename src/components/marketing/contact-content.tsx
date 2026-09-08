@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Send, CheckCircle, ArrowRight, MessageCircle, BookOpen } from "lucide-react"
+import { Send, CheckCircle, ArrowRight, BookOpen } from "lucide-react"
 
 function useReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null)
@@ -59,34 +59,21 @@ function submitContactForm(_data: FormData): Promise<{ ok: boolean; error?: stri
 function HeroSection() {
   const { ref, visible } = useReveal(0.05)
   return (
-    <section className="pt-20 pb-10 md:pt-28 md:pb-16 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
+    <section className="pt-16 pb-8 md:pt-20 md:pb-10 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("text-center max-w-3xl mx-auto", visible && "visible")} style={{ opacity: 0, transform: "translateY(16px)", transition: "opacity 0.7s ease, transform 0.7s ease" }}>
-          <p
-            className="text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B]"
-            style={{ opacity: 0, animation: visible ? "contactFadeIn 0.6s 0.1s forwards" : "none" }}
-          >
+        <div ref={ref} className={cn("text-center max-w-3xl mx-auto", visible && "visible")}>
+          <p className={cn("text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B]", "reveal", visible && "visible")}>
             Get in touch
           </p>
-          <h1
-            className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl"
-            style={{ opacity: 0, transform: "translateY(12px)", animation: visible ? "contactSlideUp 0.6s 0.2s forwards" : "none" }}
-          >
+          <h1 className={cn("mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl", "reveal reveal-delay-1", visible && "visible")}>
             Let&apos;s talk.
           </h1>
-          <p
-            className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed"
-            style={{ opacity: 0, animation: visible ? "contactFadeIn 0.6s 0.4s forwards" : "none" }}
-          >
+          <p className={cn("mt-3 text-base text-muted-foreground max-w-lg mx-auto leading-relaxed", "reveal reveal-delay-2", visible && "visible")}>
             Have a question about Intenteo, need help getting started, or want to share feedback?
             We&apos;d love to hear from you.
           </p>
         </div>
       </div>
-      <style>{`
-        @keyframes contactFadeIn { to { opacity: 1 } }
-        @keyframes contactSlideUp { to { opacity: 1; transform: translateY(0) } }
-      `}</style>
     </section>
   )
 }
