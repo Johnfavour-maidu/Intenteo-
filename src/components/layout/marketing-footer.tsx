@@ -10,9 +10,9 @@ export function MarketingFooter() {
           <div className="space-y-3">
             <MarketingLogo size="sm" />
             <p className="text-sm text-muted-foreground">Live with intention.</p>
-            <Link href="/download" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E0E6B] hover:text-[#FF5A1F] transition-colors">
-              <Download className="h-3.5 w-3.5" />
-              Download the App <span className="text-[10px]">&rarr;</span>
+            <Link href="/download" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#FF5A1F]/15 hover:shadow-md hover:shadow-[#FF5A1F]/25 hover:-translate-y-0.5 transition-all">
+              <Download className="h-3 w-3" />
+              Download the App
             </Link>
           </div>
 
