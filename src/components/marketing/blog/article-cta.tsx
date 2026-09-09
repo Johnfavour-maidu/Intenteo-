@@ -19,7 +19,7 @@ export function ArticleCTA() {
             className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-300 hover:bg-[#F0B97A] hover:shadow-lg hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-[0.98]"
             style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
           >
-            Get Started Free
+            Get Started For Free
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

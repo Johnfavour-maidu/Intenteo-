@@ -139,7 +139,7 @@ export function HomeContent() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 active:scale-[0.98]"
                 style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
               >
-                Get Started Free
+                Get Started For Free
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
@@ -631,7 +631,7 @@ export function HomeContent() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 active:scale-[0.98]"
                 style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
               >
-                Get Started Free
+                Get Started For Free
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

@@ -12,10 +12,11 @@ export default function DownloadPage() {
     <MarketingLayout>
       <div className="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-[#F8F6FF] via-white to-[#FFF4EC] px-4 py-16">
         <div className="max-w-md w-full text-center">
-          <div className="mb-6">
+          <div className="mb-8">
             <div className="flex items-center justify-center mb-4">
               <MarketingLogo size="lg" />
             </div>
+            <p className="text-gray-500 text-lg">Live with intention</p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">

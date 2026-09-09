@@ -313,6 +313,12 @@ function HeroSection() {
             <SubtleButton href="/learn">Learn More</SubtleButton>
           </div>
         </div>
+        {/* Journey heading — part of the same hero section */}
+        <div className="mt-16 text-center max-w-2xl mx-auto">
+          <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-2">The Intenteo Journey</p>
+          <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Six steps to intentional living</h2>
+          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Each step builds naturally on the last, connecting your purpose to your daily actions.</p>
+        </div>
       </div>
     </section>
   )
@@ -324,9 +330,15 @@ function ProductSection({ index }: { index: number }) {
   const ScreenComponent = screen.component
   const isReversed = index % 2 === 1
   const isLast = index === SCREENS.length - 1
+  const isOdd = index % 2 === 0
 
   return (
-    <section className="relative py-10 md:py-14 bg-gradient-to-b from-[#F3F0FF] via-[#FAFBFF] to-[#FAFBFF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#0F0D1A]">
+    <section className={cn(
+      "relative py-10 md:py-14",
+      isOdd
+        ? "bg-gradient-to-b from-[#F3F0FF] via-white to-white dark:from-[#1A1730] dark:via-[#0F0D1A] dark:to-[#0F0D1A]"
+        : "bg-white dark:bg-[#0F0D1A]"
+    )}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn(
           "reveal grid items-center gap-10 lg:gap-16",
@@ -438,7 +450,7 @@ function FinalCTA() {
               href="/signup"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#FF5A1F]/20 hover:shadow-xl hover:shadow-[#FF5A1F]/30 hover:-translate-y-0.5 transition-all"
             >
-              Get Started Free
+              Get Started For Free
             </Link>
             <Link
               href="/download"
@@ -457,15 +469,6 @@ export function HowItWorksContent() {
   return (
     <>
       <HeroSection />
-      <section className="pt-10 pb-2 md:pt-14 md:pb-4 bg-gradient-to-b from-[#F3F0FF] to-[#FAFBFF] dark:from-[#1A1730] dark:to-[#0F0D1A]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto">
-            <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-2">The Intenteo Journey</p>
-            <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Six steps to intentional living</h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Each step builds naturally on the last, connecting your purpose to your daily actions.</p>
-          </div>
-        </div>
-      </section>
       {SCREENS.map((_, i) => (
         <ProductSection key={i} index={i} />
       ))}
