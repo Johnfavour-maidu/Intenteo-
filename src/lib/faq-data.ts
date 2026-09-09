@@ -56,13 +56,13 @@ export const faqData: FaqItem[] = [
   {
     category: "How Intenteo Works",
     question: "How does Intenteo connect purpose to daily actions?",
-    answer: "Intenteo uses a layered framework: Purpose → Vision → Goals → Tasks → Habits → Reflection. Each layer informs the next. Your purpose shapes your vision, your vision drives your goals, your goals determine your daily tasks, your habits build consistency, and your reflections help you learn and grow.",
+    answer: "Intenteo uses a layered framework: Purpose \u2192 Vision \u2192 Goals \u2192 Tasks \u2192 Habits \u2192 Reflection. Each layer informs the next. Your purpose shapes your vision, your vision drives your goals, your goals determine your daily tasks, your habits build consistency, and your reflections help you learn and grow.",
     keywords: ["connect", "purpose", "daily", "actions", "framework"],
   },
   {
     category: "How Intenteo Works",
     question: "What makes Intenteo different from a traditional productivity app?",
-    answer: "Traditional productivity apps focus on task completion. Intenteo connects every action back to your purpose and vision. It's not about doing more — it's about doing what matters. The Intent Score measures how intentionally you lived, not just how much you accomplished.",
+    answer: "Traditional productivity apps focus on task completion. Intenteo connects every action back to your purpose and vision. It\u2019s not about doing more \u2014 it\u2019s about doing what matters. The Intent Score measures how intentionally you lived, not just how much you accomplished.",
     keywords: ["different", "unique", "special", "compare", "productivity"],
   },
   {
@@ -82,7 +82,7 @@ export const faqData: FaqItem[] = [
   {
     category: "Purpose, Vision & Goals",
     question: "What is Purpose in Intenteo?",
-    answer: "Your purpose is the guiding principle behind everything you do. It's the answer to why you exist and what matters most to you. In Intenteo, your purpose serves as the foundation for all your visions, goals, and actions.",
+    answer: "Your purpose is the guiding principle behind everything you do. It\u2019s the answer to why you exist and what matters most to you. In Intenteo, your purpose serves as the foundation for all your visions, goals, and actions.",
     keywords: ["purpose", "why", "meaning", "principle"],
   },
   {
@@ -94,7 +94,7 @@ export const faqData: FaqItem[] = [
   {
     category: "Purpose, Vision & Goals",
     question: "How do Goals connect to my Vision?",
-    answer: "Goals are the measurable milestones that move you toward your vision. Each goal you set in Intenteo can be linked to one or more visions, so you always know which bigger picture you're working toward.",
+    answer: "Goals are the measurable milestones that move you toward your vision. Each goal you set in Intenteo can be linked to one or more visions, so you always know which bigger picture you\u2019re working toward.",
     keywords: ["goals", "connect", "vision", "milestones", "link"],
   },
   {
@@ -120,7 +120,7 @@ export const faqData: FaqItem[] = [
   {
     category: "Tasks & Planning",
     question: "Can tasks be connected to goals?",
-    answer: "Yes. Every task can be linked to one or more goals. This connection is what makes Intenteo different — you always know why you're doing something and how it contributes to your bigger picture.",
+    answer: "Yes. Every task can be linked to one or more goals. This connection is what makes Intenteo different \u2014 you always know why you\u2019re doing something and how it contributes to your bigger picture.",
     keywords: ["tasks", "connected", "goals", "link"],
   },
   {
@@ -146,13 +146,13 @@ export const faqData: FaqItem[] = [
   {
     category: "Habits & Trackers",
     question: "What are trackers?",
-    answer: "Trackers let you monitor specific metrics over time — things like water intake, sleep quality, mood, or any custom metric you want to measure. They give you visibility into patterns and trends.",
+    answer: "Trackers let you monitor specific metrics over time \u2014 things like water intake, sleep quality, mood, or any custom metric you want to measure. They give you visibility into patterns and trends.",
     keywords: ["trackers", "track", "metrics", "monitor", "measure"],
   },
   {
     category: "Habits & Trackers",
     question: "How are habit streaks calculated?",
-    answer: "Habit streaks count consecutive completions based on your habit's schedule. If you set a daily habit and complete it every day, your streak grows. Missing a day resets the streak, but Intenteo also offers a recovery system so one miss doesn't erase your progress.",
+    answer: "Habit streaks count consecutive completions based on your habit\u2019s schedule. If you set a daily habit and complete it every day, your streak grows. Missing a day resets the streak, but Intenteo also offers a recovery system so one miss doesn\u2019t erase your progress.",
     keywords: ["streaks", "calculate", "count", "miss", "recovery"],
   },
 
@@ -166,7 +166,7 @@ export const faqData: FaqItem[] = [
   {
     category: "Journal & Reflection",
     question: "How does daily reflection work?",
-    answer: "At the end of each day, you can log a reflection entry with your mood, gratitude, and notes. Intenteo helps you spot patterns between your habits, mood, and goal progress — turning experience into wisdom.",
+    answer: "At the end of each day, you can log a reflection entry with your mood, gratitude, and notes. Intenteo helps you spot patterns between your habits, mood, and goal progress \u2014 turning experience into wisdom.",
     keywords: ["reflection", "daily", "end of day", "review"],
   },
   {
@@ -186,7 +186,7 @@ export const faqData: FaqItem[] = [
   {
     category: "Intent Score",
     question: "What is the Intent Score?",
-    answer: "The Intent Score is a daily measure of how intentionally you lived. It weighs task completion, habit consistency, goal alignment, and reflection quality into a single percentage — giving you a clear pulse on your day.",
+    answer: "The Intent Score is a daily measure of how intentionally you lived. It weighs task completion, habit consistency, goal alignment, and reflection quality into a single percentage \u2014 giving you a clear pulse on your day.",
     keywords: ["intent", "score", "what", "daily", "measure"],
   },
   {
@@ -198,7 +198,7 @@ export const faqData: FaqItem[] = [
   {
     category: "Intent Score",
     question: "Is the Intent Score a productivity score?",
-    answer: "Not exactly. The Intent Score measures intentionality, not productivity. You can have a high score by completing a few meaningful tasks and maintaining your habits, even if your task count is low. It's about alignment, not volume.",
+    answer: "Not exactly. The Intent Score measures intentionality, not productivity. You can have a high score by completing a few meaningful tasks and maintaining your habits, even if your task count is low. It\u2019s about alignment, not volume.",
     keywords: ["productivity", "measure", "score", "same", "different"],
   },
   {
@@ -224,7 +224,7 @@ export const faqData: FaqItem[] = [
   {
     category: "Account & Privacy",
     question: "How is my information handled?",
-    answer: "We take your privacy seriously. Intenteo primarily stores your data in your browser's local storage, meaning your data stays on your device. We do not sell your personal information. See our Privacy Policy for full details.",
+    answer: "We take your privacy seriously. Intenteo primarily stores your data in your browser\u2019s local storage, meaning your data stays on your device. We do not sell your personal information. See our Privacy Policy for full details.",
     keywords: ["privacy", "data", "information", "handle", "protect"],
   },
   {
@@ -238,7 +238,7 @@ export const faqData: FaqItem[] = [
   {
     category: "App & Downloads",
     question: "Where can I download the Intenteo app?",
-    answer: "You can download Intenteo from the App Store (iOS) or Google Play (Android). You can also use Intenteo directly from your web browser at inteo.app.",
+    answer: "You can download Intenteo from the App Store (iOS) or Google Play (Android). You can also use Intenteo directly from your web browser at intenteo.app.",
     keywords: ["download", "app store", "google play", "where"],
   },
   {
@@ -256,7 +256,7 @@ export const faqData: FaqItem[] = [
   {
     category: "App & Downloads",
     question: "Will Intenteo be available on other platforms?",
-    answer: "We're actively working on expanding platform support. Currently available on iOS, Android, and web. Stay tuned for updates on additional platforms.",
+    answer: "We\u2019re actively working on expanding platform support. Currently available on iOS, Android, and web. Stay tuned for updates on additional platforms.",
     keywords: ["other", "platforms", "windows", "mac", "future"],
   },
 ]

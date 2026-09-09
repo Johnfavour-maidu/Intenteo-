@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { Search, X, ChevronDown } from "lucide-react"
-import { faqData, searchFaq, FAQ_CATEGORIES, type FaqItem, type FaqCategory } from "@/lib/faq-data"
+import { faqData, searchFaq, FAQ_CATEGORIES, type FaqItem } from "@/lib/faq-data"
 
-/* ─── Accordion Item ─── */
-function FaqAccordionItem({ item, isOpen, onToggle, index }: { item: FaqItem; isOpen: boolean; onToggle: () => void; index: number }) {
+function FaqAccordionItem({ item, isOpen, onToggle }: { item: FaqItem; isOpen: boolean; onToggle: () => void }) {
   const contentRef = useRef<HTMLDivElement>(null)
   const [height, setHeight] = useState(0)
 
@@ -21,13 +20,9 @@ function FaqAccordionItem({ item, isOpen, onToggle, index }: { item: FaqItem; is
       <button
         onClick={onToggle}
         aria-expanded={isOpen}
-        className={cn(
-          "flex items-center justify-between w-full text-left px-5 py-4 gap-4 transition-colors",
-          "hover:bg-[#1E0E6B]/[0.02]",
-          isOpen ? "text-foreground" : "text-foreground"
-        )}
+        className="flex items-center justify-between w-full text-left px-5 py-4 gap-4 transition-colors hover:bg-[#1E0E6B]/[0.02]"
       >
-        <span className="text-sm font-medium leading-snug pr-2">{item.question}</span>
+        <span className="text-sm font-medium text-foreground leading-snug pr-2">{item.question}</span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
       <div
@@ -43,7 +38,6 @@ function FaqAccordionItem({ item, isOpen, onToggle, index }: { item: FaqItem; is
   )
 }
 
-/* ─── Category Filter ─── */
 function CategoryFilter({ selected, onSelect }: { selected: string | null; onSelect: (cat: string | null) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -76,7 +70,6 @@ function CategoryFilter({ selected, onSelect }: { selected: string | null; onSel
   )
 }
 
-/* ─── Shared FAQ Accordion (used by both /faq and /contact) ─── */
 export function FaqAccordion({ items: initialItems, limit }: { items?: FaqItem[]; limit?: number }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -97,28 +90,26 @@ export function FaqAccordion({ items: initialItems, limit }: { items?: FaqItem[]
 
   return (
     <div className="space-y-6">
-      {searchQuery !== undefined && (
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setOpenIndex(null) }}
-            placeholder="Search questions..."
-            className="w-full rounded-xl border border-[#1E0E6B]/15 bg-white dark:bg-gray-950 pl-11 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1E0E6B]/20 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-      )}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setOpenIndex(null) }}
+          placeholder="Search questions..."
+          className="w-full rounded-xl border border-[#1E0E6B]/15 bg-white dark:bg-gray-950 pl-11 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1E0E6B]/20 transition-all"
+        />
+        {searchQuery && (
+          <button
+            onClick={clearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
 
       {!limit && <CategoryFilter selected={selectedCategory} onSelect={setSelectedCategory} />}
 
@@ -143,7 +134,6 @@ export function FaqAccordion({ items: initialItems, limit }: { items?: FaqItem[]
               item={item}
               isOpen={openIndex === i}
               onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-              index={i}
             />
           ))}
         </div>
@@ -152,7 +142,7 @@ export function FaqAccordion({ items: initialItems, limit }: { items?: FaqItem[]
       {limit && filtered.length > limit && (
         <div className="text-center pt-2">
           <a href="/faq" className="text-sm font-medium text-[#1E0E6B] hover:underline">
-            View all {filtered.length} FAQs →
+            View all {filtered.length} FAQs \u2192
           </a>
         </div>
       )}
