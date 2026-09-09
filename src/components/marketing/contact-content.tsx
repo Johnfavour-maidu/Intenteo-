@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Send, CheckCircle, ArrowRight, Mail, Clock, Lightbulb, HelpCircle, ChevronDown, MessageCircle } from "lucide-react"
+import { Send, CheckCircle, ArrowRight, Mail, Clock, Lightbulb, HelpCircle } from "lucide-react"
 
 /* ═══════════════════════════════════ HOOKS ═══════════════════════════════════ */
 
@@ -59,33 +59,6 @@ interface FormErrors {
   message?: string
 }
 
-const POPULAR_FAQS = [
-  {
-    q: "What is Intenteo?",
-    a: "Intenteo is an intentional living platform that connects your purpose, vision, goals, tasks, habits, and reflection into a single system — so every action moves you forward.",
-  },
-  {
-    q: "How do I get started?",
-    a: "Sign up for free, then start by defining your Purpose. From there you can create Visions, set Goals, build Habits, plan Tasks, and begin journaling — all connected to what matters most to you.",
-  },
-  {
-    q: "Is Intenteo available on mobile?",
-    a: "Yes. Intenteo has a dedicated Android app available for download, and the web version works beautifully on mobile browsers. iOS support is planned for the future.",
-  },
-  {
-    q: "What is the Intent Score?",
-    a: "The Intent Score is a daily metric (0–100%) that weighs task completion, habit consistency, goal alignment, and reflection quality into a single number. It tells you how intentionally you lived today.",
-  },
-  {
-    q: "Can I use Intenteo for free?",
-    a: "Yes. Intenteo is free to use with core features including purpose, vision, goals, tasks, habits, and journaling. No credit card required.",
-  },
-  {
-    q: "How does Intenteo connect goals, tasks, habits and reflection?",
-    a: "Every element in Intenteo links upward: Tasks connect to Goals, Goals connect to Visions, Visions connect to Purpose. Habits and Journal entries feed into your daily Intent Score, creating a single intentional system.",
-  },
-]
-
 /* ═══════════════════════════════════ SUBMIT ═══════════════════════════════════ */
 
 function submitContactForm(_data: FormData): Promise<{ ok: boolean; error?: string }> {
@@ -105,7 +78,7 @@ function HeroSection() {
           <p className={cn("text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B] reveal", visible && "visible")}>
             Get in touch
           </p>
-          <h1 className={cn("mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl reveal reveal-delay-1", visible && "visible")}>
+          <h1 className={cn("mt-4 text-4xl font-bold tracking-tight sm:text-5xl reveal reveal-delay-1 bg-gradient-to-r from-[#1E0E6B] via-[#3D1FA0] to-[#1E0E6B] bg-clip-text text-transparent", visible && "visible")}>
             Let&apos;s talk about intentional living.
           </h1>
           <p className={cn("mt-5 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed reveal reveal-delay-2", visible && "visible")}>
@@ -137,7 +110,7 @@ function ContactInfo() {
     {
       icon: Lightbulb,
       title: "Feedback",
-      content: "Have an idea that could make Intenteo better? We&apos;d love to hear it.",
+      content: "Have an idea that could make Intenteo better? We would love to hear it.",
     },
     {
       icon: HelpCircle,
@@ -371,108 +344,12 @@ function ContactForm() {
           )}
         </button>
 
-        <p className="text-xs text-muted-foreground leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed text-center">
           We respect your privacy. Your information is only used to respond to your message.{" "}
           <Link href="/privacy" className="font-medium text-[#1E0E6B] hover:underline">Privacy Policy</Link>.
         </p>
       </form>
     </div>
-  )
-}
-
-/* ═══════════════════════════════════ FAQ ═══════════════════════════════════ */
-
-function FaqAccordionItem({
-  faq,
-  isOpen,
-  onToggle,
-}: {
-  faq: (typeof POPULAR_FAQS)[number]
-  isOpen: boolean
-  onToggle: () => void
-}) {
-  const contentRef = useRef<HTMLDivElement>(null)
-  const [height, setHeight] = useState(0)
-
-  useEffect(() => {
-    if (contentRef.current) {
-      setHeight(contentRef.current.scrollHeight)
-    }
-  }, [isOpen])
-
-  return (
-    <div
-      className={cn(
-        "rounded-xl border transition-colors duration-200",
-        isOpen
-          ? "border-[#1E0E6B]/20 bg-[#1E0E6B]/[0.02]"
-          : "border-[#1E0E6B]/10 bg-white dark:bg-card hover:border-[#1E0E6B]/15"
-      )}
-    >
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-        aria-expanded={isOpen}
-      >
-        <span className="text-sm font-semibold text-foreground">{faq.q}</span>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
-            isOpen && "rotate-180"
-          )}
-        />
-      </button>
-      <div
-        className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
-        style={{ maxHeight: isOpen ? height : 0 }}
-        aria-hidden={!isOpen}
-      >
-        <div ref={contentRef} className="px-5 pb-4">
-          <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function FaqSection() {
-  const { ref, visible } = useReveal(0.1)
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-
-  return (
-    <section className="py-12 md:py-16 bg-white dark:bg-[#0F0D1A]">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("mx-auto max-w-2xl", visible && "visible")}>
-          <div className={cn("text-center mb-10 reveal", visible && "visible")}>
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Have a quick question?</h2>
-            <p className="mt-3 text-muted-foreground">
-              You might find the answer before sending us a message.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {POPULAR_FAQS.map((faq, i) => (
-              <div key={i} className={cn("reveal", visible && "visible")} style={{ transitionDelay: `${i * 50}ms` }}>
-                <FaqAccordionItem
-                  faq={faq}
-                  isOpen={openIndex === i}
-                  onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className={cn("mt-8 text-center reveal reveal-delay-3", visible && "visible")}>
-            <Link
-              href="/faq"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1E0E6B] hover:underline"
-            >
-              View all FAQs <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
   )
 }
 
@@ -540,7 +417,6 @@ export function ContactContent() {
         </div>
       </section>
 
-      <FaqSection />
       <CtaSection />
     </>
   )
