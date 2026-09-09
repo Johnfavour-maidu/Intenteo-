@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { TeoIcon } from "@/components/ui/teo-icon"
+import { MarketingLogo } from "@/components/marketing/marketing-logo"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, User } from "lucide-react"
 import { loadUserSettings, updateUserSettings } from "@/lib/user-settings"
 import Link from "next/link"
@@ -46,17 +46,13 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730] px-4 pt-16 pb-10">
       <div className="w-full max-w-md">
         {/* Logo & Branding */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1E0E6B] shadow-lg shadow-[#1E0E6B]/20">
-              <TeoIcon size="lg" />
-            </div>
+          <div className="flex items-center justify-center mb-4">
+            <MarketingLogo size="lg" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Intenteo</h1>
-          <p className="text-muted-foreground mt-1">Live with Intentionality</p>
         </div>
 
         {/* Sign Up Card */}
@@ -165,7 +161,7 @@ export default function SignUpPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
-          &copy; {new Date().getFullYear()} Intenteo. Built for intentional living.
+          &copy; {new Date().getFullYear()} Intenteó. Built for intentional living.
         </p>
       </div>
     </div>

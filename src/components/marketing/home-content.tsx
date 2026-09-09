@@ -47,10 +47,10 @@ const framework = [
 
 /* ─── Capabilities data ─── */
 const capabilities = [
-  { icon: Target, title: "Direction", description: "Define your purpose, vision, and meaningful goals.", color: "bg-[#1E0E6B]/10 text-[#1E0E6B]" },
-  { icon: CheckSquare, title: "Daily Action", description: "Organize tasks, focus, and intentional reminders.", color: "bg-blue-500/10 text-blue-600" },
-  { icon: Repeat, title: "Personal Growth", description: "Build habits, track progress, and grow intentionally.", color: "bg-emerald-500/10 text-emerald-600" },
-  { icon: BookOpen, title: "Reflection", description: "Journal, reflect, and understand your intentional living.", color: "bg-purple-500/10 text-purple-600" },
+  { icon: Target, title: "Direction", description: "Define your purpose, vision, and meaningful goals.", color: "bg-[#1E0E6B]/10 text-[#1E0E6B]", border: "border-[#1E0E6B]/20 hover:border-[#1E0E6B]/40" },
+  { icon: CheckSquare, title: "Daily Action", description: "Organize tasks, focus, and intentional reminders.", color: "bg-blue-500/10 text-blue-600", border: "border-blue-500/20 hover:border-blue-500/40" },
+  { icon: Repeat, title: "Personal Growth", description: "Build habits, track progress, and grow intentionally.", color: "bg-emerald-500/10 text-emerald-600", border: "border-emerald-500/20 hover:border-emerald-500/40" },
+  { icon: BookOpen, title: "Reflection", description: "Journal, reflect, and understand your intentional living.", color: "bg-purple-500/10 text-purple-600", border: "border-purple-500/20 hover:border-purple-500/40" },
 ]
 
 /* ─── Browser Frame ─── */
@@ -86,7 +86,6 @@ function StatPill({ label, value, color }: { label: string; value: string; color
 
 export function HomeContent() {
   const { ref: heroRef, visible: heroVis } = useReveal(0.05)
-  const { ref: philRef, visible: philVis } = useReveal()
   const { ref: fwRef, visible: fwVis } = useReveal(0.1)
   const { ref: fwDeskRef, visible: fwDeskVis } = useReveal(0.1)
   const { ref: actionRef, visible: actionVis } = useReveal()
@@ -118,7 +117,7 @@ export function HomeContent() {
   return (
     <>
       {/* ═══════════════════════════════════════════ 1. HERO ═══════════════════════════════════════════ */}
-      <section className="relative pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
+      <section className="relative pt-20 pb-16 md:pt-28 md:pb-20 overflow-hidden bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
         {/* Subtle decorative orbs */}
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-[#1E0E6B]/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-[#EB9E5B]/5 rounded-full blur-3xl pointer-events-none" />
@@ -211,24 +210,8 @@ export function HomeContent() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════ 2. PHILOSOPHY ═══════════════════════════════════════ */}
-      <section className="py-14 md:py-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div ref={philRef} className={cn("mx-auto max-w-3xl text-center reveal", philVis && "visible")}>
-            <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-snug">
-              Most productivity tools help you do more.
-              <br />
-              <span className="text-[#1E0E6B]">Intente&oacute; helps you do what matters.</span>
-            </p>
-            <p className="mt-5 text-lg text-muted-foreground">
-              Your tasks are only meaningful when they connect to something bigger.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* ═══════════════════════════════════ 3. FRAMEWORK ═══════════════════════════════════ */}
-      <section className="py-14 md:py-20 bg-[#F8F6FF]/30 dark:bg-[#0F0D1A]/40">
+      <section className="py-10 md:py-14 bg-[#F8F6FF]/30 dark:bg-[#0F0D1A]/40">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-10">
             <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-2">The Intente&oacute; Framework</span>
@@ -299,7 +282,7 @@ export function HomeContent() {
           </div>
 
           <div className="mt-10 text-center">
-            <Link href="/learn" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1E0E6B] hover:gap-2.5 transition-all duration-300">
+            <Link href="/how-it-works" className="inline-flex items-center gap-2 rounded-xl border-2 border-[#1E0E6B]/15 bg-white/80 px-7 py-3 text-sm font-semibold text-[#1E0E6B] hover:bg-[#F8F6FF] hover:border-[#1E0E6B]/25 transition-all duration-300 dark:bg-gray-950/40">
               Explore how it works <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -307,7 +290,7 @@ export function HomeContent() {
       </section>
 
       {/* ═══════════════════════════ 4. SEE INTENTEO IN ACTION ═══════════════════════════ */}
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -501,7 +484,7 @@ export function HomeContent() {
                 ))}
               </ul>
               <div className="mt-8">
-                <Link href="/signup" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1E0E6B] hover:gap-2.5 transition-all duration-300">
+                <Link href="/signup" className="inline-flex items-center gap-2 rounded-xl border-2 border-[#1E0E6B]/15 bg-white/80 px-6 py-3 text-sm font-semibold text-[#1E0E6B] hover:bg-[#F8F6FF] hover:border-[#1E0E6B]/25 transition-all duration-300">
                   Explore your day <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
@@ -609,7 +592,8 @@ export function HomeContent() {
               <div
                 key={cap.title}
                 className={cn(
-                  "rounded-2xl border border-[#1E0E6B]/8 bg-white/70 dark:bg-gray-950/50 p-5 text-center transition-all duration-300 hover:shadow-md hover:border-[#1E0E6B]/15 hover:-translate-y-0.5 reveal",
+                  "rounded-2xl border-2 bg-white/70 dark:bg-gray-950/50 p-5 text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 reveal",
+                  cap.border,
                   capsVis && "visible",
                   `reveal-delay-${i + 1}`
                 )}
@@ -624,7 +608,7 @@ export function HomeContent() {
           </div>
 
           <div className="mt-8 text-center">
-            <Link href="/how-it-works" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1E0E6B] hover:gap-2.5 transition-all duration-300">
+            <Link href="/how-it-works" className="inline-flex items-center gap-2 rounded-xl border-2 border-[#1E0E6B]/15 bg-white/80 px-7 py-3 text-sm font-semibold text-[#1E0E6B] hover:bg-[#F8F6FF] hover:border-[#1E0E6B]/25 transition-all duration-300 dark:bg-gray-950/40">
               Explore all features <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -632,7 +616,7 @@ export function HomeContent() {
       </section>
 
       {/* ═══════════════════════════════════ 8. FINAL CTA ═══════════════════════════════════ */}
-      <section className="py-16 md:py-24 bg-[#1E0E6B]">
+      <section className="py-10 md:py-14 bg-[#1E0E6B]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div ref={ctaRef} className={cn("mx-auto max-w-2xl text-center reveal", ctaVis && "visible")}>
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">

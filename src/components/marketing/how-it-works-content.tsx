@@ -297,7 +297,7 @@ const SCREENS = [
 function HeroSection() {
   const { ref, visible } = useReveal(0.05)
   return (
-    <section className="relative pt-20 pb-10 md:pt-24 md:pb-14 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
+    <section className="relative pt-16 pb-10 md:pt-20 md:pb-14 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div ref={ref} className={cn("reveal text-center max-w-4xl mx-auto", visible && "visible")}>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
@@ -308,7 +308,7 @@ function HeroSection() {
             into a single living system&nbsp;&mdash; so every action moves you forward.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <OrangeButton href="#">Download the App</OrangeButton>
+            <OrangeButton href="/signup">Download the App</OrangeButton>
             <SubtleButton href="/learn">Learn More</SubtleButton>
           </div>
         </div>
@@ -374,7 +374,7 @@ function IntentScoreSection() {
           <div className="flex justify-center">
             <div className="relative w-48 h-48">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" strokeWidth="8" className="text-[#1E0E6B]/5" />
+                <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" strokeWidth="8" className="text-[#FF5A1F]/10" />
                 <circle
                   cx="60" cy="60" r="54" fill="none" stroke="url(#hiScoreGradient)" strokeWidth="8"
                   strokeLinecap="round"
@@ -425,7 +425,7 @@ function IntentScoreSection() {
 function FinalCTA() {
   const { ref, visible } = useReveal(0.15)
   return (
-    <section className="py-8 md:py-12 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A]">
+    <section className="py-10 md:py-14 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center max-w-2xl mx-auto", visible && "visible")}>
           <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to live intentionally?</h2>

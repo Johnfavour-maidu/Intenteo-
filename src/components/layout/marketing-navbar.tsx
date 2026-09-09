@@ -62,16 +62,16 @@ export function MarketingNavbar() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/signin"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Log In
-            </Link>
-            <Link
-              href="#"
+              href="/signup"
               className="inline-flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 bg-white/80 px-4 py-2 text-sm font-semibold text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
             >
               Download App
+            </Link>
+            <Link
+              href="/signin"
+              className="inline-flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 bg-white/80 px-4 py-2 text-sm font-medium text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
+            >
+              Log In
             </Link>
             <Link
               href="/signup"
@@ -132,7 +132,7 @@ export function MarketingNavbar() {
             </nav>
             <div className="border-t p-4 space-y-3">
               <Link
-                href="#"
+                href="/signup"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 px-4 py-3 text-sm font-semibold text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
               >
@@ -141,7 +141,7 @@ export function MarketingNavbar() {
               <Link
                 href="/signin"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center rounded-lg border border-[#1E0E6B]/20 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 px-4 py-3 text-sm font-medium text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
               >
                 Log In
               </Link>

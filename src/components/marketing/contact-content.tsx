@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Send, CheckCircle, ArrowRight, BookOpen } from "lucide-react"
+import { FaqAccordion } from "@/components/marketing/faq-components"
+import { faqData } from "@/lib/faq-data"
 
 function useReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null)
@@ -294,26 +296,42 @@ function ContactInfo() {
 }
 
 /* ═══════════════════════════════════ FAQ ═══════════════════════════════════ */
+const CONTACT_FAQ_QUESTIONS = [
+  "What is Intenteo?",
+  "How does Intenteo work?",
+  "What is the Intent Score?",
+  "How do I get started?",
+  "Is Intenteo available on mobile?",
+  "How do I contact Intenteo?",
+  "Where can I download the app?",
+]
+
+const contactFaqItems = faqData.filter((item) =>
+  CONTACT_FAQ_QUESTIONS.includes(item.question)
+)
+
 function FaqMicroSection() {
   const { ref, visible } = useReveal(0.1)
   return (
-    <section className="py-10 md:py-14 bg-white dark:bg-gray-950">
+    <section className="py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("reveal mx-auto max-w-2xl text-center", visible && "visible")}>
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#1E0E6B]/5 px-4 py-1.5 mb-4">
-            <BookOpen className="h-3.5 w-3.5 text-[#1E0E6B]" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#1E0E6B]">Resources</span>
+        <div ref={ref} className={cn("reveal mx-auto max-w-2xl", visible && "visible")}>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#1E0E6B]/5 px-4 py-1.5 mb-4">
+              <BookOpen className="h-3.5 w-3.5 text-[#1E0E6B]" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#1E0E6B]">FAQ</span>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">Frequently asked questions</h2>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Looking for a quick answer? Here are some common questions.
+            </p>
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Looking for answers?</h2>
-          <p className="mt-3 text-muted-foreground leading-relaxed">
-            You may find what you&apos;re looking for in our resources.
-          </p>
-          <Link
-            href="/learn"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl border-2 border-[#1E0E6B]/15 bg-white/80 px-6 py-2.5 text-sm font-semibold text-[#1E0E6B] hover:bg-[#F8F6FF] hover:border-[#1E0E6B]/25 transition-all duration-300 dark:bg-gray-950/40"
-          >
-            Explore Resources <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          <FaqAccordion items={contactFaqItems} limit={7} />
+          <div className="text-center mt-6">
+            <a href="/faq" className="text-sm font-medium text-[#1E0E6B] hover:underline">
+              View all FAQs →
+            </a>
+          </div>
         </div>
       </div>
     </section>

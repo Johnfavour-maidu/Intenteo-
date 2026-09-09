@@ -1,14 +1,14 @@
 import Link from "next/link"
 
 interface MarketingLogoProps {
-  size?: "sm" | "md"
+  size?: "sm" | "md" | "lg"
   href?: string
   className?: string
   onClick?: () => void
 }
 
-export function MarketingLogo({ size = "md", href = "/", className, onClick }: MarketingLogoProps) {
-  const height = size === "sm" ? "h-7" : "h-8"
+export function MarketingLogo({ size = "md", href, className, onClick }: MarketingLogoProps) {
+  const height = size === "sm" ? "h-7" : size === "lg" ? "h-16" : "h-8"
 
   if (onClick) {
     return (

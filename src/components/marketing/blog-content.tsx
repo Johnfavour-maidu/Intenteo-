@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { ArrowRight, Search, X } from "lucide-react"
-import { articles, allCategories, categoryColors, searchArticles, type BlogArticle } from "@/lib/blog-data"
+import { articles, allCategories, categoryColors, type BlogArticle } from "@/lib/blog-data"
+import { searchArticlesSmart, highlightText } from "@/lib/blog-search"
 import { ArticleImage } from "./blog/article-image"
 import { ArticleMetadata } from "./blog/article-metadata"
 
@@ -60,9 +61,13 @@ export function BlogContent() {
     }
   }, [])
 
-  const filtered = searchArticles(debouncedQuery, activeCategory)
+  const filtered = useMemo(
+    () => searchArticlesSmart(debouncedQuery, articles, activeCategory),
+    [debouncedQuery, activeCategory]
+  )
   const featured = articles[0]
-  const showFeatured = activeCategory === "All" && !debouncedQuery
+  const isSearching = !!debouncedQuery
+  const showFeatured = activeCategory === "All" && !isSearching
   const gridPosts = showFeatured ? filtered.filter((a) => a.slug !== featured.slug) : filtered
   const visiblePosts = gridPosts.slice(0, visibleCount)
   const hasMore = visibleCount < gridPosts.length
@@ -213,32 +218,33 @@ export function BlogContent() {
 
         {/* ─── Article Grid ─── */}
         <div className="mx-auto max-w-5xl">
-          {debouncedQuery && filtered.length === 0 && (
+          {/* Result count */}
+          {isSearching && filtered.length > 0 && (
+            <p className="text-sm text-muted-foreground mb-6 text-center">
+              {filtered.length} {filtered.length === 1 ? "article" : "articles"} found
+            </p>
+          )}
+
+          {/* No results */}
+          {isSearching && filtered.length === 0 && (
             <div className="text-center py-16">
               <p className="text-lg font-semibold text-foreground mb-2">No articles found</p>
               <p className="text-muted-foreground text-sm mb-6">
-                Try searching for another topic or explore one of the categories below.
+                We couldn&apos;t find anything matching your search. Try a different keyword or check your spelling.
               </p>
-              <div className="flex items-center gap-2 justify-center flex-wrap">
-                {allCategories.filter((c) => c !== "All").map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => { handleCategoryChange(cat); clearSearch(); }}
-                    className={cn(
-                      "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-200 border",
-                      "bg-white text-muted-foreground border-[#1E0E6B]/10 hover:border-[#1E0E6B]/25 hover:text-foreground"
-                    )}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={clearSearch}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#1E0E6B]/15 px-6 py-2.5 text-sm font-semibold text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-all duration-200"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear Search
+              </button>
             </div>
           )}
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {visiblePosts.map((post, i) => (
-              <BlogCard key={post.slug} post={post} index={i} />
+              <BlogCard key={post.slug} post={post} index={i} searchQuery={debouncedQuery} />
             ))}
           </div>
 
@@ -268,8 +274,10 @@ export function BlogContent() {
 }
 
 /* ─── Blog Card Component ─── */
-function BlogCard({ post, index }: { post: BlogArticle; index: number }) {
+function BlogCard({ post, index, searchQuery }: { post: BlogArticle; index: number; searchQuery?: string }) {
   const { ref, visible } = useReveal(0.05)
+  const titleHtml = searchQuery ? highlightText(post.title, searchQuery) : post.title
+  const excerptHtml = searchQuery ? highlightText(post.excerpt, searchQuery) : post.excerpt
 
   return (
     <div
@@ -305,13 +313,15 @@ function BlogCard({ post, index }: { post: BlogArticle; index: number }) {
             className="mb-3"
           />
 
-          <h3 className="text-lg font-bold text-foreground group-hover:text-[#1E0E6B] transition-colors duration-300 leading-snug line-clamp-2">
-            {post.title}
-          </h3>
+          <h3
+            className="text-lg font-bold text-foreground group-hover:text-[#1E0E6B] transition-colors duration-300 leading-snug line-clamp-2"
+            dangerouslySetInnerHTML={{ __html: titleHtml }}
+          />
 
-          <p className="mt-2.5 text-sm text-muted-foreground leading-relaxed line-clamp-3">
-            {post.excerpt}
-          </p>
+          <p
+            className="mt-2.5 text-sm text-muted-foreground leading-relaxed line-clamp-3"
+            dangerouslySetInnerHTML={{ __html: excerptHtml }}
+          />
 
           <div className="mt-4">
             <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#1E0E6B] opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all duration-300">

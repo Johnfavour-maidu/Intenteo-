@@ -10,7 +10,7 @@ export function MarketingFooter() {
           <div className="space-y-3">
             <MarketingLogo size="sm" />
             <p className="text-sm text-muted-foreground">Live with intentionality.</p>
-            <Link href="/download" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#FF5A1F]/15 hover:shadow-md hover:shadow-[#FF5A1F]/25 hover:-translate-y-0.5 transition-all">
+            <Link href="/signup" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#FF5A1F]/15 hover:shadow-md hover:shadow-[#FF5A1F]/25 hover:-translate-y-0.5 transition-all">
               <Download className="h-3 w-3" />
               Download the App
             </Link>
@@ -28,6 +28,7 @@ export function MarketingFooter() {
             <h3 className="text-sm font-semibold text-foreground">Learn</h3>
             <div className="flex flex-col gap-1.5">
               <Link href="/learn" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Resources</Link>
+              <Link href="/faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
               <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
             </div>
           </div>

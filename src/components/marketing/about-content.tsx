@@ -47,11 +47,12 @@ const framework = [
 ]
 
 const principles = [
-  { icon: Compass, title: "Intentionality over busyness", text: "Do what matters, not simply what is urgent." },
-  { icon: Heart, title: "Meaning over metrics", text: "Numbers should help you understand your life, not define it." },
-  { icon: BarChart3, title: "Progress over perfection", text: "Small, consistent actions matter more than flawless plans." },
-  { icon: Brain, title: "Reflection over autopilot", text: "Pause, learn, adjust, and move forward intentionally." },
-  { icon: Zap, title: "Consistency over intensity", text: "Build a life through sustainable actions rather than short bursts." },
+  { icon: Compass, title: "Intentionality over busyness", text: "Do what matters, not simply what is urgent.", color: "bg-[#1E0E6B]/10 text-[#1E0E6B]", border: "border-[#1E0E6B]/20 hover:border-[#1E0E6B]/40" },
+  { icon: Heart, title: "Meaning over metrics", text: "Numbers should help you understand your life, not define it.", color: "bg-purple-500/10 text-purple-600", border: "border-purple-500/20 hover:border-purple-500/40" },
+  { icon: BarChart3, title: "Progress over perfection", text: "Small, consistent actions matter more than flawless plans.", color: "bg-blue-500/10 text-blue-600", border: "border-blue-500/20 hover:border-blue-500/40" },
+  { icon: Brain, title: "Reflection over autopilot", text: "Pause, learn, adjust, and move forward intentionally.", color: "bg-emerald-500/10 text-emerald-600", border: "border-emerald-500/20 hover:border-emerald-500/40" },
+  { icon: Zap, title: "Consistency over intensity", text: "Build a life through sustainable actions rather than short bursts.", color: "bg-orange-500/10 text-orange-600", border: "border-orange-500/20 hover:border-orange-500/40" },
+  { icon: Lightbulb, title: "Direction over drift", text: "Live on purpose, not by default. Know where you are headed.", color: "bg-cyan-500/10 text-cyan-600", border: "border-cyan-500/20 hover:border-cyan-500/40" },
 ]
 
 const forPeople = [
@@ -70,13 +71,13 @@ function HeroSection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center max-w-3xl mx-auto", visible && "visible")}>
           <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-            About Intenteo
+            About Intent&eacute;o
           </span>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
             We believe productivity should serve a meaningful life.
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Intenteo helps you connect what matters most to how you spend your time,
+            Intent&eacute;o helps you connect what matters most to how you spend your time,
             pursue your goals, build your habits, and reflect on the life you are creating.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -108,16 +109,16 @@ function WhySection() {
         <div className="mx-auto max-w-4xl">
           <div ref={titleRef} className={cn("reveal", titleVis && "visible")}>
             <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-              Why we built Intenteo
+              Why we built Intent&eacute;o
             </span>
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Why Intenteo exists
+              Why Intent&eacute;o exists
             </h2>
           </div>
 
           <div className="mt-8 space-y-5 text-base text-muted-foreground leading-relaxed">
             <p>
-              Intenteo exists because productivity should serve a meaningful life —
+              Intent&eacute;o exists because productivity should serve a meaningful life —
               not become the purpose itself.
             </p>
             <p>
@@ -128,7 +129,7 @@ function WhySection() {
               another, tasks in a third.
             </p>
             <p>
-              Intenteo connects these layers. It starts with your purpose and walks
+              Intent&eacute;o connects these layers. It starts with your purpose and walks
               down through your vision, your goals, your daily actions, your habits,
               and your reflection. Each layer informs the next. Each action is tied
               to meaning.
@@ -173,13 +174,13 @@ function PhilosophySection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center mb-10", visible && "visible")}>
           <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-            The Intenteo Philosophy
+            The Intent&eacute;o Philosophy
           </span>
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             A different way to think about productivity
           </h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Intenteo is not about doing more for the sake of doing more.
+            Intent&eacute;o is not about doing more for the sake of doing more.
           </p>
         </div>
 
@@ -189,12 +190,13 @@ function PhilosophySection() {
               <div
                 key={p.title}
                 className={cn(
-                  "rounded-xl border border-[#1E0E6B]/10 bg-white dark:bg-gray-950 p-5 hover:shadow-md hover:-translate-y-0.5 transition-all",
+                  "rounded-xl border-2 bg-white dark:bg-gray-950 p-5 hover:shadow-md hover:-translate-y-0.5 transition-all",
+                  p.border,
                   `reveal-delay-${(i % 3) + 1}`
                 )}
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#1E0E6B]/10 flex items-center justify-center text-[#1E0E6B]">
+                  <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", p.color)}>
                     <p.icon className="h-4 w-4" />
                   </div>
                   <h3 className="text-sm font-semibold text-foreground">{p.title}</h3>
@@ -222,10 +224,26 @@ function FrameworkSection() {
             From what matters to what you do
           </h2>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            Intenteo connects what matters to how you live — from purpose and vision to goals,
+            Intent&eacute;o connects what matters to how you live — from purpose and vision to goals,
             daily actions, habits, and reflection.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+          <div className="mt-8 hidden md:flex items-center justify-center gap-3">
+            {framework.map((item, i) => (
+              <div key={item.label} className="flex items-center gap-3">
+                <div className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-white shadow-sm text-sm font-medium",
+                  item.color
+                )}>
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </div>
+                {i < framework.length - 1 && (
+                  <span className="text-[#1E0E6B]/30 text-lg">&rarr;</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 flex md:hidden flex-wrap items-center justify-center gap-2 sm:gap-3">
             {framework.map((item, i) => (
               <div key={item.label} className="flex items-center gap-2 sm:gap-3">
                 <div className={cn(
@@ -255,28 +273,40 @@ function ForWhomSection() {
         <div ref={ref} className={cn("reveal max-w-3xl mx-auto", visible && "visible")}>
           <div className="text-center mb-8">
             <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-              Who Intenteo Is For
+              Who Intent&eacute;o Is For
             </span>
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Built for people who want to live with intention
             </h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 max-w-2xl mx-auto">
-            {forPeople.map((item, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "flex items-start gap-3 rounded-xl border border-[#1E0E6B]/10 bg-white dark:bg-gray-950 p-4 reveal",
-                  visible && "visible",
-                  `reveal-delay-${(i % 3) + 1}`
-                )}
-              >
-                <div className="mt-0.5 w-5 h-5 rounded-full bg-[#1E0E6B]/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-[#1E0E6B] text-xs font-bold">{i + 1}</span>
+            {forPeople.map((item, i) => {
+              const colors = [
+                { bg: "bg-[#1E0E6B]/10", text: "text-[#1E0E6B]", border: "border-[#1E0E6B]/20 hover:border-[#1E0E6B]/40" },
+                { bg: "bg-purple-500/10", text: "text-purple-600", border: "border-purple-500/20 hover:border-purple-500/40" },
+                { bg: "bg-blue-500/10", text: "text-blue-600", border: "border-blue-500/20 hover:border-blue-500/40" },
+                { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20 hover:border-emerald-500/40" },
+                { bg: "bg-orange-500/10", text: "text-orange-600", border: "border-orange-500/20 hover:border-orange-500/40" },
+                { bg: "bg-cyan-500/10", text: "text-cyan-600", border: "border-cyan-500/20 hover:border-cyan-500/40" },
+              ]
+              const c = colors[i % colors.length]
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex items-start gap-3 rounded-xl border-2 bg-white dark:bg-gray-950 p-4 transition-all duration-300 hover:shadow-md reveal",
+                    c.border,
+                    visible && "visible",
+                    `reveal-delay-${(i % 3) + 1}`
+                  )}
+                >
+                  <div className={cn("mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0", c.bg)}>
+                    <span className={cn("text-xs font-bold", c.text)}>{i + 1}</span>
+                  </div>
+                  <span className="text-sm text-foreground">{item}</span>
                 </div>
-                <span className="text-sm text-foreground">{item}</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
@@ -322,7 +352,7 @@ function FinalCTA() {
               className="inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]"
               style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
             >
-              Get Started Free
+              Get Started For Free
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
