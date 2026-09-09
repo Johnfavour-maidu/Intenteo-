@@ -70,9 +70,6 @@ function HeroSection() {
     <section className="relative pt-24 pb-14 md:pt-28 md:pb-18 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center max-w-3xl mx-auto", visible && "visible")}>
-          <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-            About Intent&eacute;o
-          </span>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
             We believe productivity should serve a meaningful life.
           </h1>
@@ -108,11 +105,8 @@ function WhySection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <div ref={titleRef} className={cn("reveal", titleVis && "visible")}>
-            <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
-              Why we built Intent&eacute;o
-            </span>
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Why Intent&eacute;o exists
+              Why we built Intent&eacute;o
             </h2>
           </div>
 
@@ -314,26 +308,6 @@ function ForWhomSection() {
   )
 }
 
-function BeliefSection() {
-  const { ref, visible } = useReveal(0.15)
-  return (
-    <section className="py-14 md:py-20 bg-white dark:bg-gray-950">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("reveal text-center max-w-2xl mx-auto", visible && "visible")}>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-            Your productivity should reflect the life you want to live.
-          </h2>
-          <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-            The goal is not to fill every hour, complete the longest task list, or
-            constantly optimize. The goal is to make your actions increasingly aligned
-            with what matters.
-          </p>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function FinalCTA() {
   const { ref, visible } = useReveal(0.15)
   return (
@@ -370,7 +344,6 @@ export function AboutContent() {
       <PhilosophySection />
       <FrameworkSection />
       <ForWhomSection />
-      <BeliefSection />
       <FinalCTA />
     </>
   )
