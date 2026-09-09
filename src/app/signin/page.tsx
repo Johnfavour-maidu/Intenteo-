@@ -1,9 +1,10 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { MarketingLogo } from "@/components/marketing/marketing-logo"
-import { Eye, EyeOff, Mail, Lock, ArrowRight, User } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, ArrowRight, User, ArrowLeft } from "lucide-react"
 import { loadUserSettings, updateUserSettings } from "@/lib/user-settings"
 
 const DEMO_EMAIL = "john@intenteo.com"
@@ -70,6 +71,11 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730] px-4 pt-16 pb-10">
       <div className="w-full max-w-md">
+        {/* Back to Home */}
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
+          <ArrowLeft className="h-4 w-4" /> Back to site
+        </Link>
+
         {/* Logo & Branding */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
