@@ -308,7 +308,7 @@ function HeroSection() {
             into a single living system&nbsp;&mdash; so every action moves you forward.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <OrangeButton href="/signup">Download the App</OrangeButton>
+            <OrangeButton href="#">Download the App</OrangeButton>
             <SubtleButton href="/learn">Learn More</SubtleButton>
           </div>
         </div>
