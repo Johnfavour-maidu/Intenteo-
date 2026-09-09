@@ -3,9 +3,9 @@
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Send, CheckCircle, ArrowRight, BookOpen } from "lucide-react"
-import { FaqAccordion } from "@/components/marketing/faq-components"
-import { faqData } from "@/lib/faq-data"
+import { Send, CheckCircle, ArrowRight, Mail, Clock, Lightbulb, HelpCircle, ChevronDown, MessageCircle } from "lucide-react"
+
+/* ═══════════════════════════════════ HOOKS ═══════════════════════════════════ */
 
 function useReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null)
@@ -26,20 +26,27 @@ function useReveal(threshold = 0.15) {
   return { ref, visible }
 }
 
-const CONTACT_REASONS = [
-  { value: "general", label: "General Question" },
-  { value: "feedback", label: "Feedback" },
-  { value: "support", label: "Technical Support" },
-  { value: "partnership", label: "Partnership" },
-  { value: "other", label: "Other" },
+/* ═══════════════════════════════════ DATA ═══════════════════════════════════ */
+
+const CONTACT_CATEGORIES = [
+  "General Question",
+  "Getting Started",
+  "Account & Login",
+  "App Download",
+  "Technical Support",
+  "Billing & Subscription",
+  "Feature Feedback",
+  "Partnership",
+  "Report a Problem",
+  "Other",
 ] as const
 
-type ContactReason = typeof CONTACT_REASONS[number]["value"]
+type ContactCategory = typeof CONTACT_CATEGORIES[number]
 
 interface FormData {
   name: string
   email: string
-  reason: ContactReason
+  category: ContactCategory
   subject: string
   message: string
 }
@@ -47,9 +54,39 @@ interface FormData {
 interface FormErrors {
   name?: string
   email?: string
+  category?: string
   subject?: string
   message?: string
 }
+
+const POPULAR_FAQS = [
+  {
+    q: "What is Intenteo?",
+    a: "Intenteo is an intentional living platform that connects your purpose, vision, goals, tasks, habits, and reflection into a single system — so every action moves you forward.",
+  },
+  {
+    q: "How do I get started?",
+    a: "Sign up for free, then start by defining your Purpose. From there you can create Visions, set Goals, build Habits, plan Tasks, and begin journaling — all connected to what matters most to you.",
+  },
+  {
+    q: "Is Intenteo available on mobile?",
+    a: "Yes. Intenteo has a dedicated Android app available for download, and the web version works beautifully on mobile browsers. iOS support is planned for the future.",
+  },
+  {
+    q: "What is the Intent Score?",
+    a: "The Intent Score is a daily metric (0–100%) that weighs task completion, habit consistency, goal alignment, and reflection quality into a single number. It tells you how intentionally you lived today.",
+  },
+  {
+    q: "Can I use Intenteo for free?",
+    a: "Yes. Intenteo is free to use with core features including purpose, vision, goals, tasks, habits, and journaling. No credit card required.",
+  },
+  {
+    q: "How does Intenteo connect goals, tasks, habits and reflection?",
+    a: "Every element in Intenteo links upward: Tasks connect to Goals, Goals connect to Visions, Visions connect to Purpose. Habits and Journal entries feed into your daily Intent Score, creating a single intentional system.",
+  },
+]
+
+/* ═══════════════════════════════════ SUBMIT ═══════════════════════════════════ */
 
 function submitContactForm(_data: FormData): Promise<{ ok: boolean; error?: string }> {
   // TODO: Connect to backend / email service (e.g. Resend, SendGrid, Formspree, etc.)
@@ -58,21 +95,21 @@ function submitContactForm(_data: FormData): Promise<{ ok: boolean; error?: stri
 }
 
 /* ═══════════════════════════════════ HERO ═══════════════════════════════════ */
+
 function HeroSection() {
   const { ref, visible } = useReveal(0.05)
   return (
-    <section className="pt-16 pb-8 md:pt-20 md:pb-10 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
+    <section className="relative pt-16 pb-10 md:pt-20 md:pb-14 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("text-center max-w-3xl mx-auto", visible && "visible")}>
-          <p className={cn("text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B]", "reveal", visible && "visible")}>
+        <div ref={ref} className="text-center max-w-3xl mx-auto">
+          <p className={cn("text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B] reveal", visible && "visible")}>
             Get in touch
           </p>
-          <h1 className={cn("mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl", "reveal reveal-delay-1", visible && "visible")}>
-            Let&apos;s talk.
+          <h1 className={cn("mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl reveal reveal-delay-1", visible && "visible")}>
+            Let&apos;s talk about intentional living.
           </h1>
-          <p className={cn("mt-3 text-base text-muted-foreground max-w-lg mx-auto leading-relaxed", "reveal reveal-delay-2", visible && "visible")}>
-            Have a question about Intenteo, need help getting started, or want to share feedback?
-            We&apos;d love to hear from you.
+          <p className={cn("mt-5 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed reveal reveal-delay-2", visible && "visible")}>
+            Have a question about Intenteo, need help getting started, or simply want to share an idea? We&apos;d love to hear from you.
           </p>
         </div>
       </div>
@@ -80,10 +117,94 @@ function HeroSection() {
   )
 }
 
+/* ═══════════════════════════════ CONTACT INFO ═══════════════════════════════ */
+
+function ContactInfo() {
+  const { ref, visible } = useReveal(0.1)
+
+  const infoCards = [
+    {
+      icon: Mail,
+      title: "Email",
+      content: "hello@intenteo.com",
+      href: "mailto:hello@intenteo.com",
+    },
+    {
+      icon: Clock,
+      title: "Response time",
+      content: "We usually respond within 1–2 business days.",
+    },
+    {
+      icon: Lightbulb,
+      title: "Feedback",
+      content: "Have an idea that could make Intenteo better? We&apos;d love to hear it.",
+    },
+    {
+      icon: HelpCircle,
+      title: "FAQ",
+      content: "Find quick answers to common questions.",
+      link: { label: "Browse FAQs →", href: "/faq" },
+    },
+  ]
+
+  return (
+    <div ref={ref} className={cn("reveal", visible && "visible")}>
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">We&apos;re here to help.</h2>
+          <p className="mt-3 text-muted-foreground leading-relaxed">
+            Whether you have a question about Intenteo, want to share feedback, or simply want to say hello, send us a message.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {infoCards.map((card) => {
+            const Icon = card.icon
+            return (
+              <div
+                key={card.title}
+                className="flex items-start gap-4 rounded-xl border border-[#1E0E6B]/10 bg-[#FAFBFF] dark:bg-[#141220] px-5 py-4 transition-colors hover:border-[#1E0E6B]/15"
+              >
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1E0E6B]/5">
+                  <Icon className="h-4.5 w-4.5 text-[#1E0E6B]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{card.title}</p>
+                  {card.href ? (
+                    <a href={card.href} className="text-sm text-muted-foreground hover:text-[#1E0E6B] transition-colors">
+                      {card.content}
+                    </a>
+                  ) : card.link ? (
+                    <div>
+                      <p className="text-sm text-muted-foreground">{card.content}</p>
+                      <Link href={card.link.href} className="mt-1 inline-block text-sm font-medium text-[#1E0E6B] hover:underline">
+                        {card.link.label}
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{card.content}</p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ═══════════════════════════════════ FORM ═══════════════════════════════════ */
+
 function ContactForm() {
   const { ref, visible } = useReveal(0.1)
-  const [form, setForm] = useState<FormData>({ name: "", email: "", reason: "general", subject: "", message: "" })
+  const [form, setForm] = useState<FormData>({
+    name: "",
+    email: "",
+    category: "General Question",
+    subject: "",
+    message: "",
+  })
   const [errors, setErrors] = useState<FormErrors>({})
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [errorMsg, setErrorMsg] = useState("")
@@ -122,37 +243,34 @@ function ContactForm() {
 
   const handleChange = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
-    if (field !== "reason" && errors[field as keyof FormErrors]) {
+    if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
     }
     if (status === "error") setStatus("idle")
   }
 
-  const inputClass = (hasError: boolean) =>
-    cn(
-      "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-[#1E0E6B]/20",
-      hasError ? "border-red-400" : "border-border"
-    )
+  const inputBase =
+    "w-full rounded-xl border bg-background px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[#1E0E6B]/20 focus:border-[#1E0E6B]/30"
 
   if (status === "success") {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[480px]">
         <div className="text-center max-w-md mx-auto px-4">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-            <CheckCircle className="h-7 w-7 text-green-600 dark:text-green-400" />
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Message sent successfully.</h2>
+          <h2 className="text-2xl font-bold text-foreground">Message sent successfully ✓</h2>
           <p className="mt-3 text-muted-foreground leading-relaxed">
-            Thanks for reaching out. We&apos;ll get back to you as soon as we can.
+            Thanks for reaching out. We&apos;ll get back to you as soon as possible.
           </p>
           <button
             onClick={() => {
               setStatus("idle")
-              setForm({ name: "", email: "", reason: "general", subject: "", message: "" })
+              setForm({ name: "", email: "", category: "General Question", subject: "", message: "" })
             }}
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#FF5A1F]/20 hover:shadow-xl hover:shadow-[#FF5A1F]/30 hover:-translate-y-0.5 transition-all"
+            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#FF5A1F]/20 hover:shadow-xl hover:shadow-[#FF5A1F]/30 hover:-translate-y-0.5 transition-all duration-200"
           >
-            Send another message <ArrowRight className="h-3.5 w-3.5" />
+            Send another message <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -164,70 +282,70 @@ function ContactForm() {
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
+            <label htmlFor="name" className="block text-sm font-semibold text-foreground mb-2">Full Name *</label>
             <input
               id="name"
               type="text"
               value={form.name}
               onChange={(e) => handleChange("name", e.target.value)}
-              className={inputClass(!!errors.name)}
+              className={cn(inputBase, errors.name ? "border-red-400" : "border-border")}
               placeholder="Your name"
             />
-            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+            {errors.name && <p className="mt-1.5 text-xs text-red-500">{errors.name}</p>}
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">Email Address</label>
+            <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-2">Email Address *</label>
             <input
               id="email"
               type="email"
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              className={inputClass(!!errors.email)}
+              className={cn(inputBase, errors.email ? "border-red-400" : "border-border")}
               placeholder="you@example.com"
             />
-            {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+            {errors.email && <p className="mt-1.5 text-xs text-red-500">{errors.email}</p>}
           </div>
         </div>
 
         <div>
-          <label htmlFor="reason" className="block text-sm font-medium text-foreground mb-1.5">What can we help with?</label>
+          <label htmlFor="category" className="block text-sm font-semibold text-foreground mb-2">What can we help with? *</label>
           <select
-            id="reason"
-            value={form.reason}
-            onChange={(e) => handleChange("reason", e.target.value as ContactReason)}
-            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-[#1E0E6B]/20 appearance-none cursor-pointer"
+            id="category"
+            value={form.category}
+            onChange={(e) => handleChange("category", e.target.value as ContactCategory)}
+            className={cn(inputBase, "appearance-none cursor-pointer pr-10 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat")}
           >
-            {CONTACT_REASONS.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
+            {CONTACT_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-1.5">Subject</label>
+          <label htmlFor="subject" className="block text-sm font-semibold text-foreground mb-2">Subject *</label>
           <input
             id="subject"
             type="text"
             value={form.subject}
             onChange={(e) => handleChange("subject", e.target.value)}
-            className={inputClass(!!errors.subject)}
+            className={cn(inputBase, errors.subject ? "border-red-400" : "border-border")}
             placeholder="What is this about?"
           />
-          {errors.subject && <p className="mt-1 text-xs text-red-500">{errors.subject}</p>}
+          {errors.subject && <p className="mt-1.5 text-xs text-red-500">{errors.subject}</p>}
         </div>
 
         <div>
-          <label htmlFor="message" className="block text-sm font-medium text-foreground mb-1.5">Message</label>
+          <label htmlFor="message" className="block text-sm font-semibold text-foreground mb-2">Message *</label>
           <textarea
             id="message"
             value={form.message}
             onChange={(e) => handleChange("message", e.target.value)}
             rows={5}
-            className={cn(inputClass(!!errors.message), "resize-none min-h-[120px]")}
+            className={cn(inputBase, "resize-none min-h-[140px]", errors.message ? "border-red-400" : "border-border")}
             placeholder="Tell us how we can help..."
           />
-          {errors.message && <p className="mt-1 text-xs text-red-500">{errors.message}</p>}
+          {errors.message && <p className="mt-1.5 text-xs text-red-500">{errors.message}</p>}
         </div>
 
         {status === "error" && (
@@ -239,7 +357,7 @@ function ContactForm() {
         <button
           type="submit"
           disabled={status === "loading"}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-[#FF5A1F]/20 hover:shadow-xl hover:shadow-[#FF5A1F]/30 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#FF5A1F]/20 hover:shadow-xl hover:shadow-[#FF5A1F]/30 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
           {status === "loading" ? (
             <>
@@ -248,89 +366,109 @@ function ContactForm() {
             </>
           ) : (
             <>
-              <Send className="h-4 w-4" />
-              Send Message
+              Send Message <ArrowRight className="h-4 w-4" />
             </>
           )}
         </button>
+
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          We respect your privacy. Your information is only used to respond to your message.{" "}
+          <Link href="/privacy" className="font-medium text-[#1E0E6B] hover:underline">Privacy Policy</Link>.
+        </p>
       </form>
     </div>
   )
 }
 
-/* ═══════════════════════════════ CONTACT INFO ═══════════════════════════════ */
-function ContactInfo() {
-  const { ref, visible } = useReveal(0.1)
+/* ═══════════════════════════════════ FAQ ═══════════════════════════════════ */
+
+function FaqAccordionItem({
+  faq,
+  isOpen,
+  onToggle,
+}: {
+  faq: (typeof POPULAR_FAQS)[number]
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight)
+    }
+  }, [isOpen])
+
   return (
-    <div ref={ref} className={cn("reveal", visible && "visible")}>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold text-foreground">We&apos;re here to help.</h2>
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            Whether you have a question about Intenteo, want to share feedback, or simply want to say
-            hello, send us a message.
-          </p>
+    <div
+      className={cn(
+        "rounded-xl border transition-colors duration-200",
+        isOpen
+          ? "border-[#1E0E6B]/20 bg-[#1E0E6B]/[0.02]"
+          : "border-[#1E0E6B]/10 bg-white dark:bg-card hover:border-[#1E0E6B]/15"
+      )}
+    >
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+        aria-expanded={isOpen}
+      >
+        <span className="text-sm font-semibold text-foreground">{faq.q}</span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+            isOpen && "rotate-180"
+          )}
+        />
+      </button>
+      <div
+        className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+        style={{ maxHeight: isOpen ? height : 0 }}
+        aria-hidden={!isOpen}
+      >
+        <div ref={contentRef} className="px-5 pb-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
         </div>
-
-        <div className="rounded-2xl border border-border/60 bg-[#FAFBFF] dark:bg-[#141220] p-5 space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1E0E6B]/5">
-              <svg className="h-4 w-4 text-[#1E0E6B]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">Email</p>
-              <a href="mailto:hello@intenteo.com" className="text-sm text-muted-foreground hover:text-[#1E0E6B] transition-colors">
-                hello@intenteo.com
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Your message is only used to respond to your enquiry. See our{" "}
-          <Link href="/privacy" className="font-medium text-[#1E0E6B] hover:underline">Privacy Policy</Link>.
-        </p>
       </div>
     </div>
   )
 }
 
-/* ═══════════════════════════════════ FAQ ═══════════════════════════════════ */
-const CONTACT_FAQ_QUESTIONS = [
-  "What is Intenteo?",
-  "How does Intenteo work?",
-  "What is the Intent Score?",
-  "How do I get started?",
-  "Is Intenteo available on mobile?",
-  "How do I contact Intenteo?",
-  "Where can I download the app?",
-]
-
-const contactFaqItems = faqData.filter((item) =>
-  CONTACT_FAQ_QUESTIONS.includes(item.question)
-)
-
-function FaqMicroSection() {
+function FaqSection() {
   const { ref, visible } = useReveal(0.1)
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
   return (
-    <section className="py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
+    <section className="py-12 md:py-16 bg-white dark:bg-[#0F0D1A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className={cn("reveal mx-auto max-w-2xl", visible && "visible")}>
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#1E0E6B]/5 px-4 py-1.5 mb-4">
-              <BookOpen className="h-3.5 w-3.5 text-[#1E0E6B]" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#1E0E6B]">FAQ</span>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground">Frequently asked questions</h2>
-            <p className="mt-3 text-muted-foreground leading-relaxed">
-              Looking for a quick answer? Here are some common questions.
+        <div ref={ref} className={cn("mx-auto max-w-2xl", visible && "visible")}>
+          <div className={cn("text-center mb-10 reveal", visible && "visible")}>
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Have a quick question?</h2>
+            <p className="mt-3 text-muted-foreground">
+              You might find the answer before sending us a message.
             </p>
           </div>
-          <FaqAccordion items={contactFaqItems} limit={7} />
-          <div className="text-center mt-6">
-            <a href="/faq" className="text-sm font-medium text-[#1E0E6B] hover:underline">
-              View all FAQs →
-            </a>
+
+          <div className="space-y-3">
+            {POPULAR_FAQS.map((faq, i) => (
+              <div key={i} className={cn("reveal", visible && "visible")} style={{ transitionDelay: `${i * 50}ms` }}>
+                <FaqAccordionItem
+                  faq={faq}
+                  isOpen={openIndex === i}
+                  onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className={cn("mt-8 text-center reveal reveal-delay-3", visible && "visible")}>
+            <Link
+              href="/faq"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1E0E6B] hover:underline"
+            >
+              View all FAQs <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
         </div>
       </div>
@@ -339,10 +477,11 @@ function FaqMicroSection() {
 }
 
 /* ═══════════════════════════════════ CTA ═══════════════════════════════════ */
+
 function CtaSection() {
   const { ref, visible } = useReveal(0.1)
   return (
-    <section className="py-10 md:py-14 bg-[#1E0E6B]">
+    <section className="py-12 md:py-16 bg-[#1E0E6B]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal mx-auto max-w-2xl text-center", visible && "visible")}>
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -354,17 +493,17 @@ function CtaSection() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 active:scale-[0.98]"
               style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
             >
-              Get Started
+              Start Living With Intention
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/learn"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/20 bg-white/5 px-8 py-3.5 text-base font-semibold text-white hover:bg-white/10 transition-all duration-300"
+              href="/download"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/20 bg-white/5 px-8 py-3.5 text-base font-semibold text-white hover:bg-white/10 transition-all duration-200"
             >
-              Learn More
+              Download the App
             </Link>
           </div>
         </div>
@@ -374,14 +513,16 @@ function CtaSection() {
 }
 
 /* ═══════════════════════════════════ EXPORT ═══════════════════════════════════ */
+
 export function ContactContent() {
   const { ref, visible } = useReveal(0.05)
+
   return (
     <>
       <HeroSection />
 
       {/* Two-column contact area */}
-      <section className="py-12 md:py-16 bg-white dark:bg-gray-950">
+      <section className="py-14 md:py-20 bg-white dark:bg-[#0F0D1A]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div
             ref={ref}
@@ -390,7 +531,7 @@ export function ContactContent() {
               visible && "visible"
             )}
           >
-            {/* Left — contact info */}
+            {/* Left — support info */}
             <ContactInfo />
 
             {/* Right — form */}
@@ -399,7 +540,7 @@ export function ContactContent() {
         </div>
       </section>
 
-      <FaqMicroSection />
+      <FaqSection />
       <CtaSection />
     </>
   )

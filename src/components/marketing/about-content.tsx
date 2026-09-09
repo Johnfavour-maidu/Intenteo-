@@ -70,8 +70,12 @@ function HeroSection() {
     <section className="relative pt-24 pb-14 md:pt-28 md:pb-18 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal text-center max-w-3xl mx-auto", visible && "visible")}>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            We believe productivity should serve a meaningful life.
+          <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
+            About Intent&eacute;o
+          </span>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <span className="text-foreground">We believe productivity</span><br />
+            <span className="bg-gradient-to-r from-[#1E0E6B] via-[#3D1FA0] to-[#1E0E6B] bg-clip-text text-transparent">should serve a meaningful life.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
             Intent&eacute;o helps you connect what matters most to how you spend your time,
@@ -105,8 +109,11 @@ function WhySection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <div ref={titleRef} className={cn("reveal", titleVis && "visible")}>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[#EB9E5B] mb-3">
               Why we built Intent&eacute;o
+            </span>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              <span className="bg-gradient-to-r from-[#FF5A1F] via-[#FF7A00] to-[#FFB000] bg-clip-text text-transparent">Why Intent&eacute;o exists</span>
             </h2>
           </div>
 
@@ -308,6 +315,26 @@ function ForWhomSection() {
   )
 }
 
+function BeliefSection() {
+  const { ref, visible } = useReveal(0.15)
+  return (
+    <section className="py-14 md:py-20 bg-white dark:bg-gray-950">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div ref={ref} className={cn("reveal text-center max-w-2xl mx-auto", visible && "visible")}>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+            Your productivity should reflect the life you want to live.
+          </h2>
+          <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
+            The goal is not to fill every hour, complete the longest task list, or
+            constantly optimize. The goal is to make your actions increasingly aligned
+            with what matters.
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function FinalCTA() {
   const { ref, visible } = useReveal(0.15)
   return (
@@ -344,6 +371,7 @@ export function AboutContent() {
       <PhilosophySection />
       <FrameworkSection />
       <ForWhomSection />
+      <BeliefSection />
       <FinalCTA />
     </>
   )
