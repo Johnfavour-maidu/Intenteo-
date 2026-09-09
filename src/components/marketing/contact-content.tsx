@@ -78,8 +78,8 @@ function HeroSection() {
           <p className={cn("text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B] reveal", visible && "visible")}>
             Get in touch
           </p>
-          <h1 className={cn("mt-4 text-4xl font-bold tracking-tight sm:text-5xl reveal reveal-delay-1 bg-gradient-to-r from-[#1E0E6B] via-[#3D1FA0] to-[#1E0E6B] bg-clip-text text-transparent", visible && "visible")}>
-            Let&apos;s talk about intentional living.
+          <h1 className={cn("mt-4 text-4xl font-bold tracking-tight sm:text-5xl reveal reveal-delay-1 bg-gradient-to-r from-[#1E0E6B] via-[#3D1FA0] to-[#1E0E6B] bg-clip-text text-transparent leading-tight", visible && "visible")}>
+            Let&apos;s talk about intentional living
           </h1>
           <p className={cn("mt-5 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed reveal reveal-delay-2", visible && "visible")}>
             Have a question about Intenteo, need help getting started, or simply want to share an idea? We&apos;d love to hear from you.
@@ -124,7 +124,7 @@ function ContactInfo() {
     <div ref={ref} className={cn("reveal", visible && "visible")}>
       <div className="space-y-8">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">We&apos;re here to help.</h2>
+          <h2 className="text-3xl font-bold text-foreground">We&apos;re here to help</h2>
           <p className="mt-3 text-muted-foreground leading-relaxed">
             Whether you have a question about Intenteo, want to share feedback, or simply want to say hello, send us a message.
           </p>
@@ -343,12 +343,11 @@ function ContactForm() {
             </>
           )}
         </button>
-
-        <p className="text-xs text-muted-foreground leading-relaxed text-center">
-          We respect your privacy. Your information is only used to respond to your message.{" "}
-          <Link href="/privacy" className="font-medium text-[#1E0E6B] hover:underline">Privacy Policy</Link>.
-        </p>
       </form>
+      <p className="mt-4 text-xs text-muted-foreground leading-relaxed text-center">
+        We respect your privacy. Your information is only used to respond to your message.{" "}
+        <Link href="/privacy" className="font-medium text-[#1E0E6B] hover:underline">Privacy Policy</Link>.
+      </p>
     </div>
   )
 }
@@ -358,16 +357,16 @@ function ContactForm() {
 function CtaSection() {
   const { ref, visible } = useReveal(0.1)
   return (
-    <section className="py-12 md:py-16 bg-[#1E0E6B]">
+    <section className="py-8 md:py-10 bg-[#1E0E6B]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn("reveal mx-auto max-w-2xl text-center", visible && "visible")}>
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Ready to live with intention?
           </h2>
-          <p className="mt-4 text-lg text-white/70">
+          <p className="mt-3 text-lg text-white/70">
             Start connecting what matters to you with what you do every day.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/signup"
               className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 active:scale-[0.98]"

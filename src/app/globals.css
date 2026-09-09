@@ -312,6 +312,62 @@
     display: none;
   }
 
+  /* Animated gradient border for FAQ items */
+  @keyframes gradient-border-spin {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .faq-item {
+    position: relative;
+    z-index: 0;
+    background: white;
+  }
+  .dark .faq-item {
+    background: hsl(var(--card));
+  }
+
+  .faq-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    padding: 1.5px;
+    background: linear-gradient(135deg, #1E0E6B, #3D1FA0, #EB9E5B, #1E0E6B, #3D1FA0);
+    background-size: 300% 300%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .faq-gradient-border::before,
+  .faq-gradient-border-open::before {
+    opacity: 1;
+    animation: gradient-border-spin 3s ease infinite;
+  }
+
+  .faq-gradient-border-open::before {
+    opacity: 1;
+    animation: gradient-border-spin 2s ease infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .faq-item::before {
+      animation: none;
+    }
+    .faq-gradient-border::before,
+    .faq-gradient-border-open::before {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
   /* Premium task hover elevation */
   .task-row {
     transition: box-shadow 0.2s ease, transform 0.2s ease;

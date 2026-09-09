@@ -8,13 +8,14 @@ import {
   Search,
   X,
   ArrowRight,
-  MessageCircle,
   ThumbsUp,
   ThumbsDown,
   HelpCircle,
 } from "lucide-react"
 import { faqData, getActiveCategories, getRelatedFaqs, type FaqItem } from "@/lib/faq-data"
 import { searchFaqSmart, highlightFaqText } from "@/lib/faq-search"
+
+const ITEMS_PER_CATEGORY = 4
 
 /* ═══════════════════════════════════ HOOKS ═══════════════════════════════════ */
 
@@ -124,15 +125,11 @@ function CategoryFilters({
   onCategoryChange: (cat: string) => void
 }) {
   const categories = useMemo(() => getActiveCategories(), [])
-  const scrollRef = useRef<HTMLDivElement>(null)
   const { ref, visible } = useReveal(0.1)
 
   return (
     <div ref={ref} className={cn("reveal", visible && "visible")}>
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 justify-center flex-wrap lg:flex-nowrap"
-      >
+      <div className="flex gap-2 flex-wrap justify-center">
         {categories.map((cat) => {
           const isActive = cat === activeCategory
           return (
@@ -268,10 +265,10 @@ function FaqAccordionItem({
     <div
       id={`faq-${faq.id}`}
       className={cn(
-        "group rounded-2xl border transition-all duration-250",
+        "faq-item group relative rounded-2xl border transition-all duration-250",
         isOpen
-          ? "border-[#1E0E6B]/25 bg-[#1E0E6B]/[0.02] shadow-sm shadow-[#1E0E6B]/[0.04]"
-          : "border-[#1E0E6B]/8 bg-white dark:bg-card hover:border-[#1E0E6B]/18 hover:shadow-sm hover:shadow-[#1E0E6B]/[0.03]"
+          ? "border-transparent faq-gradient-border-open"
+          : "border-[#1E0E6B]/8 bg-white dark:bg-card hover:border-transparent hover:faq-gradient-border"
       )}
     >
       <button
@@ -306,6 +303,65 @@ function FaqAccordionItem({
           <WasThisHelpful faqId={faq.id} />
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════ CATEGORY SECTION ═══════════════════════════════════ */
+
+function CategorySection({
+  category,
+  faqs,
+  openId,
+  onFaqClick,
+  searchQuery,
+}: {
+  category: string
+  faqs: FaqItem[]
+  openId: string | null
+  onFaqClick: (id: string) => void
+  searchQuery: string
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const visibleFaqs = showAll ? faqs : faqs.slice(0, ITEMS_PER_CATEGORY)
+  const hiddenCount = faqs.length - ITEMS_PER_CATEGORY
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-foreground/70 uppercase tracking-wider px-1">{category}</h3>
+      <div className="space-y-3">
+        {visibleFaqs.map((faq, i) => (
+          <div
+            key={faq.id}
+            className="animate-fadeIn"
+            style={{ animationDelay: `${Math.min(i * 30, 200)}ms` }}
+          >
+            <FaqAccordionItem
+              faq={faq}
+              isOpen={openId === faq.id}
+              onToggle={() => onFaqClick(faq.id)}
+              onFaqClick={onFaqClick}
+              searchQuery={searchQuery}
+            />
+          </div>
+        ))}
+      </div>
+      {hiddenCount > 0 && !showAll && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E0E6B] hover:underline transition-colors px-1"
+        >
+          Show {hiddenCount} more {hiddenCount === 1 ? "question" : "questions"} <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {showAll && hiddenCount > 0 && (
+        <button
+          onClick={() => setShowAll(false)}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E0E6B] hover:underline transition-colors px-1"
+        >
+          Show less <ChevronDown className="h-3.5 w-3.5 rotate-180" />
+        </button>
+      )}
     </div>
   )
 }
@@ -362,6 +418,15 @@ export function FaqAccordion() {
     return searchFaqSmart(query, faqData, activeCategory)
   }, [query, activeCategory])
 
+  const groupedByCategory = useMemo(() => {
+    const groups: Record<string, FaqItem[]> = {}
+    for (const faq of filteredFaqs) {
+      if (!groups[faq.category]) groups[faq.category] = []
+      groups[faq.category].push(faq)
+    }
+    return groups
+  }, [filteredFaqs])
+
   const handleFaqClick = useCallback((id: string) => {
     setOpenId((prev) => (prev === id ? null : id))
     setTimeout(() => {
@@ -380,27 +445,22 @@ export function FaqAccordion() {
       <FaqSearch query={query} onQueryChange={setQuery} />
       <CategoryFilters activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
-      <div className="space-y-3">
-        {filteredFaqs.length > 0 ? (
-          filteredFaqs.map((faq, i) => (
-            <div
-              key={faq.id}
-              className="animate-fadeIn"
-              style={{ animationDelay: `${Math.min(i * 30, 200)}ms` }}
-            >
-              <FaqAccordionItem
-                faq={faq}
-                isOpen={openId === faq.id}
-                onToggle={() => handleFaqClick(faq.id)}
-                onFaqClick={handleFaqClick}
-                searchQuery={query}
-              />
-            </div>
-          ))
-        ) : (
-          <EmptySearchState onClear={handleClear} />
-        )}
-      </div>
+      {filteredFaqs.length > 0 ? (
+        <div className="space-y-8">
+          {Object.entries(groupedByCategory).map(([category, faqs]) => (
+            <CategorySection
+              key={category}
+              category={category}
+              faqs={faqs}
+              openId={openId}
+              onFaqClick={handleFaqClick}
+              searchQuery={query}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptySearchState onClear={handleClear} />
+      )}
     </div>
   )
 }
@@ -410,29 +470,27 @@ export function FaqAccordion() {
 function StillHaveQuestions() {
   const { ref, visible } = useReveal(0.15)
   return (
-    <section className="py-10 md:py-14">
+    <section className="py-10 md:py-14 bg-gradient-to-br from-[#1E0E6B] to-[#0F0A3A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div
-          ref={ref}
-          className={cn(
-            "reveal mx-auto max-w-[680px] rounded-2xl bg-[#1E0E6B] px-8 py-10 sm:px-12 sm:py-12 text-center shadow-xl shadow-[#1E0E6B]/20",
-            visible && "visible"
-          )}
-        >
-          <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-            <MessageCircle className="h-5 w-5 text-white/80" />
-          </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Still have questions?</h2>
-          <p className="mt-2.5 text-sm sm:text-base text-white/60 max-w-md mx-auto">
+        <div ref={ref} className={cn("reveal text-center max-w-2xl mx-auto", visible && "visible")}>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">Still have questions?</h2>
+          <p className="mt-4 text-white/70">
             Can&apos;t find what you&apos;re looking for? Our team would be happy to help.
           </p>
-          <Link
-            href="/contact"
-            className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
-            style={{ background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)" }}
-          >
-            Contact Us <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#FF5A1F]/20 hover:shadow-xl hover:shadow-[#FF5A1F]/30 hover:-translate-y-0.5 transition-all"
+            >
+              Contact Us <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/download"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur px-7 py-3.5 text-base font-semibold text-white hover:bg-white/20 transition-colors"
+            >
+              Download the App
+            </Link>
+          </div>
         </div>
       </div>
     </section>
