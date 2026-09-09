@@ -300,15 +300,16 @@ function HeroSection() {
     <section className="relative pt-16 pb-10 md:pt-20 md:pb-14 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div ref={ref} className={cn("reveal text-center max-w-4xl mx-auto", visible && "visible")}>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            One system.<br />Every part of your life.
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <span className="text-foreground">One system.</span><br />
+            <span className="bg-gradient-to-r from-[#1E0E6B] via-[#3D1FA0] to-[#1E0E6B] bg-clip-text text-transparent">Every part of your life.</span>
           </h1>
           <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Intenteo connects purpose, vision, goals, tasks, habits, and reflection
             into a single living system&nbsp;&mdash; so every action moves you forward.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <OrangeButton href="#">Download the App</OrangeButton>
+            <OrangeButton href="/download">Download the App</OrangeButton>
             <SubtleButton href="/learn">Learn More</SubtleButton>
           </div>
         </div>
@@ -325,7 +326,7 @@ function ProductSection({ index }: { index: number }) {
   const isLast = index === SCREENS.length - 1
 
   return (
-    <section className="relative py-10 md:py-14 bg-[#FAFBFF] dark:bg-[#0F0D1A]">
+    <section className="relative py-10 md:py-14 bg-gradient-to-b from-[#F3F0FF] via-[#FAFBFF] to-[#FAFBFF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#0F0D1A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className={cn(
           "reveal grid items-center gap-10 lg:gap-16",
@@ -340,8 +341,8 @@ function ProductSection({ index }: { index: number }) {
               </div>
               <span className="text-xs font-semibold text-[#EB9E5B] uppercase tracking-wider">Step {index + 1}</span>
             </div>
-            <h3 className="text-2xl font-bold text-foreground sm:text-3xl">{screen.story.title}</h3>
-            <p className="text-muted-foreground leading-relaxed">{screen.story.text}</p>
+            <h3 className="text-[1.65rem] font-bold text-foreground sm:text-[2rem] leading-tight">{screen.story.title}</h3>
+            <p className="text-[15.5px] text-muted-foreground leading-relaxed">{screen.story.text}</p>
           </div>
           {/* Screen mockup */}
           <div className={cn(isReversed ? "lg:order-1" : "lg:order-2")}>
@@ -352,8 +353,8 @@ function ProductSection({ index }: { index: number }) {
       {/* Progression connector */}
       {!isLast && (
         <div className="hidden md:block absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-10">
-          <div className="w-px h-10 bg-gradient-to-b from-[#1E0E6B]/20 to-[#1E0E6B]/5" />
-          <div className="w-2 h-2 rounded-full bg-[#1E0E6B]/20 mx-auto -mt-1" />
+          <div className="w-0.5 h-14 bg-gradient-to-b from-[#FF5A1F] via-[#FF7A00] to-[#FFB000] rounded-full mx-auto" />
+          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] mx-auto -mt-1.5 shadow-sm shadow-[#FF5A1F]/20" />
         </div>
       )}
     </section>
@@ -440,7 +441,7 @@ function FinalCTA() {
               Get Started Free
             </Link>
             <Link
-              href="#"
+              href="/download"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur px-7 py-3.5 text-base font-semibold text-white hover:bg-white/20 transition-colors"
             >
               Download the App
@@ -456,7 +457,7 @@ export function HowItWorksContent() {
   return (
     <>
       <HeroSection />
-      <section className="pt-10 pb-2 md:pt-14 md:pb-4 bg-white dark:bg-gray-950">
+      <section className="pt-10 pb-2 md:pt-14 md:pb-4 bg-gradient-to-b from-[#F3F0FF] to-[#FAFBFF] dark:from-[#1A1730] dark:to-[#0F0D1A]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto">
             <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-2">The Intenteo Journey</p>

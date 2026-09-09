@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { MarketingLayout } from "@/components/layout/marketing-layout"
-import { Download } from "lucide-react"
+import { MarketingLogo } from "@/components/marketing/marketing-logo"
 
 export const metadata: Metadata = {
   title: "Download Intenteo | Android App",
@@ -13,12 +13,9 @@ export default function DownloadPage() {
       <div className="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-[#F8F6FF] via-white to-[#FFF4EC] px-4 py-16">
         <div className="max-w-md w-full text-center">
           <div className="mb-8">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#1E0E6B] shadow-lg shadow-[#1E0E6B]/20">
-              <Download className="h-10 w-10 text-white" />
+            <div className="flex items-center justify-center mb-4">
+              <MarketingLogo size="lg" />
             </div>
-            <h1 className="text-4xl font-extrabold text-[#1E0E6B] mb-2">
-              Intente<span className="text-[#E8873A]">o</span>
-            </h1>
             <p className="text-gray-500 text-lg">Live with intention</p>
           </div>
 
