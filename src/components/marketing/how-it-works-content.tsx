@@ -308,7 +308,7 @@ function HeroSection() {
             into a single living system&nbsp;&mdash; so every action moves you forward.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <OrangeButton href="#">Download the App</OrangeButton>
+            <OrangeButton href="/download">Download the App</OrangeButton>
             <SubtleButton href="/learn">Learn More</SubtleButton>
           </div>
         </div>
@@ -440,7 +440,7 @@ function FinalCTA() {
               Get Started Free
             </Link>
             <Link
-              href="#"
+              href="/download"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur px-7 py-3.5 text-base font-semibold text-white hover:bg-white/20 transition-colors"
             >
               Download the App

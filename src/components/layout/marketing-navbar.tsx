@@ -62,7 +62,7 @@ export function MarketingNavbar() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="#"
+              href="/download"
               className="inline-flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 bg-white/80 px-4 py-2 text-sm font-semibold text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
             >
               Download App
@@ -132,7 +132,7 @@ export function MarketingNavbar() {
             </nav>
             <div className="border-t p-4 space-y-3">
               <Link
-                href="#"
+                href="/download"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center justify-center rounded-xl border border-[#1E0E6B]/20 px-4 py-3 text-sm font-semibold text-[#1E0E6B] hover:bg-[#1E0E6B]/5 transition-colors"
               >
