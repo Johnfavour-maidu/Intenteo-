@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { MarketingLogo } from "@/components/marketing/marketing-logo"
 
 export const metadata: Metadata = {
   title: "Download Intenteo | Android App",
@@ -9,24 +10,14 @@ export default function DownloadPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F8F6FF] via-white to-[#FFF4EC] px-4">
       <div className="max-w-md w-full text-center">
-        <div className="mb-8">
-          <img
-            src="/favicon-192.png"
-            alt="Intenteo"
-            width={80}
-            height={80}
-            className="mx-auto rounded-2xl shadow-lg mb-6"
-          />
-          <h1 className="text-4xl font-extrabold text-[#1E0E6B] mb-2">
-            Intente<span className="text-[#E8873A]">o</span>
-          </h1>
-          <p className="text-gray-500 text-lg">Live with intention</p>
+        <div className="mb-8 flex justify-center">
+          <MarketingLogo size="lg" />
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Android App</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Download the latest version of Intenteo for Android.
+            Download the latest version of Intenteó for Android.
           </p>
 
           <div className="flex items-center justify-center gap-3 text-xs text-gray-400 mb-6">
