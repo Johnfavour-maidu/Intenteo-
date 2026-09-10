@@ -72,17 +72,22 @@ function submitContactForm(_data: FormData): Promise<{ ok: boolean; error?: stri
 function HeroSection() {
   const { ref, visible } = useReveal(0.05)
   return (
-    <section className="relative pt-16 pb-10 md:pt-20 md:pb-14 bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative pt-16 pb-10 md:pt-20 md:pb-14 overflow-hidden bg-gradient-to-br from-[#FAFBFF] via-white to-[#F3F0FF] dark:from-[#0F0D1A] dark:via-[#0F0D1A] dark:to-[#1A1730]">
+      {/* Subtle decorative gradient orb */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] pointer-events-none" aria-hidden="true">
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#1E0E6B]/[0.06] via-[#EB9E5B]/[0.08] to-[#1E0E6B]/[0.06] blur-3xl animate-[float_6s_ease-in-out_infinite]" />
+      </div>
+
+      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={ref} className="text-center max-w-3xl mx-auto">
           <p className={cn("text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B] reveal", visible && "visible")}>
             Get in touch
           </p>
           <h1 className={cn("mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl reveal reveal-delay-1 leading-tight", visible && "visible")}>
-            Let&apos;s talk about intentional living
+            Let&apos;s build a more intentional life.
           </h1>
           <p className={cn("mt-5 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed reveal reveal-delay-2", visible && "visible")}>
-            Have a question about Intenteo, need help getting started, or simply want to share an idea? We&apos;d love to hear from you.
+            Have a question, need help getting started, or simply want to share an idea? We&apos;d love to hear from you.
           </p>
         </div>
       </div>

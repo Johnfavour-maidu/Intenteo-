@@ -366,6 +366,9 @@
       animation: none;
       opacity: 1;
     }
+    .animate-\[float_6s_ease-in-out_infinite\] {
+      animation: none;
+    }
   }
 
   /* Premium task hover elevation */
