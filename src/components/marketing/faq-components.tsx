@@ -125,39 +125,107 @@ function CategoryFilters({
 }) {
   const categories = useMemo(() => getActiveCategories(), [])
   const { ref, visible } = useReveal(0.1)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   return (
     <div ref={ref} className={cn("reveal", visible && "visible")}>
-      <div className="flex gap-2.5 flex-wrap justify-center">
-        {categories.map((cat) => {
-          const isActive = cat === activeCategory
-          return (
-            <button
-              key={cat}
-              onClick={() => onCategoryChange(cat)}
-              className={cn(
-                "shrink-0 rounded-full px-5 py-2 text-sm font-medium transition-all duration-250 relative z-[1]",
-                isActive
-                  ? "bg-[#1E0E6B] text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-[#1E0E6B]/[0.02]"
-              )}
-              style={
-                !isActive
-                  ? {
-                      background: "white",
-                      border: "2px solid transparent",
-                      backgroundImage: "linear-gradient(white, white), linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)",
-                      backgroundOrigin: "border-box",
-                      backgroundClip: "padding-box, border-box",
-                    }
-                  : undefined
-              }
-              aria-pressed={isActive}
-            >
-              {cat}
-            </button>
-          )
-        })}
+      <div className="flex items-center justify-center gap-3">
+        {/* All button */}
+        <button
+          onClick={() => onCategoryChange("All")}
+          className={cn(
+            "shrink-0 rounded-full px-5 py-2 text-sm font-medium transition-all duration-250 relative z-[1]",
+            activeCategory === "All"
+              ? "bg-[#1E0E6B] text-white shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-[#1E0E6B]/[0.02]"
+          )}
+          style={
+            activeCategory !== "All"
+              ? {
+                  background: "white",
+                  border: "2px solid transparent",
+                  backgroundImage: "linear-gradient(white, white), linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)",
+                  backgroundOrigin: "border-box",
+                  backgroundClip: "padding-box, border-box",
+                }
+              : undefined
+          }
+        >
+          All
+        </button>
+
+        {/* Dropdown */}
+        <div ref={dropdownRef} className="relative">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-250",
+              activeCategory !== "All"
+                ? "bg-[#1E0E6B] text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            style={
+              activeCategory === "All"
+                ? {
+                    background: "white",
+                    border: "2px solid transparent",
+                    backgroundImage: "linear-gradient(white, white), linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)",
+                    backgroundOrigin: "border-box",
+                    backgroundClip: "padding-box, border-box",
+                  }
+                : undefined
+            }
+            aria-expanded={dropdownOpen}
+            aria-haspopup="listbox"
+          >
+            {activeCategory !== "All" ? activeCategory : "Browse categories"}
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", dropdownOpen && "rotate-180")} />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-[#1E0E6B]/10 bg-white dark:bg-card shadow-xl shadow-[#1E0E6B]/5 py-1.5 z-50 animate-fadeIn">
+              {categories.filter((c) => c !== "All").map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    onCategoryChange(cat)
+                    setDropdownOpen(false)
+                  }}
+                  className={cn(
+                    "w-full text-left px-4 py-2.5 text-sm transition-colors",
+                    activeCategory === cat
+                      ? "bg-[#1E0E6B]/5 text-[#1E0E6B] font-medium"
+                      : "text-muted-foreground hover:bg-[#1E0E6B]/[0.03] hover:text-foreground"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Active category chip (when not All) */}
+        {activeCategory !== "All" && (
+          <button
+            onClick={() => onCategoryChange("All")}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#1E0E6B]/10 bg-white dark:bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-[#1E0E6B]/20 transition-all"
+          >
+            {activeCategory}
+            <X className="h-3 w-3" />
+          </button>
+        )}
       </div>
     </div>
   )
