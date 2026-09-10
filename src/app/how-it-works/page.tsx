@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "How Intentéo Works — Live With Intention",
     description: "Six steps to intentional living, plus a full breakdown of every feature — purpose, goals, tasks, habits, reflection, and more.",
-    siteName: "Inteénteo",
+    siteName: "Inteéntéo",
   },
 }
 

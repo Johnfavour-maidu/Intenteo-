@@ -22,7 +22,7 @@ export function PrivacyContent() {
           <div className="mt-8 space-y-8">
             <PolicySection title="1. Introduction">
               <p>
-                Inteénteo (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
+                Inteéntéo (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information
                 when you use our website and application (collectively, the &quot;Service&quot;).
               </p>
@@ -74,7 +74,7 @@ export function PrivacyContent() {
               <ul className="list-disc pl-5 space-y-1">
                 <li>With service providers who perform services on our behalf, such as hosting and analytics.</li>
                 <li>When required by law, regulation, or legal process.</li>
-                <li>To protect the rights, property, or safety of Inteénteo, our users, or the public.</li>
+                <li>To protect the rights, property, or safety of Inteéntéo, our users, or the public.</li>
                 <li>In connection with a merger, acquisition, or sale of all or a portion of our assets, with appropriate notice.</li>
               </ul>
             </PolicySection>

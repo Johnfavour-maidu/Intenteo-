@@ -80,7 +80,7 @@ function generateNotifications(): Notification[] {
   notifications.push({
     id: "demo-goal",
     title: "Goal Progress",
-    subtitle: "Launch Inteénteo MVP reached 50%.",
+    subtitle: "Launch Inteéntéo MVP reached 50%.",
     icon: <Target className="h-4 w-4 text-blue-500" />,
     timestamp: "1 hour ago",
     href: "/goals",

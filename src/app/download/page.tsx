@@ -2,8 +2,8 @@
 import { MarketingLogo } from "@/components/marketing/marketing-logo"
 
 export const metadata: Metadata = {
-  title: "Download Inteénteo | Android App",
-  description: "Download the Inteénteo Android app — live with intention.",
+  title: "Download Inteéntéo | Android App",
+  description: "Download the Inteéntéo Android app — live with intention.",
 }
 
 export default function DownloadPage() {

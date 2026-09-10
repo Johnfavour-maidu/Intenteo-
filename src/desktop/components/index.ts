@@ -15,7 +15,7 @@ export {
   FocalPointPicker,
   ContactUs,
   Community,
-  AboutInteénteo,
+  AboutInteéntéo,
 } from "./settings"
 
 export { ReportsExportsPage } from "./reports"

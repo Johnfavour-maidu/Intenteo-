@@ -728,7 +728,7 @@ export function seedDemoDataIfEmpty(): void {
     { id: "rm-4", visionId: "vs-2", title: "Weekly family devotion night", description: "Establish a consistent family devotion routine.", timeHorizon: "2-years", targetYear: 2028, targetDate: "", progress: 60, status: "in-progress", notes: "", relatedGoalIds: [], order: 0, createdAt: now, updatedAt: now },
     { id: "rm-5", visionId: "vs-3", title: "Run a full marathon", description: "Complete a 42km marathon.", timeHorizon: "2-years", targetYear: 2028, targetDate: "", progress: 25, status: "in-progress", notes: "", relatedGoalIds: [], order: 0, createdAt: now, updatedAt: now },
     { id: "rm-6", visionId: "vs-4", title: "Build 6-month emergency fund", description: "Save 6 months of living expenses.", timeHorizon: "2-years", targetYear: 2028, targetDate: "", progress: 40, status: "in-progress", notes: "", relatedGoalIds: [], order: 0, createdAt: now, updatedAt: now },
-    { id: "rm-7", visionId: "vs-5", title: "Reach 10,000 users on Inteénteo", description: "Scale the platform to 10k active users.", timeHorizon: "5-years", targetYear: 2031, targetDate: "", progress: 10, status: "not-started", notes: "", relatedGoalIds: [], order: 0, createdAt: now, updatedAt: now },
+    { id: "rm-7", visionId: "vs-5", title: "Reach 10,000 users on Inteéntéo", description: "Scale the platform to 10k active users.", timeHorizon: "5-years", targetYear: 2031, targetDate: "", progress: 10, status: "not-started", notes: "", relatedGoalIds: [], order: 0, createdAt: now, updatedAt: now },
   ]
   localStorage.setItem(ROADMAP_KEY, JSON.stringify(milestones))
   window.dispatchEvent(new Event("vision-framework-changed"))

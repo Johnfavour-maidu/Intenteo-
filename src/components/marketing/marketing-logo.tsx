@@ -15,7 +15,7 @@ export function MarketingLogo({ size = "md", href, className, onClick }: Marketi
       <button onClick={onClick} className={`flex items-center ${className || ""}`}>
         <img
           src="/branding/logo-primary.png"
-          alt="Inteénteo"
+          alt="Inteéntéo"
           className={`${height} w-auto object-contain dark:mix-blend-multiply dark:invert`}
           draggable={false}
         />
@@ -27,7 +27,7 @@ export function MarketingLogo({ size = "md", href, className, onClick }: Marketi
     <Link href={href || "/"} className={`flex items-center ${className || ""}`}>
       <img
         src="/branding/logo-primary.png"
-        alt="Inteénteo"
+        alt="Inteéntéo"
         className={`${height} w-auto object-contain dark:mix-blend-multiply dark:invert`}
         draggable={false}
       />

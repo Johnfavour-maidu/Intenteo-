@@ -4,13 +4,13 @@ import { MarketingLayout } from "@/components/layout/marketing-layout"
 import { FaqPageContent } from "@/components/marketing/faq-components"
 
 export const metadata: Metadata = {
-  title: "Inteénteo FAQ — Frequently Asked Questions",
+  title: "Inteéntéo FAQ — Frequently Asked Questions",
   description:
-    "Find answers to frequently asked questions about Inteénteo, Intent Score, intentional living, features, mobile access, privacy, accounts and getting started.",
+    "Find answers to frequently asked questions about Inteéntéo, Intent Score, intentional living, features, mobile access, privacy, accounts and getting started.",
   openGraph: {
-    title: "Inteénteo FAQ — Frequently Asked Questions",
+    title: "Inteéntéo FAQ — Frequently Asked Questions",
     description:
-      "Find answers to frequently asked questions about Inteénteo, Intent Score, intentional living, features, mobile access, privacy, accounts and getting started.",
+      "Find answers to frequently asked questions about Inteéntéo, Intent Score, intentional living, features, mobile access, privacy, accounts and getting started.",
     type: "website",
   },
 }
@@ -21,10 +21,10 @@ const faqStructuredData = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "What is Inteénteo?",
+      name: "What is Inteéntéo?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Inteénteo is an intentional living platform that connects your purpose, vision, goals, tasks, habits, and reflection into a single system. It helps you move from what matters to what you do every day, so your actions align with the life you want to live.",
+        text: "Inteéntéo is an intentional living platform that connects your purpose, vision, goals, tasks, habits, and reflection into a single system. It helps you move from what matters to what you do every day, so your actions align with the life you want to live.",
       },
     },
     {
@@ -37,18 +37,18 @@ const faqStructuredData = {
     },
     {
       "@type": "Question",
-      name: "Is Inteénteo free?",
+      name: "Is Inteéntéo free?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Inteénteo is free to use with core features including purpose, vision, goals, tasks, habits, and journaling. No credit card required.",
+        text: "Yes. Inteéntéo is free to use with core features including purpose, vision, goals, tasks, habits, and journaling. No credit card required.",
       },
     },
     {
       "@type": "Question",
-      name: "Is Inteénteo available on mobile?",
+      name: "Is Inteéntéo available on mobile?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Inteénteo is available as a mobile app for iOS and Android. You can also use Inteénteo directly from your web browser on any device.",
+        text: "Yes. Inteéntéo is available as a mobile app for iOS and Android. You can also use Inteéntéo directly from your web browser on any device.",
       },
     },
     {
@@ -56,7 +56,7 @@ const faqStructuredData = {
       name: "How is my data private?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "We take your privacy seriously. Inteénteo primarily stores your data in your browser's local storage, meaning your data stays on your device. We do not sell your personal information.",
+        text: "We take your privacy seriously. Inteéntéo primarily stores your data in your browser's local storage, meaning your data stays on your device. We do not sell your personal information.",
       },
     },
   ],

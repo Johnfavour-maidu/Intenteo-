@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Inteénteo — Live with Intentionality",
+  title: "Inteéntéo — Live with Intentionality",
   description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
   manifest: "/manifest.json",
   icons: {
@@ -37,14 +37,14 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Inteénteo — Live with Intentionality",
+    title: "Inteéntéo — Live with Intentionality",
     description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
     images: ["/logo.png"],
-    siteName: "Inteénteo",
+    siteName: "Inteéntéo",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Inteénteo — Live with Intentionality",
+    title: "Inteéntéo — Live with Intentionality",
     description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
     images: ["/logo.png"],
   },

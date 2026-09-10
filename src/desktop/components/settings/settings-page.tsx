@@ -25,7 +25,7 @@ import { SettingsToastContainer, useSettingsToast } from "./settings-toast"
 import { HelpCenter } from "./help-center"
 import { ContactUs } from "./contact-us"
 import { Community } from "./community"
-import { AboutInteénteo } from "./about-intenteo"
+import { AboutInteéntéo } from "./about-intenteo"
 import {
   loadSecuritySettings,
   changePassword,
@@ -699,7 +699,7 @@ export function SettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Customize your Inteénteo experience</p>
+        <p className="text-muted-foreground">Customize your Inteéntéo experience</p>
       </div>
 
       {/* Tabs */}
@@ -1154,7 +1154,7 @@ export function SettingsPage() {
 
           {/* 4. Privacy */}
           <Section id="privacy" title="Privacy" isOpen={openSection === "privacy"} onToggle={() => toggleSection("privacy")}>
-            <ToggleRow id="analytics" label="Allow anonymous analytics" desc="Help improve Inteénteo with usage data" checked={secSettings.analyticsEnabled} onCheckedChange={(v) => {
+            <ToggleRow id="analytics" label="Allow anonymous analytics" desc="Help improve Inteéntéo with usage data" checked={secSettings.analyticsEnabled} onCheckedChange={(v) => {
               updatePrivacySetting("analyticsEnabled", v)
               setSecSettings((prev) => ({ ...prev, analyticsEnabled: v }))
               addToast("Privacy setting updated.")
@@ -1193,8 +1193,8 @@ export function SettingsPage() {
             <Community />
           </Section>
 
-          <Section id="about" title="About Inteénteo" isOpen={openSection === "about"} onToggle={() => toggleSection("about")}>
-            <AboutInteénteo />
+          <Section id="about" title="About Inteéntéo" isOpen={openSection === "about"} onToggle={() => toggleSection("about")}>
+            <AboutInteéntéo />
           </Section>
         </TabsContent>
       </Tabs>
@@ -1224,7 +1224,7 @@ export function SettingsPage() {
           <div className="relative z-10 w-full max-w-sm mx-4 bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4">
             <h3 className="font-semibold text-base">Delete Account?</h3>
             <p className="text-sm text-muted-foreground">This action is permanent.</p>
-            <p className="text-sm text-muted-foreground">Deleting your Inteénteo account will permanently remove your goals, tasks, habits, journals, reminders, settings, and all associated data.</p>
+            <p className="text-sm text-muted-foreground">Deleting your Inteéntéo account will permanently remove your goals, tasks, habits, journals, reminders, settings, and all associated data.</p>
             <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDeleteStep(0); setDeletePassword("") }}>Cancel</Button>
@@ -1256,7 +1256,7 @@ export function SettingsPage() {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setDeleteStep(0); setDeletePassword("") }} />
           <div className="relative z-10 w-full max-w-sm mx-4 bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-4">
             <h3 className="font-semibold text-base">Are you absolutely sure?</h3>
-            <p className="text-sm text-muted-foreground">This permanently deletes your Inteénteo account and all data.</p>
+            <p className="text-sm text-muted-foreground">This permanently deletes your Inteéntéo account and all data.</p>
             <p className="text-sm text-muted-foreground">This cannot be reversed.</p>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDeleteStep(0); setDeletePassword("") }}>Keep My Account</Button>

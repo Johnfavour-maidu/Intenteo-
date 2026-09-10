@@ -3,8 +3,8 @@ import { MarketingLayout } from "@/components/layout/marketing-layout"
 import { PrivacyContent } from "@/components/marketing/legal/privacy-content"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Inteénteo",
-  description: "Learn how Inteénteo collects, uses, and protects your information.",
+  title: "Privacy Policy | Inteéntéo",
+  description: "Learn how Inteéntéo collects, uses, and protects your information.",
 }
 
 export default function PrivacyPage() {

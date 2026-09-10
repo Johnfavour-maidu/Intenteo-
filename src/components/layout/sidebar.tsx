@@ -115,7 +115,7 @@ export function Sidebar() {
             <Link href="/" className="flex items-center shrink-0">
               <img
                 src="/logo.png"
-                alt="Inteénteo"
+                alt="Inteéntéo"
                 className="h-12 w-auto max-w-[220px] object-contain dark:mix-blend-multiply"
                 style={{ imageRendering: "auto" }}
               />
@@ -126,7 +126,7 @@ export function Sidebar() {
             <Link href="/" className="flex items-center justify-center">
               <img
                 src="/favicon.png"
-                alt="Inteénteo"
+                alt="Inteéntéo"
                 className="h-10 w-10 object-contain dark:mix-blend-multiply"
                 style={{ imageRendering: "auto" }}
               />
