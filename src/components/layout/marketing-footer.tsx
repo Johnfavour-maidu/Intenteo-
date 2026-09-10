@@ -8,7 +8,7 @@ export function MarketingFooter() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
         <div className="grid gap-8 md:grid-cols-5">
           <div className="space-y-3">
-            <MarketingLogo size="sm" />
+            <MarketingLogo size="md" />
             <p className="text-sm text-muted-foreground">Live with intentionality.</p>
             <Link href="/download" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#FF5A1F] to-[#FFB000] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#FF5A1F]/15 hover:shadow-md hover:shadow-[#FF5A1F]/25 hover:-translate-y-0.5 transition-all">
               <Download className="h-3 w-3" />
