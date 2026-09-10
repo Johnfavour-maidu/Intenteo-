@@ -115,7 +115,7 @@ function ContactInfo() {
     {
       icon: Lightbulb,
       title: "Feedback",
-      content: "Have an idea that could make Inteéntéo better? We would love to hear it.",
+      content: "Have an idea that could make Intentéo better? We would love to hear it.",
     },
     {
       icon: HelpCircle,
@@ -131,7 +131,7 @@ function ContactInfo() {
         <div>
           <h2 className="text-3xl font-bold text-foreground">We&apos;re here to help</h2>
           <p className="mt-3 text-muted-foreground leading-relaxed">
-            Whether you have a question about Inteéntéo, want to share feedback, or simply want to say hello, send us a message.
+            Whether you have a question about Intentéo, want to share feedback, or simply want to say hello, send us a message.
           </p>
         </div>
 

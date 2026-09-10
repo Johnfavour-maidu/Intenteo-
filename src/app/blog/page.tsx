@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Blog — Intentéo | Thoughts on Intentional Living",
     description: "Thoughts on purpose, habits, reflection, and living intentionally — from the Intentéo team.",
-    siteName: "Inteéntéo",
+    siteName: "Intentéo",
   },
 }
 

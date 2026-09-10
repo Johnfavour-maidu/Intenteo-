@@ -77,7 +77,7 @@ function FaqHero() {
               visible && "visible"
             )}
           >
-            Find answers about Inteéntéo, how it works, and how it can help you live with more intention.
+            Find answers about Intentéo, how it works, and how it can help you live with more intention.
           </p>
         </div>
       </div>
@@ -240,7 +240,7 @@ function FaqAccordionItem({
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "Getting Started": Rocket,
-  "Inteéntéo & Intentional Living": Lightbulb,
+  "Intentéo & Intentional Living": Lightbulb,
   "Features": Sparkles,
   "Intent Score": TrendingUp,
   "Account & Privacy": Shield,

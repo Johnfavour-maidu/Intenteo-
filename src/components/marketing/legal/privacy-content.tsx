@@ -17,7 +17,7 @@ export function PrivacyContent() {
               Privacy Policy
             </h1>
             <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
-              How Inteéntéo collects, uses, stores, and protects your information.
+              How Intentéo collects, uses, stores, and protects your information.
             </p>
             <p className="mt-4 text-sm text-muted-foreground/70">Last updated: September 8, 2026</p>
           </div>
@@ -33,10 +33,10 @@ export function PrivacyContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 first:mt-0 pb-2 border-b border-[#1E0E6B]/10">Introduction</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  Inteéntéo (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and application.
+                  Intentéo (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and application.
                 </p>
                 <p>
-                  By using Inteéntéo, you agree to the collection and use of information in accordance with this policy. If you do not agree, please discontinue use of our services.
+                  By using Intentéo, you agree to the collection and use of information in accordance with this policy. If you do not agree, please discontinue use of our services.
                 </p>
               </div>
             </section>
@@ -53,7 +53,7 @@ export function PrivacyContent() {
             <section id="info-provide">
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">Information You Provide</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
-                <p>When you create an account or use Inteéntéo, you may provide:</p>
+                <p>When you create an account or use Intentéo, you may provide:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li><strong className="text-foreground">Account information</strong> — name, email address, and password</li>
                   <li><strong className="text-foreground">Profile data</strong> — avatar, preferences, and settings</li>
@@ -66,12 +66,12 @@ export function PrivacyContent() {
             <section id="info-automatic">
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">Information Collected Automatically</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
-                <p>When you access Inteéntéo, we may automatically collect:</p>
+                <p>When you access Intentéo, we may automatically collect:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li><strong className="text-foreground">Device information</strong> — browser type, operating system, device identifiers</li>
                   <li><strong className="text-foreground">Usage data</strong> — pages viewed, features used, actions taken, timestamps</li>
                   <li><strong className="text-foreground">Log data</strong> — IP address, access times, referring URLs</li>
-                  <li><strong className="text-foreground">Local storage data</strong> — Inteéntéo uses browser local storage to persist your data locally on your device. This data is not transmitted to our servers unless you explicitly sync or back up your data.</li>
+                  <li><strong className="text-foreground">Local storage data</strong> — Intentéo uses browser local storage to persist your data locally on your device. This data is not transmitted to our servers unless you explicitly sync or back up your data.</li>
                 </ul>
               </div>
             </section>
@@ -81,7 +81,7 @@ export function PrivacyContent() {
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>We use the information we collect to:</p>
                 <ul className="list-disc pl-6 space-y-2">
-                  <li>Provide, maintain, and improve Inteéntéo</li>
+                  <li>Provide, maintain, and improve Intentéo</li>
                   <li>Personalize your experience and deliver content relevant to your goals</li>
                   <li>Calculate your Intent Score and provide insights</li>
                   <li>Send important account-related notifications</li>
@@ -109,7 +109,7 @@ export function PrivacyContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">Cookies and Similar Technologies</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  Inteéntéo uses cookies and similar technologies to maintain your session, remember your preferences, and analyze usage patterns. You can control cookies through your browser settings. Note that disabling cookies may affect the functionality of our services.
+                  Intentéo uses cookies and similar technologies to maintain your session, remember your preferences, and analyze usage patterns. You can control cookies through your browser settings. Note that disabling cookies may affect the functionality of our services.
                 </p>
               </div>
             </section>
@@ -121,7 +121,7 @@ export function PrivacyContent() {
                   We implement industry-standard security measures to protect your personal information. These include encryption in transit (TLS/HTTPS), encryption at rest, access controls, and regular security audits.
                 </p>
                 <p>
-                  Inteéntéo primarily stores your data in browser local storage on your device. This means your data stays on your device by default and is not automatically transmitted to our servers.
+                  Intentéo primarily stores your data in browser local storage on your device. This means your data stays on your device by default and is not automatically transmitted to our servers.
                 </p>
               </div>
             </section>
@@ -157,7 +157,7 @@ export function PrivacyContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">Account and Data Deletion</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  You may delete your account at any time from your account settings. Upon deletion, your account data will be permanently removed from our systems. Since Inteéntéo stores most data locally in your browser, deleting your account does not automatically remove data stored on your device — you should clear your browser data separately if desired.
+                  You may delete your account at any time from your account settings. Upon deletion, your account data will be permanently removed from our systems. Since Intentéo stores most data locally in your browser, deleting your account does not automatically remove data stored on your device — you should clear your browser data separately if desired.
                 </p>
               </div>
             </section>
@@ -166,7 +166,7 @@ export function PrivacyContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">Children&apos;s Privacy</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  Inteéntéo is not intended for children under 13 (or the applicable age of consent in your jurisdiction). We do not knowingly collect personal information from children. If you believe we have collected data from a child, please contact us immediately.
+                  Intentéo is not intended for children under 13 (or the applicable age of consent in your jurisdiction). We do not knowingly collect personal information from children. If you believe we have collected data from a child, please contact us immediately.
                 </p>
               </div>
             </section>
@@ -175,7 +175,7 @@ export function PrivacyContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">Third-Party Services</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  Inteéntéo may contain links to third-party websites or services. We are not responsible for the privacy practices of these third parties. We encourage you to review the privacy policies of any third-party services you access through Inteéntéo.
+                  Intentéo may contain links to third-party websites or services. We are not responsible for the privacy practices of these third parties. We encourage you to review the privacy policies of any third-party services you access through Intentéo.
                 </p>
               </div>
             </section>
@@ -193,7 +193,7 @@ export function PrivacyContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">Changes to This Privacy Policy</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the &quot;Last updated&quot; date. Your continued use of Inteéntéo after changes are posted constitutes acceptance of the updated policy.
+                  We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the &quot;Last updated&quot; date. Your continued use of Intentéo after changes are posted constitutes acceptance of the updated policy.
                 </p>
               </div>
             </section>

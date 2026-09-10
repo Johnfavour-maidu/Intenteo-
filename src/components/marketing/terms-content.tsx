@@ -22,8 +22,8 @@ export function TermsContent() {
           <div className="mt-8 space-y-8">
             <PolicySection title="1. Introduction">
               <p>
-                Welcome to Inteéntéo. These Terms of Service (&quot;Terms&quot;) govern your access to and use
-                of the Inteéntéo website and application (collectively, the &quot;Service&quot;). By accessing
+                Welcome to Intentéo. These Terms of Service (&quot;Terms&quot;) govern your access to and use
+                of the Intentéo website and application (collectively, the &quot;Service&quot;). By accessing
                 or using the Service, you agree to be bound by these Terms.
               </p>
               <p>
@@ -50,9 +50,9 @@ export function TermsContent() {
               </p>
             </PolicySection>
 
-            <PolicySection title="4. Use of Inteéntéo">
+            <PolicySection title="4. Use of Intentéo">
               <p>
-                Inteéntéo is a personal productivity and intentional living platform. You may use the Service
+                Intentéo is a personal productivity and intentional living platform. You may use the Service
                 for your own personal, non-commercial purposes. You agree not to:
               </p>
               <ul className="list-disc pl-5 space-y-1">
@@ -87,7 +87,7 @@ export function TermsContent() {
 
             <PolicySection title="7. Intellectual Property">
               <p>
-                The Service, including its design, features, and underlying technology, is owned by Inteéntéo
+                The Service, including its design, features, and underlying technology, is owned by Intentéo
                 and protected by copyright, trademark, and other intellectual property laws. You may not
                 copy, modify, distribute, or create derivative works based on the Service without our prior
                 written consent.
@@ -104,7 +104,7 @@ export function TermsContent() {
 
             <PolicySection title="9. Subscriptions and Payments">
               <p>
-                If Inteéntéo offers paid subscriptions, the terms of pricing, billing, and cancellation will
+                If Intentéo offers paid subscriptions, the terms of pricing, billing, and cancellation will
                 be provided at the time of purchase. All payments are non-refundable unless stated otherwise
                 or required by applicable law.
               </p>
@@ -121,7 +121,7 @@ export function TermsContent() {
 
             <PolicySection title="11. Limitation of Liability">
               <p>
-                To the maximum extent permitted by law, Inteéntéo shall not be liable for any indirect,
+                To the maximum extent permitted by law, Intentéo shall not be liable for any indirect,
                 incidental, special, consequential, or punitive damages, or any loss of profits or revenue,
                 whether incurred directly or indirectly, arising from your use of the Service.
               </p>

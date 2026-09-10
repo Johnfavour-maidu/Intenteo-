@@ -56,7 +56,7 @@ export function MobileSettings() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenHeader title="Settings" subtitle="Customize your Inteéntéo experience" />
+      <ScreenHeader title="Settings" subtitle="Customize your Intentéo experience" />
 
       {/* Profile */}
       <Text style={styles.sectionTitle}>Profile</Text>

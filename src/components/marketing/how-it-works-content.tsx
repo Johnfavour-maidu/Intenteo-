@@ -286,12 +286,12 @@ function ScreenReflection() {
 }
 
 const SCREENS = [
-  { component: ScreenPurpose, story: { title: "Start with your why", text: "Everything begins with purpose. Inteéntéo helps you articulate the principles that guide your life, so every goal and action connects back to what truly matters to you." } },
+  { component: ScreenPurpose, story: { title: "Start with your why", text: "Everything begins with purpose. Intentéo helps you articulate the principles that guide your life, so every goal and action connects back to what truly matters to you." } },
   { component: ScreenVision, story: { title: "Visualize your future", text: "Turn abstract dreams into concrete visions. Set timeframes, add imagery, and link your visions to the life areas they impact. See the big picture before building the details." } },
-  { component: ScreenGoals, story: { title: "Set meaningful goals", text: "Break your visions into measurable milestones. Inteéntéo tracks progress, health, and momentum automatically — so you always know if you are ahead, on pace, or need to adjust." } },
+  { component: ScreenGoals, story: { title: "Set meaningful goals", text: "Break your visions into measurable milestones. Intentéo tracks progress, health, and momentum automatically — so you always know if you are ahead, on pace, or need to adjust." } },
   { component: ScreenTasks, story: { title: "Do what matters today", text: "Your daily task list is powered by your goals. Every action you take is linked to something bigger, giving your day purpose and direction." } },
-  { component: ScreenHabits, story: { title: "Build lasting routines", text: "Habits are the engine of transformation. Track streaks, monitor health, and let Inteéntéo surface insights on consistency and patterns you might miss." } },
-  { component: ScreenReflection, story: { title: "Learn from your journey", text: "Capture daily reflections, mood, and gratitude. Over time, Inteéntéo helps you spot patterns between habits, mood, and goal progress — turning experience into wisdom." } },
+  { component: ScreenHabits, story: { title: "Build lasting routines", text: "Habits are the engine of transformation. Track streaks, monitor health, and let Intentéo surface insights on consistency and patterns you might miss." } },
+  { component: ScreenReflection, story: { title: "Learn from your journey", text: "Capture daily reflections, mood, and gratitude. Over time, Intentéo helps you spot patterns between habits, mood, and goal progress — turning experience into wisdom." } },
 ]
 
 function HeroSection() {
@@ -304,7 +304,7 @@ function HeroSection() {
             One system.<br />Every part of your life.
           </h1>
           <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Inteéntéo connects purpose, vision, goals, tasks, habits, and reflection
+            Intentéo connects purpose, vision, goals, tasks, habits, and reflection
             into a single living system&nbsp;&mdash; so every action moves you forward.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -459,7 +459,7 @@ export function HowItWorksContent() {
       <section className="pt-14 pb-6 md:pt-20 md:pb-10 bg-gradient-to-b from-[#F3F0FF]/50 via-white to-white dark:from-[#1A1730]/50 dark:via-[#0F0D1A] dark:to-[#0F0D1A]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto">
-            <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-2">The Inteéntéo Journey</p>
+            <p className="text-sm font-semibold text-[#EB9E5B] uppercase tracking-wider mb-2">The Intentéo Journey</p>
             <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Six steps to intentional living</h2>
             <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Each step builds naturally on the last, connecting your purpose to your daily actions.</p>
           </div>

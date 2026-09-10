@@ -503,7 +503,7 @@ export function DesktopReportsPage() {
               />
               <ExportCard
                 title="JSON Backup"
-                description="Complete data backup of your entire Inteéntéo workspace"
+                description="Complete data backup of your entire Intentéo workspace"
                 icon={File}
                 format=".json"
               />
@@ -522,7 +522,7 @@ export function DesktopReportsPage() {
             ) : (
               <div className="text-center py-6 rounded-lg border border-dashed border-[#1E0E6B]/10">
                 <BarChart3 className="h-7 w-7 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Start using Inteéntéo to generate reports</p>
+                <p className="text-sm text-muted-foreground">Start using Intentéo to generate reports</p>
                 <p className="text-xs text-muted-foreground/70 mt-1">Add goals, habits, and tasks to see your analytics</p>
               </div>
             )}

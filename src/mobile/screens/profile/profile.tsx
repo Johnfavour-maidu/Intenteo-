@@ -46,7 +46,7 @@ export function MobileProfile() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenHeader title="Profile" subtitle="Your Inteéntéo identity" />
+      <ScreenHeader title="Profile" subtitle="Your Intentéo identity" />
 
       {/* Avatar & Name */}
       <Card style={styles.profileCard}>
@@ -116,7 +116,7 @@ export function MobileProfile() {
         {[
           { icon: "notifications-outline", label: "Notifications", desc: "Manage your reminders" },
           { icon: "lock-closed-outline", label: "Privacy & Security", desc: "Password and data settings" },
-          { icon: "help-circle-outline", label: "Help & Support", desc: "Get help with Inteéntéo" },
+          { icon: "help-circle-outline", label: "Help & Support", desc: "Get help with Intentéo" },
           { icon: "information-circle-outline", label: "About", desc: "Version 1.0.0" },
         ].map((item, i, arr) => (
           <View key={i}>

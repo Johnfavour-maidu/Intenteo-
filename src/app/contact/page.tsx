@@ -3,9 +3,9 @@ import { MarketingLayout } from "@/components/layout/marketing-layout"
 import { ContactContent } from "@/components/marketing/contact-content"
 
 export const metadata: Metadata = {
-  title: "Contact Inteéntéo — We're Here to Help",
+  title: "Contact Intentéo — We're Here to Help",
   description:
-    "Have a question about Inteéntéo, need help getting started, or want to share feedback? Get in touch with the Inteéntéo team.",
+    "Have a question about Intentéo, need help getting started, or want to share feedback? Get in touch with the Intentéo team.",
 }
 
 export default function ContactPage() {

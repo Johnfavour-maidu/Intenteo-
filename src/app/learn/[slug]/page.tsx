@@ -87,7 +87,7 @@ const categories: Record<string, LearnCategory> = {
         content: [
           "Purpose without action is just a nice idea. The real power of purpose comes when it shapes your daily choices. From what you work on to how you spend your free time.",
           "Each morning, identify one action that aligns with your purpose. It could be a conversation, a creative project, a act of service, or simply showing up with intention.",
-          "Over time, these small actions build a life that reflects your values. That is the Inteéntéo way. Purpose informs vision. Vision shapes goals. Goals drive daily actions.",
+          "Over time, these small actions build a life that reflects your values. That is the Intentéo way. Purpose informs vision. Vision shapes goals. Goals drive daily actions.",
           "The chain of connection is what makes intentional living possible. And it starts with knowing your purpose.",
         ],
       },
@@ -151,7 +151,7 @@ const categories: Record<string, LearnCategory> = {
           "Your vision should be a natural expression of your purpose. If your purpose is to help people feel understood, your vision might include deep relationships and meaningful work.",
           "When vision and purpose are aligned, motivation becomes internal. You do not need external pressure to stay on track. The vision pulls you forward because it represents something you genuinely care about.",
           "If your vision feels disconnected from your purpose, revisit your purpose statement. What matters most to you? How does that translate into a picture of your ideal life?",
-          "The chain of connection is: Purpose informs Vision. Vision shapes Goals. Goals drive Daily Actions. This is the Inteéntéo framework.",
+          "The chain of connection is: Purpose informs Vision. Vision shapes Goals. Goals drive Daily Actions. This is the Intentéo framework.",
         ],
       },
       {
@@ -494,7 +494,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: `Understanding ${category.title} | Intent&eacute;o`,
       description: `Learn about ${category.title.toLowerCase()} in the context of intentional living. ${category.description}`,
-      siteName: "Inteéntéo",
+      siteName: "Intentéo",
     },
   }
 }
