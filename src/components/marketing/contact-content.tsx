@@ -78,7 +78,7 @@ function HeroSection() {
           <p className={cn("text-xs font-bold uppercase tracking-[0.2em] text-[#EB9E5B] reveal", visible && "visible")}>
             Get in touch
           </p>
-          <h1 className={cn("mt-4 text-4xl font-bold tracking-tight sm:text-5xl reveal reveal-delay-1 bg-gradient-to-r from-[#1E0E6B] via-[#3D1FA0] to-[#1E0E6B] bg-clip-text text-transparent leading-tight", visible && "visible")}>
+          <h1 className={cn("mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl reveal reveal-delay-1 leading-tight", visible && "visible")}>
             Let&apos;s talk about intentional living
           </h1>
           <p className={cn("mt-5 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed reveal reveal-delay-2", visible && "visible")}>
@@ -344,10 +344,6 @@ function ContactForm() {
           )}
         </button>
       </form>
-      <p className="mt-4 text-xs text-muted-foreground leading-relaxed text-center">
-        We respect your privacy. Your information is only used to respond to your message.{" "}
-        <Link href="/privacy" className="font-medium text-[#1E0E6B] hover:underline">Privacy Policy</Link>.
-      </p>
     </div>
   )
 }
@@ -413,6 +409,12 @@ export function ContactContent() {
             {/* Right — form */}
             <ContactForm />
           </div>
+
+          {/* Centered privacy notice */}
+          <p className="mt-8 text-xs text-muted-foreground leading-relaxed text-center max-w-2xl mx-auto">
+            We respect your privacy. Your information is only used to respond to your message.{" "}
+            <Link href="/privacy" className="font-medium text-[#1E0E6B] hover:underline">Privacy Policy</Link>.
+          </p>
         </div>
       </section>
 
