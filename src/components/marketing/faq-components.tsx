@@ -370,7 +370,7 @@ function EmptySearchState({ onClear }: { onClear: () => void }) {
 
 export function FaqAccordion() {
   const [query, setQuery] = useState("")
-  const [openCategoryId, setOpenCategoryId] = useState<string | null>("Getting Started")
+  const [openCategoryId, setOpenCategoryId] = useState<string | null>(null)
   const [openFaqId, setOpenFaqId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -408,7 +408,7 @@ export function FaqAccordion() {
     if (query.trim() && categories.length > 0) {
       setOpenCategoryId(categories[0])
     } else if (!query.trim()) {
-      setOpenCategoryId("Getting Started")
+      setOpenCategoryId(null)
     }
   }, [query, categories])
 
@@ -434,20 +434,27 @@ export function FaqAccordion() {
       <FaqSearch query={query} onQueryChange={setQuery} />
 
       {filteredFaqs.length > 0 ? (
-        <div>
-          {categories.map((category) => (
-            <CategorySection
-              key={category}
-              category={category}
-              faqs={groupedByCategory[category]}
-              isOpen={openCategoryId === category}
-              onToggle={() => handleCategoryToggle(category)}
-              openFaqId={openFaqId}
-              onFaqClick={handleFaqClick}
-              searchQuery={query}
-            />
-          ))}
-        </div>
+        <>
+          {!query.trim() && (
+            <p className="text-center text-sm text-muted-foreground">
+              Tap a category to explore questions, or search above to find what you need.
+            </p>
+          )}
+          <div>
+            {categories.map((category) => (
+              <CategorySection
+                key={category}
+                category={category}
+                faqs={groupedByCategory[category]}
+                isOpen={openCategoryId === category}
+                onToggle={() => handleCategoryToggle(category)}
+                openFaqId={openFaqId}
+                onFaqClick={handleFaqClick}
+                searchQuery={query}
+              />
+            ))}
+          </div>
+        </>
       ) : (
         <EmptySearchState onClear={handleClear} />
       )}
