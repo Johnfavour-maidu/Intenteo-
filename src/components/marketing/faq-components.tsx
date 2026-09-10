@@ -14,8 +14,6 @@ import {
 import { faqData, type FaqItem } from "@/lib/faq-data"
 import { searchFaqSmart, highlightFaqText } from "@/lib/faq-search"
 
-const ITEMS_PER_CATEGORY = 4
-
 /* ═══════════════════════════════════ HOOKS ═══════════════════════════════════ */
 
 function useReveal(threshold = 0.15) {
@@ -160,7 +158,7 @@ function WasThisHelpful({ faqId }: { faqId: string }) {
   )
 }
 
-/* ═══════════════════════════════════ ACCORDION ═══════════════════════════════════ */
+/* ═══════════════════════════════════ FAQ ACCORDION ITEM ═══════════════════════════════════ */
 
 function FaqAccordionItem({
   faq,
@@ -234,55 +232,69 @@ function FaqAccordionItem({
 function CategorySection({
   category,
   faqs,
-  openId,
+  isOpen,
+  onToggle,
+  openFaqId,
   onFaqClick,
   searchQuery,
 }: {
   category: string
   faqs: FaqItem[]
-  openId: string | null
+  isOpen: boolean
+  onToggle: () => void
+  openFaqId: string | null
   onFaqClick: (id: string) => void
   searchQuery: string
 }) {
-  const [showAll, setShowAll] = useState(false)
-  const visibleFaqs = showAll ? faqs : faqs.slice(0, ITEMS_PER_CATEGORY)
-  const hiddenCount = faqs.length - ITEMS_PER_CATEGORY
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight)
+    }
+  }, [isOpen, faqs.length])
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-foreground/70 uppercase tracking-wider px-1">{category}</h3>
-      <div className="space-y-3">
-        {visibleFaqs.map((faq, i) => (
-          <div
-            key={faq.id}
-            className="animate-fadeIn"
-            style={{ animationDelay: `${Math.min(i * 30, 200)}ms` }}
-          >
-            <FaqAccordionItem
-              faq={faq}
-              isOpen={openId === faq.id}
-              onToggle={() => onFaqClick(faq.id)}
-              searchQuery={searchQuery}
-            />
-          </div>
-        ))}
+    <div className="border-b border-[#1E0E6B]/8 last:border-b-0">
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 py-4 sm:py-5 text-left group"
+        aria-expanded={isOpen}
+      >
+        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider group-hover:text-foreground transition-colors">
+          {category}
+        </h3>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 ease-out",
+            isOpen && "rotate-180 text-[#1E0E6B]"
+          )}
+        />
+      </button>
+      <div
+        role="region"
+        className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+        style={{ maxHeight: isOpen ? height : 0 }}
+        aria-hidden={!isOpen}
+      >
+        <div ref={contentRef} className="pb-4 space-y-3">
+          {faqs.map((faq, i) => (
+            <div
+              key={faq.id}
+              className="animate-fadeIn"
+              style={{ animationDelay: `${Math.min(i * 30, 200)}ms` }}
+            >
+              <FaqAccordionItem
+                faq={faq}
+                isOpen={openFaqId === faq.id}
+                onToggle={() => onFaqClick(faq.id)}
+                searchQuery={searchQuery}
+              />
+            </div>
+          ))}
+        </div>
       </div>
-      {hiddenCount > 0 && !showAll && (
-        <button
-          onClick={() => setShowAll(true)}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E0E6B] hover:underline transition-colors px-1"
-        >
-          Show {hiddenCount} more {hiddenCount === 1 ? "question" : "questions"} <ChevronDown className="h-3.5 w-3.5" />
-        </button>
-      )}
-      {showAll && hiddenCount > 0 && (
-        <button
-          onClick={() => setShowAll(false)}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E0E6B] hover:underline transition-colors px-1"
-        >
-          Show less <ChevronDown className="h-3.5 w-3.5 rotate-180" />
-        </button>
-      )}
     </div>
   )
 }
@@ -321,16 +333,21 @@ function EmptySearchState({ onClear }: { onClear: () => void }) {
 
 export function FaqAccordion() {
   const [query, setQuery] = useState("")
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [openCategoryId, setOpenCategoryId] = useState<string | null>("Getting Started")
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null)
 
   useEffect(() => {
     const hash = window.location.hash.replace("#faq-", "")
     if (hash && faqData.some((f) => f.id === hash)) {
-      setOpenId(hash)
-      setTimeout(() => {
-        const el = document.getElementById(`faq-${hash}`)
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
-      }, 100)
+      const faq = faqData.find((f) => f.id === hash)
+      if (faq) {
+        setOpenCategoryId(faq.category)
+        setOpenFaqId(hash)
+        setTimeout(() => {
+          const el = document.getElementById(`faq-${hash}`)
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+        }, 100)
+      }
     }
   }, [])
 
@@ -348,8 +365,23 @@ export function FaqAccordion() {
     return groups
   }, [filteredFaqs])
 
+  const categories = useMemo(() => Object.keys(groupedByCategory), [groupedByCategory])
+
+  useEffect(() => {
+    if (query.trim() && categories.length > 0) {
+      setOpenCategoryId(categories[0])
+    } else if (!query.trim()) {
+      setOpenCategoryId("Getting Started")
+    }
+  }, [query, categories])
+
+  const handleCategoryToggle = useCallback((category: string) => {
+    setOpenCategoryId((prev) => (prev === category ? null : category))
+    setOpenFaqId(null)
+  }, [])
+
   const handleFaqClick = useCallback((id: string) => {
-    setOpenId((prev) => (prev === id ? null : id))
+    setOpenFaqId((prev) => (prev === id ? null : id))
     setTimeout(() => {
       const el = document.getElementById(`faq-${id}`)
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -365,13 +397,15 @@ export function FaqAccordion() {
       <FaqSearch query={query} onQueryChange={setQuery} />
 
       {filteredFaqs.length > 0 ? (
-        <div className="space-y-8">
-          {Object.entries(groupedByCategory).map(([category, faqs]) => (
+        <div>
+          {categories.map((category) => (
             <CategorySection
               key={category}
               category={category}
-              faqs={faqs}
-              openId={openId}
+              faqs={groupedByCategory[category]}
+              isOpen={openCategoryId === category}
+              onToggle={() => handleCategoryToggle(category)}
+              openFaqId={openFaqId}
               onFaqClick={handleFaqClick}
               searchQuery={query}
             />
