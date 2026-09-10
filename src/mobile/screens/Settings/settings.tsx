@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+﻿import React, { useState, useEffect, useCallback } from "react"
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors, Spacing, Radius, FontSize } from "../../theme/colors"
@@ -56,7 +56,7 @@ export function MobileSettings() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenHeader title="Settings" subtitle="Customize your Intenteo experience" />
+      <ScreenHeader title="Settings" subtitle="Customize your Inteénteo experience" />
 
       {/* Profile */}
       <Text style={styles.sectionTitle}>Profile</Text>

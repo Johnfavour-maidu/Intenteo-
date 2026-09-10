@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -80,7 +80,7 @@ function generateNotifications(): Notification[] {
   notifications.push({
     id: "demo-goal",
     title: "Goal Progress",
-    subtitle: "Launch Intenteo MVP reached 50%.",
+    subtitle: "Launch Inteénteo MVP reached 50%.",
     icon: <Target className="h-4 w-4 text-blue-500" />,
     timestamp: "1 hour ago",
     href: "/goals",

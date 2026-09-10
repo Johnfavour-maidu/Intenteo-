@@ -1,4 +1,4 @@
-// Database Schema Types for Intenteo
+﻿// Database Schema Types for Inteénteo
 // These types define the data models for the application
 
 export interface UserProfile {

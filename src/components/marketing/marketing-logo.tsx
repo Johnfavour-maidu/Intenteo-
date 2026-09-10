@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 
 interface MarketingLogoProps {
   size?: "sm" | "md" | "lg"
@@ -15,7 +15,7 @@ export function MarketingLogo({ size = "md", href, className, onClick }: Marketi
       <button onClick={onClick} className={`flex items-center ${className || ""}`}>
         <img
           src="/branding/logo-primary.png"
-          alt="Intenteo"
+          alt="Inteénteo"
           className={`${height} w-auto object-contain dark:mix-blend-multiply dark:invert`}
           draggable={false}
         />
@@ -27,7 +27,7 @@ export function MarketingLogo({ size = "md", href, className, onClick }: Marketi
     <Link href={href || "/"} className={`flex items-center ${className || ""}`}>
       <img
         src="/branding/logo-primary.png"
-        alt="Intenteo"
+        alt="Inteénteo"
         className={`${height} w-auto object-contain dark:mix-blend-multiply dark:invert`}
         draggable={false}
       />

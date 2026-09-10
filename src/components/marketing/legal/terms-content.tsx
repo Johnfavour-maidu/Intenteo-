@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { ReadingProgress } from "./reading-progress"
@@ -17,7 +17,7 @@ export function TermsContent() {
               Terms of Service
             </h1>
             <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
-              The terms that govern your use of Intenteo.
+              The terms that govern your use of Inteénteo.
             </p>
             <p className="mt-4 text-sm text-muted-foreground/70">Last updated: September 8, 2026</p>
           </div>
@@ -33,10 +33,10 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 first:mt-0 pb-2 border-b border-[#1E0E6B]/10">1. Introduction</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  Welcome to Intenteo. These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Intenteo website, application, and services (collectively, the &quot;Service&quot;). By accessing or using the Service, you agree to be bound by these Terms.
+                  Welcome to Inteénteo. These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Inteénteo website, application, and services (collectively, the &quot;Service&quot;). By accessing or using the Service, you agree to be bound by these Terms.
                 </p>
                 <p>
-                  Please read these Terms carefully before using Intenteo. If you do not agree to these Terms, you may not access or use the Service.
+                  Please read these Terms carefully before using Inteénteo. If you do not agree to these Terms, you may not access or use the Service.
                 </p>
               </div>
             </section>
@@ -45,7 +45,7 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">2. Eligibility</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  You must be at least 13 years old (or the minimum age required in your jurisdiction) to use Intenteo. By creating an account or using the Service, you represent and warrant that you meet this age requirement and have the legal capacity to enter into these Terms.
+                  You must be at least 13 years old (or the minimum age required in your jurisdiction) to use Inteénteo. By creating an account or using the Service, you represent and warrant that you meet this age requirement and have the legal capacity to enter into these Terms.
                 </p>
               </div>
             </section>
@@ -53,7 +53,7 @@ export function TermsContent() {
             <section id="account">
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">3. Creating an Account</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
-                <p>To use certain features of Intenteo, you must create an account. When creating an account, you agree to:</p>
+                <p>To use certain features of Inteénteo, you must create an account. When creating an account, you agree to:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Provide accurate, current, and complete information</li>
                   <li>Maintain the security of your password and account credentials</li>
@@ -62,7 +62,7 @@ export function TermsContent() {
                   <li>Notify us immediately of any unauthorized use of your account</li>
                 </ul>
                 <p>
-                  You are responsible for safeguarding your account credentials. Intenteo is not liable for any loss or damage arising from your failure to maintain the security of your account.
+                  You are responsible for safeguarding your account credentials. Inteénteo is not liable for any loss or damage arising from your failure to maintain the security of your account.
                 </p>
               </div>
             </section>
@@ -70,7 +70,7 @@ export function TermsContent() {
             <section id="responsibilities">
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">4. Your Responsibilities</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
-                <p>As a user of Intenteo, you agree to:</p>
+                <p>As a user of Inteénteo, you agree to:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Use the Service in compliance with all applicable laws and regulations</li>
                   <li>Not use the Service for any unlawful or fraudulent purpose</li>
@@ -84,7 +84,7 @@ export function TermsContent() {
             <section id="acceptable-use">
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">5. Acceptable Use</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
-                <p>You may not use Intenteo to:</p>
+                <p>You may not use Inteénteo to:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Upload or transmit malware, viruses, or other harmful code</li>
                   <li>Phish, spam, or otherwise attempt to deceive other users</li>
@@ -103,22 +103,22 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">6. Your Content</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  You retain ownership of all content you create, input, or store in Intenteo, including your purposes, visions, goals, tasks, habits, journal entries, and reflections (&quot;Your Content&quot;).
+                  You retain ownership of all content you create, input, or store in Inteénteo, including your purposes, visions, goals, tasks, habits, journal entries, and reflections (&quot;Your Content&quot;).
                 </p>
                 <p>
-                  By using Intenteo, you grant us a limited, non-exclusive license to process, store, and display Your Content solely for the purpose of providing the Service to you.
+                  By using Inteénteo, you grant us a limited, non-exclusive license to process, store, and display Your Content solely for the purpose of providing the Service to you.
                 </p>
                 <p>
-                  Since Intenteo primarily stores Your Content in your browser&apos;s local storage, Your Content remains on your device by default. We do not access, read, or use Your Content for advertising, profiling, or any purpose other than delivering the Service to you.
+                  Since Inteénteo primarily stores Your Content in your browser&apos;s local storage, Your Content remains on your device by default. We do not access, read, or use Your Content for advertising, profiling, or any purpose other than delivering the Service to you.
                 </p>
               </div>
             </section>
 
             <section id="ip">
-              <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">7. Intenteo&apos;s Intellectual Property</h2>
+              <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">7. Inteénteo&apos;s Intellectual Property</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  The Service, including its design, code, features, branding, and documentation, is owned by Intenteo and protected by intellectual property laws. These Terms do not grant you any right, title, or interest in the Service beyond the limited right to use it as described in these Terms.
+                  The Service, including its design, code, features, branding, and documentation, is owned by Inteénteo and protected by intellectual property laws. These Terms do not grant you any right, title, or interest in the Service beyond the limited right to use it as described in these Terms.
                 </p>
                 <p>
                   You may not copy, modify, distribute, sell, or lease any part of the Service without our prior written consent.
@@ -130,7 +130,7 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">8. Third-Party Services</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  Intenteo may integrate with or contain links to third-party services. Your use of these third-party services is governed by their own terms and policies. We are not responsible for the availability, accuracy, or practices of third-party services.
+                  Inteénteo may integrate with or contain links to third-party services. Your use of these third-party services is governed by their own terms and policies. We are not responsible for the availability, accuracy, or practices of third-party services.
                 </p>
               </div>
             </section>
@@ -139,7 +139,7 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">9. App and Website Availability</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  We strive to keep Intenteo available and reliable, but we cannot guarantee uninterrupted access. The Service may be temporarily unavailable due to maintenance, updates, or circumstances beyond our control. We are not liable for any downtime or disruption to the Service.
+                  We strive to keep Inteénteo available and reliable, but we cannot guarantee uninterrupted access. The Service may be temporarily unavailable due to maintenance, updates, or circumstances beyond our control. We are not liable for any downtime or disruption to the Service.
                 </p>
               </div>
             </section>
@@ -148,7 +148,7 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">10. Subscriptions and Payments</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  Intenteo may offer free and paid subscription tiers. If you subscribe to a paid plan, you agree to pay all applicable fees. Fees are non-refundable except as required by law or as described in our cancellation policy.
+                  Inteénteo may offer free and paid subscription tiers. If you subscribe to a paid plan, you agree to pay all applicable fees. Fees are non-refundable except as required by law or as described in our cancellation policy.
                 </p>
                 <p>
                   We reserve the right to change our pricing with reasonable notice. Price changes will take effect at the start of your next billing cycle.
@@ -163,7 +163,7 @@ export function TermsContent() {
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Your access to paid features will end at the conclusion of your current billing period</li>
                   <li>Your account data will be removed from our systems within a reasonable timeframe</li>
-                  <li>Since Intenteo stores most data locally, your browser-stored data will not be automatically deleted</li>
+                  <li>Since Inteénteo stores most data locally, your browser-stored data will not be automatically deleted</li>
                 </ul>
                 <p>
                   We may suspend or terminate your access to the Service if you violate these Terms, with or without notice.
@@ -187,7 +187,7 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">13. Limitation of Liability</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  To the maximum extent permitted by law, Intenteo and its officers, directors, employees, and agents shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenue, data, or business opportunities arising from your use of the Service.
+                  To the maximum extent permitted by law, Inteénteo and its officers, directors, employees, and agents shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenue, data, or business opportunities arising from your use of the Service.
                 </p>
                 <p>
                   Our total liability to you for any claims arising from or related to the Service shall not exceed the amount you paid to us in the twelve (12) months preceding the claim.
@@ -199,7 +199,7 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">14. Indemnification</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  You agree to indemnify, defend, and hold harmless Intenteo and its affiliates from any claims, losses, damages, liabilities, costs, and expenses (including reasonable attorneys&apos; fees) arising from your use of the Service, your violation of these Terms, or your violation of any rights of a third party.
+                  You agree to indemnify, defend, and hold harmless Inteénteo and its affiliates from any claims, losses, damages, liabilities, costs, and expenses (including reasonable attorneys&apos; fees) arising from your use of the Service, your violation of these Terms, or your violation of any rights of a third party.
                 </p>
               </div>
             </section>
@@ -208,7 +208,7 @@ export function TermsContent() {
               <h2 className="text-[1.35rem] font-bold text-foreground mt-12 mb-5 pb-2 border-b border-[#1E0E6B]/10">15. Changes to the Service</h2>
               <div className="space-y-4 text-[15px] leading-[1.8] text-muted-foreground">
                 <p>
-                  We are constantly working to improve Intenteo. We may add, modify, or discontinue features at any time. We will provide reasonable notice of significant changes that materially affect your use of the Service.
+                  We are constantly working to improve Inteénteo. We may add, modify, or discontinue features at any time. We will provide reasonable notice of significant changes that materially affect your use of the Service.
                 </p>
               </div>
             </section>

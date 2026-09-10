@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+﻿import React, { useState, useEffect, useCallback } from "react"
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors, Spacing, Radius, FontSize } from "../../theme/colors"
@@ -37,7 +37,7 @@ export function MobileNotifications() {
     const saved = await loadJSON<NotificationItem[]>("intenteo-notifications", [])
     if (saved.length === 0) {
       const defaults: NotificationItem[] = [
-        { id: "welcome", title: "Welcome to Intenteo", body: "Start your journey of intentional living today.", type: "system", read: false, createdAt: new Date().toISOString() },
+        { id: "welcome", title: "Welcome to Inteénteo", body: "Start your journey of intentional living today.", type: "system", read: false, createdAt: new Date().toISOString() },
         { id: "habit-tip", title: "Build Your First Habit", body: "Consistency is key. Start with one small habit today.", type: "habit", read: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
         { id: "journal-prompt", title: "Journal Prompt", body: "What are you most grateful for right now?", type: "journal", read: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
       ]

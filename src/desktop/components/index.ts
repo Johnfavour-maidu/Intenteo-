@@ -1,4 +1,4 @@
-export {
+﻿export {
   IntentScorePanel,
   TasksPanel,
   HabitsPanel,
@@ -15,7 +15,7 @@ export {
   FocalPointPicker,
   ContactUs,
   Community,
-  AboutIntenteo,
+  AboutInteénteo,
 } from "./settings"
 
 export { ReportsExportsPage } from "./reports"

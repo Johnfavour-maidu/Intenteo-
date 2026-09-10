@@ -1,4 +1,4 @@
-import { Metadata } from "next"
+﻿import { Metadata } from "next"
 import { MarketingLayout } from "@/components/layout/marketing-layout"
 import { LearnContent } from "@/components/marketing/learn-content"
 
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Intentéo Learn — Resources for Intentional Living",
     description: "Guides on purpose, vision, habits, reflection, and mindfulness — plus the philosophy behind Intentéo.",
-    siteName: "Intenteo",
+    siteName: "Inteénteo",
   },
 }
 

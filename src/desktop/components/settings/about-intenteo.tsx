@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState } from "react"
 import { ExternalLink, Globe, Mail, Code, FileText } from "lucide-react"
@@ -36,7 +36,7 @@ function SkeletonLoader() {
   )
 }
 
-export function AboutIntenteo() {
+export function AboutInteénteo() {
   const [loading, setLoading] = useState(true)
 
   React.useEffect(() => {
@@ -52,12 +52,12 @@ export function AboutIntenteo() {
         <div className="flex items-center gap-4">
           <img
             src="/logo.png"
-            alt="Intenteo"
+            alt="Inteénteo"
             className="h-14 w-auto object-contain shrink-0"
             style={{ imageRendering: "auto" }}
           />
           <div>
-            <h3 className="font-bold text-lg">Intenteo</h3>
+            <h3 className="font-bold text-lg">Inteénteo</h3>
             <p className="text-xs text-muted-foreground">The world&apos;s first AI-powered Intentional Living Platform</p>
           </div>
         </div>
@@ -69,7 +69,7 @@ export function AboutIntenteo() {
         <div><p className="text-muted-foreground text-xs">Release Date</p><p className="font-medium">July 9, 2026</p></div>
         <div><p className="text-muted-foreground text-xs">Environment</p><p className="font-medium">Production</p></div>
         <div className="col-span-2"><p className="text-muted-foreground text-xs">Developer</p><p className="font-medium">Glopresc Technologies</p></div>
-        <div className="col-span-2"><p className="text-muted-foreground text-xs">Copyright</p><p className="font-medium">&copy; 2026 Intenteo. All rights reserved.</p></div>
+        <div className="col-span-2"><p className="text-muted-foreground text-xs">Copyright</p><p className="font-medium">&copy; 2026 Inteénteo. All rights reserved.</p></div>
       </div>
 
       <div className="space-y-1.5">

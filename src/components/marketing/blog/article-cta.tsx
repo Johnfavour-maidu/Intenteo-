@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
 export function ArticleCTA() {
@@ -11,7 +11,7 @@ export function ArticleCTA() {
           Ready to live with more intention?
         </h2>
         <p className="mt-2 text-sm sm:text-base text-white/70">
-          Intenteo helps you connect your purpose to your everyday actions.
+          Inteénteo helps you connect your purpose to your everyday actions.
         </p>
         <div className="mt-5">
           <Link

@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/providers/theme-provider"
@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Intenteo — Live with Intentionality",
+  title: "Inteénteo — Live with Intentionality",
   description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
   manifest: "/manifest.json",
   icons: {
@@ -37,14 +37,14 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Intenteo — Live with Intentionality",
+    title: "Inteénteo — Live with Intentionality",
     description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
     images: ["/logo.png"],
-    siteName: "Intenteo",
+    siteName: "Inteénteo",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Intenteo — Live with Intentionality",
+    title: "Inteénteo — Live with Intentionality",
     description: "The world's first AI-powered Intentional Living Platform. Connect every action to purpose.",
     images: ["/logo.png"],
   },

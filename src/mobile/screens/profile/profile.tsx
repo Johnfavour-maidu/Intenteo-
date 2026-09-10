@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+﻿import React, { useState, useEffect, useCallback } from "react"
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors, Spacing, Radius, FontSize, Shadow } from "../../theme/colors"
@@ -46,7 +46,7 @@ export function MobileProfile() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenHeader title="Profile" subtitle="Your Intenteo identity" />
+      <ScreenHeader title="Profile" subtitle="Your Inteénteo identity" />
 
       {/* Avatar & Name */}
       <Card style={styles.profileCard}>
@@ -116,7 +116,7 @@ export function MobileProfile() {
         {[
           { icon: "notifications-outline", label: "Notifications", desc: "Manage your reminders" },
           { icon: "lock-closed-outline", label: "Privacy & Security", desc: "Password and data settings" },
-          { icon: "help-circle-outline", label: "Help & Support", desc: "Get help with Intenteo" },
+          { icon: "help-circle-outline", label: "Help & Support", desc: "Get help with Inteénteo" },
           { icon: "information-circle-outline", label: "About", desc: "Version 1.0.0" },
         ].map((item, i, arr) => (
           <View key={i}>

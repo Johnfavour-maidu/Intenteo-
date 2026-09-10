@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 export interface ReminderSound {
   id: string
@@ -9,7 +9,7 @@ export interface ReminderSound {
 }
 
 export const REMINDER_SOUNDS: ReminderSound[] = [
-  { id: "default", name: "Default Intenteo", description: "The classic Intenteo notification sound", category: "digital" },
+  { id: "default", name: "Default Inteénteo", description: "The classic Inteénteo notification sound", category: "digital" },
   { id: "soft-chime", name: "Soft Chime", description: "A gentle, warm chime that is pleasant without being disruptive", category: "chime" },
   { id: "gentle-bell", name: "Gentle Bell", description: "A soft bell tone perfect for mindfulness reminders", category: "chime" },
   { id: "morning-birds", name: "Morning Birds", description: "Peaceful birdsong to start your day with calm energy", category: "nature" },

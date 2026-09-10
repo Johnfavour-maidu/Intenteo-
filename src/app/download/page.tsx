@@ -1,9 +1,9 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { MarketingLogo } from "@/components/marketing/marketing-logo"
 
 export const metadata: Metadata = {
-  title: "Download Intenteo | Android App",
-  description: "Download the Intenteo Android app — live with intention.",
+  title: "Download Inteénteo | Android App",
+  description: "Download the Inteénteo Android app — live with intention.",
 }
 
 export default function DownloadPage() {

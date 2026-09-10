@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { MarketingLogo } from "@/components/marketing/marketing-logo"
 import { Download } from "lucide-react"
 
@@ -51,7 +51,7 @@ export function MarketingFooter() {
 
         <div className="mt-8 border-t border-border/40 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>&copy; 2026 Intenteo. All rights reserved.</span>
+            <span>&copy; 2026 Inteénteo. All rights reserved.</span>
           </div>
         </div>
       </div>

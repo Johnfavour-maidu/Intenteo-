@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
@@ -10,6 +10,15 @@ import {
   ArrowRight,
   ThumbsUp,
   ThumbsDown,
+  Rocket,
+  Lightbulb,
+  Sparkles,
+  Target,
+  TrendingUp,
+  BookOpen,
+  Shield,
+  Smartphone,
+  CreditCard,
 } from "lucide-react"
 import { faqData, type FaqItem } from "@/lib/faq-data"
 import { searchFaqSmart, highlightFaqText } from "@/lib/faq-search"
@@ -68,7 +77,7 @@ function FaqHero() {
               visible && "visible"
             )}
           >
-            Find answers about Intenteo, how it works, and how it can help you live with more intention.
+            Find answers about Inteénteo, how it works, and how it can help you live with more intention.
           </p>
         </div>
       </div>
@@ -227,6 +236,18 @@ function FaqAccordionItem({
   )
 }
 
+/* ═══════════════════════════════════ CATEGORY ICONS ═══════════════════════════════════ */
+
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "Getting Started": Rocket,
+  "Inteénteo & Intentional Living": Lightbulb,
+  "Features": Sparkles,
+  "Intent Score": TrendingUp,
+  "Account & Privacy": Shield,
+  "Mobile App": Smartphone,
+  "Billing & Subscription": CreditCard,
+}
+
 /* ═══════════════════════════════════ CATEGORY SECTION ═══════════════════════════════════ */
 
 function CategorySection({
@@ -248,6 +269,7 @@ function CategorySection({
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
   const [height, setHeight] = useState(0)
+  const Icon = CATEGORY_ICONS[category] || Target
 
   useEffect(() => {
     if (contentRef.current) {
@@ -256,19 +278,34 @@ function CategorySection({
   }, [isOpen, faqs.length])
 
   return (
-    <div className="border-b border-[#1E0E6B]/8 last:border-b-0">
+    <div className="mb-4 last:mb-0">
       <button
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 py-4 sm:py-5 text-left group"
+        className={cn(
+          "flex w-full items-center gap-3 rounded-xl px-5 py-3.5 sm:px-6 sm:py-4 text-left transition-all duration-200",
+          isOpen
+            ? "bg-[#1E0E6B]/[0.06] border border-[#1E0E6B]/12"
+            : "bg-[#1E0E6B]/[0.03] border border-transparent hover:bg-[#1E0E6B]/[0.05] hover:border-[#1E0E6B]/8"
+        )}
         aria-expanded={isOpen}
       >
-        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider group-hover:text-foreground transition-colors">
+        <div className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
+          isOpen ? "bg-[#1E0E6B]/10 text-foreground" : "bg-[#1E0E6B]/5 text-foreground/70"
+        )}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <h3 className={cn(
+          "flex-1 text-sm sm:text-[0.9375rem] font-bold tracking-wide transition-colors duration-200",
+          isOpen ? "text-foreground" : "text-foreground/80"
+        )}>
           {category}
         </h3>
+        <span className="text-xs text-foreground/50 mr-1 hidden sm:inline">{faqs.length}</span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 ease-out",
-            isOpen && "rotate-180 text-[#1E0E6B]"
+            "h-4 w-4 shrink-0 text-foreground/40 transition-transform duration-300 ease-out",
+            isOpen && "rotate-180 text-foreground"
           )}
         />
       </button>
@@ -278,7 +315,7 @@ function CategorySection({
         style={{ maxHeight: isOpen ? height : 0 }}
         aria-hidden={!isOpen}
       >
-        <div ref={contentRef} className="pb-4 space-y-3">
+        <div ref={contentRef} className="pt-3 pb-1 pl-4 sm:pl-5 space-y-2.5">
           {faqs.map((faq, i) => (
             <div
               key={faq.id}
@@ -393,7 +430,7 @@ export function FaqAccordion() {
   }, [])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <FaqSearch query={query} onQueryChange={setQuery} />
 
       {filteredFaqs.length > 0 ? (
