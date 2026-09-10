@@ -10,9 +10,8 @@ import {
   ArrowRight,
   ThumbsUp,
   ThumbsDown,
-  HelpCircle,
 } from "lucide-react"
-import { faqData, getActiveCategories, getRelatedFaqs, type FaqItem } from "@/lib/faq-data"
+import { faqData, getActiveCategories, type FaqItem } from "@/lib/faq-data"
 import { searchFaqSmart, highlightFaqText } from "@/lib/faq-search"
 
 const ITEMS_PER_CATEGORY = 4
@@ -87,8 +86,8 @@ function FaqSearch({ query, onQueryChange }: { query: string; onQueryChange: (q:
 
   return (
     <div ref={ref} className={cn("reveal", visible && "visible")}>
-      <div className="relative max-w-[680px] mx-auto">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
+      <div className="relative max-w-[680px] mx-auto rounded-xl gradient-border-animated">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground pointer-events-none z-10" />
         <input
           ref={inputRef}
           type="text"
@@ -96,7 +95,7 @@ function FaqSearch({ query, onQueryChange }: { query: string; onQueryChange: (q:
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Search frequently asked questions..."
           aria-label="Search frequently asked questions"
-          className="w-full rounded-2xl border border-[#1E0E6B]/10 bg-white dark:bg-card pl-11 pr-10 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all duration-200 focus:border-[#1E0E6B]/25 focus:ring-2 focus:ring-[#1E0E6B]/10 shadow-sm"
+          className="w-full rounded-xl bg-white dark:bg-card pl-11 pr-10 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all duration-200 focus:ring-0"
         />
         {query && (
           <button
@@ -104,7 +103,7 @@ function FaqSearch({ query, onQueryChange }: { query: string; onQueryChange: (q:
               onQueryChange("")
               inputRef.current?.focus()
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-[#1E0E6B]/5 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-[#1E0E6B]/5 transition-colors z-10"
             aria-label="Clear search"
           >
             <X className="h-4 w-4" />
@@ -129,7 +128,7 @@ function CategoryFilters({
 
   return (
     <div ref={ref} className={cn("reveal", visible && "visible")}>
-      <div className="flex gap-2 flex-wrap justify-center">
+      <div className="flex gap-2.5 flex-wrap justify-center">
         {categories.map((cat) => {
           const isActive = cat === activeCategory
           return (
@@ -137,11 +136,22 @@ function CategoryFilters({
               key={cat}
               onClick={() => onCategoryChange(cat)}
               className={cn(
-                "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap",
+                "shrink-0 rounded-full px-5 py-2 text-sm font-medium transition-all duration-250 relative z-[1]",
                 isActive
-                  ? "bg-[#1E0E6B] text-white shadow-md shadow-[#1E0E6B]/20"
-                  : "border border-[#1E0E6B]/10 bg-white dark:bg-card text-muted-foreground hover:border-[#1E0E6B]/20 hover:text-foreground hover:bg-[#1E0E6B]/[0.02]"
+                  ? "bg-[#1E0E6B] text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-[#1E0E6B]/[0.02]"
               )}
+              style={
+                !isActive
+                  ? {
+                      background: "white",
+                      border: "2px solid transparent",
+                      backgroundImage: "linear-gradient(white, white), linear-gradient(135deg, #FF5A1F 0%, #FF7A00 45%, #FFB000 100%)",
+                      backgroundOrigin: "border-box",
+                      backgroundClip: "padding-box, border-box",
+                    }
+                  : undefined
+              }
               aria-pressed={isActive}
             >
               {cat}
@@ -199,55 +209,17 @@ function WasThisHelpful({ faqId }: { faqId: string }) {
   )
 }
 
-/* ═══════════════════════════════════ RELATED ═══════════════════════════════════ */
-
-function RelatedQuestions({
-  faq,
-  onFaqClick,
-}: {
-  faq: FaqItem
-  onFaqClick: (id: string) => void
-}) {
-  const related = useMemo(() => getRelatedFaqs(faq), [faq])
-  if (related.length === 0) return null
-
-  return (
-    <div className="mt-4 pt-4 border-t border-[#1E0E6B]/5">
-      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-        <HelpCircle className="h-3 w-3" /> Related questions
-      </p>
-      <div className="flex flex-col gap-1.5">
-        {related.map((rel) => (
-          <button
-            key={rel.id}
-            onClick={(e) => {
-              e.stopPropagation()
-              onFaqClick(rel.id)
-            }}
-            className="group flex items-center gap-1.5 text-left text-sm text-[#1E0E6B] hover:underline transition-colors"
-          >
-            <ArrowRight className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5" />
-            {rel.question}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 /* ═══════════════════════════════════ ACCORDION ═══════════════════════════════════ */
 
 function FaqAccordionItem({
   faq,
   isOpen,
   onToggle,
-  onFaqClick,
   searchQuery,
 }: {
   faq: FaqItem
   isOpen: boolean
   onToggle: () => void
-  onFaqClick: (id: string) => void
   searchQuery: string
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
@@ -299,7 +271,6 @@ function FaqAccordionItem({
           <p className="text-sm text-muted-foreground leading-relaxed max-w-[65ch]">
             {faq.answer}
           </p>
-          <RelatedQuestions faq={faq} onFaqClick={onFaqClick} />
           <WasThisHelpful faqId={faq.id} />
         </div>
       </div>
@@ -340,7 +311,6 @@ function CategorySection({
               faq={faq}
               isOpen={openId === faq.id}
               onToggle={() => onFaqClick(faq.id)}
-              onFaqClick={onFaqClick}
               searchQuery={searchQuery}
             />
           </div>
